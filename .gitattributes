@@ -1,0 +1,6 @@
+*.pgn !text !filter !merge !diff
+*.log !text !filter !merge !diff
+*.yaml !text !filter !merge !diff
+*.yml !text !filter !merge !diff
+*.json !text !filter !merge !diff
+*.png !text !filter !merge !diff
