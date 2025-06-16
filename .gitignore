@@ -1,4 +1,4 @@
-# gitignore file for ViperChessEngine
+# gitignore file for V7P3RChessEngine
 
 # General catch-all for do-not-commit files
 *.do-not-commit
@@ -7,9 +7,9 @@
 *.wip*
 
 # Project-specific resource files and directories
-*.viper_chess_engine
-*.viper_chess_engine.*
-.viper_chess_engine_project_files/
+*.v7p3r_chess_engine
+*.v7p3r_chess_engine.*
+.v7p3r_chess_engine_project_files/
 
 # Omit external engine files
 external_engines/

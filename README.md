@@ -1,4 +1,4 @@
-# Viper Chess Engine - Product README
+# V7P3R Chess Engine - Product README
 
 ## Features (Streamlit App)
 
@@ -42,10 +42,10 @@
 ## Significant File Overview
 
 - `chess_game.py` — Core chess game logic and rules
-- `viper_scoring_calculation.py` — AI scoring and evaluation logic
+- `v7p3r_scoring_calculation.py` — AI scoring and evaluation logic
 - `chess_metrics.py` — Engine performance metrics dashboard
 - `metrics_store.py` — Metrics database and logic
-- `viper.py` — Core chess engine logic
+- `v7p3r.py` — Core chess engine logic
 - `piece_square_tables.py` — Piece-square evaluation tables
 
 - `config.yaml` — Engine and AI configuration
