@@ -23,23 +23,23 @@ game_config:
   human_elo: 100                # Elo rating for human player, used for AI vs Human games to adapt Engine to human skill level               
 
 # Engine configurations
-# These configurations are for the AI engines used in the game, such as Viper and Stockfish.
+# These configurations are for the AI engines used in the game, such as V7P3R and Stockfish.
 white_ai_config:
   exclude_from_metrics: false   # TODO Implement flag to exclude this engines performance from metrics collection, useful for testing, non-competitive, or third party AIs who's performance you may not want to record for this set of games, should flag all outputs from this color and engine for this match date_timestamp as being excluded from metrics, these metrics should still be gathered as a fallback, and in the event I do want to use them so we just want to have a flag in the database for exclude from metrics. Then I can always toggle the flags per game record in the database if I want to see a game or vice versa.
-  engine: viper                 # Name of the engine being used (e.g., 'viper', 'stockfish'), this value is a direct reference to the engine configuration values below
+  engine: v7p3r                 # Name of the engine being used (e.g., 'v7p3r', 'stockfish'), this value is a direct reference to the engine configuration values below
 black_ai_config:
   exclude_from_metrics: true    # does the same as above but for this engines performance as this color           
-  engine: viper_opponent             # sets this colors engine type, same as above, important note that if the engines are set the same then only whites metrics will be collected to prevent negation in win loss metrics
+  engine: v7p3r_opponent             # sets this colors engine type, same as above, important note that if the engines are set the same then only whites metrics will be collected to prevent negation in win loss metrics
 
 # Performance settings
 performance:
   max_moves_evaluated: 50         # Limit moves evaluated per position, only if move ordering is on to prevent misses. Set to null for no limit.
   use_transposition_table: true   # Cache evaluations for faster processing
-  parallel_evaluation: false      # Enable parallel move evaluation (TODO: Implement in ViperEvaluationEngine)
-  async_mode: false               # Control via setting - Enables thread processing of eval functions (TODO: Implement in ViperEvaluationEngine)
-  thread_limit: 4                 # Enables an upper limit in thread count during async_mode (TODO: Implement in ViperEvaluationEngine)
+  parallel_evaluation: false      # Enable parallel move evaluation (TODO: Implement in V7P3REvaluationEngine)
+  async_mode: false               # Control via setting - Enables thread processing of eval functions (TODO: Implement in V7P3REvaluationEngine)
+  thread_limit: 4                 # Enables an upper limit in thread count during async_mode (TODO: Implement in V7P3REvaluationEngine)
   hash_size: 64                   # MB limit for hash tables
-  max_depth: 8                    # Max depth for iterative deepening search (ViperEvaluationEngine deepsearch)
+  max_depth: 8                    # Max depth for iterative deepening search (V7P3REvaluationEngine deepsearch)
 
 # Monitoring settings
 monitoring:
@@ -60,10 +60,10 @@ ai_types: [
   'simple_eval',                   # Simple evaluation function
   'random',                        # Random move selection
   'stockfish',                     # Stockfish engine integration
-  'viper_nn_ai_engine',            # Viper NN AI Engine (Supervised Learning - TODO: Implement)
-  'viper_genetic_ai_engine',       # Viper Genetic AI Engine (TODO: Implement)
-  'viper_reinforcement_ai_engine', # Viper Reinforcement AI Engine (TODO: Implement)
-  'viper_hybrid_nn_search_engine'  # Viper Hybrid NN-Search Engine (TODO: Implement)
+  'v7p3r_nn_ai_engine',            # V7P3R NN AI Engine (Supervised Learning - TODO: Implement)
+  'v7p3r_genetic_ai_engine',       # V7P3R Genetic AI Engine (TODO: Implement)
+  'v7p3r_reinforcement_ai_engine', # V7P3R Reinforcement AI Engine (TODO: Implement)
+  'v7p3r_hybrid_nn_search_engine'  # V7P3R Hybrid NN-Search Engine (TODO: Implement)
 ]
 
 # Starting positions
