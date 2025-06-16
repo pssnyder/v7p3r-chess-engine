@@ -15,7 +15,7 @@ import time # Import time for measuring move duration
 
 # Define the maximum frames per second for the game loop
 MAX_FPS = 60
-from viper import ViperEvaluationEngine # Corrected import for ViperEvaluationEngine
+from v7p3r import V7P3REvaluationEngine # Corrected import for V7P3REvaluationEngine
 from engine_utilities.stockfish_handler import StockfishHandler # Corrected import path and name
 from metrics.metrics_store import MetricsStore # Import MetricsStore (assuming it's in project root or accessible)
 
@@ -80,9 +80,9 @@ class ChessGame:
         with open("chess_game.yaml") as f:  # Updated config file name
             self.game_config_data = yaml.safe_load(f)
 
-        # Load Viper engine configuration
-        with open("viper.yaml") as f:
-            self.viper_config_data = yaml.safe_load(f)
+        # Load V7P3R engine configuration
+        with open("v7p3r.yaml") as f:
+            self.v7p3r_config_data = yaml.safe_load(f)
 
         # Load Stockfish handler configuration
         with open("engine_utilities/stockfish_handler.yaml") as f: # Updated path
@@ -108,7 +108,7 @@ class ChessGame:
         print("Initializing headless AI vs AI mode. No chess GUI will be shown.")
         print("Press Ctrl+C in the terminal to stop the game early.")
 
-        # Initialize piece fallback values (primarily for Viper's evaluation)
+        # Initialize piece fallback values (primarily for V7P3R's evaluation)
         self.piece_values = {
             chess.KING: 0,
             chess.QUEEN: 9,
@@ -128,9 +128,9 @@ class ChessGame:
         
         # Ensure 'ai_type' and 'engine' keys exist in AI configs
         self.white_ai_config['ai_type'] = self.white_ai_config.get('ai_type', 'random')
-        self.white_ai_config['engine'] = self.white_ai_config.get('engine', 'Viper')
+        self.white_ai_config['engine'] = self.white_ai_config.get('engine', 'V7P3R')
         self.black_ai_config['ai_type'] = self.black_ai_config.get('ai_type', 'random')
-        self.black_ai_config['engine'] = self.black_ai_config.get('engine', 'Viper')
+        self.black_ai_config['engine'] = self.black_ai_config.get('engine', 'V7P3R')
 
         self.white_ai_type = self.white_ai_config['ai_type']
         self.black_ai_type = self.black_ai_config['ai_type']
@@ -205,21 +205,21 @@ class ChessGame:
         stockfish_skill = self.stockfish_config_data.get('stockfish_config', {}).get('skill_level')
         debug_stockfish = self.stockfish_config_data.get('stockfish_config', {}).get('debug_stockfish', False)
 
-        # Viper engine general settings from viper.yaml
-        viper_ruleset = self.viper_config_data.get('viper', {}).get('ruleset', 'default_evaluation')
-        viper_depth = self.viper_config_data.get('viper', {}).get('depth', 3)
+        # V7P3R engine general settings from v7p3r.yaml
+        v7p3r_ruleset = self.v7p3r_config_data.get('v7p3r', {}).get('ruleset', 'default_evaluation')
+        v7p3r_depth = self.v7p3r_config_data.get('v7p3r', {}).get('depth', 3)
 
 
         # White Engine
-        if self.white_ai_config.get('engine', '').lower() == 'viper':
-            # Pass relevant parts of viper_config_data and game_config_data (white_ai_config)
-            viper_engine_config = {**self.viper_config_data.get('viper', {}), **self.white_ai_config}
-            self.white_engine = ViperEvaluationEngine(self.board, chess.WHITE, ai_config=viper_engine_config)
+        if self.white_ai_config.get('engine', '').lower() == 'v7p3r':
+            # Pass relevant parts of v7p3r_config_data and game_config_data (white_ai_config)
+            v7p3r_engine_config = {**self.v7p3r_config_data.get('v7p3r', {}), **self.white_ai_config}
+            self.white_engine = V7P3REvaluationEngine(self.board, chess.WHITE, ai_config=v7p3r_engine_config)
         elif self.white_ai_config.get('engine', '').lower() == 'stockfish':
             if not stockfish_path or not os.path.exists(stockfish_path):
-                self.logger.error(f"Stockfish executable not found at: {stockfish_path}. White AI defaulting to Viper.")
-                self.white_engine = ViperEvaluationEngine(self.board, chess.WHITE, ai_config=self.white_ai_config)
-                self.white_ai_config['engine'] = 'Viper' # Force engine name change
+                self.logger.error(f"Stockfish executable not found at: {stockfish_path}. White AI defaulting to V7P3R.")
+                self.white_engine = V7P3REvaluationEngine(self.board, chess.WHITE, ai_config=self.white_ai_config)
+                self.white_ai_config['engine'] = 'V7P3R' # Force engine name change
                 self.white_ai_config['ai_type'] = 'random' # Force type change as Stockfish type invalid
             else:
                 self.white_engine = StockfishHandler(
@@ -228,21 +228,21 @@ class ChessGame:
                     skill_level=stockfish_skill,
                     debug_mode=debug_stockfish
                 )
-        else: # Default to Viper if unknown engine
-            self.logger.warning(f"Unknown engine for White AI: {self.white_ai_config['engine']}. Defaulting to Viper.")
-            self.white_engine = ViperEvaluationEngine(self.board, chess.WHITE, ai_config=self.white_ai_config)
-            self.white_ai_config['engine'] = 'Viper'
+        else: # Default to V7P3R if unknown engine
+            self.logger.warning(f"Unknown engine for White AI: {self.white_ai_config['engine']}. Defaulting to V7P3R.")
+            self.white_engine = V7P3REvaluationEngine(self.board, chess.WHITE, ai_config=self.white_ai_config)
+            self.white_ai_config['engine'] = 'V7P3R'
 
         # Black Engine
-        if self.black_ai_config.get('engine', '').lower() == 'viper':
-            # Pass relevant parts of viper_config_data and game_config_data (black_ai_config)
-            viper_engine_config = {**self.viper_config_data.get('viper', {}), **self.black_ai_config}
-            self.black_engine = ViperEvaluationEngine(self.board, chess.BLACK, ai_config=viper_engine_config)
+        if self.black_ai_config.get('engine', '').lower() == 'v7p3r':
+            # Pass relevant parts of v7p3r_config_data and game_config_data (black_ai_config)
+            v7p3r_engine_config = {**self.v7p3r_config_data.get('v7p3r', {}), **self.black_ai_config}
+            self.black_engine = V7P3REvaluationEngine(self.board, chess.BLACK, ai_config=v7p3r_engine_config)
         elif self.black_ai_config.get('engine', '').lower() == 'stockfish':
             if not stockfish_path or not os.path.exists(stockfish_path):
-                self.logger.error(f"Stockfish executable not found at: {stockfish_path}. Black AI defaulting to Viper.")
-                self.black_engine = ViperEvaluationEngine(self.board, chess.BLACK, ai_config=self.black_ai_config)
-                self.black_ai_config['engine'] = 'Viper' # Force engine name change
+                self.logger.error(f"Stockfish executable not found at: {stockfish_path}. Black AI defaulting to V7P3R.")
+                self.black_engine = V7P3REvaluationEngine(self.board, chess.BLACK, ai_config=self.black_ai_config)
+                self.black_ai_config['engine'] = 'V7P3R' # Force engine name change
                 self.black_ai_config['ai_type'] = 'random' # Force type change as Stockfish type invalid
             else:
                 self.black_engine = StockfishHandler(
@@ -251,10 +251,10 @@ class ChessGame:
                     skill_level=stockfish_skill,
                     debug_mode=debug_stockfish
                 )
-        else: # Default to Viper if unknown engine
-            self.logger.warning(f"Unknown engine for Black AI: {self.black_ai_config['engine']}. Defaulting to Viper.")
-            self.black_engine = ViperEvaluationEngine(self.board, chess.BLACK, ai_config=self.black_ai_config)
-            self.black_ai_config['engine'] = 'Viper'
+        else: # Default to V7P3R if unknown engine
+            self.logger.warning(f"Unknown engine for Black AI: {self.black_ai_config['engine']}. Defaulting to V7P3R.")
+            self.black_engine = V7P3REvaluationEngine(self.board, chess.BLACK, ai_config=self.black_ai_config)
+            self.black_ai_config['engine'] = 'V7P3R'
 
         # Reset and configure engines for the new game board
         self.white_engine.reset(self.board)
@@ -263,8 +263,8 @@ class ChessGame:
     def set_headers(self):
         # Set initial PGN headers
         white_depth = self.white_ai_config.get('depth') # Depth might come from white_ai_config in chess_game.yaml
-        if white_depth is None and self.white_ai_config.get('engine','').lower() == 'viper': # Or from viper.yaml if Viper
-            white_depth = self.viper_config_data.get('viper', {}).get('depth', '#')
+        if white_depth is None and self.white_ai_config.get('engine','').lower() == 'v7p3r': # Or from v7p3r.yaml if V7P3R
+            white_depth = self.v7p3r_config_data.get('v7p3r', {}).get('depth', '#')
         elif white_depth is None and self.white_ai_config.get('engine','').lower() == 'stockfish': # Or from stockfish.yaml if Stockfish
              white_depth = self.stockfish_config_data.get('stockfish', {}).get('depth', '#') # Fallback for Stockfish depth
         else:
@@ -272,8 +272,8 @@ class ChessGame:
 
 
         black_depth = self.black_ai_config.get('depth') # Depth might come from black_ai_config in chess_game.yaml
-        if black_depth is None and self.black_ai_config.get('engine','').lower() == 'viper': # Or from viper.yaml if Viper
-            black_depth = self.viper_config_data.get('viper', {}).get('depth', '#')
+        if black_depth is None and self.black_ai_config.get('engine','').lower() == 'v7p3r': # Or from v7p3r.yaml if V7P3R
+            black_depth = self.v7p3r_config_data.get('v7p3r', {}).get('depth', '#')
         elif black_depth is None and self.black_ai_config.get('engine','').lower() == 'stockfish': # Or from stockfish.yaml if Stockfish
             black_depth = self.stockfish_config_data.get('stockfish', {}).get('depth', '#') # Fallback for Stockfish depth
         else:
@@ -468,7 +468,7 @@ class ChessGame:
         # Save a combined config for this specific game, including relevant parts of all loaded configs
         game_specific_config = {
             "game_settings": self.game_config_data,
-            "viper_settings": self.viper_config_data,
+            "v7p3r_settings": self.v7p3r_config_data,
             "stockfish_settings": self.stockfish_config_data,
             "white_actual_config": self.white_ai_config, # The specific config used by white AI for this game
             "black_actual_config": self.black_ai_config  # The specific config used by black AI for this game
@@ -483,8 +483,8 @@ class ChessGame:
         
         log_files_to_copy = []
         for f_name in os.listdir(eval_log_dir):
-            if f_name.startswith("viper_evaluation_engine.log") or \
-               f_name.startswith("viper_scoring_calculation.log") or \
+            if f_name.startswith("v7p3r_evaluation_engine.log") or \
+               f_name.startswith("v7p3r_scoring_calculation.log") or \
                f_name.startswith("chess_game.log") or \
                f_name.startswith("stockfish_handler.log"):
                 log_files_to_copy.append(os.path.join(eval_log_dir, f_name))
@@ -591,7 +591,7 @@ class ChessGame:
         move_start_time = time.perf_counter()
         
         nodes_before_search = 0
-        if isinstance(current_ai_engine, ViperEvaluationEngine): # Changed from EvaluationEngine
+        if isinstance(current_ai_engine, V7P3REvaluationEngine): # Changed from EvaluationEngine
             nodes_before_search = current_ai_engine.nodes_searched
 
         try:
@@ -603,7 +603,7 @@ class ChessGame:
             nodes_this_move = 0
             pv_line_info = ""
             
-            if isinstance(current_ai_engine, ViperEvaluationEngine): # Changed from EvaluationEngine
+            if isinstance(current_ai_engine, V7P3REvaluationEngine): # Changed from EvaluationEngine
                 nodes_after_search = current_ai_engine.nodes_searched
                 nodes_this_move = nodes_after_search - nodes_before_search
             elif isinstance(current_ai_engine, StockfishHandler):
