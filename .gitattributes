@@ -11,6 +11,8 @@
 *.jpg linguist-documentation
 *.code-workspace linguist-documentation
 __pycache__/ linguist-generated
+* linguist-vendored
+*.py linguist-vendored=false
 *.pgn !text !filter !merge !diff
 *.log !text !filter !merge !diff
 *.yaml !text !filter !merge !diff
