@@ -63,7 +63,7 @@ if not _init_status.get("initialized", False):
     _init_status["log_file_path"] = log_file_path
 
 class ChessGame:
-    def __init__(self, fen_position=None):
+    def __init__(self, fen_position=None, game_config=None, v7p3r_config=None, stockfish_config=None):
         if fen_position:
             if not isinstance(fen_position, str):
                 raise ValueError("FEN position must be a string")
@@ -77,16 +77,25 @@ class ChessGame:
             self.starting_position = None
 
         # Load game-specific configuration
-        with open("chess_game.yaml") as f:  # Updated config file name
-            self.game_config_data = yaml.safe_load(f)
+        if game_config:
+            self.game_config_data = game_config
+        else:
+            with open("chess_game.yaml") as f:  # Updated config file name
+                self.game_config_data = yaml.safe_load(f)
 
         # Load V7P3R engine configuration
-        with open("v7p3r.yaml") as f:
-            self.v7p3r_config_data = yaml.safe_load(f)
+        if v7p3r_config:
+            self.v7p3r_config_data = v7p3r_config
+        else:
+            with open("v7p3r.yaml") as f:
+                self.v7p3r_config_data = yaml.safe_load(f)
 
         # Load Stockfish handler configuration
-        with open("engine_utilities/stockfish_handler.yaml") as f: # Updated path
-            self.stockfish_config_data = yaml.safe_load(f)
+        if stockfish_config:
+            self.stockfish_config_data = stockfish_config
+        else:
+            with open("engine_utilities/stockfish_handler.yaml") as f: # Updated path
+                self.stockfish_config_data = yaml.safe_load(f)
             
         # Initialize Pygame (even in headless mode, for internal timing)
         pygame.init()
