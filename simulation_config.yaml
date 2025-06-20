@@ -5,6 +5,10 @@
 # Defaults to the number of CPU cores if not specified.
 max_concurrent_simulations: 4
 
+# Enable central data storage for simulation results
+# When enabled, results will be sent to the configured server in engine_utilities.yaml
+use_central_storage: true
+
 simulations:
   - name: "V7P3R (Aggressive) vs. Stockfish (Skill 5)"
     games_to_run: 2 # Number of games to play with this configuration

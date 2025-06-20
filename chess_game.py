@@ -65,7 +65,7 @@ if not _init_status.get("initialized", False):
     _init_status["log_file_path"] = log_file_path
 
 class ChessGame:
-    def __init__(self, fen_position=None, game_config=None, v7p3r_config=None, stockfish_config=None):
+    def __init__(self, fen_position=None, game_config=None, v7p3r_config=None, stockfish_config=None, data_collector=None):
         if fen_position:
             if not isinstance(fen_position, str):
                 raise ValueError("FEN position must be a string")
@@ -77,6 +77,9 @@ class ChessGame:
                 raise ValueError(f"Invalid FEN position: {e}")
         else:
             self.starting_position = None
+
+        # Data collector function for sending data to central storage
+        self.data_collector = data_collector
 
         # Load game-specific configuration
         if game_config:
@@ -446,7 +449,6 @@ class ChessGame:
         """Record evaluation score in PGN comments"""
         current_player_color = chess.WHITE if self.board.turn else chess.BLACK
         engine_for_eval = self.white_engine if current_player_color == chess.WHITE else self.black_engine
-        
         score = engine_for_eval.evaluate_position_from_perspective(self.board, current_player_color)
         self.current_eval = score
         
@@ -454,7 +456,7 @@ class ChessGame:
             self.game_node.comment = f"Eval: {score:.2f}"
         else:
             self.game.comment = f"Initial Eval: {score:.2f}"
-
+            
     def save_game_data(self):
         """Upload the game data to GCS and Firestore instead of local files."""
         timestamp = self.game_start_timestamp
@@ -465,33 +467,68 @@ class ChessGame:
         self.game.headers["Result"] = result
         self.game_node = self.game.end()
 
-        # --- Upload PGN to GCS ---
+        # --- Get PGN text ---
         buf = StringIO()
         exporter = chess.pgn.FileExporter(buf)
         self.game.accept(exporter)
         pgn_text = buf.getvalue()
-        pgn_url = self.cloud_store.upload_game_pgn(game_id, pgn_text)
-
-        # --- Upload metadata to Firestore ---
-        metadata = {
-            "result": result,
+        
+        # Prepare game result data
+        game_result_data = {
             "game_id": game_id,
-            "pgn_url": pgn_url,
             "timestamp": timestamp,
+            "winner": result,
+            "game_pgn": pgn_text,
             "white_player": self.game.headers.get("White"),
             "black_player": self.game.headers.get("Black"),
-            "rated": self.rated,
-            # include configs
-            "game_settings": self.game_config_data,
-            "v7p3r_settings": self.v7p3r_config_data,
-            "stockfish_settings": self.stockfish_config_data
+            "game_length": self.board.fullmove_number,
+            "white_engine_id": self.white_ai_config.get('engine_id', 'unknown'),
+            "black_engine_id": self.black_ai_config.get('engine_id', 'unknown'),
+            "white_engine_name": self.white_eval_engine,
+            "black_engine_name": self.black_eval_engine,
+            "white_engine_version": self.white_ai_config.get('engine_version', '1.0'),
+            "black_engine_version": self.black_ai_config.get('engine_version', '1.0'),
+            "white_ai_type": self.white_ai_type,
+            "black_ai_type": self.black_ai_type,
+            "exclude_white_from_metrics": self.exclude_white_performance,
+            "exclude_black_from_metrics": self.exclude_black_performance
         }
-        self.cloud_store.upload_game_metadata(game_id, metadata)
+        
+        # Save locally using metrics_store
+        self.metrics_store.add_game_result(**game_result_data)
+        
+        # Use the data collector if available
+        if self.data_collector:
+            self.data_collector('game_result', game_result_data)
+        
+        # Upload to cloud storage if available
+        try:
+            pgn_url = self.cloud_store.upload_game_pgn(game_id, pgn_text)
+            
+            # --- Upload metadata to Firestore ---
+            metadata = {
+                "result": result,
+                "game_id": game_id,
+                "pgn_url": pgn_url,
+                "timestamp": timestamp,
+                "white_player": self.game.headers.get("White"),
+                "black_player": self.game.headers.get("Black"),
+                "rated": self.rated,
+                # include configs
+                "game_settings": self.game_config_data,
+                "v7p3r_settings": self.v7p3r_config_data,
+                "stockfish_settings": self.stockfish_config_data
+            }
+            self.cloud_store.upload_game_metadata(game_id, metadata)
 
-        # Optionally upload move metrics to Firestore
-        # If metrics_store implements get_move_metrics(game_id)
-        if self._move_metrics_batch:
-            self.cloud_store.upload_move_metrics(game_id, self._move_metrics_batch)
+            # Optionally upload move metrics to Firestore
+            if self._move_metrics_batch:
+                self.cloud_store.upload_move_metrics(game_id, self._move_metrics_batch)
+        except Exception as e:
+            if self.logger:
+                self.logger.error(f"Failed to upload game data to cloud: {e}")
+            # If cloud upload fails, save locally
+            self.quick_save_pgn(f"games/{game_id}.pgn")
 
     def quick_save_pgn(self, filename):
         """Deprecated in cloud mode."""
@@ -597,10 +634,14 @@ class ChessGame:
                         'depth': current_ai_config.get('depth', 0),
                         'nodes_searched': nodes_this_move,
                         'time_taken': self.move_duration,
-                        'pv_line': pv_line_info
-                    }
+                        'pv_line': pv_line_info                    }
                     self.metrics_store.add_move_metric(**metric)
                     self._move_metrics_batch.append(metric)
+                    
+                    # Use data collector if available
+                    if self.data_collector:
+                        self.data_collector('move_metric', metric)
+                        
                     if self.logging_enabled and self.logger:
                         self.logger.debug(f"Move metrics for {ai_move.uci()} added to MetricsStore.")
 
