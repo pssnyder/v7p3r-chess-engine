@@ -449,7 +449,7 @@ class ChessGame:
         """Record evaluation score in PGN comments"""
         current_player_color = chess.WHITE if self.board.turn else chess.BLACK
         engine_for_eval = self.white_engine if current_player_color == chess.WHITE else self.black_engine
-          score = engine_for_eval.evaluate_position_from_perspective(self.board, current_player_color)
+        score = engine_for_eval.evaluate_position_from_perspective(self.board, current_player_color)
         self.current_eval = score
         
         if self.game_node.move:
