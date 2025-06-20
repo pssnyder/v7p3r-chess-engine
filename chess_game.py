@@ -12,12 +12,14 @@ import logging
 import math
 import socket
 import time # Import time for measuring move duration
+from io import StringIO
 
 # Define the maximum frames per second for the game loop
 MAX_FPS = 60
 from v7p3r import V7P3REvaluationEngine # Corrected import for V7P3REvaluationEngine
 from engine_utilities.stockfish_handler import StockfishHandler # Corrected import path and name
 from metrics.metrics_store import MetricsStore # Import MetricsStore (assuming it's in project root or accessible)
+from engine_utilities.cloud_store import CloudStore
 
 # Resource path config for distro
 def resource_path(relative_path):
@@ -63,7 +65,7 @@ if not _init_status.get("initialized", False):
     _init_status["log_file_path"] = log_file_path
 
 class ChessGame:
-    def __init__(self, fen_position=None):
+    def __init__(self, fen_position=None, game_config=None, v7p3r_config=None, stockfish_config=None):
         if fen_position:
             if not isinstance(fen_position, str):
                 raise ValueError("FEN position must be a string")
@@ -77,16 +79,25 @@ class ChessGame:
             self.starting_position = None
 
         # Load game-specific configuration
-        with open("chess_game.yaml") as f:  # Updated config file name
-            self.game_config_data = yaml.safe_load(f)
+        if game_config:
+            self.game_config_data = game_config
+        else:
+            with open("chess_game.yaml") as f:  # Updated config file name
+                self.game_config_data = yaml.safe_load(f)
 
         # Load V7P3R engine configuration
-        with open("v7p3r.yaml") as f:
-            self.v7p3r_config_data = yaml.safe_load(f)
+        if v7p3r_config:
+            self.v7p3r_config_data = v7p3r_config
+        else:
+            with open("v7p3r.yaml") as f:
+                self.v7p3r_config_data = yaml.safe_load(f)
 
         # Load Stockfish handler configuration
-        with open("engine_utilities/stockfish_handler.yaml") as f: # Updated path
-            self.stockfish_config_data = yaml.safe_load(f)
+        if stockfish_config:
+            self.stockfish_config_data = stockfish_config
+        else:
+            with open("engine_utilities/stockfish_handler.yaml") as f: # Updated path
+                self.stockfish_config_data = yaml.safe_load(f)
             
         # Initialize Pygame (even in headless mode, for internal timing)
         pygame.init()
@@ -150,6 +161,7 @@ class ChessGame:
         
         # Initialize MetricsStore
         self.metrics_store = MetricsStore()
+        self._move_metrics_batch = []  # in-memory store of move metrics
         self.game_start_timestamp = get_timestamp()
         self.current_game_db_id = f"eval_game_{self.game_start_timestamp}.pgn"
 
@@ -167,6 +179,8 @@ class ChessGame:
         # Add rated flag from config
         self.rated = self.game_config_data.get('game_config', {}).get('rated', True)
 
+        # Initialize Cloud storage backend
+        self.cloud_store = CloudStore()
     # ================================
     # ====== GAME CONFIGURATION ======
     
@@ -442,99 +456,46 @@ class ChessGame:
             self.game.comment = f"Initial Eval: {score:.2f}"
 
     def save_game_data(self):
-        """Save the game data to files in the 'games' directory and to MetricsStore"""
-        games_dir = "games"
-        os.makedirs(games_dir, exist_ok=True)
-
+        """Upload the game data to GCS and Firestore instead of local files."""
         timestamp = self.game_start_timestamp
+        game_id = f"eval_game_{timestamp}"
 
-        # --- Ensure the result is written to the PGN file ---
-        # Always use get_board_result to get a valid string
+        # Finalize game and headers
         result = self.get_board_result()
         self.game.headers["Result"] = result
         self.game_node = self.game.end()
 
-        pgn_filepath = f"games/eval_game_{timestamp}.pgn"
-        with open(pgn_filepath, "w") as f:
-            exporter = chess.pgn.FileExporter(f)
-            self.game.accept(exporter)
-            # Always append the result string at the end for compatibility
-            if result != "*":
-                f.write(f"\n{result}\n")
-        if self.logging_enabled and self.logger:
-            self.logger.info(f"Game PGN saved to {pgn_filepath}")
+        # --- Upload PGN to GCS ---
+        buf = StringIO()
+        exporter = chess.pgn.FileExporter(buf)
+        self.game.accept(exporter)
+        pgn_text = buf.getvalue()
+        pgn_url = self.cloud_store.upload_game_pgn(game_id, pgn_text)
 
-        config_filepath = f"games/eval_game_{timestamp}.yaml"
-        # Save a combined config for this specific game, including relevant parts of all loaded configs
-        game_specific_config = {
+        # --- Upload metadata to Firestore ---
+        metadata = {
+            "result": result,
+            "game_id": game_id,
+            "pgn_url": pgn_url,
+            "timestamp": timestamp,
+            "white_player": self.game.headers.get("White"),
+            "black_player": self.game.headers.get("Black"),
+            "rated": self.rated,
+            # include configs
             "game_settings": self.game_config_data,
             "v7p3r_settings": self.v7p3r_config_data,
-            "stockfish_settings": self.stockfish_config_data,
-            "white_actual_config": self.white_ai_config, # The specific config used by white AI for this game
-            "black_actual_config": self.black_ai_config  # The specific config used by black AI for this game
+            "stockfish_settings": self.stockfish_config_data
         }
-        with open(config_filepath, "w") as f:
-            yaml.dump(game_specific_config, f)
-        if self.logging_enabled and self.logger:
-            self.logger.info(f"Game-specific combined configuration saved to {config_filepath}")
+        self.cloud_store.upload_game_metadata(game_id, metadata)
 
-        log_filepath = f"games/eval_game_{timestamp}.log"
-        eval_log_dir = "logging"
-        
-        log_files_to_copy = []
-        for f_name in os.listdir(eval_log_dir):
-            if f_name.startswith("v7p3r_evaluation_engine.log") or \
-               f_name.startswith("v7p3r_scoring_calculation.log") or \
-               f_name.startswith("chess_game.log") or \
-               f_name.startswith("stockfish_handler.log"):
-                log_files_to_copy.append(os.path.join(eval_log_dir, f_name))
-        log_files_to_copy.sort()
-        
-        with open(log_filepath, "w") as outfile:
-            for log_file in log_files_to_copy:
-                try:
-                    with open(log_file, "r") as infile:
-                        outfile.write(f"\n--- {os.path.basename(log_file)} ---\n")
-                        outfile.write(infile.read())
-                except Exception as e:
-                    if self.logging_enabled and self.logger:
-                        self.logger.warning(f"Could not read {log_file}: {e}")
-        if self.logging_enabled and self.logger:
-            self.logger.info(f"Combined logs saved to {log_filepath}")
-
-        if self.rated:
-            game_id = self.current_game_db_id
-            winner = self.board.result()
-            white_player = self.game.headers.get("White", "Unknown")
-            black_player = self.game.headers.get("Black", "Unknown")
-            game_length = self.board.fullmove_number
-
-            self.metrics_store.add_game_result(
-                game_id=game_id,
-                timestamp=timestamp,
-                winner=winner,
-                game_pgn=str(self.game),
-                white_player=white_player,
-                black_player=black_player,
-                game_length=game_length,
-                white_ai_config=self.white_ai_config,
-                black_ai_config=self.black_ai_config
-            )
-            if self.logging_enabled and self.logger:
-                self.logger.info(f"Game result for {game_id} stored in MetricsStore.")
+        # Optionally upload move metrics to Firestore
+        # If metrics_store implements get_move_metrics(game_id)
+        if self._move_metrics_batch:
+            self.cloud_store.upload_move_metrics(game_id, self._move_metrics_batch)
 
     def quick_save_pgn(self, filename):
-        """Quick save the current game to a PGN file"""
-        # Inject or update Result header so the PGN shows the game outcome
-        if self.board.is_game_over():
-            self.game.headers["Result"] = self.get_board_result()
-            self.game_node = self.game.end()
-        else:
-            self.game.headers["Result"] = "*"
-        
-        with open(filename, "w") as f:
-            exporter = chess.pgn.FileExporter(f)
-            self.game.accept(exporter)
+        """Deprecated in cloud mode."""
+        pass
 
     def import_fen(self, fen_string):
         """Import a position from FEN notation"""
@@ -625,19 +586,21 @@ class ChessGame:
                 self.last_ai_move = ai_move
 
                 if self.rated:
-                    self.metrics_store.add_move_metric(
-                        game_id=self.current_game_db_id,
-                        move_number=move_number,
-                        player_color='w' if current_player_color == chess.WHITE else 'b',
-                        move_uci=ai_move.uci(),
-                        fen_before=fen_before_move,
-                        evaluation=self.current_eval,
-                        ai_type=current_ai_config.get('ai_type', 'unknown'),
-                        depth=current_ai_config.get('depth', 0),
-                        nodes_searched=nodes_this_move,
-                        time_taken=self.move_duration,
-                        pv_line=pv_line_info
-                    )
+                    metric = {
+                        'game_id': self.current_game_db_id,
+                        'move_number': move_number,
+                        'player_color': 'w' if current_player_color == chess.WHITE else 'b',
+                        'move_uci': ai_move.uci(),
+                        'fen_before': fen_before_move,
+                        'evaluation': self.current_eval,
+                        'ai_type': current_ai_config.get('ai_type', 'unknown'),
+                        'depth': current_ai_config.get('depth', 0),
+                        'nodes_searched': nodes_this_move,
+                        'time_taken': self.move_duration,
+                        'pv_line': pv_line_info
+                    }
+                    self.metrics_store.add_move_metric(**metric)
+                    self._move_metrics_batch.append(metric)
                     if self.logging_enabled and self.logger:
                         self.logger.debug(f"Move metrics for {ai_move.uci()} added to MetricsStore.")
 
