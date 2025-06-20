@@ -1,0 +1,41 @@
+# simulation_config.yaml
+# Main configuration for the Game Simulation Manager
+
+# Maximum number of simulations to run in parallel.
+# Defaults to the number of CPU cores if not specified.
+max_concurrent_simulations: 4
+
+simulations:
+  - name: "V7P3R (Aggressive) vs. Stockfish (Skill 5)"
+    games_to_run: 2 # Number of games to play with this configuration
+    chess_game:
+      white_ai_config:
+        engine: 'v7p3r'
+        ai_type: 'deepsearch'
+      black_ai_config:
+        engine: 'stockfish'
+        # Stockfish settings are inside stockfish_handler.yaml, but can be overridden
+    v7p3r:
+      v7p3r: # Corresponds to the engine name key in v7p3r.yaml
+        ruleset: 'aggressive_evaluation'
+        depth: 4
+    stockfish_handler:
+      stockfish_config:
+        skill_level: 5
+
+  - name: "V7P3R (Conservative) vs. V7P3R (Aggressive)"
+    games_to_run: 2
+    chess_game:
+      white_ai_config:
+        engine: 'v7p3r'
+        ai_type: 'deepsearch'
+        ruleset: 'conservative_evaluation' # Can also be specified here
+      black_ai_config:
+        engine: 'v7p3r'
+        ai_type: 'deepsearch'
+        ruleset: 'aggressive_evaluation'
+    v7p3r:
+      # No overrides needed if we specify everything in chess_game config's ai_config
+      # But we can override base engine parameters if we want
+      v7p3r:
+        depth: 3
