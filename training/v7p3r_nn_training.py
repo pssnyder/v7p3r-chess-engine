@@ -1,4 +1,5 @@
-from chess_core import *
+import chess
+from v7p3r_nn_engine.v7p3r_nn import ChessDataset, ChessAI
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -35,6 +36,10 @@ class MoveEncoder:
                     self.move_to_index[f"{chess.square_name(from_sq)}{chess.square_name(to_sq)}{promo}"] = idx
                     self.index_to_move[idx] = f"{chess.square_name(from_sq)}{chess.square_name(to_sq)}{promo}"
                     idx += 1
+
+    def encode_move(self, move):
+        """Encodes a move into its corresponding index."""
+        return self.move_to_index.get(move, -1)  # Return -1 for unknown moves
 
 # Calculate move weights based on frequency
 def calculate_move_weights(moves_list, num_classes):
