@@ -12,7 +12,7 @@ from functools import partial
 from chess_game import ChessGame
 from copy import deepcopy
 from engine_utilities.engine_db_manager import EngineDBClient
-from engine_utilities.adaptive_elo_simulator import AdaptiveEloSimulator
+from engine_utilities.adaptive_elo_finder import AdaptiveEloSimulator
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
