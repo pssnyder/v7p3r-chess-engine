@@ -21,8 +21,7 @@
     ```bash
     pip install -r requirements.txt
     ```
-2. Run the web app:
-    ```bash
+2. Run the web app:    ```bash
     streamlit run streamlit_app.py
     ```
 
@@ -36,6 +35,27 @@
     ```bash
     python metrics/chess_metrics.py
     ```
+
+### Stockfish ELO Finder
+
+Determine the ELO strength of your V7P3R configuration:
+
+1. Quick run with default settings:
+   ```bash
+   python run_elo_finder.py
+   ```
+
+2. Customize parameters:
+   ```bash
+   python run_elo_finder.py --initial-elo 1500 --v7p3r-depth 4 --v7p3r-ruleset aggressive_evaluation
+   ```
+
+3. For more options and advanced usage:
+   ```bash
+   python run_elo_finder.py --help
+   ```
+
+See [TEST_GUIDE.md](TEST_GUIDE.md) for detailed instructions and interpretation of ELO results.
 
 ---
 
