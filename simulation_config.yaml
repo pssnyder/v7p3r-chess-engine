@@ -9,6 +9,21 @@ max_concurrent_simulations: 4
 # When enabled, results will be sent to the configured server in engine_utilities.yaml
 use_central_storage: true
 
+# Predefined simulation types
+simulation_templates:
+  - id: "stockfish_elo_finder"
+    name: "Stockfish ELO Finder"
+    description: "Determines the ELO rating of the V7P3R engine by playing adaptive matches against Stockfish"
+    type: "adaptive_elo"
+    config:
+      initial_elo: 1500
+      min_elo: 800
+      max_elo: 3200
+      adjustment_factor: 1.0
+      convergence_threshold: 0.05
+      min_games_for_convergence: 20
+      max_games: 100
+
 simulations:
   - name: "V7P3R (Aggressive) vs. Stockfish (Skill 5)"
     games_to_run: 2 # Number of games to play with this configuration
