@@ -18,20 +18,27 @@
 ### Web Demo (Streamlit)
 
 1. Install dependencies:
+
     ```bash
     pip install -r requirements.txt
     ```
-2. Run the web app:    ```bash
+
+2. Run the web app:
+
+    ```bash
     streamlit run streamlit_app.py
     ```
 
 ### Local Metrics Dashboard
 
 1. Install dependencies:
+
     ```bash
     pip install -r requirements.txt
     ```
+
 2. Run the dashboard:
+
     ```bash
     python metrics/chess_metrics.py
     ```
@@ -41,16 +48,19 @@
 Determine the ELO strength of your V7P3R configuration:
 
 1. Quick run with default settings:
+
    ```bash
    python run_elo_finder.py
    ```
 
 2. Customize parameters:
+
    ```bash
    python run_elo_finder.py --initial-elo 1500 --v7p3r-depth 4 --v7p3r-ruleset aggressive_evaluation
    ```
 
 3. For more options and advanced usage:
+
    ```bash
    python run_elo_finder.py --help
    ```
@@ -78,9 +88,11 @@ See [TEST_GUIDE.md](TEST_GUIDE.md) for detailed instructions and interpretation 
 
 - Each main `.py` file has a corresponding `[module]_testing.py` in `testing/`.
 - Run individual tests:
+
     ```bash
     python testing/metrics_store_testing.py
     ```
+
 - Or run a suite (see `testing/launch_testing_suite.py` and `testing/testing.yaml`).
 
 ---
@@ -117,16 +129,19 @@ Open source — feel free to use and modify!
 The V7P3R Chess Engine includes a robust ETL (Extract, Transform, Load) system for analytics:
 
 1. Run the ETL process to transform raw game data into analytics-ready format:
+
     ```bash
     python -m engine_utilities.etl_processor
     ```
-   
+
 2. Set up scheduled ETL jobs:
+
     ```bash
     python -m engine_utilities.etl_scheduler --setup-local
     ```
-   
+
 3. Monitor ETL performance:
+
     ```bash
     python -m engine_utilities.etl_monitor --job-history
     ```

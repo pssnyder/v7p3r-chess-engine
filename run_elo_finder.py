@@ -9,7 +9,7 @@ import argparse
 import logging
 import yaml
 import os
-from engine_utilities.adaptive_elo_simulator import AdaptiveEloSimulator
+from engine_utilities.adaptive_elo_finder import AdaptiveEloSimulator
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
