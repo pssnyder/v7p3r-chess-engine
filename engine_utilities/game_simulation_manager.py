@@ -12,6 +12,7 @@ from functools import partial
 from chess_game import ChessGame
 from copy import deepcopy
 from engine_utilities.engine_db_manager import EngineDBClient
+from engine_utilities.adaptive_elo_simulator import AdaptiveEloSimulator
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -156,12 +157,22 @@ class GameSimulationManager:
             self.max_concurrent_simulations = int(max_sim)
             
         # Check if central data storage should be used
-        self.use_central_storage = self.config.get('use_central_storage', False)
+        self.use_central_storage = bool(self.config.get('use_central_storage', False))
         if self.use_central_storage:
             logger.info("Central data storage is enabled - simulation results will be sent to configured server")
         else:
             logger.info("Central data storage is disabled - simulation results will be stored locally only")
-
+            
+        # Load simulation templates
+        self.templates = self.config.get('simulation_templates', [])
+    
+    def get_template_by_id(self, template_id):
+        """Get a simulation template by its ID."""
+        for template in self.templates:
+            if template.get('id') == template_id:
+                return template
+        return None
+        
     def run_simulations(self):
         """
         Launches and manages game simulations based on the configuration.
@@ -182,12 +193,53 @@ class GameSimulationManager:
         with open(f"games/{simulation_id}_metadata.yaml", 'w') as f:
             yaml.dump(simulation_metadata, f)
         
+        # Process adaptive ELO simulations first (these run sequentially)
+        adaptive_results = []
+        for sim_details in self.config.get('simulations', []):
+            # Check if this is a template-based simulation
+            if 'template' in sim_details:
+                template_id = sim_details['template']
+                template = self.get_template_by_id(template_id)
+                
+                if template and template.get('type') == 'adaptive_elo':
+                    logger.info(f"Running adaptive ELO simulation from template: {template_id}")
+                    
+                    # Merge template config with simulation overrides
+                    template_config = template.get('config', {})
+                    sim_config = {**template_config, **sim_details.get('config', {})}
+                    
+                    # Set up the simulator
+                    simulator = AdaptiveEloSimulator(
+                        initial_elo=sim_config.get('initial_elo', 1500),
+                        min_elo=sim_config.get('min_elo', 800),
+                        max_elo=sim_config.get('max_elo', 3200),
+                        adjustment_factor=sim_config.get('adjustment_factor', 1.0),
+                        convergence_threshold=sim_config.get('convergence_threshold', 0.05),
+                        min_games_for_convergence=sim_config.get('min_games_for_convergence', 20),
+                        max_games=sim_config.get('max_games', 100),
+                        v7p3r_config=sim_details.get('v7p3r', {}),
+                        game_config=sim_details.get('chess_game', {}),
+                        use_central_storage=self.use_central_storage
+                    )
+                    
+                    # Run the simulation
+                    result = simulator.run_simulation()
+                    adaptive_results.append(result)
+                    continue
+            
         # Use spawn context for better cross-platform compatibility
         ctx = multiprocessing.get_context('spawn')
         pool = ctx.Pool(processes=self.max_concurrent_simulations)
         
         tasks = []
         for sim_details in self.config.get('simulations', []):
+            # Skip template-based adaptive simulations (already processed)
+            if 'template' in sim_details:
+                template_id = sim_details['template']
+                template = self.get_template_by_id(template_id)
+                if template and template.get('type') == 'adaptive_elo':
+                    continue
+                
             name = sim_details.get('name', 'Unnamed Simulation')
             num_games = sim_details.get('games_to_run', 1)
             
