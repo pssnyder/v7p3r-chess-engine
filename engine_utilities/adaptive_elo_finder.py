@@ -1,4 +1,4 @@
-# engine_utilities/adaptive_elo_simulator.py
+# engine_utilities/adaptive_elo_finder.py
 """
 Adaptive ELO Simulator for V7P3R Chess Engine
 

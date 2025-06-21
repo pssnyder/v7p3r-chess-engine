@@ -8,8 +8,7 @@ import numpy as np
 import yaml
 import pickle
 import os
-from chess_core import ChessDataset, ChessAI
-from genetic_algorithm import GeneticAlgorithm
+from v7p3r_ga_engine.v7p3r_ga import ChessDataset, GeneticAlgorithm, ChessAI
 
 torch.backends.cudnn.benchmark = True  # Enable CuDNN auto-tuner
 
