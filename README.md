@@ -91,3 +91,24 @@
 ## License
 
 Open source — feel free to use and modify!
+
+### Analytics ETL System
+
+The V7P3R Chess Engine includes a robust ETL (Extract, Transform, Load) system for analytics:
+
+1. Run the ETL process to transform raw game data into analytics-ready format:
+    ```bash
+    python -m engine_utilities.etl_processor
+    ```
+   
+2. Set up scheduled ETL jobs:
+    ```bash
+    python -m engine_utilities.etl_scheduler --setup-local
+    ```
+   
+3. Monitor ETL performance:
+    ```bash
+    python -m engine_utilities.etl_monitor --job-history
+    ```
+
+See [ETL System Documentation](docs/etl_system.md) for details on the analytics architecture.

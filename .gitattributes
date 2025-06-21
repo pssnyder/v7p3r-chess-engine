@@ -11,3 +11,5 @@
 *.jpg linguist-documentation
 *.code-workspace linguist-documentation
 __pycache__/ linguist-generated
+* linguist-vendored
+*.py linguist-vendored=false
