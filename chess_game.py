@@ -16,7 +16,7 @@ from io import StringIO
 
 # Define the maximum frames per second for the game loop
 MAX_FPS = 60
-from v7p3r import V7P3REvaluationEngine # Corrected import for V7P3REvaluationEngine
+from v7p3r_engine.v7p3r import V7P3REvaluationEngine # Corrected import for V7P3REvaluationEngine
 from engine_utilities.stockfish_handler import StockfishHandler # Corrected import path and name
 from metrics.metrics_store import MetricsStore # Import MetricsStore (assuming it's in project root or accessible)
 from engine_utilities.cloud_store import CloudStore

@@ -7,7 +7,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-from v7p3r import V7P3REvaluationEngine
+from v7p3r_engine.v7p3r import V7P3REvaluationEngine
 
 def get_sorted_legal_moves(board, engine, player):
     """

@@ -1,6 +1,6 @@
 # v7p3r_nn_engine/v7p3r_nn.py
 # V7P3R Chess Engine Neural Network Module
-
+# TODO: refactor this code pulled from another project to fit the goals set out in the enhancement issue #82 [V7P3R AI Models] Phase 1: Neural Network Engine: Build and train v7p3r_nn.py for experience-based learning
 import os
 import chess
 import chess.pgn
