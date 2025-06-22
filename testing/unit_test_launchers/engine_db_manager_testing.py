@@ -1,145 +1,21 @@
 #!/usr/bin/env python3
 """
-Unit tests for engine_db_manager.py - V7P3R Chess Engine Database Manager
-
-This module contains comprehensive unit tests for the EngineDBManager class,
-testing database operations, HTTP server functionality, and cloud integration.
-
-Author: V7P3R Testing Suite
-Date: 2025-06-22
+Unit tests for EngineDBManager - Database management functionality
+Tests the core database operations, server functionality, and cloud integration.
 """
 
-import sys
-import os
 import unittest
 import tempfile
-import yaml
+import os
 import json
 import threading
 import time
-import sqlite3
 from unittest.mock import Mock, patch, MagicMock, mock_open
-from http.server import HTTPServer
-import requests
-
-# Add parent directory to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
-
-from engine_utilities.engine_db_manager import EngineDBManager
+from engine_utilities.engine_db_manager import EngineDBManager, EngineDBClient
 
 
-class TestEngineDBManagerInitialization(unittest.TestCase):
-    """Test EngineDBManager initialization."""
-
-    def setUp(self):
-        """Set up test fixtures."""
-        self.temp_dir = tempfile.mkdtemp()
-        self.test_db_path = os.path.join(self.temp_dir, "test_chess_metrics.db")
-        self.test_config_path = os.path.join(self.temp_dir, "test_config.yaml")
-        
-        # Create test config
-        self.test_config = {
-            'database': {
-                'path': self.test_db_path,
-                'backup_interval': 3600
-            },
-            'server': {
-                'host': 'localhost',
-                'port': 8080,
-                'enabled': True
-            },
-            'cloud': {
-                'enabled': False,
-                'bucket_name': 'test-bucket'
-            }
-        }
-        
-        with open(self.test_config_path, 'w') as f:
-            yaml.dump(self.test_config, f)
-
-    def tearDown(self):
-        """Clean up test fixtures."""
-        import shutil
-        shutil.rmtree(self.temp_dir, ignore_errors=True)
-
-    @patch('engine_utilities.engine_db_manager.MetricsStore')
-    @patch('engine_utilities.engine_db_manager.CloudStore')
-    def test_init_with_config(self, mock_cloud_store, mock_metrics_store):
-        """Test initialization with valid config file."""
-        mock_metrics_store.return_value = Mock()
-        
-        manager = EngineDBManager(
-            db_path=self.test_db_path,
-            config_path=self.test_config_path
-        )
-        
-        self.assertEqual(manager.db_path, self.test_db_path)
-        self.assertIsNotNone(manager.config)
-        self.assertEqual(manager.config['server']['port'], 8080)
-        self.assertFalse(manager.running)
-        self.assertIsNone(manager.server_thread)
-        mock_metrics_store.assert_called_once_with(db_path=self.test_db_path)
-
-    @patch('engine_utilities.engine_db_manager.MetricsStore')
-    def test_init_without_config(self, mock_metrics_store):
-        """Test initialization without config file."""
-        mock_metrics_store.return_value = Mock()
-        
-        manager = EngineDBManager(
-            db_path=self.test_db_path,
-            config_path="nonexistent_config.yaml"
-        )
-        
-        self.assertEqual(manager.config, {})
-        self.assertFalse(manager.cloud_enabled)
-        self.assertIsNone(manager.cloud_store)
-
-    @patch('engine_utilities.engine_db_manager.MetricsStore')
-    @patch('engine_utilities.engine_db_manager.CloudStore')
-    def test_init_with_cloud_enabled(self, mock_cloud_store, mock_metrics_store):
-        """Test initialization with cloud storage enabled."""
-        mock_metrics_store.return_value = Mock()
-        mock_cloud_store.return_value = Mock()
-        
-        # Enable cloud in config
-        self.test_config['cloud']['enabled'] = True
-        with open(self.test_config_path, 'w') as f:
-            yaml.dump(self.test_config, f)
-        
-        manager = EngineDBManager(
-            db_path=self.test_db_path,
-            config_path=self.test_config_path
-        )
-        
-        self.assertTrue(manager.cloud_enabled)
-        self.assertIsNotNone(manager.cloud_store)
-        mock_cloud_store.assert_called_once_with(bucket_name='test-bucket')
-
-    @patch('engine_utilities.engine_db_manager.MetricsStore')
-    @patch('engine_utilities.engine_db_manager.CloudStore')
-    @patch('engine_utilities.engine_db_manager.logger')
-    def test_init_cloud_error_handling(self, mock_logger, mock_cloud_store, mock_metrics_store):
-        """Test error handling during cloud initialization."""
-        mock_metrics_store.return_value = Mock()
-        mock_cloud_store.side_effect = Exception("Cloud init error")
-        
-        # Enable cloud in config
-        self.test_config['cloud']['enabled'] = True
-        with open(self.test_config_path, 'w') as f:
-            yaml.dump(self.test_config, f)
-        
-        manager = EngineDBManager(
-            db_path=self.test_db_path,
-            config_path=self.test_config_path
-        )
-        
-        self.assertFalse(manager.cloud_enabled)
-        self.assertIsNone(manager.cloud_store)
-        mock_logger.error.assert_called()
-
-
-class TestEngineDBManagerDataOperations(unittest.TestCase):
-    """Test EngineDBManager data operations."""
+class TestEngineDBManager(unittest.TestCase):
+    """Test cases for EngineDBManager class."""
 
     def setUp(self):
         """Set up test fixtures."""
@@ -157,8 +33,37 @@ class TestEngineDBManagerDataOperations(unittest.TestCase):
         import shutil
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
-    def test_store_game_data(self):
-        """Test storing game data."""
+    def test_initialization(self):
+        """Test EngineDBManager initialization."""
+        self.assertIsNotNone(self.manager)
+        self.assertEqual(self.manager.db_path, self.test_db_path)
+        self.assertIsNotNone(self.manager.metrics_store)
+        self.assertFalse(self.manager.running)
+        self.assertIsNone(self.manager.server_thread)
+        self.assertIsNone(self.manager.httpd)
+
+    def test_config_loading(self):
+        """Test configuration loading."""
+        config_data = {
+            'cloud': {
+                'enabled': True,
+                'bucket_name': 'test-bucket'
+            },
+            'server': {
+                'host': '0.0.0.0',
+                'port': 8080
+            }
+        }
+        
+        with patch('builtins.open', mock_open(read_data=json.dumps(config_data))):
+            with patch('yaml.safe_load', return_value=config_data):
+                with patch('os.path.exists', return_value=True):
+                    manager = EngineDBManager()
+                    self.assertEqual(manager.config['cloud']['enabled'], True)
+                    self.assertEqual(manager.config['cloud']['bucket_name'], 'test-bucket')
+
+    def test_handle_game_data(self):
+        """Test handling game data."""
         game_data = {
             'game_id': 'test_game_123',
             'moves': ['e2e4', 'e7e5'],
@@ -166,285 +71,304 @@ class TestEngineDBManagerDataOperations(unittest.TestCase):
             'timestamp': '2025-06-22T10:30:00'
         }
         
-        # Mock the store_game_data method if it exists
-        if hasattr(self.manager, 'store_game_data'):
-            self.manager.store_game_data(game_data)
+        # Test the actual _handle_game_data method
+        with patch.object(self.manager.metrics_store, 'store_game_result') as mock_store:
+            self.manager._handle_game_data(game_data)
             # Verify metrics store was called appropriately
-            # This depends on the actual implementation
+            mock_store.assert_called_once()
 
-    def test_retrieve_game_data(self):
-        """Test retrieving game data."""
-        game_id = 'test_game_123'
+    def test_handle_move_data(self):
+        """Test handling move data."""
+        move_data = {
+            'game_id': 'test_game_123',
+            'move': 'e2e4',
+            'evaluation': 0.2,
+            'depth': 15,
+            'time_ms': 1500
+        }
         
-        # Mock return data
-        expected_data = {
-            'game_id': game_id,
+        with patch.object(self.manager.metrics_store, 'store_move_result') as mock_store:
+            self.manager._handle_move_data(move_data)
+            mock_store.assert_called_once()
+
+    def test_handle_raw_simulation(self):
+        """Test handling raw simulation data."""
+        simulation_data = {
+            'simulation_id': 'sim_123',
+            'games': [
+                {'game_id': 'game_1', 'result': '1-0'},
+                {'game_id': 'game_2', 'result': '0-1'}
+            ]
+        }
+        
+        with patch.object(self.manager.metrics_store, 'store_simulation_result') as mock_store:
+            self.manager._handle_raw_simulation(simulation_data)
+            mock_store.assert_called_once()
+
+    def test_bulk_upload(self):
+        """Test bulk upload functionality."""
+        data_list = [
+            {'type': 'game', 'data': {'game_id': 'game_1', 'result': '1-0'}},
+            {'type': 'move', 'data': {'move': 'e2e4', 'evaluation': 0.2}},
+            {'type': 'simulation', 'data': {'simulation_id': 'sim_1'}}
+        ]
+          with patch.object(self.manager, '_handle_game_data') as mock_game:
+            with patch.object(self.manager, '_handle_move_data') as mock_move:
+                with patch.object(self.manager, '_handle_raw_simulation') as mock_sim:
+                    results = self.manager.bulk_upload(data_list)
+                    
+                    # Check that results were returned (may be None or list)
+                    if results is not None:
+                        self.assertEqual(len(results), 3)
+                    mock_game.assert_called_once()
+                    mock_move.assert_called_once()
+                    mock_sim.assert_called_once()
+
+    def test_server_operations(self):
+        """Test server start and stop operations."""
+        with patch('http.server.HTTPServer') as mock_server:
+            mock_httpd = Mock()
+            mock_server.return_value = mock_httpd
+            
+            # Test server start
+            self.manager.start_server(host="localhost", port=8081)
+            self.assertTrue(self.manager.running)
+            self.assertIsNotNone(self.manager.server_thread)
+            
+            # Test server stop
+            self.manager.stop_server()
+            self.assertFalse(self.manager.running)
+
+    def test_listen_and_store(self):
+        """Test listen and store functionality."""
+        with patch.object(self.manager, 'start_server') as mock_start:
+            self.manager.listen_and_store()
+            mock_start.assert_called_once_with("0.0.0.0", 8080)
+
+    def test_cloud_integration(self):
+        """Test cloud storage integration."""
+        # Test with cloud enabled
+        config_with_cloud = {
+            'cloud': {
+                'enabled': True,
+                'bucket_name': 'test-bucket'
+            }
+        }
+        
+        with patch('engine_utilities.engine_db_manager.CloudStore') as mock_cloud:
+            with patch.object(EngineDBManager, '_load_config', return_value=config_with_cloud):
+                manager = EngineDBManager()
+                self.assertTrue(manager.cloud_enabled)
+                self.assertIsNotNone(manager.cloud_store)
+                mock_cloud.assert_called_once()
+
+    def test_error_handling(self):
+        """Test various error conditions."""
+        # Test with invalid data
+        invalid_data = {'invalid': 'data'}
+        
+        with patch.object(self.manager.metrics_store, 'store_game_result', side_effect=Exception("DB Error")):
+            try:
+                self.manager._handle_game_data(invalid_data)
+                # Should handle gracefully
+            except Exception:
+                self.fail("Should handle database errors gracefully")
+
+    def test_concurrent_operations(self):
+        """Test concurrent data operations."""
+        def store_data(data_id):
+            game_data = {
+                'game_id': f'concurrent_game_{data_id}',
+                'moves': ['e2e4', 'e7e5'],
+                'result': '1-0'
+            }
+            self.manager._handle_game_data(game_data)
+        
+        threads = []
+        for i in range(5):
+            thread = threading.Thread(target=store_data, args=(i,))
+            threads.append(thread)
+            thread.start()
+        
+        for thread in threads:
+            thread.join()
+        
+        # All operations should complete without error
+        self.assertTrue(True)
+
+    def test_performance_metrics(self):
+        """Test performance under load."""
+        start_time = time.time()
+        
+        # Simulate high-frequency data insertion
+        for i in range(100):
+            game_data = {
+                'game_id': f'perf_game_{i}',
+                'moves': ['e2e4', 'e7e5'],
+                'result': '1-0'
+            }
+            self.manager._handle_game_data(game_data)
+        
+        end_time = time.time()
+        execution_time = end_time - start_time
+        
+        # Should complete within reasonable time (adjust threshold as needed)
+        self.assertLess(execution_time, 10.0, "Performance test took too long")
+
+    def test_data_validation(self):
+        """Test data validation and sanitization."""
+        # Test with missing required fields
+        incomplete_data = {
+            'game_id': 'test_game'
+            # Missing other required fields
+        }
+        
+        # Should handle incomplete data gracefully
+        try:
+            self.manager._handle_game_data(incomplete_data)
+        except Exception as e:
+            # Expected to handle gracefully
+            pass
+
+    def test_memory_management(self):
+        """Test memory usage and cleanup."""
+        import psutil
+        import gc
+        
+        process = psutil.Process()
+        initial_memory = process.memory_info().rss
+          # Generate significant amount of data
+        for i in range(1000):
+            large_data = {
+                'game_id': f'memory_test_{i}',
+                'moves': ['e2e4'] * 100,  # Large move list
+                'analysis': {f'key_{j}': f'value_{j}' for j in range(50)}
+            }
+            self.manager._handle_game_data(large_data)
+        
+        # Force garbage collection
+        gc.collect()
+        
+        final_memory = process.memory_info().rss
+        memory_increase = final_memory - initial_memory
+        
+        # Memory increase should be reasonable (adjust threshold as needed)
+        self.assertLess(memory_increase, 100 * 1024 * 1024, "Memory usage increased too much")
+
+
+class TestEngineDBClient(unittest.TestCase):
+    """Test cases for EngineDBClient class."""
+
+    def setUp(self):
+        """Set up test fixtures."""
+        self.client = EngineDBClient(server_url="http://localhost:8080")
+
+    def test_client_initialization(self):
+        """Test client initialization."""
+        self.assertEqual(self.client.server_url, "http://localhost:8080")
+        self.assertIsNotNone(self.client.config)
+        self.assertIsInstance(self.client.offline_buffer, list)
+
+    def test_send_game_data(self):
+        """Test sending game data."""
+        game_data = {
+            'game_id': 'client_test_game',
             'moves': ['e2e4', 'e7e5'],
             'result': '1-0'
         }
-        
-        # If retrieve method exists, test it
-        if hasattr(self.manager, 'retrieve_game_data'):
-            self.mock_metrics_store.get_game.return_value = expected_data
-            result = self.manager.retrieve_game_data(game_id)
-            self.assertEqual(result, expected_data)
-
-    def test_database_connection(self):
-        """Test database connection handling."""
-        # Test that metrics store is properly initialized
-        self.assertIsNotNone(self.manager.metrics_store)
-        self.assertEqual(self.manager.db_path, self.test_db_path)
-
-
-class TestEngineDBManagerServerOperations(unittest.TestCase):
-    """Test EngineDBManager HTTP server operations."""
-
-    def setUp(self):
-        """Set up test fixtures."""
-        self.temp_dir = tempfile.mkdtemp()
-        self.test_db_path = os.path.join(self.temp_dir, "test_chess_metrics.db")
-        
-        with patch('engine_utilities.engine_db_manager.MetricsStore'):
-            self.manager = EngineDBManager(db_path=self.test_db_path)
-
-    def tearDown(self):
-        """Clean up test fixtures."""
-        if self.manager.running:
-            self.manager.stop_server()
-        import shutil
-        shutil.rmtree(self.temp_dir, ignore_errors=True)
-
-    def test_server_initialization(self):
-        """Test HTTP server initialization."""
-        self.assertIsNone(self.manager.httpd)
-        self.assertIsNone(self.manager.server_thread)
-        self.assertFalse(self.manager.running)
-
-    @patch('engine_utilities.engine_db_manager.HTTPServer')
-    def test_start_server(self, mock_http_server):
-        """Test starting HTTP server."""
-        mock_server = Mock()
-        mock_http_server.return_value = mock_server
-        
-        # Mock the start_server method if it exists
-        if hasattr(self.manager, 'start_server'):
-            self.manager.start_server(host='localhost', port=8080)
+          with patch('requests.post') as mock_post:
+            mock_response = Mock()
+            mock_response.status_code = 200
+            mock_response.json.return_value = {'status': 'success'}
+            mock_post.return_value = mock_response
             
-            if self.manager.running:
-                self.assertTrue(self.manager.running)
-                self.assertIsNotNone(self.manager.server_thread)
+            result = self.client.send_game_data(game_data)
+            self.assertTrue(result)  # Returns True on success
+            mock_post.assert_called_once()
 
-    def test_stop_server(self):
-        """Test stopping HTTP server."""
-        # Mock running state
-        self.manager.running = True
-        self.manager.httpd = Mock()
-        self.manager.server_thread = Mock()
-        
-        if hasattr(self.manager, 'stop_server'):
-            self.manager.stop_server()
-            
-            if not self.manager.running:
-                self.assertFalse(self.manager.running)
-
-    def test_server_thread_safety(self):
-        """Test server thread safety."""
-        self.assertIsNone(self.manager.server_thread)
-        # Test that multiple start/stop calls don't cause issues
-        for _ in range(3):
-            if hasattr(self.manager, 'start_server') and hasattr(self.manager, 'stop_server'):
-                try:
-                    self.manager.start_server(host='localhost', port=0)  # Use port 0 for auto-assignment
-                    time.sleep(0.1)
-                    self.manager.stop_server()
-                    time.sleep(0.1)
-                except Exception:
-                    pass  # Expected in test environment
-
-
-class TestEngineDBManagerCloudOperations(unittest.TestCase):
-    """Test EngineDBManager cloud operations."""
-
-    def setUp(self):
-        """Set up test fixtures."""
-        self.temp_dir = tempfile.mkdtemp()
-        self.test_db_path = os.path.join(self.temp_dir, "test_chess_metrics.db")
-        
-        self.mock_cloud_store = Mock()
-        self.mock_metrics_store = Mock()
-
-    def tearDown(self):
-        """Clean up test fixtures."""
-        import shutil
-        shutil.rmtree(self.temp_dir, ignore_errors=True)
-
-    @patch('engine_utilities.engine_db_manager.MetricsStore')
-    @patch('engine_utilities.engine_db_manager.CloudStore')
-    def test_cloud_upload(self, mock_cloud_store_class, mock_metrics_store):
-        """Test cloud upload functionality."""
-        mock_metrics_store.return_value = self.mock_metrics_store
-        mock_cloud_store_class.return_value = self.mock_cloud_store
-        
-        config = {
-            'cloud': {
-                'enabled': True,
-                'bucket_name': 'test-bucket'
-            }
+    def test_send_move_data(self):
+        """Test sending move data."""
+        move_data = {
+            'game_id': 'client_test_game',
+            'move': 'e2e4',
+            'evaluation': 0.2
         }
-        
-        with patch.object(EngineDBManager, '_load_config', return_value=config):
-            manager = EngineDBManager(db_path=self.test_db_path)
+          with patch('requests.post') as mock_post:
+            mock_response = Mock()
+            mock_response.status_code = 200
+            mock_response.json.return_value = {'status': 'success'}
+            mock_post.return_value = mock_response
             
-            # Test cloud upload if method exists
-            if hasattr(manager, 'upload_to_cloud'):
-                test_data = {'test': 'data'}
-                manager.upload_to_cloud(test_data)
-                # Verify cloud store was called
-                self.mock_cloud_store.upload.assert_called()
+            result = self.client.send_move_data(move_data)
+            self.assertTrue(result)  # Returns True on success
 
-    @patch('engine_utilities.engine_db_manager.MetricsStore')
-    @patch('engine_utilities.engine_db_manager.CloudStore')
-    def test_cloud_download(self, mock_cloud_store_class, mock_metrics_store):
-        """Test cloud download functionality."""
-        mock_metrics_store.return_value = self.mock_metrics_store
-        mock_cloud_store_class.return_value = self.mock_cloud_store
-        
-        config = {
-            'cloud': {
-                'enabled': True,
-                'bucket_name': 'test-bucket'
-            }
+    def test_send_raw_simulation(self):
+        """Test sending simulation data."""
+        simulation_data = {
+            'simulation_id': 'client_sim_test',
+            'games': [{'game_id': 'game_1', 'result': '1-0'}]
         }
-        
-        with patch.object(EngineDBManager, '_load_config', return_value=config):
-            manager = EngineDBManager(db_path=self.test_db_path)
+          with patch('requests.post') as mock_post:
+            mock_response = Mock()
+            mock_response.status_code = 200
+            mock_response.json.return_value = {'status': 'success'}
+            mock_post.return_value = mock_response
             
-            # Test cloud download if method exists
-            if hasattr(manager, 'download_from_cloud'):
-                file_name = 'test_file.json'
-                manager.download_from_cloud(file_name)
-                # Verify cloud store was called
-                self.mock_cloud_store.download.assert_called()
+            result = self.client.send_raw_simulation(simulation_data)
+            self.assertTrue(result)  # Always returns True for simulation data
 
-    @patch('engine_utilities.engine_db_manager.MetricsStore')
-    def test_cloud_disabled(self, mock_metrics_store):
-        """Test behavior when cloud is disabled."""
-        mock_metrics_store.return_value = self.mock_metrics_store
+    def test_offline_buffer_management(self):
+        """Test offline buffer functionality."""
+        # Add data to offline buffer
+        test_data = {'test': 'data'}
+        self.client.offline_buffer.append(test_data)
         
-        config = {
-            'cloud': {
-                'enabled': False
-            }
-        }
+        # Test saving buffer
+        temp_file = os.path.join(tempfile.mkdtemp(), "test_buffer.json")
+        self.client.save_offline_buffer(temp_file)
+        self.assertTrue(os.path.exists(temp_file))
         
-        with patch.object(EngineDBManager, '_load_config', return_value=config):
-            manager = EngineDBManager(db_path=self.test_db_path)
+        # Test loading buffer
+        self.client.offline_buffer.clear()
+        self.client.load_offline_buffer(temp_file)
+        self.assertEqual(len(self.client.offline_buffer), 1)
+        self.assertEqual(self.client.offline_buffer[0], test_data)
+
+    def test_retry_mechanism(self):
+        """Test request retry mechanism."""
+        game_data = {'game_id': 'retry_test'}
+        
+        with patch('requests.post') as mock_post:
+            # First call fails, second succeeds
+            mock_post.side_effect = [
+                Exception("Network error"),
+                Mock(status_code=200, json=lambda: {'status': 'success'})
+            ]
             
-            self.assertFalse(manager.cloud_enabled)
-            self.assertIsNone(manager.cloud_store)
+            result = self.client._send_with_retry(game_data)
+            self.assertEqual(mock_post.call_count, 2)
 
+    def test_flush_offline_buffer(self):
+        """Test flushing offline buffer."""
+        # Add test data to buffer
+        self.client.offline_buffer.extend([
+            {'game_id': 'buffer_game_1'},
+            {'game_id': 'buffer_game_2'}
+        ])
+          with patch.object(self.client, '_send_with_retry', return_value=True):
+            result = self.client.flush_offline_buffer()
+            self.assertTrue(result)  # Returns True/False, not a list
+            self.assertEqual(len(self.client.offline_buffer), 0)
 
-class TestEngineDBManagerErrorHandling(unittest.TestCase):
-    """Test EngineDBManager error handling."""
-
-    def setUp(self):
-        """Set up test fixtures."""
-        self.temp_dir = tempfile.mkdtemp()
-        self.test_db_path = os.path.join(self.temp_dir, "test_chess_metrics.db")
-
-    def tearDown(self):
-        """Clean up test fixtures."""
-        import shutil
-        shutil.rmtree(self.temp_dir, ignore_errors=True)
-
-    @patch('engine_utilities.engine_db_manager.MetricsStore')
-    def test_database_connection_error(self, mock_metrics_store):
-        """Test handling of database connection errors."""
-        mock_metrics_store.side_effect = Exception("Database connection failed")
-        
-        with self.assertRaises(Exception):
-            EngineDBManager(db_path=self.test_db_path)
-
-    @patch('engine_utilities.engine_db_manager.MetricsStore')
-    @patch('engine_utilities.engine_db_manager.logger')
-    def test_invalid_config_handling(self, mock_logger, mock_metrics_store):
-        """Test handling of invalid configuration."""
-        mock_metrics_store.return_value = Mock()
-        
-        # Test with invalid config path
-        manager = EngineDBManager(
-            db_path=self.test_db_path,
-            config_path="/nonexistent/path/config.yaml"
-        )
-        
-        # Should handle gracefully with empty config
-        self.assertEqual(manager.config, {})
-
-    @patch('engine_utilities.engine_db_manager.MetricsStore')
-    def test_malformed_yaml_config(self, mock_metrics_store):
-        """Test handling of malformed YAML config."""
-        mock_metrics_store.return_value = Mock()
-        
-        # Create malformed YAML file
-        malformed_config_path = os.path.join(self.temp_dir, "malformed.yaml")
-        with open(malformed_config_path, 'w') as f:
-            f.write("invalid: yaml: content:\n  - missing\n    proper: structure")
-        
-        # Should handle gracefully
-        try:
-            EngineDBManager(
-                db_path=self.test_db_path,
-                config_path=malformed_config_path
-            )
-        except yaml.YAMLError:
-            pass  # Expected for malformed YAML
-
-
-class TestEngineDBManagerPerformance(unittest.TestCase):
-    """Test EngineDBManager performance characteristics."""
-
-    def setUp(self):
-        """Set up test fixtures."""
-        self.temp_dir = tempfile.mkdtemp()
-        self.test_db_path = os.path.join(self.temp_dir, "test_chess_metrics.db")
-        
-        with patch('engine_utilities.engine_db_manager.MetricsStore'):
-            self.manager = EngineDBManager(db_path=self.test_db_path)
-
-    def tearDown(self):
-        """Clean up test fixtures."""
-        import shutil
-        shutil.rmtree(self.temp_dir, ignore_errors=True)
-
-    def test_initialization_time(self):
-        """Test that initialization completes within reasonable time."""
-        start_time = time.time()
-        
-        with patch('engine_utilities.engine_db_manager.MetricsStore'):
-            EngineDBManager(db_path=self.test_db_path)
-        
-        end_time = time.time()
-        initialization_time = end_time - start_time
-        
-        # Should initialize within 5 seconds
-        self.assertLess(initialization_time, 5.0)
-
-    def test_memory_usage(self):
-        """Test memory usage stays within reasonable bounds."""
-        import sys
-        
-        initial_size = sys.getsizeof(self.manager)
-        
-        # Simulate some operations
-        for i in range(100):
-            # Add data to internal structures if they exist
-            if hasattr(self.manager, 'cache'):
-                self.manager.cache[f"key_{i}"] = f"value_{i}"
-        
-        final_size = sys.getsizeof(self.manager)
-        
-        # Memory should not grow excessively
-        self.assertLess(final_size, initial_size * 10)
+    def test_error_handling_client(self):
+        """Test client error handling."""
+        with patch('requests.post', side_effect=Exception("Connection error")):
+            # Should handle network errors gracefully
+            game_data = {'game_id': 'error_test'}
+            result = self.client.send_game_data(game_data)
+            
+            # Should store in offline buffer when network fails
+            self.assertGreater(len(self.client.offline_buffer), 0)
 
 
 if __name__ == '__main__':

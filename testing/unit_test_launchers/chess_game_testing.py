@@ -15,7 +15,7 @@ import unittest
 import tempfile
 import yaml
 import chess
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch, MagicMock, call
 from io import StringIO
 import json
 import time
@@ -137,12 +137,11 @@ class TestChessGameInitialization(unittest.TestCase):
         ]
         
         game = ChessGame()
-        
-        # Verify files were opened
+          # Verify files were opened
         expected_calls = [
-            unittest.mock.call("chess_game.yaml"),
-            unittest.mock.call("v7p3r.yaml"),
-            unittest.mock.call("engine_utilities/stockfish_handler.yaml")
+            call("chess_game.yaml"),
+            call("v7p3r.yaml"),
+            call("engine_utilities/stockfish_handler.yaml")
         ]
         mock_open.assert_has_calls(expected_calls, any_order=True)
 
