@@ -1,5 +1,6 @@
 # v7p3r_ga_engine/v7p3r_ga.py
 # V7P3R Chess Engine Genetic Algorithm Module
+# TODO: refactor this code pulled from another project to fit the goals set out in the enhancement issue #84 [V7P3R AI Models] Phase 2: Genetic Algorithm Engine: Implement v7p3r_ga.py for automated engine tuning
 
 import random
 import numpy as np

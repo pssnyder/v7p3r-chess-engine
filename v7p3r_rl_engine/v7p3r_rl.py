@@ -1,6 +1,6 @@
 # v7p3r_rl_engine/v7p3r_rl.py
 # V7P3R Chess Engine Reinforcement Learning Module
-
+# TODO: refactor this code pulled from another project to fit the goals set out in the enhancement issue # 83 [V7P3R AI Models] Phase 3: Reinforcement Learning Engine: Build v7p3r_rl.py for self-tuning chess AI
 import random
 import numpy as np
 import chess
