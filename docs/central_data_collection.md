@@ -91,8 +91,8 @@ python -m engine_utilities.game_simulation_manager
   "game_length": 40,
   "white_engine_id": "v7p3r-1.0",
   "black_engine_id": "stockfish-15",
-  "white_ai_type": "deepsearch",
-  "black_ai_type": "uci"
+  "white_engine_type": "deepsearch",
+  "black_engine_type": "uci"
 }
 ```
 
@@ -106,7 +106,7 @@ python -m engine_utilities.game_simulation_manager
   "move_uci": "e2e4",
   "fen_before": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
   "evaluation": 0.32,
-  "ai_type": "deepsearch",
+  "engine_type": "deepsearch",
   "depth": 4,
   "nodes_searched": 10245,
   "time_taken": 1.24,

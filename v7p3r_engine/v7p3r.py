@@ -57,7 +57,7 @@ class LimitedSizeDict(OrderedDict):
             del self[oldest]
 
 class V7P3REvaluationEngine: # Renamed class from EvaluationEngine
-    def __init__(self, board: chess.Board = chess.Board(), player: chess.Color = chess.WHITE, ai_config=None):
+    def __init__(self, board: chess.Board = chess.Board(), player: chess.Color = chess.WHITE, engine_config=None):
         self.board = board
         self.current_player = player
         self.time_manager = TimeManager()
@@ -109,32 +109,32 @@ class V7P3REvaluationEngine: # Renamed class from EvaluationEngine
         if self.logging_enabled:
             self.logger.debug("Logging enabled for V7P3REvaluationEngine")
 
-        # Initial ai_config resolution
-        self.ai_config = self._ensure_ai_config(ai_config, player)
-        self.configure_for_side(self.board, self.ai_config) 
+        # Initial engine_config resolution
+        self.engine_config = self._ensure_engine_config(engine_config, player)
+        self.configure_for_side(self.board, self.engine_config) 
         
         self.pst = PieceSquareTables()
 
         self.scoring_calculator = V7P3RScoringCalculation(
             v7p3r_yaml_config=self.v7p3r_config_data, # Pass full v7p3r_config.yaml data
-            ai_config=self.ai_config, # Pass resolved ai_config
+            engine_config=self.engine_config, # Pass resolved engine_config
             piece_values=self.piece_values,
             pst=self.pst
         )
         
         game_rules = self.game_settings_config_data.get('game_config', {})
         self.strict_draw_prevention = game_rules.get('strict_draw_prevention', False)
-        self.game_phase_awareness = self.ai_config.get('game_phase_awareness', True)
+        self.game_phase_awareness = self.engine_config.get('game_phase_awareness', True)
         self.endgame_factor = 0.0
 
         self.reset(self.board)
 
-    def _ensure_ai_config(self, ai_config_runtime: Optional[Dict[str, Any]], player: chess.Color) -> Dict[str, Any]:
+    def _ensure_engine_config(self, engine_config_runtime: Optional[Dict[str, Any]], player: chess.Color) -> Dict[str, Any]:
         # 1. Start with base V7P3R engine settings from v7p3r_config.yaml
         final_config = self.v7p3r_config_data.copy()
 
         # 2. Merge/override with player-specific AI config from chess_game_config.yaml
-        player_specific_key = 'white_ai_config' if player == chess.WHITE else 'black_ai_config'
+        player_specific_key = 'white_engine_config' if player == chess.WHITE else 'black_engine_config'
         player_specific_game_config = self.game_settings_config_data.get(player_specific_key, {}) if self.game_settings_config_data else {}
         
         # Deep merge player_specific_game_config into final_config
@@ -152,13 +152,13 @@ class V7P3REvaluationEngine: # Renamed class from EvaluationEngine
 
         final_config = deep_merge(player_specific_game_config, final_config)
 
-        # 3. Merge/override with runtime ai_config (highest precedence)
-        if ai_config_runtime and isinstance(ai_config_runtime, dict):
-            final_config = deep_merge(ai_config_runtime, final_config)
+        # 3. Merge/override with runtime engine_config (highest precedence)
+        if engine_config_runtime and isinstance(engine_config_runtime, dict):
+            final_config = deep_merge(engine_config_runtime, final_config)
 
         # Ensure critical keys have defaults if not set anywhere
-        # Default search_algorithm from v7p3r_config.yaml if ai_type not specified
-        final_config.setdefault('ai_type', self.v7p3r_config_data.get('search_algorithm', 'random'))
+        # Default search_algorithm from v7p3r_config.yaml if engine_type not specified
+        final_config.setdefault('engine_type', self.v7p3r_config_data.get('search_algorithm', 'random'))
         # Default depth: v7p3r_config.yaml -> chess_game_config.yaml (performance) -> fallback
         final_config.setdefault('depth', self.v7p3r_config_data.get('depth', self.game_settings_config_data.get('performance', {}).get('max_depth', 3) if self.game_settings_config_data else 3))
         # Default ruleset from v7p3r_config.yaml
@@ -191,34 +191,34 @@ class V7P3REvaluationEngine: # Renamed class from EvaluationEngine
             self.logger.debug(f"Resolved AI config for player {'WHITE' if player == chess.WHITE else 'BLACK'}: {final_config}")
         return final_config
 
-    def _get_ai_config(self, player_config: str): # This method is largely superseded by _ensure_ai_config but kept for now if direct access is needed.
-        # player_config would be 'white_ai_config' or 'black_ai_config'
-        player_color = chess.WHITE if player_config == 'white_ai_config' else chess.BLACK
-        # Use _ensure_ai_config with None for runtime_config to get the base + player_specific config
-        return self._ensure_ai_config(None, player_color)
+    def _get_engine_config(self, player_config: str): # This method is largely superseded by _ensure_engine_config but kept for now if direct access is needed.
+        # player_config would be 'white_engine_config' or 'black_engine_config'
+        player_color = chess.WHITE if player_config == 'white_engine_config' else chess.BLACK
+        # Use _ensure_engine_config with None for runtime_config to get the base + player_specific config
+        return self._ensure_engine_config(None, player_color)
 
-    def configure_for_side(self, board: chess.Board, ai_config_resolved: dict):
-        self.ai_config = ai_config_resolved # This is the fully resolved config
+    def configure_for_side(self, board: chess.Board, engine_config_resolved: dict):
+        self.engine_config = engine_config_resolved # This is the fully resolved config
 
-        self.ai_type = self.ai_config.get('ai_type') # Already defaulted in _ensure_ai_config
+        self.engine_type = self.engine_config.get('engine_type') # Already defaulted in _ensure_engine_config
         self.ai_color = 'white' if board.turn == chess.WHITE else 'black'
-        self.depth = self.ai_config.get('depth')
-        self.max_depth = self.ai_config.get('max_depth')
+        self.depth = self.engine_config.get('depth')
+        self.max_depth = self.engine_config.get('max_depth')
         
-        self.solutions_enabled = self.ai_config.get('use_opening_book') # 'use_solutions' was an old key
-        self.move_ordering_enabled = self.ai_config.get('move_ordering', {}).get('enabled')
-        self.quiescence_enabled = self.ai_config.get('quiescence', {}).get('enabled')
-        self.move_time_limit = self.ai_config.get('move_time_limit')
+        self.solutions_enabled = self.engine_config.get('use_opening_book') # 'use_solutions' was an old key
+        self.move_ordering_enabled = self.engine_config.get('move_ordering', {}).get('enabled')
+        self.quiescence_enabled = self.engine_config.get('quiescence', {}).get('enabled')
+        self.move_time_limit = self.engine_config.get('move_time_limit')
         
-        self.pst_enabled = self.ai_config.get('pst', {}).get('enabled')
-        self.pst_weight = self.ai_config.get('pst', {}).get('weight')
+        self.pst_enabled = self.engine_config.get('pst', {}).get('enabled')
+        self.pst_weight = self.engine_config.get('pst', {}).get('weight')
         
-        self.eval_engine = self.ai_config.get('engine', 'v7p3r') # Should be 'v7p3r'
-        self.ruleset = self.ai_config.get('ruleset')
-        self.scoring_modifier = self.ai_config.get('scoring_modifier')
+        self.eval_engine = self.engine_config.get('engine', 'v7p3r') # Should be 'v7p3r'
+        self.ruleset = self.engine_config.get('ruleset')
+        self.scoring_modifier = self.engine_config.get('scoring_modifier')
 
         if self.logging_enabled and self.logger:
-            self.logger.debug(f"Configuring V7P3R AI for {'White' if board.turn == chess.WHITE else 'Black'} with resolved config: {self.ai_config}")
+            self.logger.debug(f"Configuring V7P3R AI for {'White' if board.turn == chess.WHITE else 'Black'} with resolved config: {self.engine_config}")
         
         if self.move_time_limit is None:
             self.move_time_limit = 0
@@ -238,7 +238,7 @@ class V7P3REvaluationEngine: # Renamed class from EvaluationEngine
                 self.time_control = {"infinite": True}
         
         if hasattr(self, 'scoring_calculator') and self.scoring_calculator:
-            self.scoring_calculator.ai_config = self.ai_config # Update with the latest resolved config
+            self.scoring_calculator.engine_config = self.engine_config # Update with the latest resolved config
             self.scoring_calculator.ruleset_name = self.ruleset
             # scoring_calculator's __init__ now takes viper_yaml_config, so it has all rulesets.
             # It will internally select the current_ruleset based on self.ruleset_name.
@@ -248,7 +248,7 @@ class V7P3REvaluationEngine: # Renamed class from EvaluationEngine
             self.scoring_calculator.pst_weight = self.pst_weight   # pst_weight from resolved config
 
         if self.show_thoughts and self.logger:
-            self.logger.debug(f"V7P3R AI configured for {'White' if board.turn == chess.WHITE else 'Black'}: type={self.ai_type} depth={self.depth}, ruleset={self.ruleset}")
+            self.logger.debug(f"V7P3R AI configured for {'White' if board.turn == chess.WHITE else 'Black'}: type={self.engine_type} depth={self.depth}, ruleset={self.ruleset}")
 
     def reset(self, board: chess.Board):
         self.board = board.copy()
@@ -261,7 +261,7 @@ class V7P3REvaluationEngine: # Renamed class from EvaluationEngine
         if self.show_thoughts and self.logger:
             self.logger.debug(f"V7P3REvaluationEngine for {self.ai_color} reset to initial state.")
         
-        self.configure_for_side(self.board, self.ai_config)
+        self.configure_for_side(self.board, self.engine_config)
 
     def _is_draw_condition(self, board):
         if board.can_claim_threefold_repetition():
@@ -312,7 +312,7 @@ class V7P3REvaluationEngine: # Renamed class from EvaluationEngine
             return False
         return self.board.fen() != self.game_board.fen()
 
-    def search(self, board: chess.Board, player: chess.Color, ai_config: dict = {}, stop_callback: Optional[Callable[[], bool]] = None) -> chess.Move:
+    def search(self, board: chess.Board, player: chess.Color, engine_config: dict = {}, stop_callback: Optional[Callable[[], bool]] = None) -> chess.Move:
         self.nodes_searched = 0
         search_start_time = time.perf_counter()
 
@@ -320,10 +320,10 @@ class V7P3REvaluationEngine: # Renamed class from EvaluationEngine
         self.current_player = player
 
         # Resolve the configuration for this specific search call
-        resolved_search_config = self._ensure_ai_config(ai_config, player) # Pass runtime ai_config and player
+        resolved_search_config = self._ensure_engine_config(engine_config, player) # Pass runtime engine_config and player
         self.configure_for_side(self.board, resolved_search_config) # Re-configure based on this specific search's config
 
-        current_move_time_limit_ms = self.ai_config.get('move_time_limit')
+        current_move_time_limit_ms = self.engine_config.get('move_time_limit')
         if current_move_time_limit_ms is None:
             current_move_time_limit_ms = 0
         self.time_manager.start_timer(current_move_time_limit_ms / 1000.0 if current_move_time_limit_ms > 0 else 0)
@@ -349,8 +349,8 @@ class V7P3REvaluationEngine: # Renamed class from EvaluationEngine
             return trans_move
 
         if self.show_thoughts:
-            # self.ai_config['ai_type'] and self.ai_config['depth'] are now correct
-            self.logger.debug(f"== EVALUATION (Player: {'White' if player == chess.WHITE else 'Black'}) == | AI Type: {self.ai_config.get('ai_type')} | Depth: {self.ai_config.get('depth')} | Max Depth: {self.max_depth} == ")
+            # self.engine_config['engine_type'] and self.engine_config['depth'] are now correct
+            self.logger.debug(f"== EVALUATION (Player: {'White' if player == chess.WHITE else 'Black'}) == | AI Type: {self.engine_config.get('engine_type')} | Depth: {self.engine_config.get('depth')} | Max Depth: {self.max_depth} == ")
 
         legal_moves = list(self.board.legal_moves)
         if not legal_moves:
@@ -379,8 +379,8 @@ class V7P3REvaluationEngine: # Renamed class from EvaluationEngine
             current_move_score = 0.0
 
             try:
-                # self.ai_type is correctly set by configure_for_side
-                if self.ai_type == 'deepsearch':
+                # self.engine_type is correctly set by configure_for_side
+                if self.engine_type == 'deepsearch':
                     # Pass self.depth (from resolved config) to _deep_search
                     final_deepsearch_move_result = self._deep_search(self.board.copy(), self.depth if self.depth is not None else 1, self.time_control, stop_callback=self.time_manager.should_stop)
                     if final_deepsearch_move_result != chess.Move.null():
@@ -397,15 +397,15 @@ class V7P3REvaluationEngine: # Renamed class from EvaluationEngine
                             self.logger.debug(f"Deepsearch final move selection took {search_duration:.4f} seconds and searched {self.nodes_searched} nodes.")
                         return best_move
 
-                elif self.ai_type == 'minimax':
+                elif self.engine_type == 'minimax':
                     current_move_score = self._minimax_search(temp_board, (self.depth - 1) if self.depth is not None else 0, -float('inf'), float('inf'), temp_board.turn != self.current_player, stop_callback=self.time_manager.should_stop)
-                elif self.ai_type == 'negamax':
+                elif self.engine_type == 'negamax':
                     current_move_score = -self._negamax_search(temp_board, (self.depth - 1) if self.depth is not None else 0, -float('inf'), float('inf'), stop_callback=self.time_manager.should_stop)
-                elif self.ai_type == 'negascout':
+                elif self.engine_type == 'negascout':
                     current_move_score = -self._negascout(temp_board, (self.depth - 1) if self.depth is not None else 0, -float('inf'), float('inf'), stop_callback=self.time_manager.should_stop)
-                elif self.ai_type == 'lookahead':
+                elif self.engine_type == 'lookahead':
                     current_move_score = -self._lookahead_search(temp_board, (self.depth - 1) if self.depth is not None else 0, -float('inf'), float('inf'), stop_callback=self.time_manager.should_stop)
-                elif self.ai_type == 'simple_search': # simple_search itself handles perspective
+                elif self.engine_type == 'simple_search': # simple_search itself handles perspective
                     # simple_search returns a move, not a score. This path needs adjustment if used here directly for score.
                     # For now, assume simple_search is not called from here directly for score.
                     # If it were, it would be:
@@ -418,9 +418,9 @@ class V7P3REvaluationEngine: # Renamed class from EvaluationEngine
                     # This branch in root search usually means we evaluate the *result* of the first move.
                     current_move_score = self.evaluate_position_from_perspective(temp_board, self.current_player)
 
-                elif self.ai_type == 'evaluation_only':
+                elif self.engine_type == 'evaluation_only':
                     current_move_score = self.evaluate_position_from_perspective(temp_board, self.current_player)
-                elif self.ai_type == 'random':
+                elif self.engine_type == 'random':
                     best_move = self._random_search(self.board.copy(), self.current_player)
                     search_duration = time.perf_counter() - search_start_time
                     if self.logging_enabled and self.logger:
@@ -428,11 +428,11 @@ class V7P3REvaluationEngine: # Renamed class from EvaluationEngine
                     return best_move # Random search returns a move directly
                 else:
                     if self.show_thoughts and self.logger:
-                        self.logger.warning(f"Unrecognized AI type '{self.ai_type}'. Falling back to evaluation_only for score.")
+                        self.logger.warning(f"Unrecognized AI type '{self.engine_type}'. Falling back to evaluation_only for score.")
                     current_move_score = self.evaluate_position_from_perspective(temp_board, self.current_player)
             except Exception as e:
                 if self.logging_enabled and self.logger:
-                    self.logger.error(f"Error in search algorithm '{self.ai_type}' for move {move}: {e}. Using immediate evaluation. | FEN: {temp_board.fen()}")
+                    self.logger.error(f"Error in search algorithm '{self.engine_type}' for move {move}: {e}. Using immediate evaluation. | FEN: {temp_board.fen()}")
                 current_move_score = self.evaluate_position_from_perspective(temp_board, self.current_player)
 
             # Update best move based on score, considering player
@@ -577,8 +577,8 @@ class V7P3REvaluationEngine: # Renamed class from EvaluationEngine
         move_scores.sort(key=lambda x: x[1], reverse=True)
         
         # max_moves_to_evaluate can come from v7p3r_config_data or game_settings_config_data (performance section)
-        # self.ai_config should have this resolved value
-        max_moves_to_evaluate = self.ai_config.get('max_moves_evaluated', None)
+        # self.engine_config should have this resolved value
+        max_moves_to_evaluate = self.engine_config.get('max_moves_evaluated', None)
         
         if max_moves_to_evaluate is not None and max_moves_to_evaluate > 0:
             if self.logging_enabled and self.logger:
@@ -593,15 +593,15 @@ class V7P3REvaluationEngine: # Renamed class from EvaluationEngine
     def _order_move_score(self, board: chess.Board, move: chess.Move, depth: int = 0) -> float:
         """Calculate a score for a move for ordering purposes."""
         score = 0.0
-        # Access move ordering bonuses from the resolved self.ai_config, which merges v7p3r_config_data
-        move_ordering_cfg = self.ai_config.get('move_ordering', {})
+        # Access move ordering bonuses from the resolved self.engine_config, which merges v7p3r_config_data
+        move_ordering_cfg = self.engine_config.get('move_ordering', {})
 
         temp_board = board.copy()
         temp_board.push(move)
         if temp_board.is_checkmate():
             temp_board.pop()
             # Checkmate bonus from 'evaluation' part of v7p3r_config_data, or a specific move_ordering config
-            eval_cfg = self.ai_config.get('evaluation', {}) # 'evaluation' might be a sub-key in v7p3r_config.yaml
+            eval_cfg = self.engine_config.get('evaluation', {}) # 'evaluation' might be a sub-key in v7p3r_config.yaml
             return move_ordering_cfg.get('checkmate_move_bonus', eval_cfg.get('checkmate_move_bonus', 1000000.0))
         
         if temp_board.is_check(): # Check after move is made
@@ -660,7 +660,7 @@ class V7P3REvaluationEngine: # Renamed class from EvaluationEngine
 
         # Consider only captures and promotions (and maybe checks)
         # Max quiescence depth from resolved config
-        max_q_depth = self.ai_config.get('quiescence', {}).get('max_depth', 5)
+        max_q_depth = self.engine_config.get('quiescence', {}).get('max_depth', 5)
         if current_ply >= self.depth + max_q_depth: # self.depth is the main search depth
              return stand_pat_score
 
@@ -1061,9 +1061,9 @@ class V7P3REvaluationEngine: # Renamed class from EvaluationEngine
             return chess.Move.null() # No legal moves to search
 
         # Use max_depth from the resolved AI config for this search
-        iterative_max_depth = self.ai_config.get('max_depth', self.game_settings_config_data.get('performance', {}).get('max_depth', 5))
+        iterative_max_depth = self.engine_config.get('max_depth', self.game_settings_config_data.get('performance', {}).get('max_depth', 5))
 
-        # The 'depth' parameter passed to _deep_search can be the initial target depth from ai_config
+        # The 'depth' parameter passed to _deep_search can be the initial target depth from engine_config
         # Iterative deepening will go from current_depth up to iterative_max_depth or target 'depth'
         # Ensure we respect the overall max_depth from config.
         search_depth_limit = min(depth, iterative_max_depth)
@@ -1135,7 +1135,7 @@ class V7P3REvaluationEngine: # Renamed class from EvaluationEngine
                 self.update_transposition_table(board, iterative_depth, best_move_root, best_score_root)
 
             # If checkmate is found, stop early
-            if abs(best_score_root) > self.ai_config.get('evaluation', {}).get('checkmate_bonus', 1000000.0) / 2: # Checkmate score is very high
+            if abs(best_score_root) > self.engine_config.get('evaluation', {}).get('checkmate_bonus', 1000000.0) / 2: # Checkmate score is very high
                 if self.logging_enabled and self.logger:
                     self.logger.info(f"Deepsearch found a potential checkmate at depth {iterative_depth}. Stopping early.")
                 break
@@ -1207,10 +1207,10 @@ if __name__ == "__main__":
     try:
         board.reset()
         engine.reset(board)
-        engine.ai_type = 'deepsearch'
+        engine.engine_type = 'deepsearch'
         engine.depth = 3
         
-        print(f"\n--- Test 2: Searching for White move (AI Type: {engine.ai_type}, Depth: {engine.depth}) ---")
+        print(f"\n--- Test 2: Searching for White move (AI Type: {engine.engine_type}, Depth: {engine.depth}) ---")
         best_move = engine.search(board.copy(), chess.WHITE)
         print(f"Best move found by deepsearch: {best_move}")
         assert best_move is not None and isinstance(best_move, chess.Move), "Search did not return a valid move"
@@ -1243,7 +1243,7 @@ if __name__ == "__main__":
     try:
         board.reset()
         engine_tt = V7P3REvaluationEngine(board, chess.WHITE)
-        engine_tt.ai_type = 'negamax'
+        engine_tt.engine_type = 'negamax'
         engine_tt.depth = 2
         engine_tt.transposition_table.clear()
 
@@ -1277,7 +1277,7 @@ if __name__ == "__main__":
         tactical_board = chess.Board(tactical_fen)
         engine_q = V7P3REvaluationEngine(tactical_board, chess.WHITE)
         engine_q.quiescence_enabled = True
-        engine_q.ai_type = 'deepsearch'
+        engine_q.engine_type = 'deepsearch'
 
         print(f"\n--- Test 5: Quiescence Search for FEN: {tactical_fen} ---")
         q_score = engine_q._quiescence_search(tactical_board.copy(), -float('inf'), float('inf'), True)
@@ -1290,7 +1290,7 @@ if __name__ == "__main__":
     try:
         board_fallback = chess.Board()
         engine_fb = V7P3REvaluationEngine(board_fallback, chess.WHITE)
-        engine_fb.ai_type = 'non_existent_ai_type'
+        engine_fb.engine_type = 'non_existent_engine_type'
         engine_fb.depth = 0
 
         print("\n--- Test 6: Fallback to _simple_search for invalid AI type ---")

@@ -65,45 +65,28 @@ if not _init_status.get("initialized", False):
     _init_status["log_file_path"] = log_file_path
 
 class ChessGame:
-    def __init__(self, fen_position=None, game_config=None, v7p3r_config=None, stockfish_config=None, data_collector=None):
-        if fen_position:
-            if not isinstance(fen_position, str):
-                raise ValueError("FEN position must be a string")
-            # Validate FEN position
-            try:
-                chess.Board(fen_position)  # This will raise ValueError if invalid
-                self.starting_position = fen_position
-            except ValueError as e:
-                raise ValueError(f"Invalid FEN position: {e}")
-        else:
-            self.starting_position = None
+    def __init__(self, config):
+        """
+        config: ChessGameConfig object containing all configuration parameters.
+        """
+        # Extract configuration from the ChessGameConfig object
+        self.starting_position = config.fen_position if hasattr(config, 'fen_position') else None
+        self.data_collector = getattr(config, 'data_collector', None)
+        self.game_config_data = getattr(config, 'game_config', {})
+        self.v7p3r_config_data = getattr(config, 'v7p3r_config', {})
+        self.stockfish_config_data = getattr(config, 'stockfish_config', {})
 
-        # Data collector function for sending data to central storage
-        self.data_collector = data_collector
-
-        # Load game-specific configuration
-        if game_config:
-            self.game_config_data = game_config
-        else:
-            with open("config/chess_game_config.yaml") as f:  # Updated config file name
-                self.game_config_data = yaml.safe_load(f)
-
-        # Load V7P3R engine configuration
-        if v7p3r_config:
-            self.v7p3r_config_data = v7p3r_config
-        else:
-            with open("config/v7p3r_config.yaml") as f:
-                self.v7p3r_config_data = yaml.safe_load(f)
-
-        # Load Stockfish handler configuration
-        if stockfish_config:
-            self.stockfish_config_data = stockfish_config
-        else:
-            with open("config/stockfish_handler.yaml") as f: # Updated path
-                self.stockfish_config_data = yaml.safe_load(f)
-            
         # Initialize Pygame (even in headless mode, for internal timing)
         pygame.init()
+        self.clock = pygame.time.Clock()
+        # Enable logging
+        self.logging_enabled = self.game_config_data.get('monitoring', {}).get('enable_logging', True)
+        self.show_thoughts = self.game_config_data.get('monitoring', {}).get('show_thinking', True)
+        self.logger = chess_game_logger
+        if not self.logging_enabled:
+            self.show_thoughts = False
+        if self.logging_enabled:
+            self.logger.debug("Logging enabled for ChessGame")
         self.clock = pygame.time.Clock()
         # Enable logging
         self.logging_enabled = self.game_config_data.get('monitoring', {}).get('enable_logging', True) # Adjusted path
@@ -118,7 +101,10 @@ class ChessGame:
         # Initialize game settings
         self.human_color_pref = self.game_config_data.get('game_config', {}).get('human_color', 'random') # Adjusted path
         if self.starting_position == None:
-            self.starting_position = self.game_config_data.get('game_config', {}).get('starting_position', 'default') # Adjusted path
+            self.starting_position = self.game_config_data.get('game_config', {}).get(
+                'starting_position',
+                'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
+            ) # Adjusted path
         print("Initializing headless AI vs AI mode. No chess GUI will be shown.")
         print("Press Ctrl+C in the terminal to stop the game early.")
 
@@ -135,29 +121,29 @@ class ChessGame:
         # Initialize AI configurations
         self.game_count = self.game_config_data.get('game_config', {}).get('ai_game_count', 0) # Adjusted path
         self.ai_vs_ai = self.game_config_data.get('game_config', {}).get('ai_vs_ai', False) # Adjusted path
-        self.ai_types = self.game_config_data.get('ai_types', []) # Adjusted path
+        self.engine_types = self.game_config_data.get('engine_types', []) # Adjusted path
 
-        self.white_ai_config = self.game_config_data.get('white_ai_config', {}) # Adjusted path
-        self.black_ai_config = self.game_config_data.get('black_ai_config', {}) # Adjusted path
+        self.white_engine_config = self.game_config_data.get('white_engine_config', {}) # Adjusted path
+        self.black_engine_config = self.game_config_data.get('black_engine_config', {}) # Adjusted path
         
-        # Ensure 'ai_type' and 'engine' keys exist in AI configs
-        self.white_ai_config['ai_type'] = self.white_ai_config.get('ai_type', 'random')
-        self.white_ai_config['engine'] = self.white_ai_config.get('engine', 'V7P3R')
-        self.black_ai_config['ai_type'] = self.black_ai_config.get('ai_type', 'random')
-        self.black_ai_config['engine'] = self.black_ai_config.get('engine', 'V7P3R')
+        # Ensure 'engine_type' and 'engine' keys exist in AI configs
+        self.white_engine_config['engine_type'] = self.white_engine_config.get('engine_type', 'random')
+        self.white_engine_config['engine'] = self.white_engine_config.get('engine', 'V7P3R')
+        self.black_engine_config['engine_type'] = self.black_engine_config.get('engine_type', 'random')
+        self.black_engine_config['engine'] = self.black_engine_config.get('engine', 'V7P3R')
 
-        self.white_ai_type = self.white_ai_config['ai_type']
-        self.black_ai_type = self.black_ai_config['ai_type']
-        self.white_eval_engine = self.white_ai_config['engine']
-        self.black_eval_engine = self.black_ai_config['engine']
+        self.white_engine_type = self.white_engine_config['engine_type']
+        self.black_engine_type = self.black_engine_config['engine_type']
+        self.white_eval_engine = self.white_engine_config['engine']
+        self.black_eval_engine = self.black_engine_config['engine']
 
-        self.exclude_white_performance = self.white_ai_config.get('exclude_from_metrics', False)
-        self.exclude_black_performance = self.black_ai_config.get('exclude_from_metrics', False)
+        self.exclude_white_performance = self.white_engine_config.get('exclude_from_metrics', False)
+        self.exclude_black_performance = self.black_engine_config.get('exclude_from_metrics', False)
         
         if self.logging_enabled and self.logger:
             self.logger.debug(f"Initializing ChessGame with {self.starting_position} position")
-            self.logger.debug(f"White AI Type: {self.white_ai_type}, Engine: {self.white_eval_engine}")
-            self.logger.debug(f"Black AI Type: {self.black_ai_type}, Engine: {self.black_eval_engine}")
+            self.logger.debug(f"White AI Type: {self.white_engine_type}, Engine: {self.white_eval_engine}")
+            self.logger.debug(f"Black AI Type: {self.black_engine_type}, Engine: {self.black_eval_engine}")
         
         # Debug settings
         self.show_eval = self.game_config_data.get('monitoring', {}).get('show_evaluation', False) # Adjusted path for debug settings if they were moved, assuming they are in 'monitoring' or similar in chess_game_config.yaml
@@ -173,17 +159,21 @@ class ChessGame:
         self.rated = self.game_config_data.get('game_config', {}).get('rated', True)
         self.new_game(self.starting_position)
         
-        # Set colors
-        self.set_colors()
-        
         # Set headers
-        # Add rated flag from config
-        self.rated = self.game_config_data.get('game_config', {}).get('rated', True)
-        # Add rated flag from config
+        
+        # Set headers        # Add rated flag from config
         self.rated = self.game_config_data.get('game_config', {}).get('rated', True)
 
-        # Initialize Cloud storage backend
-        self.cloud_store = CloudStore()
+        # Initialize Cloud storage backend if enabled
+        cloud_enabled = self.game_config_data.get('game_config', {}).get('cloud_storage_enabled', False)
+        if cloud_enabled:
+            try:
+                self.cloud_store = CloudStore()
+            except Exception as e:
+                chess_game_logger.warning(f"Failed to initialize cloud storage: {e}")
+                self.cloud_store = None
+        else:
+            self.cloud_store = None
     # ================================
     # ====== GAME CONFIGURATION ======
     
@@ -228,16 +218,16 @@ class ChessGame:
 
 
         # White Engine
-        if self.white_ai_config.get('engine', '').lower() == 'v7p3r':
-            # Pass relevant parts of v7p3r_config_data and game_config_data (white_ai_config)
-            v7p3r_engine_config = {**self.v7p3r_config_data.get('v7p3r', {}), **self.white_ai_config}
-            self.white_engine = V7P3REvaluationEngine(self.board, chess.WHITE, ai_config=v7p3r_engine_config)
-        elif self.white_ai_config.get('engine', '').lower() == 'stockfish':
+        if self.white_engine_config.get('engine', '').lower() == 'v7p3r':
+            # Pass relevant parts of v7p3r_config_data and game_config_data (white_engine_config)
+            v7p3r_engine_config = {**self.v7p3r_config_data.get('v7p3r', {}), **self.white_engine_config}
+            self.white_engine = V7P3REvaluationEngine(self.board, chess.WHITE, engine_config=v7p3r_engine_config)
+        elif self.white_engine_config.get('engine', '').lower() == 'stockfish':
             if not stockfish_path or not os.path.exists(stockfish_path):
                 self.logger.error(f"Stockfish executable not found at: {stockfish_path}. White AI defaulting to V7P3R.")
-                self.white_engine = V7P3REvaluationEngine(self.board, chess.WHITE, ai_config=self.white_ai_config)
-                self.white_ai_config['engine'] = 'V7P3R' # Force engine name change
-                self.white_ai_config['ai_type'] = 'random' # Force type change as Stockfish type invalid
+                self.white_engine = V7P3REvaluationEngine(self.board, chess.WHITE, engine_config=self.white_engine_config)
+                self.white_engine_config['engine'] = 'V7P3R' # Force engine name change
+                self.white_engine_config['engine_type'] = 'random' # Force type change as Stockfish type invalid
             else:
                 self.white_engine = StockfishHandler(
                     stockfish_path=stockfish_path,
@@ -246,21 +236,21 @@ class ChessGame:
                     debug_mode=debug_stockfish
                 )
         else: # Default to V7P3R if unknown engine
-            self.logger.warning(f"Unknown engine for White AI: {self.white_ai_config['engine']}. Defaulting to V7P3R.")
-            self.white_engine = V7P3REvaluationEngine(self.board, chess.WHITE, ai_config=self.white_ai_config)
-            self.white_ai_config['engine'] = 'V7P3R'
+            self.logger.warning(f"Unknown engine for White AI: {self.white_engine_config['engine']}. Defaulting to V7P3R.")
+            self.white_engine = V7P3REvaluationEngine(self.board, chess.WHITE, engine_config=self.white_engine_config)
+            self.white_engine_config['engine'] = 'V7P3R'
 
         # Black Engine
-        if self.black_ai_config.get('engine', '').lower() == 'v7p3r':
-            # Pass relevant parts of v7p3r_config_data and game_config_data (black_ai_config)
-            v7p3r_engine_config = {**self.v7p3r_config_data.get('v7p3r', {}), **self.black_ai_config}
-            self.black_engine = V7P3REvaluationEngine(self.board, chess.BLACK, ai_config=v7p3r_engine_config)
-        elif self.black_ai_config.get('engine', '').lower() == 'stockfish':
+        if self.black_engine_config.get('engine', '').lower() == 'v7p3r':
+            # Pass relevant parts of v7p3r_config_data and game_config_data (black_engine_config)
+            v7p3r_engine_config = {**self.v7p3r_config_data.get('v7p3r', {}), **self.black_engine_config}
+            self.black_engine = V7P3REvaluationEngine(self.board, chess.BLACK, engine_config=v7p3r_engine_config)
+        elif self.black_engine_config.get('engine', '').lower() == 'stockfish':
             if not stockfish_path or not os.path.exists(stockfish_path):
                 self.logger.error(f"Stockfish executable not found at: {stockfish_path}. Black AI defaulting to V7P3R.")
-                self.black_engine = V7P3REvaluationEngine(self.board, chess.BLACK, ai_config=self.black_ai_config)
-                self.black_ai_config['engine'] = 'V7P3R' # Force engine name change
-                self.black_ai_config['ai_type'] = 'random' # Force type change as Stockfish type invalid
+                self.black_engine = V7P3REvaluationEngine(self.board, chess.BLACK, engine_config=self.black_engine_config)
+                self.black_engine_config['engine'] = 'V7P3R' # Force engine name change
+                self.black_engine_config['engine_type'] = 'random' # Force type change as Stockfish type invalid
             else:
                 self.black_engine = StockfishHandler(
                     stockfish_path=stockfish_path,
@@ -269,9 +259,9 @@ class ChessGame:
                     debug_mode=debug_stockfish
                 )
         else: # Default to V7P3R if unknown engine
-            self.logger.warning(f"Unknown engine for Black AI: {self.black_ai_config['engine']}. Defaulting to V7P3R.")
-            self.black_engine = V7P3REvaluationEngine(self.board, chess.BLACK, ai_config=self.black_ai_config)
-            self.black_ai_config['engine'] = 'V7P3R'
+            self.logger.warning(f"Unknown engine for Black AI: {self.black_engine_config['engine']}. Defaulting to V7P3R.")
+            self.black_engine = V7P3REvaluationEngine(self.board, chess.BLACK, engine_config=self.black_engine_config)
+            self.black_engine_config['engine'] = 'V7P3R'
 
         # Reset and configure engines for the new game board
         self.white_engine.reset(self.board)
@@ -279,28 +269,28 @@ class ChessGame:
 
     def set_headers(self):
         # Set initial PGN headers
-        white_depth = self.white_ai_config.get('depth') # Depth might come from white_ai_config in chess_game_config.yaml
-        if white_depth is None and self.white_ai_config.get('engine','').lower() == 'v7p3r': # Or from v7p3r_config.yaml if V7P3R
+        white_depth = self.white_engine_config.get('depth') # Depth might come from white_engine_config in chess_game_config.yaml
+        if white_depth is None and self.white_engine_config.get('engine','').lower() == 'v7p3r': # Or from v7p3r_config.yaml if V7P3R
             white_depth = self.v7p3r_config_data.get('v7p3r', {}).get('depth', '#')
-        elif white_depth is None and self.white_ai_config.get('engine','').lower() == 'stockfish': # Or from stockfish.yaml if Stockfish
+        elif white_depth is None and self.white_engine_config.get('engine','').lower() == 'stockfish': # Or from stockfish.yaml if Stockfish
              white_depth = self.stockfish_config_data.get('stockfish', {}).get('depth', '#') # Fallback for Stockfish depth
         else:
             white_depth = '#'
 
 
-        black_depth = self.black_ai_config.get('depth') # Depth might come from black_ai_config in chess_game_config.yaml
-        if black_depth is None and self.black_ai_config.get('engine','').lower() == 'v7p3r': # Or from v7p3r_config.yaml if V7P3R
+        black_depth = self.black_engine_config.get('depth') # Depth might come from black_engine_config in chess_game_config.yaml
+        if black_depth is None and self.black_engine_config.get('engine','').lower() == 'v7p3r': # Or from v7p3r_config.yaml if V7P3R
             black_depth = self.v7p3r_config_data.get('v7p3r', {}).get('depth', '#')
-        elif black_depth is None and self.black_ai_config.get('engine','').lower() == 'stockfish': # Or from stockfish.yaml if Stockfish
+        elif black_depth is None and self.black_engine_config.get('engine','').lower() == 'stockfish': # Or from stockfish.yaml if Stockfish
             black_depth = self.stockfish_config_data.get('stockfish', {}).get('depth', '#') # Fallback for Stockfish depth
         else:
             black_depth = '#'
         
-        white_ai_type_header = self.white_ai_config.get('ai_type', 'random')
-        black_ai_type_header = self.black_ai_config.get('ai_type', 'random')
+        white_engine_type_header = self.white_engine_config.get('engine_type', 'random')
+        black_engine_type_header = self.black_engine_config.get('engine_type', 'random')
 
-        white_engine_name = self.white_ai_config.get('engine', 'Unknown')
-        black_engine_name = self.black_ai_config.get('engine', 'Unknown')
+        white_engine_name = self.white_engine_config.get('engine', 'Unknown')
+        black_engine_name = self.black_engine_config.get('engine', 'Unknown')
 
         if self.ai_vs_ai:
             self.game.headers["Event"] = "AI vs. AI Game"
@@ -310,7 +300,7 @@ class ChessGame:
                 elo_str = f"Elo {elo}" if elo is not None else (f"Skill {skill}" if skill is not None else "Max")
                 self.game.headers["White"] = f"AI: {white_engine_name} ({elo_str})"
             else:
-                self.game.headers["White"] = f"AI: {white_engine_name} via {white_ai_type_header} (Depth {white_depth})"
+                self.game.headers["White"] = f"AI: {white_engine_name} via {white_engine_type_header} (Depth {white_depth})"
             
             if black_engine_name.lower() == 'stockfish':
                 elo = self.stockfish_config_data.get('stockfish_config', {}).get('elo_rating') # from stockfish_handler.yaml
@@ -318,7 +308,7 @@ class ChessGame:
                 elo_str = f"Elo {elo}" if elo is not None else (f"Skill {skill}" if skill is not None else "Max")
                 self.game.headers["Black"] = f"AI: {black_engine_name} ({elo_str})"
             else:
-                self.game.headers["Black"] = f"AI: {black_engine_name} via {black_ai_type_header} (Depth {black_depth})"
+                self.game.headers["Black"] = f"AI: {black_engine_name} via {black_engine_type_header} (Depth {black_depth})"
         elif not self.ai_vs_ai and self.human_color_pref:
             self.game.headers["Event"] = "Human vs. AI Game"
             if self.human_color == chess.WHITE:
@@ -329,7 +319,7 @@ class ChessGame:
                     elo_str = f"Elo {elo}" if elo is not None else (f"Skill {skill}" if skill is not None else "Max")
                     self.game.headers["Black"] = f"AI: {black_engine_name} ({elo_str})"
                 else:
-                    self.game.headers["Black"] = f"AI: {black_engine_name} via {black_ai_type_header} (Depth {black_depth})"
+                    self.game.headers["Black"] = f"AI: {black_engine_name} via {black_engine_type_header} (Depth {black_depth})"
             else:
                 if white_engine_name.lower() == 'stockfish':
                     elo = self.stockfish_config_data.get('stockfish_config', {}).get('elo_rating') # from stockfish_handler.yaml
@@ -337,7 +327,7 @@ class ChessGame:
                     elo_str = f"Elo {elo}" if elo is not None else (f"Skill {skill}" if skill is not None else "Max")
                     self.game.headers["White"] = f"AI: {white_engine_name} ({elo_str})"
                 else:
-                    self.game.headers["White"] = f"AI: {white_engine_name} via {white_ai_type_header} (Depth {white_depth})"
+                    self.game.headers["White"] = f"AI: {white_engine_name} via {white_engine_type_header} (Depth {white_depth})"
                 self.game.headers["Black"] = "Human"
 
         self.game.headers["Date"] = datetime.datetime.now().strftime("%Y.%m.%d")
@@ -472,8 +462,23 @@ class ChessGame:
         exporter = chess.pgn.FileExporter(buf)
         self.game.accept(exporter)
         pgn_text = buf.getvalue()
+          # Prepare game result data for metrics_store
+        metrics_data = {
+            "game_id": game_id,
+            "timestamp": timestamp,
+            "winner": result,
+            "game_pgn": pgn_text,
+            "white_player": self.game.headers.get("White"),
+            "black_player": self.game.headers.get("Black"),
+            "game_length": self.board.fullmove_number,
+            "white_engine_config": self.white_engine_config,
+            "black_engine_config": self.black_engine_config
+        }
         
-        # Prepare game result data
+        # Save locally using metrics_store
+        self.metrics_store.add_game_result(**metrics_data)
+        
+        # Prepare complete game result data for data collector
         game_result_data = {
             "game_id": game_id,
             "timestamp": timestamp,
@@ -482,53 +487,49 @@ class ChessGame:
             "white_player": self.game.headers.get("White"),
             "black_player": self.game.headers.get("Black"),
             "game_length": self.board.fullmove_number,
-            "white_engine_id": self.white_ai_config.get('engine_id', 'unknown'),
-            "black_engine_id": self.black_ai_config.get('engine_id', 'unknown'),
+            "white_engine_id": self.white_engine_config.get('engine_id', 'unknown'),
+            "black_engine_id": self.black_engine_config.get('engine_id', 'unknown'),
             "white_engine_name": self.white_eval_engine,
             "black_engine_name": self.black_eval_engine,
-            "white_engine_version": self.white_ai_config.get('engine_version', '1.0'),
-            "black_engine_version": self.black_ai_config.get('engine_version', '1.0'),
-            "white_ai_type": self.white_ai_type,
-            "black_ai_type": self.black_ai_type,
+            "white_engine_version": self.white_engine_config.get('engine_version', '1.0'),
+            "black_engine_version": self.black_engine_config.get('engine_version', '1.0'),
+            "white_engine_type": self.white_engine_type,
+            "black_engine_type": self.black_engine_type,
             "exclude_white_from_metrics": self.exclude_white_performance,
             "exclude_black_from_metrics": self.exclude_black_performance
         }
         
-        # Save locally using metrics_store
-        self.metrics_store.add_game_result(**game_result_data)
-        
         # Use the data collector if available
         if self.data_collector:
-            self.data_collector('game_result', game_result_data)
-        
-        # Upload to cloud storage if available
-        try:
-            pgn_url = self.cloud_store.upload_game_pgn(game_id, pgn_text)
-            
-            # --- Upload metadata to Firestore ---
-            metadata = {
-                "result": result,
-                "game_id": game_id,
-                "pgn_url": pgn_url,
-                "timestamp": timestamp,
-                "white_player": self.game.headers.get("White"),
-                "black_player": self.game.headers.get("Black"),
-                "rated": self.rated,
-                # include configs
-                "game_settings": self.game_config_data,
-                "v7p3r_settings": self.v7p3r_config_data,
-                "stockfish_settings": self.stockfish_config_data
-            }
-            self.cloud_store.upload_game_metadata(game_id, metadata)
+            self.data_collector('game_result', game_result_data)        # Upload to cloud storage if available
+        if self.cloud_store:
+            try:
+                pgn_url = self.cloud_store.upload_game_pgn(game_id, pgn_text)
+                
+                # --- Upload metadata to Firestore ---
+                metadata = {
+                    "result": result,
+                    "game_id": game_id,
+                    "pgn_url": pgn_url,
+                    "timestamp": timestamp,
+                    "white_player": self.game.headers.get("White"),
+                    "black_player": self.game.headers.get("Black"),
+                    "rated": self.rated,
+                    # include configs
+                    "game_settings": self.game_config_data,
+                    "v7p3r_settings": self.v7p3r_config_data,
+                    "stockfish_settings": self.stockfish_config_data
+                }
+                self.cloud_store.upload_game_metadata(game_id, metadata)
 
-            # Optionally upload move metrics to Firestore
-            if self._move_metrics_batch:
-                self.cloud_store.upload_move_metrics(game_id, self._move_metrics_batch)
-        except Exception as e:
-            if self.logger:
-                self.logger.error(f"Failed to upload game data to cloud: {e}")
-            # If cloud upload fails, save locally
-            self.quick_save_pgn(f"games/{game_id}.pgn")
+                # Optionally upload move metrics to Firestore
+                if self._move_metrics_batch:
+                    self.cloud_store.upload_move_metrics(game_id, self._move_metrics_batch)
+            except Exception as e:
+                if self.logger:
+                    self.logger.error(f"Failed to upload game data to cloud: {e}")
+                # If cloud upload fails, save locally
+                self.quick_save_pgn(f"games/{game_id}.pgn")
 
     def quick_save_pgn(self, filename):
         """Deprecated in cloud mode."""
@@ -577,11 +578,11 @@ class ChessGame:
         self.current_eval = 0.0
         
         current_player_color = chess.WHITE if self.board.turn else chess.BLACK
-        current_ai_config = self.white_ai_config if current_player_color == chess.WHITE else self.black_ai_config
+        current_engine_config = self.white_engine_config if current_player_color == chess.WHITE else self.black_engine_config
         current_ai_engine = self.white_engine if current_player_color == chess.WHITE else self.black_engine
         
         if self.logging_enabled and self.logger:
-            self.logger.info(f"Processing AI move for {'White' if current_player_color == chess.WHITE else 'Black'} using {current_ai_config.get('engine', 'Unknown')} engine.")
+            self.logger.info(f"Processing AI move for {'White' if current_player_color == chess.WHITE else 'Black'} using {current_engine_config.get('engine', 'Unknown')} engine.")
         
         if self.show_thoughts:
             print(f"AI ({'White' if current_player_color == chess.WHITE else 'Black'}) is thinking...")
@@ -593,7 +594,7 @@ class ChessGame:
             nodes_before_search = current_ai_engine.nodes_searched
 
         try:
-            ai_move = current_ai_engine.search(self.board, current_player_color, ai_config=current_ai_config)
+            ai_move = current_ai_engine.search(self.board, current_player_color, engine_config=current_engine_config)
             
             move_end_time = time.perf_counter()
             self.move_duration = move_end_time - move_start_time
@@ -630,8 +631,8 @@ class ChessGame:
                         'move_uci': ai_move.uci(),
                         'fen_before': fen_before_move,
                         'evaluation': self.current_eval,
-                        'ai_type': current_ai_config.get('ai_type', 'unknown'),
-                        'depth': current_ai_config.get('depth', 0),
+                        'engine_type': current_engine_config.get('engine_type', 'unknown'),
+                        'depth': current_engine_config.get('depth', 0),
                         'nodes_searched': nodes_this_move,
                         'time_taken': self.move_duration,
                         'pv_line': pv_line_info                    }
@@ -653,9 +654,9 @@ class ChessGame:
                     if self.logging_enabled and self.logger:
                         self.logger.error(f"AI ({current_player_color}) returned null move unexpectedly. | FEN: {self.board.fen()}")
                     if current_player_color == chess.WHITE:
-                        self.white_ai_config['exclude_from_metrics'] = True
+                        self.white_engine_config['exclude_from_metrics'] = True
                     else:
-                        self.black_ai_config['exclude_from_metrics'] = True
+                        self.black_engine_config['exclude_from_metrics'] = True
             else:
                 if self.logging_enabled and self.logger:
                     self.logger.error(f"AI ({current_player_color}) returned an invalid object type or illegal move: {ai_move}. Forcing random move. | FEN: {self.board.fen()}")
@@ -671,9 +672,9 @@ class ChessGame:
                     self.last_ai_move = fallback_move
 
                     if current_player_color == chess.WHITE:
-                        self.white_ai_config['exclude_from_metrics'] = True
+                        self.white_engine_config['exclude_from_metrics'] = True
                     else:
-                        self.black_ai_config['exclude_from_metrics'] = True
+                        self.black_engine_config['exclude_from_metrics'] = True
                     color_str = 'White' if current_player_color == chess.WHITE else 'Black'
                     if self.logger:
                         self.logger.info(f"{color_str} AI excluded from metrics this game due to invalid move.")
@@ -686,7 +687,7 @@ class ChessGame:
                             move_uci=fallback_move.uci(),
                             fen_before=fen_before_move,
                             evaluation=self.current_eval,
-                            ai_type=current_ai_config.get('ai_type', 'unknown') + "_FALLBACK",
+                            engine_type=current_engine_config.get('engine_type', 'unknown') + "_FALLBACK",
                             depth=0,
                             nodes_searched=0,
                             time_taken=0.0,
@@ -712,9 +713,9 @@ class ChessGame:
                 self.last_ai_move = fallback_move
                 
                 if current_player_color == chess.WHITE:
-                    self.white_ai_config['exclude_from_metrics'] = True
+                    self.white_engine_config['exclude_from_metrics'] = True
                 else:
-                    self.black_ai_config['exclude_from_metrics'] = True
+                    self.black_engine_config['exclude_from_metrics'] = True
                 color_str = 'White' if current_player_color == chess.WHITE else 'Black'
                 if self.logger:
                     self.logger.info(f"{color_str} AI excluded from metrics this game due to critical error.")
@@ -727,7 +728,7 @@ class ChessGame:
                         move_uci=fallback_move.uci(),
                         fen_before=fen_before_move,
                         evaluation=self.current_eval,
-                        ai_type=current_ai_config.get('ai_type', 'unknown') + "_CRITICAL_FALLBACK",
+                        engine_type=current_engine_config.get('engine_type', 'unknown') + "_CRITICAL_FALLBACK",
                         depth=0,
                         nodes_searched=0,
                         time_taken=0.0,
@@ -781,7 +782,7 @@ class ChessGame:
             
             self.current_player = chess.WHITE if self.board.turn else chess.BLACK
             
-            current_engine_name = self.white_ai_config['engine'] if self.current_player == chess.BLACK else self.black_ai_config['engine']
+            current_engine_name = self.white_engine_config['engine'] if self.current_player == chess.BLACK else self.black_engine_config['engine']
             if current_engine_name.lower() != 'stockfish':
                 self.record_evaluation()
             
@@ -809,9 +810,9 @@ class ChessGame:
         running = True
         game_count_remaining = self.game_count
         
-        print(f"White AI: {self.white_eval_engine} via {self.white_ai_type} vs Black AI: {self.black_eval_engine} via {self.black_ai_type}")
+        print(f"White AI: {self.white_eval_engine} via {self.white_engine_type} vs Black AI: {self.black_eval_engine} via {self.black_engine_type}")
         if self.logging_enabled and self.logger:
-            self.logger.info(f"White AI: {self.white_eval_engine} via {self.white_ai_type} vs Black AI: {self.black_eval_engine} via {self.black_ai_type}")
+            self.logger.info(f"White AI: {self.white_eval_engine} via {self.white_engine_type} vs Black AI: {self.black_eval_engine} via {self.black_engine_type}")
         
         self._initialize_ai_engines()
 
@@ -852,6 +853,52 @@ class ChessGame:
                 self.black_engine.quit()
 
 if __name__ == "__main__":
-    game = ChessGame()
+    # Create a default configuration object for ChessGame
+    class ChessGameConfig:
+        def __init__(self):
+            self.fen_position = None
+            self.data_collector = None
+            self.game_config = {
+                'monitoring': {
+                    'enable_logging': True,
+                    'show_thinking': True
+                },
+                'game_config': {
+                    'human_color': 'random',
+                    'starting_position': 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+                    'ai_game_count': 1,
+                    'ai_vs_ai': True,
+                    'rated': True
+                },
+                'white_engine_config': {
+                    'engine_type': 'deepsearch',
+                    'engine': 'v7p3r',
+                    'depth': 4,
+                    'exclude_from_metrics': False
+                },
+                'black_engine_config': {
+                    'engine_type': 'stockfish',
+                    'engine': 'stockfish',
+                    'depth': 3,
+                    'exclude_from_metrics': True
+                }
+            }
+            self.v7p3r_config = {
+                'v7p3r': {
+                    'ruleset': 'default_evaluation',
+                    'depth': 3
+                }
+            }
+            self.stockfish_config = {
+                'stockfish_config': {
+                    'path': None,
+                    'elo_rating': None,
+                    'skill_level': None,
+                    'debug_stockfish': False
+                }
+            }
+
+    config = ChessGameConfig()
+    game = ChessGame(config)
     game.run()
     game.metrics_store.close()
