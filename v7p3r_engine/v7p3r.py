@@ -79,7 +79,7 @@ class V7P3REvaluationEngine: # Renamed class from EvaluationEngine
         }
 
         try:
-            with open("v7p3r.yaml") as f:
+            with open("config/v7p3r_config.yaml") as f:
                 v7p3r_data = yaml.safe_load(f) or {}
                 self.v7p3r_config_data = v7p3r_data.get('v7p3r', {})
             with open("chess_game.yaml") as f:
@@ -116,7 +116,7 @@ class V7P3REvaluationEngine: # Renamed class from EvaluationEngine
         self.pst = PieceSquareTables()
 
         self.scoring_calculator = V7P3RScoringCalculation(
-            v7p3r_yaml_config=self.v7p3r_config_data, # Pass full v7p3r.yaml data
+            v7p3r_yaml_config=self.v7p3r_config_data, # Pass full v7p3r_config.yaml data
             ai_config=self.ai_config, # Pass resolved ai_config
             piece_values=self.piece_values,
             pst=self.pst
@@ -130,7 +130,7 @@ class V7P3REvaluationEngine: # Renamed class from EvaluationEngine
         self.reset(self.board)
 
     def _ensure_ai_config(self, ai_config_runtime: Optional[Dict[str, Any]], player: chess.Color) -> Dict[str, Any]:
-        # 1. Start with base V7P3R engine settings from v7p3r.yaml
+        # 1. Start with base V7P3R engine settings from v7p3r_config.yaml
         final_config = self.v7p3r_config_data.copy()
 
         # 2. Merge/override with player-specific AI config from chess_game.yaml
@@ -157,15 +157,15 @@ class V7P3REvaluationEngine: # Renamed class from EvaluationEngine
             final_config = deep_merge(ai_config_runtime, final_config)
 
         # Ensure critical keys have defaults if not set anywhere
-        # Default search_algorithm from v7p3r.yaml if ai_type not specified
+        # Default search_algorithm from v7p3r_config.yaml if ai_type not specified
         final_config.setdefault('ai_type', self.v7p3r_config_data.get('search_algorithm', 'random'))
-        # Default depth: v7p3r.yaml -> chess_game.yaml (performance) -> fallback
+        # Default depth: v7p3r_config.yaml -> chess_game.yaml (performance) -> fallback
         final_config.setdefault('depth', self.v7p3r_config_data.get('depth', self.game_settings_config_data.get('performance', {}).get('max_depth', 3) if self.game_settings_config_data else 3))
-        # Default ruleset from v7p3r.yaml
+        # Default ruleset from v7p3r_config.yaml
         final_config.setdefault('ruleset', self.v7p3r_config_data.get('ruleset', 'default_evaluation'))
         # Default max_depth: chess_game.yaml (performance) -> fallback
         final_config.setdefault('max_depth', self.game_settings_config_data.get('performance', {}).get('max_depth', 5) if self.game_settings_config_data else 5)
-        # Default scoring_modifier from v7p3r.yaml
+        # Default scoring_modifier from v7p3r_config.yaml
         final_config.setdefault('scoring_modifier', self.v7p3r_config_data.get('scoring_modifier', 1.0))
         
         # Ensure nested structures like 'pst', 'move_ordering', 'quiescence' have defaults if not present
@@ -601,7 +601,7 @@ class V7P3REvaluationEngine: # Renamed class from EvaluationEngine
         if temp_board.is_checkmate():
             temp_board.pop()
             # Checkmate bonus from 'evaluation' part of v7p3r_config_data, or a specific move_ordering config
-            eval_cfg = self.ai_config.get('evaluation', {}) # 'evaluation' might be a sub-key in v7p3r.yaml
+            eval_cfg = self.ai_config.get('evaluation', {}) # 'evaluation' might be a sub-key in v7p3r_config.yaml
             return move_ordering_cfg.get('checkmate_move_bonus', eval_cfg.get('checkmate_move_bonus', 1000000.0))
         
         if temp_board.is_check(): # Check after move is made

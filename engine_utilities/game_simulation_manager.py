@@ -29,7 +29,7 @@ def run_game_instance(game_config_override, v7p3r_config_override, stockfish_con
         # Load base configurations
         with open("config/chess_game.yaml") as f:
             base_game_config = yaml.safe_load(f)
-        with open("config/v7p3r.yaml") as f:
+        with open("config/v7p3r_config.yaml") as f:
             base_v7p3r_config = yaml.safe_load(f)
         with open("config/stockfish_handler.yaml") as f:
             base_stockfish_config = yaml.safe_load(f)

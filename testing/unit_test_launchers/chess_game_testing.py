@@ -140,7 +140,7 @@ class TestChessGameInitialization(unittest.TestCase):
           # Verify files were opened
         expected_calls = [
             call("chess_game.yaml"),
-            call("v7p3r.yaml"),
+            call("config/v7p3r_config.yaml"),
             call("engine_utilities/stockfish_handler.yaml")
         ]
         mock_open.assert_has_calls(expected_calls, any_order=True)
