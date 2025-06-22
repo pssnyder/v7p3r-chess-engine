@@ -41,7 +41,7 @@ v7p3r_scoring_logger.propagate = False
 
 class V7P3RScoringCalculation:
     def __init__(self, v7p3r_yaml_config: dict, ai_config: dict, piece_values: dict, pst: PieceSquareTables):
-        self.v7p3r_config = v7p3r_yaml_config # This is the full v7p3r.yaml content
+        self.v7p3r_config = v7p3r_yaml_config # This is the full v7p3r_config.yaml content
         self.ai_config = ai_config # This is the resolved AI config for the current player/engine instance
         self.piece_values = piece_values
         self.pst = pst

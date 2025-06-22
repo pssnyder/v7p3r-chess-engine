@@ -85,21 +85,21 @@ class ChessGame:
         if game_config:
             self.game_config_data = game_config
         else:
-            with open("chess_game.yaml") as f:  # Updated config file name
+            with open("config/chess_game_config.yaml") as f:  # Updated config file name
                 self.game_config_data = yaml.safe_load(f)
 
         # Load V7P3R engine configuration
         if v7p3r_config:
             self.v7p3r_config_data = v7p3r_config
         else:
-            with open("v7p3r.yaml") as f:
+            with open("config/v7p3r_config.yaml") as f:
                 self.v7p3r_config_data = yaml.safe_load(f)
 
         # Load Stockfish handler configuration
         if stockfish_config:
             self.stockfish_config_data = stockfish_config
         else:
-            with open("engine_utilities/stockfish_handler.yaml") as f: # Updated path
+            with open("config/stockfish_handler.yaml") as f: # Updated path
                 self.stockfish_config_data = yaml.safe_load(f)
             
         # Initialize Pygame (even in headless mode, for internal timing)
@@ -160,7 +160,7 @@ class ChessGame:
             self.logger.debug(f"Black AI Type: {self.black_ai_type}, Engine: {self.black_eval_engine}")
         
         # Debug settings
-        self.show_eval = self.game_config_data.get('monitoring', {}).get('show_evaluation', False) # Adjusted path for debug settings if they were moved, assuming they are in 'monitoring' or similar in chess_game.yaml
+        self.show_eval = self.game_config_data.get('monitoring', {}).get('show_evaluation', False) # Adjusted path for debug settings if they were moved, assuming they are in 'monitoring' or similar in chess_game_config.yaml
         
         # Initialize MetricsStore
         self.metrics_store = MetricsStore()
@@ -222,7 +222,7 @@ class ChessGame:
         stockfish_skill = self.stockfish_config_data.get('stockfish_config', {}).get('skill_level')
         debug_stockfish = self.stockfish_config_data.get('stockfish_config', {}).get('debug_stockfish', False)
 
-        # V7P3R engine general settings from v7p3r.yaml
+        # V7P3R engine general settings from v7p3r_config.yaml
         v7p3r_ruleset = self.v7p3r_config_data.get('v7p3r', {}).get('ruleset', 'default_evaluation')
         v7p3r_depth = self.v7p3r_config_data.get('v7p3r', {}).get('depth', 3)
 
@@ -279,8 +279,8 @@ class ChessGame:
 
     def set_headers(self):
         # Set initial PGN headers
-        white_depth = self.white_ai_config.get('depth') # Depth might come from white_ai_config in chess_game.yaml
-        if white_depth is None and self.white_ai_config.get('engine','').lower() == 'v7p3r': # Or from v7p3r.yaml if V7P3R
+        white_depth = self.white_ai_config.get('depth') # Depth might come from white_ai_config in chess_game_config.yaml
+        if white_depth is None and self.white_ai_config.get('engine','').lower() == 'v7p3r': # Or from v7p3r_config.yaml if V7P3R
             white_depth = self.v7p3r_config_data.get('v7p3r', {}).get('depth', '#')
         elif white_depth is None and self.white_ai_config.get('engine','').lower() == 'stockfish': # Or from stockfish.yaml if Stockfish
              white_depth = self.stockfish_config_data.get('stockfish', {}).get('depth', '#') # Fallback for Stockfish depth
@@ -288,8 +288,8 @@ class ChessGame:
             white_depth = '#'
 
 
-        black_depth = self.black_ai_config.get('depth') # Depth might come from black_ai_config in chess_game.yaml
-        if black_depth is None and self.black_ai_config.get('engine','').lower() == 'v7p3r': # Or from v7p3r.yaml if V7P3R
+        black_depth = self.black_ai_config.get('depth') # Depth might come from black_ai_config in chess_game_config.yaml
+        if black_depth is None and self.black_ai_config.get('engine','').lower() == 'v7p3r': # Or from v7p3r_config.yaml if V7P3R
             black_depth = self.v7p3r_config_data.get('v7p3r', {}).get('depth', '#')
         elif black_depth is None and self.black_ai_config.get('engine','').lower() == 'stockfish': # Or from stockfish.yaml if Stockfish
             black_depth = self.stockfish_config_data.get('stockfish', {}).get('depth', '#') # Fallback for Stockfish depth

@@ -10,9 +10,10 @@
 *.v7p3r_chess_engine
 *.v7p3r_chess_engine.*
 .v7p3r_chess_engine_project_files/
+templates/
 
 # Omit external engine files
-external_engines/
+*/external_engines/*
 
 # Directories to ignore
 evaluation/

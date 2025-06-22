@@ -1,0 +1,117 @@
+# V7P3R Chess Engine Unit Testing Configuration
+# This file configures the unit testing suite behavior and test selection
+
+# Test Execution Settings
+execution:
+  # Maximum time (in seconds) for individual tests to complete
+  test_timeout: 300
+  
+  # Number of parallel threads for test execution
+  max_threads: 4
+  
+  # Failure handling mode:
+  # "continue" - Document failures and continue with all other tests (unmonitored mode)
+  # "stop" - Stop on first failure with verbose error details (monitored mode)
+  failure_mode: "continue"
+
+# Output Configuration
+output:
+  # Verbosity levels: "minimal", "standard", "verbose", "debug"
+  verbosity: "standard"
+  
+  # Terminal output settings
+  terminal:
+    enabled: true
+    show_progress: true
+    show_timing: true
+    colored_output: true
+  
+  # File logging settings
+  file_logging:
+    enabled: true
+    log_directory: "testing/results"
+    log_format: "json"  # "json", "xml", "text"
+    include_stack_traces: true
+    timestamp_format: "%Y%m%d_%H%M%S"
+
+# Test Selection Configuration
+test_selection:
+  # Run all tests by default
+  run_all: true
+  
+  # Specific test categories to include/exclude
+  categories:
+    engine_utilities: true
+    metrics: true
+    main_engine: true
+    chess_game: true
+    firebase: true
+  
+  # Individual test files to include (overrides run_all if specified)
+  include_tests: []
+    # - "chess_game_testing"
+    # - "v7p3r_testing"
+    # - "stockfish_handler_testing"
+  
+  # Individual test files to exclude
+  exclude_tests: []
+    # - "lichess_handler_testing"  # Requires API keys
+    # - "cloud_store_testing"      # Requires GCP credentials
+
+# Test Environment Configuration
+environment:
+  # Set up test-specific environment variables
+  test_env_vars:
+    V7P3R_TEST_MODE: "true"
+    V7P3R_LOG_LEVEL: "WARNING"  # Reduce log noise during testing
+  
+  # Test data directories
+  test_data_dir: "testing/test_data"
+  temp_files_dir: "testing/temp"
+  
+  # Mock external dependencies
+  mock_external:
+    stockfish: false      # Set to true to mock Stockfish engine
+    lichess_api: true     # Mock Lichess API calls
+    firebase: false       # Set to true to mock Firebase calls
+    gcp_services: true    # Mock Google Cloud Platform services
+
+# Performance Testing Configuration
+performance:
+  enabled: true
+  
+  # Performance benchmark thresholds
+  thresholds:
+    # Maximum execution time for performance-critical functions (in seconds)
+    move_generation: 0.1
+    position_evaluation: 0.05
+    book_lookup: 0.01
+    
+  # Memory usage monitoring
+  memory_monitoring:
+    enabled: true
+    max_memory_mb: 500  # Alert if any test uses more than 500MB
+
+# Integration Testing Configuration (for components that interact)
+integration:
+  enabled: true
+  
+  # Test real integrations with external services
+  external_services:
+    stockfish: false      # Requires Stockfish installation
+    firebase: false       # Requires Firebase credentials
+    lichess: false        # Requires API access
+
+# Reporting Configuration
+reporting:
+  # Generate test reports
+  generate_html_report: true
+  generate_junit_xml: true  # For CI/CD integration
+  
+  # Report details
+  include_coverage: true
+  include_performance_metrics: true
+  include_memory_usage: true
+  
+  # Report output location
+  report_directory: "testing/reports"

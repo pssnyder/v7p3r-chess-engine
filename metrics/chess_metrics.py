@@ -28,9 +28,9 @@ def start_metrics_collection():
 collection_thread = threading.Thread(target=start_metrics_collection, daemon=True)
 collection_thread.start()
 
-# Load AI types from config.yaml (for dropdowns)
+# Load AI types from chess_game_config.yaml (for dropdowns)
 try:
-    with open("chess_game.yaml", "r") as config_file:
+    with open("config/chess_game_config.yaml", "r") as config_file:
         config_data = yaml.safe_load(config_file)
         # AI_TYPES is still loaded as metrics_store might use it internally or for logging,
         # but AI_TYPE_OPTIONS is no longer needed for UI dropdowns for white/black AI.
@@ -38,7 +38,7 @@ try:
         # unique_ai_types = sorted(list(set(AI_TYPES + ['Viper', 'Stockfish']))) # No longer needed for UI
         # AI_TYPE_OPTIONS = [{"label": ai_type.capitalize(), "value": ai_type} for ai_type in unique_ai_types] # No longer needed for UI
 except Exception as e:
-    print(f"Error loading config.yaml for AI types: {e}")
+    print(f"Error loading chess_game_config.yaml for AI types: {e}")
     AI_TYPES = []
     # AI_TYPE_OPTIONS = []
 
