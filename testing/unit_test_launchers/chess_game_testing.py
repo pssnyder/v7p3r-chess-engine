@@ -66,7 +66,7 @@ class TestChessGameInitialization(unittest.TestCase):
         """Test initialization with a valid FEN position."""
         fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
         
-        with patch('chess_game.yaml.safe_load'), \
+        with patch('config/chess_game_config.yaml.safe_load'), \
              patch('builtins.open'), \
              patch('chess_game.pygame.init'), \
              patch('chess_game.pygame.time.Clock'):
@@ -111,7 +111,7 @@ class TestChessGameInitialization(unittest.TestCase):
 
     def test_init_without_fen(self):
         """Test initialization without FEN position."""
-        with patch('chess_game.yaml.safe_load'), \
+        with patch('config/chess_game_config.yaml.safe_load'), \
              patch('builtins.open'), \
              patch('chess_game.pygame.init'), \
              patch('chess_game.pygame.time.Clock'):
@@ -124,7 +124,7 @@ class TestChessGameInitialization(unittest.TestCase):
             
             self.assertIsNone(game.starting_position)
 
-    @patch('chess_game.yaml.safe_load')
+    @patch('config/chess_game_config.yaml.safe_load')
     @patch('builtins.open')
     @patch('chess_game.pygame.init')
     @patch('chess_game.pygame.time.Clock')
@@ -139,9 +139,9 @@ class TestChessGameInitialization(unittest.TestCase):
         game = ChessGame()
           # Verify files were opened
         expected_calls = [
-            call("chess_game.yaml"),
+            call("config/chess_game_config.yaml"),
             call("config/v7p3r_config.yaml"),
-            call("engine_utilities/stockfish_handler.yaml")
+            call("config/stockfish_handler_config.yaml")
         ]
         mock_open.assert_has_calls(expected_calls, any_order=True)
 
@@ -149,7 +149,7 @@ class TestChessGameInitialization(unittest.TestCase):
         """Test data collector function assignment."""
         mock_collector = Mock()
         
-        with patch('chess_game.yaml.safe_load'), \
+        with patch('config/chess_game_config.yaml.safe_load'), \
              patch('builtins.open'), \
              patch('chess_game.pygame.init'), \
              patch('chess_game.pygame.time.Clock'):
@@ -214,7 +214,7 @@ class TestChessGameBoardOperations(unittest.TestCase):
         self.v7p3r_config = {'engine': {'depth': 6, 'time_limit': 5.0}}
         self.stockfish_config = {'path': '/usr/bin/stockfish', 'depth': 15}
 
-    @patch('chess_game.yaml.safe_load')
+    @patch('config/chess_game_config.yaml.safe_load')
     @patch('builtins.open')
     @patch('chess_game.pygame.init')
     @patch('chess_game.pygame.time.Clock')
@@ -233,7 +233,7 @@ class TestChessGameBoardOperations(unittest.TestCase):
         # King and pawn endgame position
         custom_fen = "8/8/8/8/8/8/4K3/4k3 w - - 0 1"
         
-        with patch('chess_game.yaml.safe_load'), \
+        with patch('config/chess_game_config.yaml.safe_load'), \
              patch('builtins.open'), \
              patch('chess_game.pygame.init'), \
              patch('chess_game.pygame.time.Clock'):
@@ -265,7 +265,7 @@ class TestChessGamePerformance(unittest.TestCase):
         """Test that game initialization completes within reasonable time."""
         start_time = time.time()
         
-        with patch('chess_game.yaml.safe_load'), \
+        with patch('config/chess_game_config.yaml.safe_load'), \
              patch('builtins.open'), \
              patch('chess_game.pygame.init'), \
              patch('chess_game.pygame.time.Clock'):
@@ -303,7 +303,7 @@ class TestChessGameIntegration(unittest.TestCase):
     def test_engine_integrations(self, mock_cloud_store, mock_metrics_store, 
                                 mock_stockfish, mock_v7p3r):
         """Test integration with chess engines and storage systems."""
-        with patch('chess_game.yaml.safe_load'), \
+        with patch('config/chess_game_config.yaml.safe_load'), \
              patch('builtins.open'), \
              patch('chess_game.pygame.init'), \
              patch('chess_game.pygame.time.Clock'):
