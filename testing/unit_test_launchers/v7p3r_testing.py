@@ -99,7 +99,7 @@ class TestV7P3REvaluationEngineInitialization(unittest.TestCase):
     @patch('v7p3r_engine.v7p3r.TimeManager')
     @patch('v7p3r_engine.v7p3r.OpeningBook')
     @patch('builtins.open', new_callable=mock_open)
-    @patch('v7p3r_engine.v7p3r.yaml.safe_load')
+    @patch('v7p3r_engine.v7p3r_config.yaml.safe_load')
     def test_init_default_values(self, mock_yaml, mock_open_file, mock_book, mock_time):
         """Test initialization with default values."""
         mock_yaml.side_effect = [self.v7p3r_config, self.game_config]
@@ -118,7 +118,7 @@ class TestV7P3REvaluationEngineInitialization(unittest.TestCase):
     @patch('v7p3r_engine.v7p3r.TimeManager')
     @patch('v7p3r_engine.v7p3r.OpeningBook')
     @patch('builtins.open', new_callable=mock_open)
-    @patch('v7p3r_engine.v7p3r.yaml.safe_load')
+    @patch('v7p3r_engine.v7p3r_config.yaml.safe_load')
     def test_init_with_custom_board(self, mock_yaml, mock_open_file, mock_book, mock_time):
         """Test initialization with custom board position."""
         mock_yaml.side_effect = [self.v7p3r_config, self.game_config]
@@ -143,7 +143,7 @@ class TestV7P3REvaluationEngineInitialization(unittest.TestCase):
     @patch('v7p3r_engine.v7p3r.TimeManager')
     @patch('v7p3r_engine.v7p3r.OpeningBook')
     @patch('builtins.open', new_callable=mock_open)
-    @patch('v7p3r_engine.v7p3r.yaml.safe_load')
+    @patch('v7p3r_engine.v7p3r_config.yaml.safe_load')
     def test_config_loading_priorities(self, mock_yaml, mock_open_file, mock_book, mock_time):
         """Test that v7p3r config takes priority over game config."""
         mock_yaml.side_effect = [self.v7p3r_config, self.game_config]
@@ -323,7 +323,7 @@ class TestV7P3REvaluationEngineErrorHandling(unittest.TestCase):
             mock_logger.error.assert_called()
             self.assertEqual(engine.v7p3r_config_data, {})
 
-    @patch('v7p3r_engine.v7p3r.yaml.safe_load')
+    @patch('v7p3r_engine.v7p3r_config.yaml.safe_load')
     def test_malformed_yaml_handling(self, mock_yaml):
         """Test handling of malformed YAML files."""
         mock_yaml.side_effect = yaml.YAMLError("Invalid YAML")

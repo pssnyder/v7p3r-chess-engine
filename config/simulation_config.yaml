@@ -35,7 +35,7 @@ simulations:
         engine: 'stockfish'
         # Stockfish settings are inside stockfish_handler.yaml, but can be overridden
     v7p3r:
-      v7p3r: # Corresponds to the engine name key in v7p3r.yaml
+      v7p3r: # Corresponds to the engine name key in v7p3r_config.yaml
         ruleset: 'aggressive_evaluation'
         depth: 4
     stockfish_handler:

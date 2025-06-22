@@ -65,7 +65,7 @@ class AdaptiveEloSimulator:
         # Load base configurations
         with open("config/chess_game.yaml") as f:
             self.base_game_config = yaml.safe_load(f)
-        with open("config/v7p3r.yaml") as f:
+        with open("config/v7p3r_config.yaml") as f:
             self.base_v7p3r_config = yaml.safe_load(f)
         with open("config/stockfish_handler.yaml") as f:
             self.base_stockfish_config = yaml.safe_load(f)
