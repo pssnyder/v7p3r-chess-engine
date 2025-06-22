@@ -82,7 +82,7 @@ class V7P3REvaluationEngine: # Renamed class from EvaluationEngine
             with open("config/v7p3r_config.yaml") as f:
                 v7p3r_data = yaml.safe_load(f) or {}
                 self.v7p3r_config_data = v7p3r_data.get('v7p3r', {})
-            with open("chess_game.yaml") as f:
+            with open("config/chess_game_config.yaml") as f:
                 game_data = yaml.safe_load(f) or {}
                 self.game_settings_config_data = game_data
         except Exception as e:
@@ -133,7 +133,7 @@ class V7P3REvaluationEngine: # Renamed class from EvaluationEngine
         # 1. Start with base V7P3R engine settings from v7p3r_config.yaml
         final_config = self.v7p3r_config_data.copy()
 
-        # 2. Merge/override with player-specific AI config from chess_game.yaml
+        # 2. Merge/override with player-specific AI config from chess_game_config.yaml
         player_specific_key = 'white_ai_config' if player == chess.WHITE else 'black_ai_config'
         player_specific_game_config = self.game_settings_config_data.get(player_specific_key, {}) if self.game_settings_config_data else {}
         
@@ -159,11 +159,11 @@ class V7P3REvaluationEngine: # Renamed class from EvaluationEngine
         # Ensure critical keys have defaults if not set anywhere
         # Default search_algorithm from v7p3r_config.yaml if ai_type not specified
         final_config.setdefault('ai_type', self.v7p3r_config_data.get('search_algorithm', 'random'))
-        # Default depth: v7p3r_config.yaml -> chess_game.yaml (performance) -> fallback
+        # Default depth: v7p3r_config.yaml -> chess_game_config.yaml (performance) -> fallback
         final_config.setdefault('depth', self.v7p3r_config_data.get('depth', self.game_settings_config_data.get('performance', {}).get('max_depth', 3) if self.game_settings_config_data else 3))
         # Default ruleset from v7p3r_config.yaml
         final_config.setdefault('ruleset', self.v7p3r_config_data.get('ruleset', 'default_evaluation'))
-        # Default max_depth: chess_game.yaml (performance) -> fallback
+        # Default max_depth: chess_game_config.yaml (performance) -> fallback
         final_config.setdefault('max_depth', self.game_settings_config_data.get('performance', {}).get('max_depth', 5) if self.game_settings_config_data else 5)
         # Default scoring_modifier from v7p3r_config.yaml
         final_config.setdefault('scoring_modifier', self.v7p3r_config_data.get('scoring_modifier', 1.0))
@@ -182,7 +182,7 @@ class V7P3REvaluationEngine: # Renamed class from EvaluationEngine
         final_config['quiescence'].setdefault('max_depth', 5)
         final_config.setdefault('use_opening_book', self.v7p3r_config_data.get('use_opening_book', True))
 
-        # Performance related defaults that might be in chess_game.yaml
+        # Performance related defaults that might be in chess_game_config.yaml
         final_config.setdefault('move_time_limit', self.game_settings_config_data.get('performance', {}).get('default_move_time_ms', 0) if self.game_settings_config_data else 0)
         final_config.setdefault('max_moves_evaluated', self.game_settings_config_data.get('performance', {}).get('max_moves_evaluated', None) if self.game_settings_config_data else None)
 

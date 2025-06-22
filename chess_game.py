@@ -85,7 +85,7 @@ class ChessGame:
         if game_config:
             self.game_config_data = game_config
         else:
-            with open("config/chess_game.yaml") as f:  # Updated config file name
+            with open("config/chess_game_config.yaml") as f:  # Updated config file name
                 self.game_config_data = yaml.safe_load(f)
 
         # Load V7P3R engine configuration
@@ -279,7 +279,7 @@ class ChessGame:
 
     def set_headers(self):
         # Set initial PGN headers
-        white_depth = self.white_ai_config.get('depth') # Depth might come from white_ai_config in chess_game.yaml
+        white_depth = self.white_ai_config.get('depth') # Depth might come from white_ai_config in chess_game_config.yaml
         if white_depth is None and self.white_ai_config.get('engine','').lower() == 'v7p3r': # Or from v7p3r_config.yaml if V7P3R
             white_depth = self.v7p3r_config_data.get('v7p3r', {}).get('depth', '#')
         elif white_depth is None and self.white_ai_config.get('engine','').lower() == 'stockfish': # Or from stockfish.yaml if Stockfish
@@ -288,7 +288,7 @@ class ChessGame:
             white_depth = '#'
 
 
-        black_depth = self.black_ai_config.get('depth') # Depth might come from black_ai_config in chess_game.yaml
+        black_depth = self.black_ai_config.get('depth') # Depth might come from black_ai_config in chess_game_config.yaml
         if black_depth is None and self.black_ai_config.get('engine','').lower() == 'v7p3r': # Or from v7p3r_config.yaml if V7P3R
             black_depth = self.v7p3r_config_data.get('v7p3r', {}).get('depth', '#')
         elif black_depth is None and self.black_ai_config.get('engine','').lower() == 'stockfish': # Or from stockfish.yaml if Stockfish
