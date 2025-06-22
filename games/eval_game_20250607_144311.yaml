@@ -50,7 +50,7 @@ aggressive_evaluation:
   trapped_piece_penalty: -5.0
   undefended_piece_penalty: -2.0
   undeveloped_penalty: -0.5
-ai_types:
+engine_types:
 - deepsearch
 - lookahead
 - minimax
@@ -61,9 +61,9 @@ ai_types:
 - quiescence_only
 - simple_eval
 - random
-black_ai_config:
+black_engine_config:
   ai_color: black
-  ai_type: lookahead
+  engine_type: lookahead
   depth: 2
   engine: Viper
   move_ordering: false
@@ -326,9 +326,9 @@ starting_positions:
   scandinavian: rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1
   sicilian: rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1
   vienna: rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1
-white_ai_config:
+white_engine_config:
   ai_color: white
-  ai_type: minimax
+  engine_type: minimax
   depth: 5
   engine: Viper
   move_ordering: false

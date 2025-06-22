@@ -1,6 +1,6 @@
 # local_metrics_dashboard.py
 # A locally running dashboard to visualize chess engine tuning metrics.
-# TODO add functionality that, upon initialization of the metrics dash, backs up the database so we have a snapshot, then cleans up any incomplete games that could skew the metrics since we don't actually know the result. then it should create fresh test records for white and black color selections, under a metrics-test engine name (formerly ai_type) so we can test the dashboard without affecting the actual metrics. These test metrics will need to cover basic scenarios for data appearing in the visuals to allow for end to end testing in the event there is no real game data populated in the dev environment, the metrics dash will always initialize with its own test data ready, marking it as exclude from metrics in production branches but exclude from metrics False in dev branches for testing.
+# TODO add functionality that, upon initialization of the metrics dash, backs up the database so we have a snapshot, then cleans up any incomplete games that could skew the metrics since we don't actually know the result. then it should create fresh test records for white and black color selections, under a metrics-test engine name (formerly engine_type) so we can test the dashboard without affecting the actual metrics. These test metrics will need to cover basic scenarios for data appearing in the visuals to allow for end to end testing in the event there is no real game data populated in the dev environment, the metrics dash will always initialize with its own test data ready, marking it as exclude from metrics in production branches but exclude from metrics False in dev branches for testing.
 
 import dash
 from dash import dcc, html, Output, Input # Removed State
@@ -32,15 +32,15 @@ collection_thread.start()
 try:
     with open("config/chess_game_config.yaml", "r") as config_file:
         config_data = yaml.safe_load(config_file)
-        # AI_TYPES is still loaded as metrics_store might use it internally or for logging,
-        # but AI_TYPE_OPTIONS is no longer needed for UI dropdowns for white/black AI.
-        AI_TYPES = config_data.get("ai_types", [])
-        # unique_ai_types = sorted(list(set(AI_TYPES + ['Viper', 'Stockfish']))) # No longer needed for UI
-        # AI_TYPE_OPTIONS = [{"label": ai_type.capitalize(), "value": ai_type} for ai_type in unique_ai_types] # No longer needed for UI
+        # engine_types is still loaded as metrics_store might use it internally or for logging,
+        # but engine_type_OPTIONS is no longer needed for UI dropdowns for white/black AI.
+        engine_types = config_data.get("engine_types", [])
+        # unique_engine_types = sorted(list(set(engine_types + ['Viper', 'Stockfish']))) # No longer needed for UI
+        # engine_type_OPTIONS = [{"label": engine_type.capitalize(), "value": engine_type} for engine_type in unique_engine_types] # No longer needed for UI
 except Exception as e:
     print(f"Error loading chess_game_config.yaml for AI types: {e}")
-    AI_TYPES = []
-    # AI_TYPE_OPTIONS = []
+    engine_types = []
+    # engine_type_OPTIONS = []
 
 # --- DARK MODE COLORS ---
 DARK_BG = "#18191A"
@@ -75,12 +75,12 @@ def initialize_metrics_dashboard():
         white_player='metrics-test',
         black_player='metrics-test',
         game_length=10,
-        white_ai_config={'ai_type': 'metrics-test', 'exclude_from_metrics': False},
-        black_ai_config={'ai_type': 'metrics-test', 'exclude_from_metrics': False}
+        white_engine_config={'engine_type': 'metrics-test', 'exclude_from_metrics': False},
+        black_engine_config={'engine_type': 'metrics-test', 'exclude_from_metrics': False}
     )
     # Add a few test moves
-    metrics_store.add_move_metric(game_id=test_game_id, move_number=1, player_color='white', move_uci='e2e4', fen_before='rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1', evaluation=0.1, ai_type='metrics-test', depth=1, nodes_searched=10, time_taken=0.01, pv_line='e2e4 e7e5')
-    metrics_store.add_move_metric(game_id=test_game_id, move_number=1, player_color='black', move_uci='e7e5', fen_before='rnbqkbnr/pppppppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2', evaluation=0.0, ai_type='metrics-test', depth=1, nodes_searched=10, time_taken=0.01, pv_line='e7e5 Nf3')
+    metrics_store.add_move_metric(game_id=test_game_id, move_number=1, player_color='white', move_uci='e2e4', fen_before='rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1', evaluation=0.1, engine_type='metrics-test', depth=1, nodes_searched=10, time_taken=0.01, pv_line='e2e4 e7e5')
+    metrics_store.add_move_metric(game_id=test_game_id, move_number=1, player_color='black', move_uci='e7e5', fen_before='rnbqkbnr/pppppppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2', evaluation=0.0, engine_type='metrics-test', depth=1, nodes_searched=10, time_taken=0.01, pv_line='e7e5 Nf3')
     print("Test metrics data initialized.")
 
 # Call initialization at module load
@@ -124,7 +124,7 @@ app.layout = html.Div([
             #     html.Label("White AI Type:", style={"color": DARK_TEXT}),
             #     dcc.Dropdown(
             #         id="white-ai-type-filter",
-            #         options=[{"label": str(option["label"]), "value": str(option["value"])} for option in AI_TYPE_OPTIONS],
+            #         options=[{"label": str(option["label"]), "value": str(option["value"])} for option in engine_type_OPTIONS],
             #         multi=True,
             #         placeholder="Select White AI Type(s)",
             #         style={"backgroundColor": DARK_PANEL, "color": DARK_TEXT, "borderColor": DARK_BORDER}
@@ -134,7 +134,7 @@ app.layout = html.Div([
             #     html.Label("Black AI Type:", style={"color": DARK_TEXT}),
             #     dcc.Dropdown(
             #         id="black-ai-type-filter",
-            #         options=[{"label": str(option["label"]), "value": str(option["value"])} for option in AI_TYPE_OPTIONS],
+            #         options=[{"label": str(option["label"]), "value": str(option["value"])} for option in engine_type_OPTIONS],
             #         multi=True,
             #         placeholder="Select Black AI Type(s)",
             #         style={"backgroundColor": DARK_PANEL, "color": DARK_TEXT, "borderColor": DARK_BORDER}
@@ -189,7 +189,7 @@ def update_dynamic_metric_options(_):
      # Input("black-ai-type-filter", "value"), # Removed
      Input("dynamic-metric-selector", "value")]
 )
-def update_ab_testing_section(_, selected_metric): # Removed white_ai_types, black_ai_types
+def update_ab_testing_section(_, selected_metric): # Removed white_engine_types, black_engine_types
     fig_ab_test = go.Figure()
     move_metrics_details_components = []
 
@@ -208,8 +208,8 @@ def update_ab_testing_section(_, selected_metric): # Removed white_ai_types, bla
 
     # Get all moves made by Viper
     all_viper_moves_raw = metrics_store.get_filtered_move_metrics(
-        white_ai_types=['Viper'], # Only Viper as white
-        black_ai_types=['Viper'], # Only Viper as black
+        white_engine_types=['Viper'], # Only Viper as white
+        black_engine_types=['Viper'], # Only Viper as black
         metric_name=selected_metric
     )
     
@@ -237,8 +237,8 @@ def update_ab_testing_section(_, selected_metric): # Removed white_ai_types, bla
     viper_perspectives = []
     for _, game_row in df_games_raw.iterrows():
         game_id = game_row['game_id']
-        white_is_viper = game_row.get('white_ai_type') == 'Viper'
-        black_is_viper = game_row.get('black_ai_type') == 'Viper'
+        white_is_viper = game_row.get('white_engine_type') == 'Viper'
+        black_is_viper = game_row.get('black_engine_type') == 'Viper'
         exclude_white = game_row.get('exclude_white_from_metrics', False)
         exclude_black = game_row.get('exclude_black_from_metrics', False)
         winner = game_row.get('winner')
@@ -383,8 +383,8 @@ def update_static_metrics(_):
     # Filter games relevant to Viper and respect exclusion flags
     viper_games_data = []
     for _, row in df_games_raw.iterrows():
-        white_is_viper = row.get('white_ai_type') == 'Viper'
-        black_is_viper = row.get('black_ai_type') == 'Viper'
+        white_is_viper = row.get('white_engine_type') == 'Viper'
+        black_is_viper = row.get('black_engine_type') == 'Viper'
         exclude_white = row.get('exclude_white_from_metrics', False)
         exclude_black = row.get('exclude_black_from_metrics', False)
         
@@ -418,8 +418,8 @@ def update_static_metrics(_):
 
     for _, row in df_viper_games.iterrows():
         winner = row.get('winner')
-        white_is_viper_and_included = row.get('white_ai_type') == 'Viper' and not row.get('exclude_white_from_metrics', False)
-        black_is_viper_and_included = row.get('black_ai_type') == 'Viper' and not row.get('exclude_black_from_metrics', False)
+        white_is_viper_and_included = row.get('white_engine_type') == 'Viper' and not row.get('exclude_white_from_metrics', False)
+        black_is_viper_and_included = row.get('black_engine_type') == 'Viper' and not row.get('exclude_black_from_metrics', False)
 
         if winner == '1-0':
             if white_is_viper_and_included: viper_wins +=1
@@ -459,8 +459,8 @@ def update_static_metrics(_):
         
         for index, row in df_viper_games.iterrows():
             winner = row.get('winner')
-            white_is_viper_and_included = row.get('white_ai_type') == 'Viper' and not row.get('exclude_white_from_metrics', False)
-            black_is_viper_and_included = row.get('black_ai_type') == 'Viper' and not row.get('exclude_black_from_metrics', False)
+            white_is_viper_and_included = row.get('white_engine_type') == 'Viper' and not row.get('exclude_white_from_metrics', False)
+            black_is_viper_and_included = row.get('black_engine_type') == 'Viper' and not row.get('exclude_black_from_metrics', False)
 
             if winner == '1-0':
                 if white_is_viper_and_included: current_wins += 1

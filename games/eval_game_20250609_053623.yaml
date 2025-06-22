@@ -1,9 +1,9 @@
 black_actual_config: &id001
-  ai_type: random
+  engine_type: random
   engine: Viper
   exclude_from_metrics: true
 game_settings:
-  ai_types:
+  engine_types:
   - deepsearch
   - lookahead
   - minimax
@@ -19,7 +19,7 @@ game_settings:
   - viper_genetic_ai_engine
   - viper_reinforcement_ai_engine
   - viper_hybrid_nn_search_engine
-  black_ai_config: *id001
+  black_engine_config: *id001
   game_config:
     ai_game_count: 1
     ai_vs_ai: true
@@ -61,8 +61,8 @@ game_settings:
     sicilian: rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2
     slav: rnbqkbnr/pppp1ppp/5n2/4p3/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 1 2
     vienna: rnbqkbnr/pppp1ppp/8/4p3/4P3/2N5/PPPP1PPP/R1BQKBNR b KQkq - 1 2
-  white_ai_config: &id002
-    ai_type: random
+  white_engine_config: &id002
+    engine_type: random
     engine: viper
     exclude_from_metrics: true
 stockfish_settings:

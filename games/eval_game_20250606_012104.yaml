@@ -46,7 +46,7 @@ debug:
   show_thinking: true             # Show what the AI is thinking during the game # TODO add thinking time to the log
 
 # AI Types
-ai_types: [
+engine_types: [
   'deepsearch', # Dynamic deep search with iterative deepening - deepsearch is a custom search algorithm designed for the viper engine that adjusts its depth and choice of algorithms based on the position
   'lookahead', # Lookahead search with a fixed depth - lookahead is a simple evaluation comparison search algorithm that performs similar to simple_search but is able to see moves several plies in advance, it uses a fixed depth search
   'minimax', # Minimax search with alpha-beta pruning - minimax is a standard search algorithm for two-player games, where one player chooses the best move to maximize their score while the other player tries to minimize it, single pov evaluations alternating highest eval then lowest eval for that color eg. if white finds a move sequence that leads to a score of +10, black will try to find a move that leads to a score of -10, it evaluates the game tree recursively and returns the best move for the current player, simple but inefficient for complex positions, it uses alpha-beta pruning to reduce the number of nodes evaluated, it is a common search algorithm used in chess engines
@@ -70,8 +70,8 @@ starting_positions:
   french: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1'  # French Defense starting position
 
 # AI vs AI settings
-white_ai_config:
-  ai_type: minimax                # Move search type for White (see ai_types above for options)
+white_engine_config:
+  engine_type: minimax                # Move search type for White (see engine_types above for options)
   ai_color: white                 # Color code for AI identification, use "white" or "black" as string for clarity
   depth: 5                        # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
   use_solutions: true             # Use known positional solutions for evaluation
@@ -85,8 +85,8 @@ white_ai_config:
   ruleset: evaluation             # TODO create optional choice of evaluation rule settings from below
   scoring_modifier: 1.0           # TODO create optional overall scoring multiplier/divider
 
-black_ai_config:
-  ai_type: random                 # Move search type for Black (see ai_types above for options)
+black_engine_config:
+  engine_type: random                 # Move search type for Black (see engine_types above for options)
   ai_color: black                 
   depth: 1
   use_solutions: false

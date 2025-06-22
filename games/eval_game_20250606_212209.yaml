@@ -1,4 +1,4 @@
-ai_types:
+engine_types:
 - deepsearch
 - lookahead
 - minimax
@@ -9,9 +9,9 @@ ai_types:
 - quiescence_only
 - simple_eval
 - random
-black_ai_config:
+black_engine_config:
   ai_color: black
-  ai_type: lookahead
+  engine_type: lookahead
   depth: 2
   engine: None
   move_ordering: false
@@ -118,9 +118,9 @@ starting_positions:
   scandinavian: rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1
   sicilian: rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1
   vienna: rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1
-white_ai_config:
+white_engine_config:
   ai_color: white
-  ai_type: simple_search
+  engine_type: simple_search
   depth: 3
   engine: viper
   move_ordering: true
