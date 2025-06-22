@@ -85,7 +85,7 @@ class ChessGame:
         if game_config:
             self.game_config_data = game_config
         else:
-            with open("chess_game.yaml") as f:  # Updated config file name
+            with open("config/chess_game.yaml") as f:  # Updated config file name
                 self.game_config_data = yaml.safe_load(f)
 
         # Load V7P3R engine configuration
@@ -99,7 +99,7 @@ class ChessGame:
         if stockfish_config:
             self.stockfish_config_data = stockfish_config
         else:
-            with open("engine_utilities/stockfish_handler.yaml") as f: # Updated path
+            with open("config/stockfish_handler.yaml") as f: # Updated path
                 self.stockfish_config_data = yaml.safe_load(f)
             
         # Initialize Pygame (even in headless mode, for internal timing)
@@ -160,7 +160,7 @@ class ChessGame:
             self.logger.debug(f"Black AI Type: {self.black_ai_type}, Engine: {self.black_eval_engine}")
         
         # Debug settings
-        self.show_eval = self.game_config_data.get('monitoring', {}).get('show_evaluation', False) # Adjusted path for debug settings if they were moved, assuming they are in 'monitoring' or similar in chess_game.yaml
+        self.show_eval = self.game_config_data.get('monitoring', {}).get('show_evaluation', False) # Adjusted path for debug settings if they were moved, assuming they are in 'monitoring' or similar in chess_game_config.yaml
         
         # Initialize MetricsStore
         self.metrics_store = MetricsStore()
