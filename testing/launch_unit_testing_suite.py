@@ -413,6 +413,8 @@ class TestSuiteLauncher:
                         for remaining_future in future_to_test:
                             if remaining_future != future:
                                 remaining_future.cancel()
+                        # Properly shutdown the executor to cancel pending futures
+                        executor.shutdown(wait=False, cancel_futures=True)
                         break
                         
                 except Exception as e:

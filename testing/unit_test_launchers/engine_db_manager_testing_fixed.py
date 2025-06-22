@@ -112,14 +112,13 @@ class TestEngineDBManager(unittest.TestCase):
             {'type': 'move', 'data': {'move': 'e2e4', 'evaluation': 0.2}},
             {'type': 'simulation', 'data': {'simulation_id': 'sim_1'}}
         ]
-          with patch.object(self.manager, '_handle_game_data') as mock_game:
+        
+        with patch.object(self.manager, '_handle_game_data') as mock_game:
             with patch.object(self.manager, '_handle_move_data') as mock_move:
                 with patch.object(self.manager, '_handle_raw_simulation') as mock_sim:
                     results = self.manager.bulk_upload(data_list)
                     
-                    # Check that results were returned (may be None or list)
-                    if results is not None:
-                        self.assertEqual(len(results), 3)
+                    self.assertEqual(len(results), 3)
                     mock_game.assert_called_once()
                     mock_move.assert_called_once()
                     mock_sim.assert_called_once()
@@ -237,12 +236,13 @@ class TestEngineDBManager(unittest.TestCase):
         
         process = psutil.Process()
         initial_memory = process.memory_info().rss
-          # Generate significant amount of data
+        
+        # Generate significant amount of data
         for i in range(1000):
             large_data = {
                 'game_id': f'memory_test_{i}',
                 'moves': ['e2e4'] * 100,  # Large move list
-                'analysis': {f'key_{j}': f'value_{j}' for j in range(50)}
+                'analysis': {'key': 'value'} * 50
             }
             self.manager._handle_game_data(large_data)
         
@@ -276,14 +276,15 @@ class TestEngineDBClient(unittest.TestCase):
             'moves': ['e2e4', 'e7e5'],
             'result': '1-0'
         }
-          with patch('requests.post') as mock_post:
+        
+        with patch('requests.post') as mock_post:
             mock_response = Mock()
             mock_response.status_code = 200
             mock_response.json.return_value = {'status': 'success'}
             mock_post.return_value = mock_response
             
             result = self.client.send_game_data(game_data)
-            self.assertTrue(result)  # Returns True on success
+            self.assertEqual(result['status'], 'success')
             mock_post.assert_called_once()
 
     def test_send_move_data(self):
@@ -293,14 +294,15 @@ class TestEngineDBClient(unittest.TestCase):
             'move': 'e2e4',
             'evaluation': 0.2
         }
-          with patch('requests.post') as mock_post:
+        
+        with patch('requests.post') as mock_post:
             mock_response = Mock()
             mock_response.status_code = 200
             mock_response.json.return_value = {'status': 'success'}
             mock_post.return_value = mock_response
             
             result = self.client.send_move_data(move_data)
-            self.assertTrue(result)  # Returns True on success
+            self.assertEqual(result['status'], 'success')
 
     def test_send_raw_simulation(self):
         """Test sending simulation data."""
@@ -308,14 +310,15 @@ class TestEngineDBClient(unittest.TestCase):
             'simulation_id': 'client_sim_test',
             'games': [{'game_id': 'game_1', 'result': '1-0'}]
         }
-          with patch('requests.post') as mock_post:
+        
+        with patch('requests.post') as mock_post:
             mock_response = Mock()
             mock_response.status_code = 200
             mock_response.json.return_value = {'status': 'success'}
             mock_post.return_value = mock_response
             
             result = self.client.send_raw_simulation(simulation_data)
-            self.assertTrue(result)  # Always returns True for simulation data
+            self.assertEqual(result['status'], 'success')
 
     def test_offline_buffer_management(self):
         """Test offline buffer functionality."""
@@ -355,9 +358,10 @@ class TestEngineDBClient(unittest.TestCase):
             {'game_id': 'buffer_game_1'},
             {'game_id': 'buffer_game_2'}
         ])
-          with patch.object(self.client, '_send_with_retry', return_value=True):
-            result = self.client.flush_offline_buffer()
-            self.assertTrue(result)  # Returns True/False, not a list
+        
+        with patch.object(self.client, '_send_with_retry', return_value={'status': 'success'}):
+            results = self.client.flush_offline_buffer()
+            self.assertEqual(len(results), 2)
             self.assertEqual(len(self.client.offline_buffer), 0)
 
     def test_error_handling_client(self):

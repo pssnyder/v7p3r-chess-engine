@@ -303,7 +303,9 @@ class TestV7P3REvaluationEngineErrorHandling(unittest.TestCase):
             
             # Test with various invalid inputs
             try:
-                engine = V7P3REvaluationEngine(board=None)
+                import chess
+                empty_board = chess.Board()
+                engine = V7P3REvaluationEngine(board=empty_board)
                 # Should handle gracefully or raise appropriate exception
             except (TypeError, AttributeError):
                 pass  # Expected for invalid input

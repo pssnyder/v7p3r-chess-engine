@@ -22,7 +22,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Load configuration
-with open("config.yaml") as f:
+with open("../config/v7p3r_nn_config.yaml") as f:
     config = yaml.safe_load(f)
 
 # Initialize Firebase connection
