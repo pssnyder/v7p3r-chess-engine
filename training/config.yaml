@@ -1,0 +1,29 @@
+# Configuration for the V7P3R neural network training
+training:
+  # Basic training parameters
+  batch_size: 64
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  epochs: 50
+  
+  # Model architecture
+  model:
+    hidden_layers: [256, 128, 64]
+    dropout_rate: 0.3
+    activation: "relu"
+  
+  # Data preprocessing
+  data:
+    validation_split: 0.2
+    augmentation: true
+    normalize: true
+    
+  # Firebase integration
+  firebase:
+    enabled: true
+    upload_model: true
+    upload_metrics: true
+    model_name: "v7p3r_chess_ai"
+    metrics_collection: "training_metrics"
+    store_checkpoints: true
+    checkpoint_frequency: 5  # Save every 5 epochs
