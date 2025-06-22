@@ -13,6 +13,19 @@
 
 ---
 
+## Firebase Backend
+
+V7P3R Chess Engine now uses Firebase for backend storage, analytics, and data processing. Key features:
+
+- **Cloud Storage**: Store PGN files, trained models, and evaluation data
+- **Firestore Database**: Maintain game metadata, metrics, and model tracking
+- **Authentication**: Optional user accounts for personalized experiences
+- **Analytics**: Track engine performance and user engagement
+
+For setup instructions, see [FIREBASE_SETUP.md](FIREBASE_SETUP.md)
+
+---
+
 ## Quick Start
 
 ### Web Demo (Streamlit)
