@@ -1,0 +1,117 @@
+{
+  "total_tests": 1,
+  "passed": 0,
+  "failed": 1,
+  "skipped": 0,
+  "errors": 0,
+  "timeouts": 0,
+  "total_duration": 0.298127,
+  "start_time": "2025-06-22T14:33:17.004233",
+  "end_time": "2025-06-22T14:33:17.302360",
+  "success_rate": 0.0,
+  "average_duration": 0.291149,
+  "max_memory_usage": 0.12890625,
+  "test_results": [
+    {
+      "test_name": "v7p3r_testing",
+      "module_name": "v7p3r_testing.py",
+      "status": "failed",
+      "duration": 0.291149,
+      "start_time": "2025-06-22T14:33:17.008218",
+      "end_time": "2025-06-22T14:33:17.299367",
+      "error_message": "test_init_with_maxlen (unit_test_launchers.v7p3r_testing.TestLimitedSizeDict.test_init_with_maxlen)\nTest initialization with maxlen parameter. ... ok\ntest_move_to_end_on_update (unit_test_launchers.v7p3r_testing.TestLimitedSizeDict.test_move_to_end_on_update)\nTest that updating existing key moves it to end. ... ok\ntest_size_limit_enforcement (unit_test_launchers.v7p3r_testing.TestLimitedSizeDict.test_size_limit_enforcement)\nTest that dict enforces size limit. ... ok\ntest_board_manipulation (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEngineBasicMethods.test_board_manipulation)\nTest board state management. ... ok\ntest_initial_state (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEngineBasicMethods.test_initial_state)\nTest initial engine state. ... ok\ntest_piece_values (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEngineBasicMethods.test_piece_values)\nTest piece value constants. ... ok\ntest_config_loading_error_handling (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEngineErrorHandling.test_config_loading_error_handling)\nTest error handling during config loading. ... ok\ntest_invalid_board_state_handling (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEngineErrorHandling.test_invalid_board_state_handling)\nTest handling of invalid board states. ... ok\ntest_malformed_yaml_handling (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEngineErrorHandling.test_malformed_yaml_handling)\nTest handling of malformed YAML files. ... ok\ntest_config_loading_priorities (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEngineInitialization.test_config_loading_priorities)\nTest that v7p3r config takes priority over game config. ... ok\ntest_init_default_values (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEngineInitialization.test_init_default_values)\nTest initialization with default values. ... ok\ntest_init_missing_config_files (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEngineInitialization.test_init_missing_config_files)\nTest initialization when config files are missing. ... ok\ntest_init_with_custom_board (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEngineInitialization.test_init_with_custom_board)\nTest initialization with custom board position. ... FAIL\ntest_opening_book_integration (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEngineIntegration.test_opening_book_integration)\nTest integration with OpeningBook. ... ok\ntest_time_manager_integration (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEngineIntegration.test_time_manager_integration)\nTest integration with TimeManager. ... ok\ntest_memory_efficiency (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEnginePerformance.test_memory_efficiency)\nTest memory usage stays within reasonable bounds. ... FAIL\ntest_nodes_searched_tracking (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEnginePerformance.test_nodes_searched_tracking)\nTest nodes searched counter. ... ok\ntest_transposition_table_size_limit (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEnginePerformance.test_transposition_table_size_limit)\nTest that transposition table respects size limits. ... ok\ntest_history_table_updates (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEngineSearchMethods.test_history_table_updates)\nTest history table functionality. ... ok\ntest_killer_moves_initialization (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEngineSearchMethods.test_killer_moves_initialization)\nTest killer moves table initialization. ... ok\ntest_transposition_table_usage (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEngineSearchMethods.test_transposition_table_usage)\nTest transposition table functionality. ... ok\n\n======================================================================\nFAIL: test_init_with_custom_board (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEngineInitialization.test_init_with_custom_board)\nTest initialization with custom board position.\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\unittest\\mock.py\", line 1390, in patched\n    return func(*newargs, **newkeywargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"S:\\Maker Stuff\\Programming\\V7P3R Chess Engine\\viper_chess_engine\\testing\\unit_test_launchers\\v7p3r_testing.py\", line 130, in test_init_with_custom_board\n    self.assertEqual(engine.current_player, chess.BLACK)\nAssertionError: True != False\n\n======================================================================\nFAIL: test_memory_efficiency (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEnginePerformance.test_memory_efficiency)\nTest memory usage stays within reasonable bounds.\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"S:\\Maker Stuff\\Programming\\V7P3R Chess Engine\\viper_chess_engine\\testing\\unit_test_launchers\\v7p3r_testing.py\", line 292, in test_memory_efficiency\n    self.assertLess(final_size, initial_size * 100)  # Reasonable growth limit\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 74480 not less than 12800\n\n----------------------------------------------------------------------\nRan 21 tests in 0.065s\n\nFAILED (failures=2)\n",
+      "stack_trace": "test_init_with_maxlen (unit_test_launchers.v7p3r_testing.TestLimitedSizeDict.test_init_with_maxlen)\nTest initialization with maxlen parameter. ... ok\ntest_move_to_end_on_update (unit_test_launchers.v7p3r_testing.TestLimitedSizeDict.test_move_to_end_on_update)\nTest that updating existing key moves it to end. ... ok\ntest_size_limit_enforcement (unit_test_launchers.v7p3r_testing.TestLimitedSizeDict.test_size_limit_enforcement)\nTest that dict enforces size limit. ... ok\ntest_board_manipulation (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEngineBasicMethods.test_board_manipulation)\nTest board state management. ... ok\ntest_initial_state (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEngineBasicMethods.test_initial_state)\nTest initial engine state. ... ok\ntest_piece_values (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEngineBasicMethods.test_piece_values)\nTest piece value constants. ... ok\ntest_config_loading_error_handling (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEngineErrorHandling.test_config_loading_error_handling)\nTest error handling during config loading. ... ok\ntest_invalid_board_state_handling (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEngineErrorHandling.test_invalid_board_state_handling)\nTest handling of invalid board states. ... ok\ntest_malformed_yaml_handling (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEngineErrorHandling.test_malformed_yaml_handling)\nTest handling of malformed YAML files. ... ok\ntest_config_loading_priorities (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEngineInitialization.test_config_loading_priorities)\nTest that v7p3r config takes priority over game config. ... ok\ntest_init_default_values (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEngineInitialization.test_init_default_values)\nTest initialization with default values. ... ok\ntest_init_missing_config_files (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEngineInitialization.test_init_missing_config_files)\nTest initialization when config files are missing. ... ok\ntest_init_with_custom_board (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEngineInitialization.test_init_with_custom_board)\nTest initialization with custom board position. ... FAIL\ntest_opening_book_integration (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEngineIntegration.test_opening_book_integration)\nTest integration with OpeningBook. ... ok\ntest_time_manager_integration (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEngineIntegration.test_time_manager_integration)\nTest integration with TimeManager. ... ok\ntest_memory_efficiency (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEnginePerformance.test_memory_efficiency)\nTest memory usage stays within reasonable bounds. ... FAIL\ntest_nodes_searched_tracking (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEnginePerformance.test_nodes_searched_tracking)\nTest nodes searched counter. ... ok\ntest_transposition_table_size_limit (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEnginePerformance.test_transposition_table_size_limit)\nTest that transposition table respects size limits. ... ok\ntest_history_table_updates (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEngineSearchMethods.test_history_table_updates)\nTest history table functionality. ... ok\ntest_killer_moves_initialization (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEngineSearchMethods.test_killer_moves_initialization)\nTest killer moves table initialization. ... ok\ntest_transposition_table_usage (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEngineSearchMethods.test_transposition_table_usage)\nTest transposition table functionality. ... ok\n\n======================================================================\nFAIL: test_init_with_custom_board (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEngineInitialization.test_init_with_custom_board)\nTest initialization with custom board position.\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\unittest\\mock.py\", line 1390, in patched\n    return func(*newargs, **newkeywargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"S:\\Maker Stuff\\Programming\\V7P3R Chess Engine\\viper_chess_engine\\testing\\unit_test_launchers\\v7p3r_testing.py\", line 130, in test_init_with_custom_board\n    self.assertEqual(engine.current_player, chess.BLACK)\nAssertionError: True != False\n\n======================================================================\nFAIL: test_memory_efficiency (unit_test_launchers.v7p3r_testing.TestV7P3REvaluationEnginePerformance.test_memory_efficiency)\nTest memory usage stays within reasonable bounds.\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"S:\\Maker Stuff\\Programming\\V7P3R Chess Engine\\viper_chess_engine\\testing\\unit_test_launchers\\v7p3r_testing.py\", line 292, in test_memory_efficiency\n    self.assertLess(final_size, initial_size * 100)  # Reasonable growth limit\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 74480 not less than 12800\n\n----------------------------------------------------------------------\nRan 21 tests in 0.065s\n\nFAILED (failures=2)\n",
+      "memory_usage": 0.12890625,
+      "assertions_count": null,
+      "warnings": []
+    }
+  ],
+  "configuration": {
+    "execution": {
+      "test_timeout": 300,
+      "max_threads": 4,
+      "failure_mode": "continue"
+    },
+    "output": {
+      "verbosity": "verbose",
+      "terminal": {
+        "enabled": true,
+        "show_progress": true,
+        "show_timing": true,
+        "colored_output": true
+      },
+      "file_logging": {
+        "enabled": true,
+        "log_directory": "testing/results",
+        "log_format": "json",
+        "include_stack_traces": true,
+        "timestamp_format": "%Y%m%d_%H%M%S"
+      }
+    },
+    "test_selection": {
+      "run_all": false,
+      "categories": {
+        "engine_utilities": true,
+        "metrics": true,
+        "main_engine": true,
+        "chess_game": true,
+        "firebase": true
+      },
+      "include_tests": [
+        "v7p3r_testing"
+      ],
+      "exclude_tests": []
+    },
+    "environment": {
+      "test_env_vars": {
+        "V7P3R_TEST_MODE": "true",
+        "V7P3R_LOG_LEVEL": "WARNING"
+      },
+      "test_data_dir": "testing/test_data",
+      "temp_files_dir": "testing/temp",
+      "mock_external": {
+        "stockfish": false,
+        "lichess_api": true,
+        "firebase": false,
+        "gcp_services": true
+      }
+    },
+    "performance": {
+      "enabled": true,
+      "thresholds": {
+        "move_generation": 0.1,
+        "position_evaluation": 0.05,
+        "book_lookup": 0.01
+      },
+      "memory_monitoring": {
+        "enabled": true,
+        "max_memory_mb": 500
+      }
+    },
+    "integration": {
+      "enabled": true,
+      "external_services": {
+        "stockfish": false,
+        "firebase": false,
+        "lichess": false
+      }
+    },
+    "reporting": {
+      "generate_html_report": true,
+      "generate_junit_xml": true,
+      "include_coverage": true,
+      "include_performance_metrics": true,
+      "include_memory_usage": true,
+      "report_directory": "testing/reports"
+    }
+  },
+  "environment_info": {
+    "python_version": "3.12.4 (tags/v3.12.4:8e8a4ba, Jun  6 2024, 19:30:16) [MSC v.1940 64 bit (AMD64)]",
+    "platform": "win32",
+    "working_directory": "S:\\Maker Stuff\\Programming\\V7P3R Chess Engine\\viper_chess_engine",
+    "failed_early": false,
+    "total_system_memory": 31.836044311523438,
+    "available_memory": 18.499813079833984,
+    "cpu_count": 16
+  }
+}

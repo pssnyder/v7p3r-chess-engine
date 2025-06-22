@@ -6,7 +6,7 @@ import sys
 
 # Add the project root to the Python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from config.firebase_config import initialize_firebase
+from config.configure_firebase import initialize_firebase
 
 logger = logging.getLogger(__name__)
 

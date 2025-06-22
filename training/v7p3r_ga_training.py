@@ -13,7 +13,7 @@ from v7p3r_ga_engine.v7p3r_ga import ChessDataset, GeneticAlgorithm, ChessAI
 torch.backends.cudnn.benchmark = True  # Enable CuDNN auto-tuner
 
 # Load configuration
-with open("config.yaml") as f:
+with open("../config/v7p3r_ga_config.yaml") as f:
     config = yaml.safe_load(f)
 
 # Enable CUDA if available
