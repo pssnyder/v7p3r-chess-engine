@@ -61,10 +61,6 @@ def run_game_instance(game_config_override, v7p3r_config_override, stockfish_han
             # If game_config isn't in the structure, add it
             final_game_config['game_config'] = {'ai_vs_ai': True}
             logger.info("Created game_config section with AI vs AI mode")
-        # Remove human_color if present (not needed for AI vs AI)
-        if 'human_color' in final_game_config['game_config']:
-            del final_game_config['game_config']['human_color']
-            logger.info("Removed human_color from game_config for AI vs AI simulation")
         
         # Include game_id in configuration
         if 'game_id' not in final_game_config:
@@ -395,7 +391,6 @@ simulations:
         engine: 'stockfish'
       game_config:
         ai_vs_ai: true
-        human_color: 'white'
     v7p3r:
       v7p3r:
         ruleset: 'default_evaluation'

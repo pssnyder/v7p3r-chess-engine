@@ -223,14 +223,8 @@ app.layout = html.Div([
 
     ], style={"marginBottom": "30px", "border": f"1px solid {DARK_BORDER}", "padding": "15px", "borderRadius": "8px", "backgroundColor": DARK_ACCENT}),
 
-    # Placeholder for New Engine Tuning Visualizations (to be added later)
-    html.Div(id="new-engine-tuning-visualizations", children=[
-        # html.H2("Advanced Engine Performance Analysis", style={"textAlign": "center", "color": DARK_TEXT}),
-        # ... new graphs and tables will go here ...
-    ], style={"marginBottom": "30px", "border": f"1px solid {DARK_BORDER}", "padding": "15px", "borderRadius": "8px", "backgroundColor": DARK_ACCENT}),
 
-
-], style={"fontFamily": "Arial, sans-serif", "padding": "20px", "backgroundColor": DARK_BG, "color": DARK_TEXT})
+    # Footer
 
 @app.callback(
     Output("dynamic-metric-selector", "options"),
@@ -282,7 +276,7 @@ def update_ab_testing_section(_, selected_metric): # Removed white_engine_types,
         black_engine_types=v7p3r_engine_types, # V7P3R engine types as black
         metric_name=selected_metric
     )
-      if not all_v7p3r_moves_raw:
+    if not all_v7p3r_moves_raw:
         fig_ab_test.update_layout(
             title=f"No '{selected_metric}' Data for V7P3R Engine",
             paper_bgcolor=DARK_PANEL, plot_bgcolor=DARK_PANEL, font=dict(color=DARK_TEXT),
@@ -331,7 +325,7 @@ def update_ab_testing_section(_, selected_metric): # Removed white_engine_types,
     df_viper_perspectives = pd.DataFrame(viper_perspectives)
     
     # Merge Viper moves with the determined perspectives
-    df_merged_moves = pd.merge(df_all_viper_moves, df_viper_perspectives, on='game_id', how='inner')
+    df_merged_moves = pd.merge(df_all_v7p3r_moves, df_viper_perspectives, on='game_id', how='inner')
     
     # Filter moves to only those matching the 'viper_color_to_analyze'
     # Ensure 'player_color' in df_merged_moves is comparable (e.g., 'white' or 'w')

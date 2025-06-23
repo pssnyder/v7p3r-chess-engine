@@ -14,7 +14,6 @@ simulations:
     chess_game:
       game_config:
         ai_vs_ai: true
-        human_color: 'white'
         game_type: standard
         rated: true
       white_engine_config:
