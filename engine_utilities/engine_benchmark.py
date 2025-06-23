@@ -1,5 +1,5 @@
 # engine_utilities/engine_benchmark.py
-# TODO - Implement the engine benchmark suite to evaluate the v7p3r chess engine's performance across various configurations on various tasks such as adaptive ELO finding and puzzle solving.
+# Engine benchmark suite to evaluate the v7p3r chess engine's performance across various configurations on various tasks such as adaptive ELO finding and puzzle solving.
 
 import os
 import yaml

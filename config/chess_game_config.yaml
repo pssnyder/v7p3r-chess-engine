@@ -13,13 +13,13 @@ game_config:
 
   # AI vs AI game_config settings
   ai_vs_ai: true                 # Set to true for AI vs AI matches
-  ai_game_count: 10               # Number of games to play in AI vs AI mode
+  ai_game_count: 1              # Number of games to play in AI vs AI mode
   starting_position: default     # Default starting position name (or FEN string)
   strict_draw_prevention: true   # Enforce strict draw rules to fully block drawing moves that would lead to stalemate, insufficient material, and threefold repetition
   
   # AI vs Human game_config settings
   human_color: random            # Options: white, black, random (for human vs AI)
-  human_elo: 100                # Elo rating for human player, used for AI vs Human games to adapt Engine to human skill level               
+  human_elo: 100                 # Elo rating for human player, used for AI vs Human games to adapt Engine to human skill level               
 
 # Engine configurations
 # These configurations are for the AI engines used in the game, such as V7P3R and Stockfish.
@@ -27,8 +27,8 @@ white_engine_config:
   exclude_from_metrics: false   # Flag to exclude this engines performance from metrics collection, useful for testing, non-competitive, or third party AIs who's performance you may not want to record for this set of games, should flag all outputs from this color and engine for this match date_timestamp as being excluded from metrics, these metrics should still be gathered as a fallback, and in the event I do want to use them so we just want to have a flag in the database for exclude from metrics. Then I can always toggle the flags per game record in the database if I want to see a game or vice versa.
   engine: v7p3r                 # Name of the engine being used (e.g., 'v7p3r', 'stockfish'), this value is a direct reference to the engine configuration values below
 black_engine_config:
-  exclude_from_metrics: false    # does the same as above but for this engines performance as this color           
-  engine: stockfish             # sets this colors engine type, same as above, important note that if the engines are set the same then only whites metrics will be collected to prevent negation in win loss metrics
+  exclude_from_metrics: false   # does the same as above but for this engines performance as this color           
+  engine: v7p3r_opponent        # sets this colors engine type, same as above, important note that if the engines are set the same then only whites metrics will be collected to prevent negation in win loss metrics
 
 # Performance settings
 performance:
@@ -45,26 +45,6 @@ monitoring:
   enable_logging: true            # Turn logging on or off, auto-disables thoughts if false
   show_evaluation: true           # Show the evaluation during a game
   show_thinking: true             # Show what the AI is thinking during the game (TODO: add thinking time to the log for each color
-
-# Engine Types
-engine_types: [
-  'deepsearch',                    # Dynamic deep search with time control and iterative deepening
-  'lookahead',                     # Lookahead search with max value comparison
-  'minimax',                       # Minimax search with alpha-beta pruning
-  'negamax',                       # Negamax search with alpha-beta pruning
-  'negascout',                     # Negascout search with alpha-beta pruning
-  'transposition_only',            # Transposition table search
-  'simple_search',                 # Simple 1 ply search
-  'quiescence_only',               # Quiescence search that evaluates only stable positions
-  'simple_eval',                   # Simple evaluation function
-  'random',                        # Random move selection
-  'stockfish',                     # Stockfish engine integration
-  'v7p3r',                         # V7P3R Static Evaluation Engine
-  'v7p3r_nn',                      # V7P3R NN AI Engine (TODO: Implement)
-  'v7p3r_ga',                      # V7P3R Genetic AI Engine (TODO: Implement)
-  'v7p3r_rl',                      # V7P3R Reinforcement AI Engine (TODO: Implement)
-  'v7p3r_nn_hybrid'                # V7P3R Hybrid NN-Search Engine (TODO: Implement)
-]
 
 # Starting positions
 starting_positions:

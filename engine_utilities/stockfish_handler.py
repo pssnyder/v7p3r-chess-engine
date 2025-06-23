@@ -360,6 +360,9 @@ class StockfishHandler:
             return -score
         return score
 
+    def close(self):
+        quit()
+
     def quit(self):
         """Quits the Stockfish engine process."""
         if self.process:
@@ -379,12 +382,12 @@ class StockfishHandler:
                     pass
 
 
-    def reset(self, board: chess.Board):
+    def reset(self, board: Optional[chess.Board] = None):
         """Resets the handler state, similar to how EvaluationEngine.reset works."""
         if self.process:
             self._send_command("ucinewgame")
             self._wait_for_response("readyok") # Wait for Stockfish to confirm reset
-            self.set_position(board) # Set initial position after reset
+            self.set_position(board if board else chess.Board()) # Set initial position after reset
             self.nodes_searched = 0
             self.last_search_info = {'score': 0.0, 'nodes': 0, 'pv': ''}
             self.logger.info("StockfishHandler reset for new game.")
@@ -393,7 +396,7 @@ class StockfishHandler:
             try:
                 self._start_engine() # Try to restart if it crashed
                 if self.process: # If restart was successful
-                    self.set_position(board)
+                    self.set_position(board if board else chess.Board())
                     self.nodes_searched = 0
                     self.last_search_info = {'score': 0.0, 'nodes': 0, 'pv': ''}
                     self.logger.info("StockfishHandler successfully restarted and reset.")

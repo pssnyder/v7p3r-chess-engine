@@ -637,7 +637,7 @@ class MetricsStore:
                     metric_names.append(col_name)
         return sorted(metric_names)
 
-    def get_filtered_move_metrics(self, white_engine_types: Optional[list] = None, black_engine_types: Optional[list] = None, metric_name: Optional[str] = None):
+    def get_filtered_move_metrics(self, white_search_algorithms: Optional[list] = None, black_search_algorithms: Optional[list] = None, metric_name: Optional[str] = None):
         """
         Retrieves move metrics filtered by white_engine_type and black_engine_type
         and joins with game_results to get AI configurations.
@@ -649,15 +649,15 @@ class MetricsStore:
         where_clauses = []
         params = []
 
-        if white_engine_types:
-            placeholders = ','.join(['?'] * len(white_engine_types))
+        if white_search_algorithms:
+            placeholders = ','.join(['?'] * len(white_search_algorithms))
             where_clauses.append(f"gr.white_engine_type IN ({placeholders})")
-            params.extend(white_engine_types)
+            params.extend(white_search_algorithms)
         
-        if black_engine_types:
-            placeholders = ','.join(['?'] * len(black_engine_types))
+        if black_search_algorithms:
+            placeholders = ','.join(['?'] * len(black_search_algorithms))
             where_clauses.append(f"gr.black_engine_type IN ({placeholders})")
-            params.extend(black_engine_types)
+            params.extend(black_search_algorithms)
         
         # Ensure we only fetch numeric metric_name if specified
         select_columns = "mm.game_id, mm.move_number, mm.player_color, mm.move_uci, mm.fen_before, mm.created_at, mm.evaluation, mm.nodes_searched, mm.time_taken, mm.depth, mm.pv_line"
@@ -990,8 +990,8 @@ if __name__ == "__main__":
 
     print("\nTesting get_filtered_move_metrics (White: deepsearch, Black: negamax, Metric: evaluation):")
     filtered_moves = store.get_filtered_move_metrics(
-        white_engine_types=['deepsearch'],
-        black_engine_types=['negamax'],
+        white_search_algorithms=['deepsearch'],
+        black_search_algorithms=['negamax'],
         metric_name='evaluation'
     )
     print(f"Filtered moves count: {len(filtered_moves)}")
@@ -1001,8 +1001,8 @@ if __name__ == "__main__":
 
     print("\nTesting get_filtered_move_metrics (White: Stockfish, Black: deepsearch, Metric: nodes_searched):")
     filtered_moves_sf = store.get_filtered_move_metrics(
-        white_engine_types=['stockfish'],
-        black_engine_types=['deepsearch'],
+        white_search_algorithms=['stockfish'],
+        black_search_algorithms=['deepsearch'],
         metric_name='nodes_searched'
     )
     print(f"Filtered moves count: {len(filtered_moves_sf)}")
