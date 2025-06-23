@@ -1,0 +1,58 @@
+# ETL Configuration for V7P3R Chess Engine Analytics
+# This file configures the ETL process for chess game data
+
+# Reporting database settings
+reporting_db:
+  path: "metrics/chess_analytics.db"
+  backup_enabled: true
+  backup_frequency_hours: 24
+  backup_path: "metrics/backups/"
+
+# Cloud storage settings
+cloud:
+  enabled: false  # Set to true to enable cloud-based ETL
+  bucket_name: "viper-chess-engine-data"  # GCS bucket name
+  firestore_collection: "games"  # Main collection for game data
+  raw_collection: "raw_simulations"  # Collection for raw simulation data
+  credential_path: ""  # Optional path to service account credentials
+
+# Data extraction settings
+extraction:
+  local_metrics_db: "metrics/chess_metrics.db"
+  include_raw_logs: false  # Whether to extract raw log data
+  include_pgn_files: true  # Whether to process PGN files
+  pgn_directory: "games/"  # Directory containing PGN files to process
+  date_format: "%Y-%m-%d"  # Format for date filtering
+
+# Processing settings
+processing:
+  batch_size: 100  # Number of games to process in a batch
+  max_workers: 4  # Maximum number of parallel worker threads
+  timeout_seconds: 3600  # Maximum runtime for ETL job
+
+# Schema versioning
+schema:
+  version: "1.0.0"  # Current schema version
+  migration_enabled: true  # Enable auto-migration for schema changes
+
+# Scheduling settings
+schedule:
+  cron: "0 2 * * *"  # Run daily at 2 AM (cron format)
+  timezone: "UTC"
+  retry_count: 3
+  retry_delay_minutes: 15
+
+# Performance monitoring
+monitoring:
+  log_level: "INFO"  # Logging level (DEBUG, INFO, WARNING, ERROR)
+  metrics_enabled: true  # Whether to store performance metrics
+  alert_on_failure: true  # Send alerts on job failure
+  slow_query_threshold_ms: 1000  # Log queries taking longer than this
+
+# Data validation
+validation:
+  enabled: true
+  strict_mode: false  # If true, fail on validation errors; if false, log and continue
+  check_required_fields: true
+  check_data_types: true
+  check_data_ranges: true

@@ -10,9 +10,12 @@
 *.v7p3r_chess_engine
 *.v7p3r_chess_engine.*
 .v7p3r_chess_engine_project_files/
+templates/
+.db-shm
+.db-wal
 
 # Omit external engine files
-external_engines/
+*/external_engines/*
 
 # Directories to ignore
 evaluation/
@@ -74,6 +77,9 @@ Thumbs.db # Windows
 # Data files
 *.csv
 *.jsonl
+*.db
+*.db-*
+*.sqlite
 
 # Model files
 *.pt

@@ -40,20 +40,20 @@ v7p3r_scoring_logger.addHandler(file_handler)
 v7p3r_scoring_logger.propagate = False
 
 class V7P3RScoringCalculation:
-    def __init__(self, v7p3r_yaml_config: dict, ai_config: dict, piece_values: dict, pst: PieceSquareTables):
-        self.v7p3r_config = v7p3r_yaml_config # This is the full v7p3r.yaml content
-        self.ai_config = ai_config # This is the resolved AI config for the current player/engine instance
+    def __init__(self, v7p3r_yaml_config: dict, engine_config: dict, piece_values: dict, pst: PieceSquareTables):
+        self.v7p3r_config = v7p3r_yaml_config # This is the full v7p3r_config.yaml content
+        self.engine_config = engine_config # This is the resolved AI config for the current player/engine instance
         self.piece_values = piece_values
         self.pst = pst
 
-        # Ruleset and scoring modifier are determined by the resolved ai_config
-        self.ruleset_name = self.ai_config.get('ruleset', 'default_evaluation')
+        # Ruleset and scoring modifier are determined by the resolved engine_config
+        self.ruleset_name = self.engine_config.get('ruleset', 'default_evaluation')
         # Load all rulesets from v7p3r_yaml_config into self.rulesets
         self.rulesets = {k: v for k, v in self.v7p3r_config.items() if isinstance(v, dict) and 'evaluation' in k.lower()}
         self.current_ruleset = self.rulesets.get(self.ruleset_name, {}) # Get the specific ruleset based on name
 
         self.logger = v7p3r_scoring_logger
-        if self.ai_config.get('monitoring', {}).get('enable_logging', True):
+        if self.engine_config.get('monitoring', {}).get('enable_logging', True):
             self.logger.debug(f"V7P3RScoringCalculation initialized with ruleset: {self.ruleset_name}")
             self.logger.debug(f"Current ruleset parameters: {self.current_ruleset}")
 
@@ -82,24 +82,24 @@ class V7P3RScoringCalculation:
         """
         score = 0.0
 
-        # Ensure the current ruleset is up-to-date based on ai_config (in case it changed)
+        # Ensure the current ruleset is up-to-date based on engine_config (in case it changed)
         # This is important if the same ViperScoringCalculation instance is used across different contexts
-        # where ai_config might change (e.g. switching sides or re-configuring mid-game if that's a feature)
-        current_ruleset_name_from_ai_config = self.ai_config.get('ruleset', 'default_evaluation')
-        if self.ruleset_name != current_ruleset_name_from_ai_config:
-            self.ruleset_name = current_ruleset_name_from_ai_config
+        # where engine_config might change (e.g. switching sides or re-configuring mid-game if that's a feature)
+        current_ruleset_name_from_engine_config = self.engine_config.get('ruleset', 'default_evaluation')
+        if self.ruleset_name != current_ruleset_name_from_engine_config:
+            self.ruleset_name = current_ruleset_name_from_engine_config
             if self.ruleset_name not in self.rulesets:
-                self.logger.warning(f"Ruleset '{self.ruleset_name}' (from updated ai_config) not found. Using empty ruleset.")
+                self.logger.warning(f"Ruleset '{self.ruleset_name}' (from updated engine_config) not found. Using empty ruleset.")
                 self.current_ruleset = {}
             else:
                 self.current_ruleset = self.rulesets.get(self.ruleset_name, {})
             if self.logger:
                 self.logger.debug(f"Switched to ruleset: '{self.ruleset_name}'. Rules: {self.current_ruleset}")
         
-        # Update other relevant parameters from ai_config
-        self.scoring_modifier = self.ai_config.get('scoring_modifier', 1.0)
-        self.pst_enabled = self.ai_config.get('pst', {}).get('enabled', True)
-        self.pst_weight = self.ai_config.get('pst', {}).get('weight', 1.0)
+        # Update other relevant parameters from engine_config
+        self.scoring_modifier = self.engine_config.get('scoring_modifier', 1.0)
+        self.pst_enabled = self.engine_config.get('pst', {}).get('enabled', True)
+        self.pst_weight = self.engine_config.get('pst', {}).get('weight', 1.0)
 
         # Critical scoring components
         score += self.scoring_modifier * (self._checkmate_threats(board, color) or 0.0)
@@ -710,7 +710,7 @@ class V7P3RScoringCalculation:
             if color == chess.BLACK:
                 pst_score = -pst_score # Adjust if PST is always White-centric
             # Apply endgame factor to PST scores if game_phase_awareness is on
-            if self.ai_config.get('game_phase_awareness', True):
+            if self.engine_config.get('game_phase_awareness', True):
                 pst_score *= (1.0 - endgame_factor) # PSTs are more important in opening/middlegame
             score += pst_score * self.pst_weight
 

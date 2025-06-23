@@ -1,6 +1,6 @@
 # local_metrics_dashboard.py
 # A locally running dashboard to visualize chess engine tuning metrics.
-# TODO add functionality that, upon initialization of the metrics dash, backs up the database so we have a snapshot, then cleans up any incomplete games that could skew the metrics since we don't actually know the result. then it should create fresh test records for white and black color selections, under a metrics-test engine name (formerly ai_type) so we can test the dashboard without affecting the actual metrics. These test metrics will need to cover basic scenarios for data appearing in the visuals to allow for end to end testing in the event there is no real game data populated in the dev environment, the metrics dash will always initialize with its own test data ready, marking it as exclude from metrics in production branches but exclude from metrics False in dev branches for testing.
+# TODO add functionality that, upon initialization of the metrics dash, backs up the database so we have a snapshot, then cleans up any incomplete games that could skew the metrics since we don't actually know the result. then it should create fresh test records for white and black color selections, under a metrics-test engine name (formerly engine_type) so we can test the dashboard without affecting the actual metrics. These test metrics will need to cover basic scenarios for data appearing in the visuals to allow for end to end testing in the event there is no real game data populated in the dev environment, the metrics dash will always initialize with its own test data ready, marking it as exclude from metrics in production branches but exclude from metrics False in dev branches for testing.
 
 import dash
 from dash import dcc, html, Output, Input # Removed State
@@ -17,30 +17,98 @@ from datetime import datetime # Import datetime for parsing timestamps
 # Initialize the metrics store globally
 metrics_store = MetricsStore()
 
-# Start data collection in background
-def start_metrics_collection():
-    # Collect initial data
-    metrics_store.collect_all_data()
-    # Start periodic collection (every 30 seconds)
-    metrics_store.start_collection(interval=30)
+# Initialize cloud-based metrics collection
+def start_centralized_metrics_collection():
+    """Start metrics collection from centralized cloud storage instead of local files."""
+    try:
+        from engine_utilities.cloud_store import CloudStore
+        cloud_store = CloudStore()
+        
+        # Sync cloud data to local database for dashboard queries
+        sync_cloud_to_local_database(cloud_store)
+        
+        # Start periodic cloud sync and ETL processing (every 60 seconds)
+        start_cloud_sync_collection(cloud_store, interval=60)
+        
+    except Exception as e:
+        print(f"Cloud metrics collection failed, falling back to local: {e}")
+        # Fallback to local file collection
+        metrics_store.collect_all_data()
+        metrics_store.start_collection(interval=30)
 
-# Start collection in a background thread to avoid blocking the dashboard
-collection_thread = threading.Thread(target=start_metrics_collection, daemon=True)
+def sync_cloud_to_local_database(cloud_store):
+    """Sync metrics data from cloud storage to local database for dashboard queries."""
+    try:
+        # Pull latest game results from Firestore
+        game_results = cloud_store.get_all_game_results()
+        
+        # Update local database with cloud data
+        for game_result in game_results:
+            metrics_store.add_game_result(**game_result)
+        
+        # Pull move metrics from cloud
+        move_metrics = cloud_store.get_all_move_metrics()
+        for metric in move_metrics:
+            metrics_store.add_move_metric(**metric)
+            
+        print(f"Synced {len(game_results)} games and {len(move_metrics)} moves from cloud")
+        
+    except Exception as e:
+        print(f"Cloud sync failed: {e}")
+
+def start_cloud_sync_collection(cloud_store, interval=60):
+    """Start periodic sync from cloud and trigger ETL processing."""
+    import threading
+    import time
+    
+    def cloud_sync_worker():
+        while True:
+            try:
+                # Sync cloud data to local
+                sync_cloud_to_local_database(cloud_store)
+                
+                # Trigger ETL processing for metrics computation
+                trigger_cloud_etl_processing(cloud_store)
+                
+            except Exception as e:
+                print(f"Cloud sync worker error: {e}")
+            
+            time.sleep(interval)
+    
+    sync_thread = threading.Thread(target=cloud_sync_worker, daemon=True)
+    sync_thread.start()
+
+def trigger_cloud_etl_processing(cloud_store):
+    """Trigger ETL processing to compute metrics from raw game data."""
+    try:
+        # Import and trigger ETL functions
+        from cloud_functions.etl_functions import trigger_metrics_etl
+        trigger_metrics_etl()
+        
+    except ImportError:
+        print("ETL functions not available, computing metrics locally")
+        # Fallback to local metrics computation
+        metrics_store.compute_metrics()
+    except Exception as e:
+        print(f"ETL processing failed: {e}")
+
+# Start centralized collection in a background thread
+collection_thread = threading.Thread(target=start_centralized_metrics_collection, daemon=True)
 collection_thread.start()
 
-# Load AI types from config.yaml (for dropdowns)
+# Load AI types from chess_game_config.yaml (for dropdowns)
 try:
-    with open("chess_game.yaml", "r") as config_file:
+    with open("config/chess_game_config.yaml", "r") as config_file:
         config_data = yaml.safe_load(config_file)
-        # AI_TYPES is still loaded as metrics_store might use it internally or for logging,
-        # but AI_TYPE_OPTIONS is no longer needed for UI dropdowns for white/black AI.
-        AI_TYPES = config_data.get("ai_types", [])
-        # unique_ai_types = sorted(list(set(AI_TYPES + ['Viper', 'Stockfish']))) # No longer needed for UI
-        # AI_TYPE_OPTIONS = [{"label": ai_type.capitalize(), "value": ai_type} for ai_type in unique_ai_types] # No longer needed for UI
+        # engine_types is still loaded as metrics_store might use it internally or for logging,
+        # but engine_type_OPTIONS is no longer needed for UI dropdowns for white/black AI.
+        engine_types = config_data.get("engine_types", [])
+        # unique_engine_types = sorted(list(set(engine_types + ['Viper', 'Stockfish']))) # No longer needed for UI
+        # engine_type_OPTIONS = [{"label": engine_type.capitalize(), "value": engine_type} for engine_type in unique_engine_types] # No longer needed for UI
 except Exception as e:
-    print(f"Error loading config.yaml for AI types: {e}")
-    AI_TYPES = []
-    # AI_TYPE_OPTIONS = []
+    print(f"Error loading chess_game_config.yaml for AI types: {e}")
+    engine_types = []
+    # engine_type_OPTIONS = []
 
 # --- DARK MODE COLORS ---
 DARK_BG = "#18191A"
@@ -75,12 +143,12 @@ def initialize_metrics_dashboard():
         white_player='metrics-test',
         black_player='metrics-test',
         game_length=10,
-        white_ai_config={'ai_type': 'metrics-test', 'exclude_from_metrics': False},
-        black_ai_config={'ai_type': 'metrics-test', 'exclude_from_metrics': False}
+        white_engine_config={'engine_type': 'metrics-test', 'exclude_from_metrics': False},
+        black_engine_config={'engine_type': 'metrics-test', 'exclude_from_metrics': False}
     )
     # Add a few test moves
-    metrics_store.add_move_metric(game_id=test_game_id, move_number=1, player_color='white', move_uci='e2e4', fen_before='rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1', evaluation=0.1, ai_type='metrics-test', depth=1, nodes_searched=10, time_taken=0.01, pv_line='e2e4 e7e5')
-    metrics_store.add_move_metric(game_id=test_game_id, move_number=1, player_color='black', move_uci='e7e5', fen_before='rnbqkbnr/pppppppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2', evaluation=0.0, ai_type='metrics-test', depth=1, nodes_searched=10, time_taken=0.01, pv_line='e7e5 Nf3')
+    metrics_store.add_move_metric(game_id=test_game_id, move_number=1, player_color='white', move_uci='e2e4', fen_before='rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1', evaluation=0.1, engine_type='metrics-test', depth=1, nodes_searched=10, time_taken=0.01, pv_line='e2e4 e7e5')
+    metrics_store.add_move_metric(game_id=test_game_id, move_number=1, player_color='black', move_uci='e7e5', fen_before='rnbqkbnr/pppppppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2', evaluation=0.0, engine_type='metrics-test', depth=1, nodes_searched=10, time_taken=0.01, pv_line='e7e5 Nf3')
     print("Test metrics data initialized.")
 
 # Call initialization at module load
@@ -124,7 +192,7 @@ app.layout = html.Div([
             #     html.Label("White AI Type:", style={"color": DARK_TEXT}),
             #     dcc.Dropdown(
             #         id="white-ai-type-filter",
-            #         options=[{"label": str(option["label"]), "value": str(option["value"])} for option in AI_TYPE_OPTIONS],
+            #         options=[{"label": str(option["label"]), "value": str(option["value"])} for option in engine_type_OPTIONS],
             #         multi=True,
             #         placeholder="Select White AI Type(s)",
             #         style={"backgroundColor": DARK_PANEL, "color": DARK_TEXT, "borderColor": DARK_BORDER}
@@ -134,14 +202,13 @@ app.layout = html.Div([
             #     html.Label("Black AI Type:", style={"color": DARK_TEXT}),
             #     dcc.Dropdown(
             #         id="black-ai-type-filter",
-            #         options=[{"label": str(option["label"]), "value": str(option["value"])} for option in AI_TYPE_OPTIONS],
+            #         options=[{"label": str(option["label"]), "value": str(option["value"])} for option in engine_type_OPTIONS],
             #         multi=True,
             #         placeholder="Select Black AI Type(s)",
             #         style={"backgroundColor": DARK_PANEL, "color": DARK_TEXT, "borderColor": DARK_BORDER}
             #     )
-            # ], style={'width': '30%', 'display': 'inline-block', 'verticalAlign': 'top'}),
-             html.Div([
-                html.Label("Metric to Plot (for Viper Engine):", style={"color": DARK_TEXT}),
+            # ], style={'width': '30%', 'display': 'inline-block', 'verticalAlign': 'top'}),             html.Div([
+                html.Label("Metric to Plot (for V7P3R Engine):", style={"color": DARK_TEXT}),
                 dcc.Dropdown(
                     id="dynamic-metric-selector",
                     options=[], # Populated dynamically
@@ -156,14 +223,8 @@ app.layout = html.Div([
 
     ], style={"marginBottom": "30px", "border": f"1px solid {DARK_BORDER}", "padding": "15px", "borderRadius": "8px", "backgroundColor": DARK_ACCENT}),
 
-    # Placeholder for New Engine Tuning Visualizations (to be added later)
-    html.Div(id="new-engine-tuning-visualizations", children=[
-        # html.H2("Advanced Engine Performance Analysis", style={"textAlign": "center", "color": DARK_TEXT}),
-        # ... new graphs and tables will go here ...
-    ], style={"marginBottom": "30px", "border": f"1px solid {DARK_BORDER}", "padding": "15px", "borderRadius": "8px", "backgroundColor": DARK_ACCENT}),
 
-
-], style={"fontFamily": "Arial, sans-serif", "padding": "20px", "backgroundColor": DARK_BG, "color": DARK_TEXT})
+    # Footer
 
 @app.callback(
     Output("dynamic-metric-selector", "options"),
@@ -189,7 +250,7 @@ def update_dynamic_metric_options(_):
      # Input("black-ai-type-filter", "value"), # Removed
      Input("dynamic-metric-selector", "value")]
 )
-def update_ab_testing_section(_, selected_metric): # Removed white_ai_types, black_ai_types
+def update_ab_testing_section(_, selected_metric): # Removed white_engine_types, black_engine_types
     fig_ab_test = go.Figure()
     move_metrics_details_components = []
 
@@ -204,27 +265,29 @@ def update_ab_testing_section(_, selected_metric): # Removed white_ai_types, bla
         )
         fig_ab_test.add_annotation(text="Please select a metric from the dropdown.", xref="paper", yref="paper", showarrow=False, font=dict(size=16, color=DARK_TEXT))
         move_metrics_details_components.append(html.P("Please select a metric from the dropdown to visualize Viper's performance trend.", style={"color": DARK_TEXT}))
-        return fig_ab_test, move_metrics_details_components
-
-    # Get all moves made by Viper
-    all_viper_moves_raw = metrics_store.get_filtered_move_metrics(
-        white_ai_types=['Viper'], # Only Viper as white
-        black_ai_types=['Viper'], # Only Viper as black
+        return fig_ab_test, move_metrics_details_components    # Get all moves made by V7P3R (check engine_type for V7P3R types and exclude_from_metrics = False)
+    # V7P3R engine types include: deepsearch, lookahead, minimax, negamax, negascout, etc.
+    v7p3r_engine_types = ['deepsearch', 'lookahead', 'minimax', 'negamax', 'negascout', 
+                          'transposition_only', 'simple_search', 'quiescence_only', 
+                          'simple_eval', 'v7p3r']
+    
+    all_v7p3r_moves_raw = metrics_store.get_filtered_move_metrics(
+        white_engine_types=v7p3r_engine_types, # V7P3R engine types as white
+        black_engine_types=v7p3r_engine_types, # V7P3R engine types as black
         metric_name=selected_metric
     )
-    
-    if not all_viper_moves_raw:
+    if not all_v7p3r_moves_raw:
         fig_ab_test.update_layout(
-            title=f"No '{selected_metric}' Data for Viper Engine",
+            title=f"No '{selected_metric}' Data for V7P3R Engine",
             paper_bgcolor=DARK_PANEL, plot_bgcolor=DARK_PANEL, font=dict(color=DARK_TEXT),
             xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
             yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
         )
-        fig_ab_test.add_annotation(text=f"No move data found for Viper playing '{selected_metric}'.", xref="paper", yref="paper", showarrow=False, font=dict(size=16, color=DARK_TEXT))
-        move_metrics_details_components.append(html.P(f"No move metrics data found for Viper for the metric: {selected_metric}.", style={"color": DARK_TEXT}))
+        fig_ab_test.add_annotation(text=f"No move data found for V7P3R playing '{selected_metric}'.", xref="paper", yref="paper", showarrow=False, font=dict(size=16, color=DARK_TEXT))
+        move_metrics_details_components.append(html.P(f"No move metrics data found for V7P3R for the metric: {selected_metric}.", style={"color": DARK_TEXT}))
         return fig_ab_test, move_metrics_details_components
 
-    df_all_viper_moves = pd.DataFrame(all_viper_moves_raw)
+    df_all_v7p3r_moves = pd.DataFrame(all_v7p3r_moves_raw)
     df_games_raw = metrics_store.get_all_game_results_df()
 
     if df_games_raw is None or df_games_raw.empty:
@@ -237,8 +300,8 @@ def update_ab_testing_section(_, selected_metric): # Removed white_ai_types, bla
     viper_perspectives = []
     for _, game_row in df_games_raw.iterrows():
         game_id = game_row['game_id']
-        white_is_viper = game_row.get('white_ai_type') == 'Viper'
-        black_is_viper = game_row.get('black_ai_type') == 'Viper'
+        white_is_viper = game_row.get('white_engine_type') == 'Viper'
+        black_is_viper = game_row.get('black_engine_type') == 'Viper'
         exclude_white = game_row.get('exclude_white_from_metrics', False)
         exclude_black = game_row.get('exclude_black_from_metrics', False)
         winner = game_row.get('winner')
@@ -262,7 +325,7 @@ def update_ab_testing_section(_, selected_metric): # Removed white_ai_types, bla
     df_viper_perspectives = pd.DataFrame(viper_perspectives)
     
     # Merge Viper moves with the determined perspectives
-    df_merged_moves = pd.merge(df_all_viper_moves, df_viper_perspectives, on='game_id', how='inner')
+    df_merged_moves = pd.merge(df_all_v7p3r_moves, df_viper_perspectives, on='game_id', how='inner')
     
     # Filter moves to only those matching the 'viper_color_to_analyze'
     # Ensure 'player_color' in df_merged_moves is comparable (e.g., 'white' or 'w')
@@ -383,8 +446,8 @@ def update_static_metrics(_):
     # Filter games relevant to Viper and respect exclusion flags
     viper_games_data = []
     for _, row in df_games_raw.iterrows():
-        white_is_viper = row.get('white_ai_type') == 'Viper'
-        black_is_viper = row.get('black_ai_type') == 'Viper'
+        white_is_viper = row.get('white_engine_type') == 'Viper'
+        black_is_viper = row.get('black_engine_type') == 'Viper'
         exclude_white = row.get('exclude_white_from_metrics', False)
         exclude_black = row.get('exclude_black_from_metrics', False)
         
@@ -418,8 +481,8 @@ def update_static_metrics(_):
 
     for _, row in df_viper_games.iterrows():
         winner = row.get('winner')
-        white_is_viper_and_included = row.get('white_ai_type') == 'Viper' and not row.get('exclude_white_from_metrics', False)
-        black_is_viper_and_included = row.get('black_ai_type') == 'Viper' and not row.get('exclude_black_from_metrics', False)
+        white_is_viper_and_included = row.get('white_engine_type') == 'Viper' and not row.get('exclude_white_from_metrics', False)
+        black_is_viper_and_included = row.get('black_engine_type') == 'Viper' and not row.get('exclude_black_from_metrics', False)
 
         if winner == '1-0':
             if white_is_viper_and_included: viper_wins +=1
@@ -459,8 +522,8 @@ def update_static_metrics(_):
         
         for index, row in df_viper_games.iterrows():
             winner = row.get('winner')
-            white_is_viper_and_included = row.get('white_ai_type') == 'Viper' and not row.get('exclude_white_from_metrics', False)
-            black_is_viper_and_included = row.get('black_ai_type') == 'Viper' and not row.get('exclude_black_from_metrics', False)
+            white_is_viper_and_included = row.get('white_engine_type') == 'Viper' and not row.get('exclude_white_from_metrics', False)
+            black_is_viper_and_included = row.get('black_engine_type') == 'Viper' and not row.get('exclude_black_from_metrics', False)
 
             if winner == '1-0':
                 if white_is_viper_and_included: current_wins += 1
