@@ -1,3 +1,41 @@
 {
-    "C_Cpp.errorSquiggles": "disabled"
+    "C_Cpp.errorSquiggles": "disabled",
+    
+    // Reduce markdown linting strictness
+    "markdownlint.config": {
+        "MD022": false,  // Headings should be surrounded by blank lines
+        "MD032": false,  // Lists should be surrounded by blank lines
+        "MD031": false,  // Fenced code blocks should be surrounded by blank lines
+        "MD058": false,  // Tables should be surrounded by blank lines
+        "MD024": false,  // Multiple headings with the same content
+        "MD033": false,  // Inline HTML
+        "MD034": false,  // Bare URL used
+        "MD036": false,  // Emphasis used instead of a heading
+        "MD041": false,  // First line in file should be a top level heading
+        "MD046": false,  // Code block style
+        "MD013": false   // Line length
+    },
+    
+    // Exclude docs from various language services
+    "files.exclude": {
+        "**/docs/**": false
+    },
+    
+    // Exclude docs from file watchers to improve performance
+    "files.watcherExclude": {
+        "**/docs/**": true
+    },
+    
+    // Python/Pylance settings to ignore docs
+    "python.analysis.exclude": [
+        "**/docs/**"
+    ],
+    
+    // Disable certain diagnostics for markdown files
+    "markdown.validate.enabled": false,
+    "markdown.validate.fileLinks.enabled": "ignore",
+    "markdown.validate.fragmentLinks.enabled": "ignore",
+    
+    // General problem matcher settings
+    "problems.decorations.enabled": true
 }
