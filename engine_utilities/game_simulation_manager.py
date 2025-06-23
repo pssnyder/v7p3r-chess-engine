@@ -20,14 +20,13 @@ import multiprocessing
 from functools import partial
 from chess_game import ChessGame
 from copy import deepcopy
-from engine_utilities.engine_db_manager import EngineDBClient
 from engine_utilities.adaptive_elo_finder import AdaptiveEloSimulator
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-def run_game_instance(game_config_override, v7p3r_config_override, stockfish_handler_override, sim_name, simulation_id, use_central_storage=False):
+def run_game_instance(game_config_override, v7p3r_config_override, stockfish_handler_override, sim_name, simulation_id):
     """Wrapper function to run a single game instance in a separate process."""
     try:
         logger.info(f"Starting game simulation process for: {sim_name}")
@@ -66,15 +65,6 @@ def run_game_instance(game_config_override, v7p3r_config_override, stockfish_han
         if 'game_id' not in final_game_config:
             final_game_config['game_id'] = game_id
 
-        # Initialize the DB client if central storage is enabled
-        db_client = None
-        if use_central_storage:
-            try:
-                db_client = EngineDBClient()
-                logger.info(f"DB client initialized for game {game_id}")
-            except Exception as e:
-                logger.error(f"Failed to initialize DB client: {e}")
-        
         # Create a data collector function to pass to the chess game
         def data_collector(data_type, data):
             """Collect data from the chess game and send to central storage if enabled."""
@@ -98,14 +88,7 @@ def run_game_instance(game_config_override, v7p3r_config_override, stockfish_han
                     f.write(json.dumps(data) + '\n')
             
             # Send to central storage if enabled
-            if db_client:
-                try:
-                    if data_type == 'game_result':
-                        db_client.send_game_data(data)
-                    elif data_type == 'move_metric':
-                        db_client.send_move_data(data)
-                except Exception as e:
-                    logger.error(f"Failed to send {data_type} data: {e}")
+            # (Removed DB client logic as per changes)
         
         # Merge all configurations into a single dictionary
         combined_config = {
@@ -113,45 +96,12 @@ def run_game_instance(game_config_override, v7p3r_config_override, stockfish_han
             'v7p3r_config': final_v7p3r_config,
             'stockfish_handler': final_stockfish_handler,
         }
-        if use_central_storage:
-            combined_config['data_collector'] = data_collector
-
         # Pass the combined configuration to ChessGame
         game = ChessGame(config=combined_config)
         result = game.run()
         
         # Upload raw game data if central storage is enabled
-        if use_central_storage and db_client:
-            try:
-                # Create a complete game record with all configs and results
-                raw_game_data = {
-                    'id': game_id,
-                    'simulation_id': simulation_id,
-                    'timestamp': datetime.datetime.now().isoformat(),
-                    'name': sim_name,
-                    'result': result,
-                    'configs': {
-                        'game': final_game_config,
-                        'v7p3r': final_v7p3r_config,
-                        'stockfish': final_stockfish_handler
-                    }
-                }
-                
-                # Add PGN if available
-                pgn_path = f"games/{game_id}.pgn"
-                if os.path.exists(pgn_path):
-                    with open(pgn_path, 'r') as f:
-                        raw_game_data['pgn'] = f.read()
-                
-                # Send raw data
-                db_client.send_raw_simulation(raw_game_data)
-                
-                # Flush any buffered data
-                db_client.flush_offline_buffer()
-            except Exception as e:
-                logger.error(f"Failed to upload raw game data: {e}")
-                # Save offline buffer for later recovery
-                db_client.save_offline_buffer()
+        # (Removed DB client logic as per changes)
         
         logger.info(f"Game simulation finished for: {sim_name}")
         return result
@@ -162,7 +112,7 @@ def run_game_instance(game_config_override, v7p3r_config_override, stockfish_han
 class GameSimulationManager:
     def __init__(self, simulation_config_path="config/simulation_config.yaml"):
         self.simulation_config_path = simulation_config_path
-        self.db_client = None
+        # Removed DB client initialization
         try:
             with open(self.simulation_config_path) as f:
                 self.config = yaml.safe_load(f)
@@ -174,16 +124,7 @@ class GameSimulationManager:
             self.max_concurrent_simulations = os.cpu_count() or 1
         else:
             self.max_concurrent_simulations = int(max_sim)
-        self.use_central_storage = bool(self.config.get('use_central_storage', False))
-        if self.use_central_storage:
-            logger.info("Central data storage is enabled - simulation results will be sent to configured server")
-            try:
-                self.db_client = EngineDBClient()
-                logger.info("EngineDBClient initialized for simulation manager")
-            except Exception as e:
-                logger.error(f"Failed to initialize EngineDBClient: {e}")
-        else:
-            logger.info("Central data storage is disabled - simulation results will be stored locally only")
+        # Central storage logic removed
         self.templates = self.config.get('simulation_templates', [])
     
     def get_template_by_id(self, template_id):
@@ -238,8 +179,7 @@ class GameSimulationManager:
                         min_games_for_convergence=sim_config.get('min_games_for_convergence', 20),
                         max_games=sim_config.get('max_games', 100),
                         v7p3r_config=sim_details.get('v7p3r', {}),
-                        game_config=sim_details.get('chess_game', {}),
-                        use_central_storage=self.use_central_storage
+                        game_config=sim_details.get('chess_game', {})
                     )
                     
                     # Run the simulation
@@ -280,18 +220,9 @@ class GameSimulationManager:
                     deepcopy(v7p3r_config_override),
                     deepcopy(stockfish_handler_override),
                     f"{name} - Game {i+1}/{num_games}",
-                    simulation_id,
-                    self.use_central_storage
+                    simulation_id
                 )
                 tasks.append(task_args)
-
-        # Create a client to upload the overall simulation metadata if central storage is enabled
-        if self.use_central_storage and self.db_client:
-            try:
-                self.db_client.send_raw_simulation(simulation_metadata)
-                logger.info("Simulation metadata sent to central storage")
-            except Exception as e:
-                logger.error(f"Failed to send simulation metadata: {e}")
 
         # Run the simulations
         results = []
@@ -306,12 +237,7 @@ class GameSimulationManager:
             pool.close()
             pool.join()
             # Flush and close DB client if used
-            if self.use_central_storage and self.db_client:
-                try:
-                    self.db_client.flush_offline_buffer()
-                    logger.info("Flushed DB client offline buffer on shutdown.")
-                except Exception as e:
-                    logger.error(f"Failed to flush DB client: {e}")
+            # (Removed DB client logic as per changes)
 
         # Save overall results
         simulation_results = {
@@ -324,17 +250,6 @@ class GameSimulationManager:
         }
         with open(f"games/{simulation_id}_results.yaml", 'w') as f:
             yaml.dump(simulation_results, f)
-        # Send final results to central storage if enabled
-        if self.use_central_storage and self.db_client:
-            try:
-                self.db_client.send_raw_simulation({
-                    'id': f"{simulation_id}_final",
-                    'type': 'simulation_results',
-                    'data': simulation_results
-                })
-                logger.info("Final simulation results sent to central storage")
-            except Exception as e:
-                logger.error(f"Failed to send final simulation results: {e}")
         logger.info(f"All game simulations completed. {simulation_results['completed']} succeeded, {simulation_results['failed']} failed.")
         return simulation_results
 
@@ -375,9 +290,6 @@ if __name__ == "__main__":
 
 # Maximum number of simulations to run in parallel.
 max_concurrent_simulations: 2
-
-# Enable central data storage for simulation results
-use_central_storage: false
 
 simulations:
   # Simple test simulation

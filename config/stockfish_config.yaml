@@ -1,7 +1,6 @@
 # engine_utilities/stockfish_config.yaml
 # Configuration for Stockfish engine handler
 # This file contains settings specific to the Stockfish chess engine integration with the Viper chess engine.
-# TODO: Update to handle new configuration and engine functionality options
   
 # Stockfish Engine Configuration
 stockfish:

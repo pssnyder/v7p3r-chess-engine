@@ -336,8 +336,6 @@ class TestSuiteLauncher:
                     should_include = True
                 elif name.startswith('metrics') and categories.get('metrics', False):
                     should_include = True
-                elif name.startswith('firebase') and categories.get('firebase', False):
-                    should_include = True
                 elif categories.get('engine_utilities', False):
                     # Most other tests are engine utilities
                     should_include = True
