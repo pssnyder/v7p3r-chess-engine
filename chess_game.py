@@ -74,7 +74,7 @@ class ChessGame:
         self.data_collector = getattr(config, 'data_collector', None)
         self.game_config_data = getattr(config, 'game_config', {})
         self.v7p3r_config_data = getattr(config, 'v7p3r_config', {})
-        self.stockfish_config_data = getattr(config, 'stockfish_config', {})
+        self.stockfish_handler_data = getattr(config, 'stockfish_handler', {})
 
         # Initialize Pygame (even in headless mode, for internal timing)
         pygame.init()
@@ -206,11 +206,11 @@ class ChessGame:
 
     def _initialize_ai_engines(self):
         """Initializes or re-initializes AI engines based on config."""
-        # Stockfish specific settings from stockfish_handler.yaml
-        stockfish_path = self.stockfish_config_data.get('stockfish_config', {}).get('path')
-        stockfish_elo = self.stockfish_config_data.get('stockfish_config', {}).get('elo_rating')
-        stockfish_skill = self.stockfish_config_data.get('stockfish_config', {}).get('skill_level')
-        debug_stockfish = self.stockfish_config_data.get('stockfish_config', {}).get('debug_stockfish', False)
+        # Stockfish specific settings from stockfish_config.yaml
+        stockfish_path = self.stockfish_handler_data.get('stockfish_handler', {}).get('path')
+        stockfish_elo = self.stockfish_handler_data.get('stockfish_handler', {}).get('elo_rating')
+        stockfish_skill = self.stockfish_handler_data.get('stockfish_handler', {}).get('skill_level')
+        debug_stockfish = self.stockfish_handler_data.get('stockfish_handler', {}).get('debug_stockfish', False)
 
         # V7P3R engine general settings from v7p3r_config.yaml
         v7p3r_ruleset = self.v7p3r_config_data.get('v7p3r', {}).get('ruleset', 'default_evaluation')
@@ -273,7 +273,7 @@ class ChessGame:
         if white_depth is None and self.white_engine_config.get('engine','').lower() == 'v7p3r': # Or from v7p3r_config.yaml if V7P3R
             white_depth = self.v7p3r_config_data.get('v7p3r', {}).get('depth', '#')
         elif white_depth is None and self.white_engine_config.get('engine','').lower() == 'stockfish': # Or from stockfish.yaml if Stockfish
-             white_depth = self.stockfish_config_data.get('stockfish', {}).get('depth', '#') # Fallback for Stockfish depth
+             white_depth = self.stockfish_handler_data.get('stockfish', {}).get('depth', '#') # Fallback for Stockfish depth
         else:
             white_depth = '#'
 
@@ -282,12 +282,9 @@ class ChessGame:
         if black_depth is None and self.black_engine_config.get('engine','').lower() == 'v7p3r': # Or from v7p3r_config.yaml if V7P3R
             black_depth = self.v7p3r_config_data.get('v7p3r', {}).get('depth', '#')
         elif black_depth is None and self.black_engine_config.get('engine','').lower() == 'stockfish': # Or from stockfish.yaml if Stockfish
-            black_depth = self.stockfish_config_data.get('stockfish', {}).get('depth', '#') # Fallback for Stockfish depth
+            black_depth = self.stockfish_handler_data.get('stockfish', {}).get('depth', '#') # Fallback for Stockfish depth
         else:
             black_depth = '#'
-        
-        white_engine_type_header = self.white_engine_config.get('engine_type', 'random')
-        black_engine_type_header = self.black_engine_config.get('engine_type', 'random')
 
         white_engine_name = self.white_engine_config.get('engine', 'Unknown')
         black_engine_name = self.black_engine_config.get('engine', 'Unknown')
@@ -295,39 +292,39 @@ class ChessGame:
         if self.ai_vs_ai:
             self.game.headers["Event"] = "AI vs. AI Game"
             if white_engine_name.lower() == 'stockfish':
-                elo = self.stockfish_config_data.get('stockfish_config', {}).get('elo_rating') # from stockfish_handler.yaml
-                skill = self.stockfish_config_data.get('stockfish_config', {}).get('skill_level') # from stockfish_handler.yaml
+                elo = self.stockfish_handler_data.get('stockfish_handler', {}).get('elo_rating') # from stockfish_config.yaml
+                skill = self.stockfish_handler_data.get('stockfish_handler', {}).get('skill_level') # from stockfish_config.yaml
                 elo_str = f"Elo {elo}" if elo is not None else (f"Skill {skill}" if skill is not None else "Max")
                 self.game.headers["White"] = f"AI: {white_engine_name} ({elo_str})"
             else:
-                self.game.headers["White"] = f"AI: {white_engine_name} via {white_engine_type_header} (Depth {white_depth})"
+                self.game.headers["White"] = f"AI: {white_engine_name} (Depth {white_depth})"
             
             if black_engine_name.lower() == 'stockfish':
-                elo = self.stockfish_config_data.get('stockfish_config', {}).get('elo_rating') # from stockfish_handler.yaml
-                skill = self.stockfish_config_data.get('stockfish_config', {}).get('skill_level') # from stockfish_handler.yaml
+                elo = self.stockfish_handler_data.get('stockfish_handler', {}).get('elo_rating') # from stockfish_config.yaml
+                skill = self.stockfish_handler_data.get('stockfish_handler', {}).get('skill_level') # from stockfish_config.yaml
                 elo_str = f"Elo {elo}" if elo is not None else (f"Skill {skill}" if skill is not None else "Max")
                 self.game.headers["Black"] = f"AI: {black_engine_name} ({elo_str})"
             else:
-                self.game.headers["Black"] = f"AI: {black_engine_name} via {black_engine_type_header} (Depth {black_depth})"
+                self.game.headers["Black"] = f"AI: {black_engine_name} (Depth {black_depth})"
         elif not self.ai_vs_ai and self.human_color_pref:
             self.game.headers["Event"] = "Human vs. AI Game"
             if self.human_color == chess.WHITE:
                 self.game.headers["White"] = "Human"
                 if black_engine_name.lower() == 'stockfish':
-                    elo = self.stockfish_config_data.get('stockfish_config', {}).get('elo_rating') # from stockfish_handler.yaml
-                    skill = self.stockfish_config_data.get('stockfish_config', {}).get('skill_level') # from stockfish_handler.yaml
+                    elo = self.stockfish_handler_data.get('stockfish_handler', {}).get('elo_rating') # from stockfish_config.yaml
+                    skill = self.stockfish_handler_data.get('stockfish_handler', {}).get('skill_level') # from stockfish_config.yaml
                     elo_str = f"Elo {elo}" if elo is not None else (f"Skill {skill}" if skill is not None else "Max")
                     self.game.headers["Black"] = f"AI: {black_engine_name} ({elo_str})"
                 else:
-                    self.game.headers["Black"] = f"AI: {black_engine_name} via {black_engine_type_header} (Depth {black_depth})"
+                    self.game.headers["Black"] = f"AI: {black_engine_name} (Depth {black_depth})"
             else:
                 if white_engine_name.lower() == 'stockfish':
-                    elo = self.stockfish_config_data.get('stockfish_config', {}).get('elo_rating') # from stockfish_handler.yaml
-                    skill = self.stockfish_config_data.get('stockfish_config', {}).get('skill_level') # from stockfish_handler.yaml
+                    elo = self.stockfish_handler_data.get('stockfish_handler', {}).get('elo_rating') # from stockfish_config.yaml
+                    skill = self.stockfish_handler_data.get('stockfish_handler', {}).get('skill_level') # from stockfish_config.yaml
                     elo_str = f"Elo {elo}" if elo is not None else (f"Skill {skill}" if skill is not None else "Max")
                     self.game.headers["White"] = f"AI: {white_engine_name} ({elo_str})"
                 else:
-                    self.game.headers["White"] = f"AI: {white_engine_name} via {white_engine_type_header} (Depth {white_depth})"
+                    self.game.headers["White"] = f"AI: {white_engine_name} (Depth {white_depth})"
                 self.game.headers["Black"] = "Human"
 
         self.game.headers["Date"] = datetime.datetime.now().strftime("%Y.%m.%d")
@@ -518,7 +515,7 @@ class ChessGame:
                     # include configs
                     "game_settings": self.game_config_data,
                     "v7p3r_settings": self.v7p3r_config_data,
-                    "stockfish_settings": self.stockfish_config_data
+                    "stockfish_settings": self.stockfish_handler_data
                 }
                 self.cloud_store.upload_game_metadata(game_id, metadata)
 
@@ -853,50 +850,72 @@ class ChessGame:
                 self.black_engine.quit()
 
 if __name__ == "__main__":
-    # Create a default configuration object for ChessGame
+    # Load configuration from YAML files
+    import yaml
+    
     class ChessGameConfig:
         def __init__(self):
             self.fen_position = None
             self.data_collector = None
-            self.game_config = {
-                'monitoring': {
-                    'enable_logging': True,
-                    'show_thinking': True
-                },
-                'game_config': {
-                    'human_color': 'random',
-                    'starting_position': 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
-                    'ai_game_count': 1,
-                    'ai_vs_ai': True,
-                    'rated': True
-                },
-                'white_engine_config': {
-                    'engine_type': 'deepsearch',
-                    'engine': 'v7p3r',
-                    'depth': 4,
-                    'exclude_from_metrics': False
-                },
-                'black_engine_config': {
-                    'engine_type': 'stockfish',
-                    'engine': 'stockfish',
-                    'depth': 3,
-                    'exclude_from_metrics': True
+            
+            # Load chess game configuration
+            try:
+                with open('config/chess_game_config.yaml', 'r') as f:
+                    chess_config = yaml.safe_load(f)
+                self.game_config = chess_config
+            except FileNotFoundError:
+                print("Warning: chess_game_config.yaml not found, using default settings")
+                self.game_config = {
+                    'monitoring': {
+                        'enable_logging': True,
+                        'show_thinking': True
+                    },
+                    'game_config': {
+                        'human_color': 'random',
+                        'starting_position': 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+                        'ai_game_count': 1,
+                        'ai_vs_ai': True,
+                        'rated': True
+                    },
+                    'white_engine_config': {
+                        'engine': 'v7p3r',
+                        'depth': 4,
+                        'exclude_from_metrics': False
+                    },
+                    'black_engine_config': {
+                        'engine': 'stockfish',
+                        'depth': 3,
+                        'exclude_from_metrics': True
+                    }
                 }
-            }
-            self.v7p3r_config = {
-                'v7p3r': {
-                    'ruleset': 'default_evaluation',
-                    'depth': 3
+            
+            # Load V7P3R configuration
+            try:
+                with open('config/v7p3r_config.yaml', 'r') as f:
+                    self.v7p3r_config = yaml.safe_load(f)
+            except FileNotFoundError:
+                print("Warning: v7p3r_config.yaml not found, using default settings")
+                self.v7p3r_config = {
+                    'v7p3r': {
+                        'ruleset': 'default_evaluation',
+                        'depth': 3
+                    }
                 }
-            }
-            self.stockfish_config = {
-                'stockfish_config': {
-                    'path': None,
-                    'elo_rating': None,
-                    'skill_level': None,
-                    'debug_stockfish': False
+            
+            # Load Stockfish configuration
+            try:
+                with open('config/stockfish_config.yaml', 'r') as f:
+                    self.stockfish_handler = yaml.safe_load(f)
+            except FileNotFoundError:
+                print("Warning: stockfish_config.yaml not found, using default settings")
+                self.stockfish_handler = {
+                    'stockfish_handler': {
+                        'path': None,
+                        'elo_rating': None,
+                        'skill_level': None,
+                        'debug_stockfish': False
+                    }
                 }
-            }
 
     config = ChessGameConfig()
     game = ChessGame(config)

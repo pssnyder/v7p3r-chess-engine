@@ -73,19 +73,19 @@ class AdaptiveEloSimulator:
             self.base_game_config = yaml.safe_load(f)
         with open(os.path.join(config_dir, "v7p3r_config.yaml")) as f:
             self.base_v7p3r_config = yaml.safe_load(f)
-        with open(os.path.join(config_dir, "stockfish_handler.yaml")) as f:
-            self.base_stockfish_config = yaml.safe_load(f)
+        with open(os.path.join(config_dir, "stockfish_config.yaml")) as f:
+            self.base_stockfish_handler = yaml.safe_load(f)
             
         # Apply overrides
         self.v7p3r_config = self._deep_merge(v7p3r_config or {}, deepcopy(self.base_v7p3r_config))
         self.game_config = self._deep_merge(game_config or {}, deepcopy(self.base_game_config))
         
         # Initialize stockfish config with the initial ELO
-        self.stockfish_config = deepcopy(self.base_stockfish_config)
-        if 'stockfish_config' not in self.stockfish_config:
-            self.stockfish_config['stockfish_config'] = {}
-        self.stockfish_config['stockfish_config']['elo_rating'] = self.current_elo
-        self.stockfish_config['stockfish_config']['uci_limit_strength'] = True
+        self.stockfish_handler = deepcopy(self.base_stockfish_handler)
+        if 'stockfish_handler' not in self.stockfish_handler:
+            self.stockfish_handler['stockfish_handler'] = {}
+        self.stockfish_handler['stockfish_handler']['elo_rating'] = self.current_elo
+        self.stockfish_handler['stockfish_handler']['uci_limit_strength'] = True
         
         # Initialize game history and stats
         self.games_played = 0
@@ -158,7 +158,7 @@ class AdaptiveEloSimulator:
         self.current_elo = new_elo
         
         # Update stockfish config with new ELO
-        self.stockfish_config['stockfish_config']['elo_rating'] = self.current_elo
+        self.stockfish_handler['stockfish_handler']['elo_rating'] = self.current_elo
     
     def _check_convergence(self) -> bool:
         """
@@ -307,7 +307,7 @@ class AdaptiveEloSimulator:
             combined_config = {
                 'game_config': game_config,
                 'v7p3r_config': deepcopy(self.v7p3r_config),
-                'stockfish_config': deepcopy(self.stockfish_config),
+                'stockfish_handler': deepcopy(self.stockfish_handler),
                 'data_collector': self._create_data_collector(game_id)
             }
             game = ChessGame(config=combined_config)

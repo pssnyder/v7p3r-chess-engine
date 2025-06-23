@@ -176,8 +176,7 @@ class MetricsStore:
                 engine_name TEXT,
                 engine_version TEXT,
                 exclude_from_metrics INTEGER
-            )''')
-            # Create new config_settings table
+            )''')            # Create new config_settings table
             cursor.execute('''
             CREATE TABLE IF NOT EXISTS config_settings (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -188,16 +187,28 @@ class MetricsStore:
                 engine_id TEXT,
                 engine_name TEXT,
                 engine_version TEXT,
+                white_engine_type TEXT,
+                black_engine_type TEXT,
+                white_depth INTEGER,
+                black_depth INTEGER,
                 created_at TEXT
             )''')
-            connection.commit()
-        
-            # Add missing columns to game_results table for direct config access
+            connection.commit()            # Add missing columns to game_results table for direct config access
             try:
                 cursor.execute('ALTER TABLE game_results ADD COLUMN white_engine_type TEXT')
                 cursor.execute('ALTER TABLE game_results ADD COLUMN black_engine_type TEXT')
                 cursor.execute('ALTER TABLE game_results ADD COLUMN white_depth INTEGER')
                 cursor.execute('ALTER TABLE game_results ADD COLUMN black_depth INTEGER')
+            except sqlite3.OperationalError as e:
+                if "duplicate column name" not in str(e):
+                    raise
+
+            # Add missing columns to config_settings table
+            try:
+                cursor.execute('ALTER TABLE config_settings ADD COLUMN white_engine_type TEXT')
+                cursor.execute('ALTER TABLE config_settings ADD COLUMN black_engine_type TEXT')
+                cursor.execute('ALTER TABLE config_settings ADD COLUMN white_depth INTEGER')
+                cursor.execute('ALTER TABLE config_settings ADD COLUMN black_depth INTEGER')
             except sqlite3.OperationalError as e:
                 if "duplicate column name" not in str(e):
                     raise
@@ -300,17 +311,43 @@ class MetricsStore:
                 winner = headers.get("Result", "*")
                 white_player = headers.get("White", "Unknown")
                 black_player = headers.get("Black", "Unknown")
-                
-                # Retrieve AI config data that should have been collected by collect_config_data
+                  # Retrieve AI config data that should have been collected by collect_config_data
                 # We need to link by game_id which is based on timestamp
                 config_id = game_id.replace('.pgn', '.yaml')
-                cursor.execute("SELECT white_engine_type, black_engine_type, white_depth, black_depth FROM config_settings WHERE config_id = ?", (config_id,))
-                config_row = cursor.fetchone()
+                
+                # Try to get config data, handle missing columns gracefully
+                try:
+                    cursor.execute("SELECT white_engine_type, black_engine_type, white_depth, black_depth FROM config_settings WHERE config_id = ?", (config_id,))
+                    config_row = cursor.fetchone()
+                except sqlite3.OperationalError:
+                    # Columns don't exist, use default values
+                    config_row = None
 
-                white_engine_type = config_row[0] if config_row else "unknown"
-                black_engine_type = config_row[1] if config_row else "unknown"
-                white_depth = config_row[2] if config_row else 0
-                black_depth = config_row[3] if config_row else 0
+                if config_row:
+                    white_engine_type = config_row[0] if config_row[0] else "unknown"
+                    black_engine_type = config_row[1] if config_row[1] else "unknown"
+                    white_depth = config_row[2] if config_row[2] else 0
+                    black_depth = config_row[3] if config_row[3] else 0
+                else:
+                    # Extract engine info from PGN headers if config not available
+                    white_player_header = white_player
+                    black_player_header = black_player
+                    
+                    # Parse engine type from headers like "AI: viper via simple_search"
+                    white_engine_type = "unknown"
+                    black_engine_type = "unknown"
+                    white_depth = 0
+                    black_depth = 0
+                    
+                    if "via" in white_player_header:
+                        parts = white_player_header.split("via")
+                        if len(parts) > 1:
+                            white_engine_type = parts[1].strip().rstrip(")")
+                    
+                    if "via" in black_player_header:
+                        parts = black_player_header.split("via")
+                        if len(parts) > 1:
+                            black_engine_type = parts[1].strip().rstrip(")")
 
                 game_length = 0
                 board = game.board()
@@ -366,15 +403,23 @@ class MetricsStore:
                 self._execute_with_retry(cursor, "SELECT COUNT(*) FROM config_settings WHERE config_id = ?", (config_id,))
                 if cursor.fetchone()[0] > 0:
                     return  # Already processed
-            
-            # Parse the YAML file
+              # Parse the YAML file
             with open(yaml_file, 'r') as f:
                 config_data = yaml.safe_load(f)
                 
             # Extract key configuration details
-            engine_id = hashlib.md5(config_data.get('white_engine_config', {}).get('engine', 'unknown').encode()).hexdigest()
-            engine_name = config_data.get('white_engine_config', {}).get('engine', 'unknown')
-            engine_version = config_data.get('white_engine_config', {}).get('version', 'unknown')
+            white_engine_config = config_data.get('white_engine_config', {})
+            black_engine_config = config_data.get('black_engine_config', {})
+            
+            engine_id = hashlib.md5(white_engine_config.get('engine', 'unknown').encode()).hexdigest()
+            engine_name = white_engine_config.get('engine', 'unknown')
+            engine_version = white_engine_config.get('version', 'unknown')
+            
+            # Extract engine types and depths
+            white_engine_type = white_engine_config.get('engine_type', 'unknown')
+            black_engine_type = black_engine_config.get('engine_type', 'unknown')
+            white_depth = white_engine_config.get('depth', 0)
+            black_depth = black_engine_config.get('depth', 0)
             
             # Match with corresponding game
             game_id = config_id.replace('.yaml', '.pgn')
@@ -390,8 +435,9 @@ class MetricsStore:
                 cursor = connection.cursor()
                 self._execute_with_retry(cursor, '''
                 INSERT OR IGNORE INTO config_settings
-                (config_id, timestamp, game_id, config_data, engine_id, engine_name, engine_version)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                (config_id, timestamp, game_id, config_data, engine_id, engine_name, engine_version,
+                 white_engine_type, black_engine_type, white_depth, black_depth)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
                     config_id,
                     timestamp,
@@ -399,7 +445,11 @@ class MetricsStore:
                     json.dumps(config_data),
                     engine_id,
                     engine_name,
-                    engine_version
+                    engine_version,
+                    white_engine_type,
+                    black_engine_type,
+                    white_depth,
+                    black_depth
                 ))
                 connection.commit()
         
@@ -446,8 +496,7 @@ class MetricsStore:
                             (metric_name, metric_value, side, function_name, timestamp)
                             VALUES (?, ?, ?, ?, ?)
                             ''', (
-                                metric_name,
-                                metric_value,
+                                metric_name,                                metric_value,
                                 side,
                                 function_name,
                                 timestamp
@@ -456,7 +505,7 @@ class MetricsStore:
                         except sqlite3.Error as e:
                             print(f"Error storing metric {metric_name}: {e}")
                 _store_metric(metric_name, metric_value, side, function_name, timestamp)
-    
+
     def add_game_result(self, game_id: str, timestamp: str, winner: str, game_pgn: str,
                         white_player: str, black_player: str, game_length: int,
                         white_engine_config: dict, black_engine_config: dict):
@@ -474,15 +523,20 @@ class MetricsStore:
                 black_engine_name = black_engine_config.get('engine', 'unknown')
                 white_engine_version = white_engine_config.get('version', 'unknown')
                 black_engine_version = black_engine_config.get('version', 'unknown')
+                exclude_white_from_metrics = int(white_engine_config.get('exclude_from_metrics', False))
+                exclude_black_from_metrics = int(black_engine_config.get('exclude_from_metrics', False))
+                created_at = datetime.now().isoformat()
 
                 self._execute_with_retry(cursor, '''
                 INSERT OR IGNORE INTO game_results
                 (game_id, timestamp, winner, game_pgn, white_player, black_player, game_length,
-                 white_engine_id, black_engine_id, white_engine_name, black_engine_name, white_engine_version, black_engine_version)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 created_at, white_engine_id, black_engine_id, white_engine_name, black_engine_name, 
+                 white_engine_version, black_engine_version, exclude_white_from_metrics, exclude_black_from_metrics)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
                     game_id, timestamp, winner, game_pgn, white_player, black_player, game_length,
-                    white_engine_id, black_engine_id, white_engine_name, black_engine_name, white_engine_version, black_engine_version
+                    created_at, white_engine_id, black_engine_id, white_engine_name, black_engine_name, 
+                    white_engine_version, black_engine_version, exclude_white_from_metrics, exclude_black_from_metrics
                 ))
                 connection.commit()
             except sqlite3.Error as e:

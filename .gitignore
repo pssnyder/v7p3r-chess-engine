@@ -11,6 +11,8 @@
 *.v7p3r_chess_engine.*
 .v7p3r_chess_engine_project_files/
 templates/
+*.db-shm
+*.db-wal
 
 # Omit external engine files
 */external_engines/*

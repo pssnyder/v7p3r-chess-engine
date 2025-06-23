@@ -52,7 +52,7 @@ class TestChessGameInitialization(unittest.TestCase):
             }
         }
         
-        self.stockfish_config = {
+        self.stockfish_handler = {
             'path': '/usr/bin/stockfish',
             'depth': 15,
             'time': 1.0
@@ -75,13 +75,13 @@ class TestChessGameInitialization(unittest.TestCase):
                 fen_position=fen,
                 game_config=self.chess_game_config,
                 v7p3r_config=self.v7p3r_config,
-                stockfish_config=self.stockfish_config
+                stockfish_handler=self.stockfish_handler
             )
             
             self.assertEqual(game.starting_position, fen)
             self.assertIsNotNone(game.game_config_data)
             self.assertIsNotNone(game.v7p3r_config_data)
-            self.assertIsNotNone(game.stockfish_config_data)
+            self.assertIsNotNone(game.stockfish_handler_data)
 
     def test_init_with_invalid_fen(self):
         """Test initialization with an invalid FEN position."""
@@ -92,7 +92,7 @@ class TestChessGameInitialization(unittest.TestCase):
                 fen_position=invalid_fen,
                 game_config=self.chess_game_config,
                 v7p3r_config=self.v7p3r_config,
-                stockfish_config=self.stockfish_config
+                stockfish_handler=self.stockfish_handler
             )
         
         self.assertIn("Invalid FEN position", str(context.exception))
@@ -104,7 +104,7 @@ class TestChessGameInitialization(unittest.TestCase):
                 fen_position=12345,
                 game_config=self.chess_game_config,
                 v7p3r_config=self.v7p3r_config,
-                stockfish_config=self.stockfish_config
+                stockfish_handler=self.stockfish_handler
             )
         
         self.assertIn("FEN position must be a string", str(context.exception))
@@ -119,7 +119,7 @@ class TestChessGameInitialization(unittest.TestCase):
             game = ChessGame(
                 game_config=self.chess_game_config,
                 v7p3r_config=self.v7p3r_config,
-                stockfish_config=self.stockfish_config
+                stockfish_handler=self.stockfish_handler
             )
             
             self.assertIsNone(game.starting_position)
@@ -133,7 +133,7 @@ class TestChessGameInitialization(unittest.TestCase):
         mock_yaml.side_effect = [
             self.chess_game_config,
             self.v7p3r_config,
-            self.stockfish_config
+            self.stockfish_handler
         ]
         
         game = ChessGame()
@@ -157,7 +157,7 @@ class TestChessGameInitialization(unittest.TestCase):
             game = ChessGame(
                 game_config=self.chess_game_config,
                 v7p3r_config=self.v7p3r_config,
-                stockfish_config=self.stockfish_config,
+                stockfish_handler=self.stockfish_handler,
                 data_collector=mock_collector
             )
             
@@ -212,7 +212,7 @@ class TestChessGameBoardOperations(unittest.TestCase):
         }
         
         self.v7p3r_config = {'engine': {'depth': 6, 'time_limit': 5.0}}
-        self.stockfish_config = {'path': '/usr/bin/stockfish', 'depth': 15}
+        self.stockfish_handler = {'path': '/usr/bin/stockfish', 'depth': 15}
 
     @patch('config/chess_game_config.yaml.safe_load')
     @patch('builtins.open')
@@ -220,7 +220,7 @@ class TestChessGameBoardOperations(unittest.TestCase):
     @patch('chess_game.pygame.time.Clock')
     def test_board_initialization_standard_position(self, mock_clock, mock_pygame_init, mock_open, mock_yaml):
         """Test board initialization with standard starting position."""
-        mock_yaml.side_effect = [self.chess_game_config, self.v7p3r_config, self.stockfish_config]
+        mock_yaml.side_effect = [self.chess_game_config, self.v7p3r_config, self.stockfish_handler]
         
         game = ChessGame()
         
@@ -242,7 +242,7 @@ class TestChessGameBoardOperations(unittest.TestCase):
                 fen_position=custom_fen,
                 game_config=self.chess_game_config,
                 v7p3r_config=self.v7p3r_config,
-                stockfish_config=self.stockfish_config
+                stockfish_handler=self.stockfish_handler
             )
             
             self.assertEqual(game.starting_position, custom_fen)
@@ -259,7 +259,7 @@ class TestChessGamePerformance(unittest.TestCase):
         }
         
         self.v7p3r_config = {'engine': {'depth': 3, 'time_limit': 1.0}}
-        self.stockfish_config = {'path': '/usr/bin/stockfish', 'depth': 5}
+        self.stockfish_handler = {'path': '/usr/bin/stockfish', 'depth': 5}
 
     def test_initialization_performance(self):
         """Test that game initialization completes within reasonable time."""
@@ -273,7 +273,7 @@ class TestChessGamePerformance(unittest.TestCase):
             game = ChessGame(
                 game_config=self.chess_game_config,
                 v7p3r_config=self.v7p3r_config,
-                stockfish_config=self.stockfish_config
+                stockfish_handler=self.stockfish_handler
             )
         
         initialization_time = time.time() - start_time
@@ -294,7 +294,7 @@ class TestChessGameIntegration(unittest.TestCase):
         }
         
         self.v7p3r_config = {'engine': {'depth': 6, 'time_limit': 5.0}}
-        self.stockfish_config = {'path': '/usr/bin/stockfish', 'depth': 15}
+        self.stockfish_handler = {'path': '/usr/bin/stockfish', 'depth': 15}
 
     @patch('chess_game.V7P3REvaluationEngine')
     @patch('chess_game.StockfishHandler')
@@ -311,7 +311,7 @@ class TestChessGameIntegration(unittest.TestCase):
             game = ChessGame(
                 game_config=self.chess_game_config,
                 v7p3r_config=self.v7p3r_config,
-                stockfish_config=self.stockfish_config
+                stockfish_handler=self.stockfish_handler
             )
             
             # Verify imports are accessible (engines should be importable)
