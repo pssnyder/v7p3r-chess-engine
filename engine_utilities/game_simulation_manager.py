@@ -1,5 +1,14 @@
 # /engine_utilities/game_simulation_manager.py
 
+import sys
+import os
+
+# Adjust the module search path if the script is executed directly
+if __name__ == "__main__" and __package__ is None:
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    parent_dir = os.path.dirname(current_dir)
+    sys.path.insert(0, parent_dir)
+
 import asyncio
 import yaml
 import logging
@@ -25,16 +34,13 @@ def run_game_instance(game_config_override, v7p3r_config_override, stockfish_han
         
         # Create a unique game ID
         game_id = f"{simulation_id}_{uuid.uuid4()}"
-        
-        # Load base configurations
+          # Load base configurations
         with open("config/chess_game_config.yaml") as f:
             base_game_config = yaml.safe_load(f)
         with open("config/v7p3r_config.yaml") as f:
             base_v7p3r_config = yaml.safe_load(f)
         with open("config/stockfish_config.yaml") as f:
-            base_stockfish_handler = yaml.safe_load(f)
-
-        # Deep merge the overrides
+            base_stockfish_handler = yaml.safe_load(f)        # Deep merge the overrides
         def deep_merge(source, destination):
             for key, value in source.items():
                 if isinstance(value, dict) and key in destination and isinstance(destination[key], dict):
@@ -42,10 +48,23 @@ def run_game_instance(game_config_override, v7p3r_config_override, stockfish_han
                 else:
                     destination[key] = value
             return destination
-
+            
         final_game_config = deep_merge(game_config_override, base_game_config)
         final_v7p3r_config = deep_merge(v7p3r_config_override, base_v7p3r_config)
         final_stockfish_handler = deep_merge(stockfish_handler_override, base_stockfish_handler)
+        
+        # Ensure AI vs AI is set to true for simulations
+        if 'game_config' in final_game_config:
+            final_game_config['game_config']['ai_vs_ai'] = True
+            logger.info("Setting AI vs AI mode to True for simulation")
+        else:
+            # If game_config isn't in the structure, add it
+            final_game_config['game_config'] = {'ai_vs_ai': True}
+            logger.info("Created game_config section with AI vs AI mode")
+        # Remove human_color if present (not needed for AI vs AI)
+        if 'human_color' in final_game_config['game_config']:
+            del final_game_config['game_config']['human_color']
+            logger.info("Removed human_color from game_config for AI vs AI simulation")
         
         # Include game_id in configuration
         if 'game_id' not in final_game_config:
@@ -92,13 +111,17 @@ def run_game_instance(game_config_override, v7p3r_config_override, stockfish_han
                 except Exception as e:
                     logger.error(f"Failed to send {data_type} data: {e}")
         
-        # Run the game with the data collector
-        game = ChessGame(
-            game_config=final_game_config,
-            v7p3r_config=final_v7p3r_config,
-            stockfish_handler=final_stockfish_handler,
-            data_collector=data_collector if use_central_storage else None
-        )
+        # Merge all configurations into a single dictionary
+        combined_config = {
+            'game_config': final_game_config,
+            'v7p3r_config': final_v7p3r_config,
+            'stockfish_handler': final_stockfish_handler,
+        }
+        if use_central_storage:
+            combined_config['data_collector'] = data_collector
+
+        # Pass the combined configuration to ChessGame
+        game = ChessGame(config=combined_config)
         result = game.run()
         
         # Upload raw game data if central storage is enabled
@@ -141,29 +164,30 @@ def run_game_instance(game_config_override, v7p3r_config_override, stockfish_han
         return {"error": str(e)}
 
 class GameSimulationManager:
-    def __init__(self, simulation_config_path="simulation_config.yaml"):
+    def __init__(self, simulation_config_path="config/simulation_config.yaml"):
         self.simulation_config_path = simulation_config_path
+        self.db_client = None
         try:
             with open(self.simulation_config_path) as f:
                 self.config = yaml.safe_load(f)
         except FileNotFoundError:
             logger.error(f"Simulation config file not found at {self.simulation_config_path}")
             self.config = {'simulations': []}
-        
         max_sim = self.config.get('max_concurrent_simulations', os.cpu_count() or 1)
         if isinstance(max_sim, list):
             self.max_concurrent_simulations = os.cpu_count() or 1
         else:
             self.max_concurrent_simulations = int(max_sim)
-            
-        # Check if central data storage should be used
         self.use_central_storage = bool(self.config.get('use_central_storage', False))
         if self.use_central_storage:
             logger.info("Central data storage is enabled - simulation results will be sent to configured server")
+            try:
+                self.db_client = EngineDBClient()
+                logger.info("EngineDBClient initialized for simulation manager")
+            except Exception as e:
+                logger.error(f"Failed to initialize EngineDBClient: {e}")
         else:
             logger.info("Central data storage is disabled - simulation results will be stored locally only")
-            
-        # Load simulation templates
         self.templates = self.config.get('simulation_templates', [])
     
     def get_template_by_id(self, template_id):
@@ -226,10 +250,14 @@ class GameSimulationManager:
                     result = simulator.run_simulation()
                     adaptive_results.append(result)
                     continue
-            
-        # Use spawn context for better cross-platform compatibility
+              # Use spawn context for better cross-platform compatibility
         ctx = multiprocessing.get_context('spawn')
         pool = ctx.Pool(processes=self.max_concurrent_simulations)
+        
+        # Set the global pool for termination handling
+        if __name__ == "__main__":
+            global global_pool
+            global_pool = pool
         
         tasks = []
         for sim_details in self.config.get('simulations', []):
@@ -262,22 +290,33 @@ class GameSimulationManager:
                 tasks.append(task_args)
 
         # Create a client to upload the overall simulation metadata if central storage is enabled
-        if self.use_central_storage:
+        if self.use_central_storage and self.db_client:
             try:
-                client = EngineDBClient()
-                client.send_raw_simulation(simulation_metadata)
+                self.db_client.send_raw_simulation(simulation_metadata)
                 logger.info("Simulation metadata sent to central storage")
             except Exception as e:
                 logger.error(f"Failed to send simulation metadata: {e}")
 
         # Run the simulations
         results = []
-        if tasks:
-            results = pool.starmap(run_game_instance, tasks)
+        try:
+            if tasks:
+                results = pool.starmap(run_game_instance, tasks)
+        except KeyboardInterrupt:
+            logger.warning("Simulation interrupted by user. Terminating pool...")
+            pool.terminate()
+            results = []
+        finally:
+            pool.close()
+            pool.join()
+            # Flush and close DB client if used
+            if self.use_central_storage and self.db_client:
+                try:
+                    self.db_client.flush_offline_buffer()
+                    logger.info("Flushed DB client offline buffer on shutdown.")
+                except Exception as e:
+                    logger.error(f"Failed to flush DB client: {e}")
 
-        pool.close()
-        pool.join()
-        
         # Save overall results
         simulation_results = {
             'id': simulation_id,
@@ -289,12 +328,10 @@ class GameSimulationManager:
         }
         with open(f"games/{simulation_id}_results.yaml", 'w') as f:
             yaml.dump(simulation_results, f)
-            
         # Send final results to central storage if enabled
-        if self.use_central_storage:
+        if self.use_central_storage and self.db_client:
             try:
-                client = EngineDBClient()
-                client.send_raw_simulation({
+                self.db_client.send_raw_simulation({
                     'id': f"{simulation_id}_final",
                     'type': 'simulation_results',
                     'data': simulation_results
@@ -302,11 +339,73 @@ class GameSimulationManager:
                 logger.info("Final simulation results sent to central storage")
             except Exception as e:
                 logger.error(f"Failed to send final simulation results: {e}")
-        
         logger.info(f"All game simulations completed. {simulation_results['completed']} succeeded, {simulation_results['failed']} failed.")
         return simulation_results
 
 if __name__ == "__main__":
     # This allows the script to be run as the main entry point for simulations
+    import signal
+    import sys
+    
+    # Global pool variable for termination
+    global_pool = None
+    
+    # Handle Ctrl+C more gracefully
+    def signal_handler(sig, frame):
+        print("\nReceived Ctrl+C. Terminating simulations gracefully...")
+        # Force terminate any running pool
+        if global_pool is not None:
+            global_pool.terminate()
+            global_pool.join()
+        sys.exit(0)
+    
+    signal.signal(signal.SIGINT, signal_handler)
+    
+    # Check if config exists in the root directory or try to copy it
+    if not os.path.exists("simulation_config.yaml") and os.path.exists("config/simulation_config.yaml"):
+        try:
+            import shutil
+            shutil.copy2("config/simulation_config.yaml", "simulation_config.yaml")
+            logger.info("Copied simulation_config.yaml from config directory to root")
+        except Exception as e:
+            logger.warning(f"Could not copy simulation config: {e}")
+    
+    # Create a simple simulation config if none exists
+    if not os.path.exists("simulation_config.yaml"):
+        logger.warning("No simulation config found. Creating a minimal config for testing.")
+        with open("simulation_config.yaml", "w") as f:
+            f.write("""# simulation_config.yaml
+# Main configuration for the Game Simulation Manager
+
+# Maximum number of simulations to run in parallel.
+max_concurrent_simulations: 2
+
+# Enable central data storage for simulation results
+use_central_storage: false
+
+simulations:
+  # Simple test simulation
+  - name: "Quick Test - V7P3R vs. Stockfish (Skill 1)"
+    games_to_run: 2
+    chess_game:
+      white_engine_config:
+        engine: 'v7p3r'
+        engine_type: 'deepsearch'
+      black_engine_config:
+        engine: 'stockfish'
+      game_config:
+        ai_vs_ai: true
+        human_color: 'white'
+    v7p3r:
+      v7p3r:
+        ruleset: 'default_evaluation'
+        depth: 3
+    stockfish_handler:
+      stockfish:
+        skill_level: 1
+""")
+            logger.info("Created minimal simulation configuration for testing")
+    
+    # Run the simulations
     manager = GameSimulationManager()
     manager.run_simulations()
