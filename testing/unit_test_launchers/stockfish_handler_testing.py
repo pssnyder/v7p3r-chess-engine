@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Unit tests for stockfish_handler.py - V7P3R Chess Engine Stockfish Handler
+Unit tests for stockfish_handler.py - v7p3r Chess Engine Stockfish Handler
 
 This module contains comprehensive unit tests for the StockfishHandler class,
 testing initialization, move generation, position analysis, and integration.
 
-Author: V7P3R Testing Suite
+Author: v7p3r Testing Suite
 Date: 2025-06-22
 """
 

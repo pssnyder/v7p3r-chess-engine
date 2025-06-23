@@ -1,9 +1,9 @@
 # engine_utilities/adaptive_elo_finder.py
 """
-Adaptive ELO Simulator for V7P3R Chess Engine
+Adaptive ELO Simulator for v7p3r Chess Engine
 
 This module provides functionality to adaptively adjust Stockfish ELO based on 
-game results, helping to find the true strength of the V7P3R engine configuration.
+game results, helping to find the true strength of the v7p3r engine configuration.
 """
 
 import os
@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 class AdaptiveEloSimulator:
     """
     A simulation manager that adaptively adjusts Stockfish ELO ratings based on 
-    game results to find the approximate ELO strength of the V7P3R engine.
+    game results to find the approximate ELO strength of the v7p3r engine.
     """
     
     def __init__(self, 
@@ -55,7 +55,7 @@ class AdaptiveEloSimulator:
             convergence_threshold: When win rate stabilizes within this percentage, consider converged
             min_games_for_convergence: Minimum number of games before checking for convergence
             max_games: Maximum number of games to play
-            v7p3r_config: Configuration overrides for V7P3R engine
+            v7p3r_config: Configuration overrides for v7p3r engine
             game_config: Configuration overrides for chess game
             use_central_storage: Whether to use central database storage
         """
@@ -124,7 +124,7 @@ class AdaptiveEloSimulator:
         Uses a logarithmic scale to make larger adjustments early on and smaller ones as it converges.
         
         Args:
-            result: Game result string ('1-0' for V7P3R win, '0-1' for loss, '1/2-1/2' for draw)
+            result: Game result string ('1-0' for v7p3r win, '0-1' for loss, '1/2-1/2' for draw)
             
         Returns:
             The ELO adjustment value (positive means increase, negative means decrease)
@@ -134,10 +134,10 @@ class AdaptiveEloSimulator:
         # Logarithmic decay of adjustment size as more games are played
         decay_factor = max(0.2, 1.0 / math.log2(2 + self.games_played / 2))
         
-        if result == '1-0':  # V7P3R won as white
+        if result == '1-0':  # v7p3r won as white
             # Increase stockfish ELO, but more aggressively at first and less later
             return int(base_adjustment * decay_factor)
-        elif result == '0-1':  # V7P3R lost as white
+        elif result == '0-1':  # v7p3r lost as white
             # Decrease stockfish ELO
             return int(-base_adjustment * decay_factor)
         else:  # Draw
@@ -149,7 +149,7 @@ class AdaptiveEloSimulator:
         Update the current ELO based on the game result.
         
         Args:
-            result: Game result string ('1-0' for V7P3R win, '0-1' for loss, '1/2-1/2' for draw)
+            result: Game result string ('1-0' for v7p3r win, '0-1' for loss, '1/2-1/2' for draw)
         """
         adjustment = self._calculate_elo_adjustment(result)
         new_elo = max(self.min_elo, min(self.max_elo, self.current_elo + adjustment))
@@ -299,7 +299,7 @@ class AdaptiveEloSimulator:
                 game_config['game_config'] = {}
             game_config['game_config']['cloud_storage_enabled'] = False
             
-            # Make sure V7P3R plays white (for consistency in the adaptive algorithm)
+            # Make sure v7p3r plays white (for consistency in the adaptive algorithm)
             game_config['white_engine_config'] = {'engine': 'v7p3r', 'engine_type': 'deepsearch'}
             game_config['black_engine_config'] = {'engine': 'stockfish'}
             
@@ -366,8 +366,8 @@ class AdaptiveEloSimulator:
             'game_history': self.game_history,
         }
         
-        # Calculate estimated V7P3R ELO
-        # A simple estimate: if win rate is 50%, V7P3R ELO ≈ Stockfish ELO
+        # Calculate estimated v7p3r ELO
+        # A simple estimate: if win rate is 50%, v7p3r ELO ≈ Stockfish ELO
         # Adjust based on win percentage - each 10% above/below 50% ~ +/-100 ELO points
         v7p3r_estimated_elo = self.current_elo + ((win_rate - 0.5) * 1000)
         final_results['v7p3r_estimated_elo'] = int(v7p3r_estimated_elo)
@@ -391,7 +391,7 @@ class AdaptiveEloSimulator:
                 if self.db_client:
                     self.db_client.save_offline_buffer()
         
-        logger.info(f"ELO Finder simulation completed. V7P3R estimated ELO: {final_results['v7p3r_estimated_elo']}")
+        logger.info(f"ELO Finder simulation completed. v7p3r estimated ELO: {final_results['v7p3r_estimated_elo']}")
         return final_results
 
 if __name__ == "__main__":
@@ -406,4 +406,4 @@ if __name__ == "__main__":
         max_games=100
     )
     results = simulator.run_simulation()
-    print(f"V7P3R estimated ELO: {results['v7p3r_estimated_elo']}")
+    print(f"v7p3r estimated ELO: {results['v7p3r_estimated_elo']}")

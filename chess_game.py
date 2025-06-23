@@ -16,9 +16,10 @@ from io import StringIO
 
 # Define the maximum frames per second for the game loop
 MAX_FPS = 60
-from v7p3r_engine.v7p3r import V7P3REvaluationEngine # Corrected import for V7P3REvaluationEngine
+from v7p3r_engine.v7p3r import v7p3rEvaluationEngine # Corrected import for v7p3rEvaluationEngine
+from v7p3r_nn_engine.v7p3r_nn import v7p3rNeuralNetwork # Import Neural Network engine
 from engine_utilities.stockfish_handler import StockfishHandler # Corrected import path and name
-from metrics.metrics_store import MetricsStore # Import MetricsStore (assuming it's in project root or accessible)
+from metrics.metrics_store import MetricsStore # Import MetricsStore
 
 # Resource path config for distro
 def resource_path(relative_path):
@@ -86,7 +87,6 @@ class ChessGame:
             self.show_thoughts = False
         if self.logging_enabled:
             self.logger.debug("Logging enabled for ChessGame")
-        self.clock = pygame.time.Clock()
         # Enable logging
         self.logging_enabled = self.game_config_data.get('monitoring', {}).get('enable_logging', True) # Adjusted path
         self.show_thoughts = self.game_config_data.get('monitoring', {}).get('show_thinking', True) # Adjusted path
@@ -107,7 +107,7 @@ class ChessGame:
         print("Initializing headless AI vs AI mode. No chess GUI will be shown.")
         print("Press Ctrl+C in the terminal to stop the game early.")
 
-        # Initialize piece fallback values (primarily for V7P3R's evaluation)
+        # Initialize piece fallback values (primarily for v7p3r's evaluation)
         self.piece_values = {
             chess.KING: 0,
             chess.QUEEN: 9,
@@ -120,16 +120,16 @@ class ChessGame:
         # Initialize AI configurations
         self.game_count = self.game_config_data.get('game_config', {}).get('ai_game_count', 0) # Adjusted path
         self.ai_vs_ai = self.game_config_data.get('game_config', {}).get('ai_vs_ai', False) # Adjusted path
-        self.engine_types = self.game_config_data.get('engine_types', []) # Adjusted path
+        self.search_algorithms = self.game_config_data.get('search_algorithms', []) # Adjusted path
 
         self.white_engine_config = self.game_config_data.get('white_engine_config', {}) # Adjusted path
         self.black_engine_config = self.game_config_data.get('black_engine_config', {}) # Adjusted path
         
         # Ensure 'engine_type' and 'engine' keys exist in AI configs
         self.white_engine_config['engine_type'] = self.white_engine_config.get('engine_type', 'random')
-        self.white_engine_config['engine'] = self.white_engine_config.get('engine', 'V7P3R')
+        self.white_engine_config['engine'] = self.white_engine_config.get('engine', 'v7p3r')
         self.black_engine_config['engine_type'] = self.black_engine_config.get('engine_type', 'random')
-        self.black_engine_config['engine'] = self.black_engine_config.get('engine', 'V7P3R')
+        self.black_engine_config['engine'] = self.black_engine_config.get('engine', 'v7p3r')
 
         self.white_engine_type = self.white_engine_config['engine_type']
         self.black_engine_type = self.black_engine_config['engine_type']
@@ -198,21 +198,22 @@ class ChessGame:
         stockfish_skill = self.stockfish_handler_data.get('stockfish_handler', {}).get('skill_level')
         debug_stockfish = self.stockfish_handler_data.get('stockfish_handler', {}).get('debug_stockfish', False)
 
-        # V7P3R engine general settings from v7p3r_config.yaml
+        # v7p3r engine general settings from v7p3r_config.yaml
         v7p3r_ruleset = self.v7p3r_config_data.get('v7p3r', {}).get('ruleset', 'default_evaluation')
-        v7p3r_depth = self.v7p3r_config_data.get('v7p3r', {}).get('depth', 3)
-
-
-        # White Engine
+        v7p3r_depth = self.v7p3r_config_data.get('v7p3r', {}).get('depth', 3)        # White Engine
         if self.white_engine_config.get('engine', '').lower() == 'v7p3r':
             # Pass relevant parts of v7p3r_config_data and game_config_data (white_engine_config)
             v7p3r_engine_config = {**self.v7p3r_config_data.get('v7p3r', {}), **self.white_engine_config}
-            self.white_engine = V7P3REvaluationEngine(self.board, chess.WHITE, engine_config=v7p3r_engine_config)
+            self.white_engine = v7p3rEvaluationEngine(self.board, chess.WHITE, engine_config=v7p3r_engine_config)
+        elif self.white_engine_config.get('engine', '').lower() == 'v7p3r_nn':
+            # Initialize Neural Network engine
+            self.white_engine = v7p3rNeuralNetwork(config_path="config/v7p3r_nn_config.yaml")
+            self.logger.info("Initialized v7p3r Neural Network engine for White")
         elif self.white_engine_config.get('engine', '').lower() == 'stockfish':
             if not stockfish_path or not os.path.exists(stockfish_path):
-                self.logger.error(f"Stockfish executable not found at: {stockfish_path}. White AI defaulting to V7P3R.")
-                self.white_engine = V7P3REvaluationEngine(self.board, chess.WHITE, engine_config=self.white_engine_config)
-                self.white_engine_config['engine'] = 'V7P3R' # Force engine name change
+                self.logger.error(f"Stockfish executable not found at: {stockfish_path}. White AI defaulting to v7p3r.")
+                self.white_engine = v7p3rEvaluationEngine(self.board, chess.WHITE, engine_config=self.white_engine_config)
+                self.white_engine_config['engine'] = 'v7p3r' # Force engine name change
                 self.white_engine_config['engine_type'] = 'random' # Force type change as Stockfish type invalid
             else:
                 self.white_engine = StockfishHandler(
@@ -221,21 +222,23 @@ class ChessGame:
                     skill_level=stockfish_skill,
                     debug_mode=debug_stockfish
                 )
-        else: # Default to V7P3R if unknown engine
-            self.logger.warning(f"Unknown engine for White AI: {self.white_engine_config['engine']}. Defaulting to V7P3R.")
-            self.white_engine = V7P3REvaluationEngine(self.board, chess.WHITE, engine_config=self.white_engine_config)
-            self.white_engine_config['engine'] = 'V7P3R'
-
-        # Black Engine
+        else: # Default to v7p3r if unknown engine
+            self.logger.warning(f"Unknown engine for White AI: {self.white_engine_config['engine']}. Defaulting to v7p3r.")
+            self.white_engine = v7p3rEvaluationEngine(self.board, chess.WHITE, engine_config=self.white_engine_config)
+            self.white_engine_config['engine'] = 'v7p3r'        # Black Engine
         if self.black_engine_config.get('engine', '').lower() == 'v7p3r':
             # Pass relevant parts of v7p3r_config_data and game_config_data (black_engine_config)
             v7p3r_engine_config = {**self.v7p3r_config_data.get('v7p3r', {}), **self.black_engine_config}
-            self.black_engine = V7P3REvaluationEngine(self.board, chess.BLACK, engine_config=v7p3r_engine_config)
+            self.black_engine = v7p3rEvaluationEngine(self.board, chess.BLACK, engine_config=v7p3r_engine_config)
+        elif self.black_engine_config.get('engine', '').lower() == 'v7p3r_nn':
+            # Initialize Neural Network engine
+            self.black_engine = v7p3rNeuralNetwork(config_path="config/v7p3r_nn_config.yaml")
+            self.logger.info("Initialized v7p3r Neural Network engine for Black")
         elif self.black_engine_config.get('engine', '').lower() == 'stockfish':
             if not stockfish_path or not os.path.exists(stockfish_path):
-                self.logger.error(f"Stockfish executable not found at: {stockfish_path}. Black AI defaulting to V7P3R.")
-                self.black_engine = V7P3REvaluationEngine(self.board, chess.BLACK, engine_config=self.black_engine_config)
-                self.black_engine_config['engine'] = 'V7P3R' # Force engine name change
+                self.logger.error(f"Stockfish executable not found at: {stockfish_path}. Black AI defaulting to v7p3r.")
+                self.black_engine = v7p3rEvaluationEngine(self.board, chess.BLACK, engine_config=self.black_engine_config)
+                self.black_engine_config['engine'] = 'v7p3r' # Force engine name change
                 self.black_engine_config['engine_type'] = 'random' # Force type change as Stockfish type invalid
             else:
                 self.black_engine = StockfishHandler(
@@ -244,19 +247,19 @@ class ChessGame:
                     skill_level=stockfish_skill,
                     debug_mode=debug_stockfish
                 )
-        else: # Default to V7P3R if unknown engine
-            self.logger.warning(f"Unknown engine for Black AI: {self.black_engine_config['engine']}. Defaulting to V7P3R.")
-            self.black_engine = V7P3REvaluationEngine(self.board, chess.BLACK, engine_config=self.black_engine_config)
-            self.black_engine_config['engine'] = 'V7P3R'
+        else: # Default to v7p3r if unknown engine
+            self.logger.warning(f"Unknown engine for Black AI: {self.black_engine_config['engine']}. Defaulting to v7p3r.")
+            self.black_engine = v7p3rEvaluationEngine(self.board, chess.BLACK, engine_config=self.black_engine_config)
+            self.black_engine_config['engine'] = 'v7p3r'
 
         # Reset and configure engines for the new game board
-        self.white_engine.reset(self.board)
-        self.black_engine.reset(self.board)
+        self.white_engine.reset()
+        self.black_engine.reset()
 
     def set_headers(self):
         # Set initial PGN headers
         white_depth = self.white_engine_config.get('depth') # Depth might come from white_engine_config in chess_game_config.yaml
-        if white_depth is None and self.white_engine_config.get('engine','').lower() == 'v7p3r': # Or from v7p3r_config.yaml if V7P3R
+        if white_depth is None and self.white_engine_config.get('engine','').lower() == 'v7p3r': # Or from v7p3r_config.yaml if v7p3r
             white_depth = self.v7p3r_config_data.get('v7p3r', {}).get('depth', '#')
         elif white_depth is None and self.white_engine_config.get('engine','').lower() == 'stockfish': # Or from stockfish.yaml if Stockfish
              white_depth = self.stockfish_handler_data.get('stockfish', {}).get('depth', '#') # Fallback for Stockfish depth
@@ -265,7 +268,7 @@ class ChessGame:
 
 
         black_depth = self.black_engine_config.get('depth') # Depth might come from black_engine_config in chess_game_config.yaml
-        if black_depth is None and self.black_engine_config.get('engine','').lower() == 'v7p3r': # Or from v7p3r_config.yaml if V7P3R
+        if black_depth is None and self.black_engine_config.get('engine','').lower() == 'v7p3r': # Or from v7p3r_config.yaml if v7p3r
             black_depth = self.v7p3r_config_data.get('v7p3r', {}).get('depth', '#')
         elif black_depth is None and self.black_engine_config.get('engine','').lower() == 'stockfish': # Or from stockfish.yaml if Stockfish
             black_depth = self.stockfish_handler_data.get('stockfish', {}).get('depth', '#') # Fallback for Stockfish depth
@@ -483,13 +486,14 @@ class ChessGame:
         }
           # Use the data collector if available
         if self.data_collector:
-            self.data_collector('game_result', game_result_data)
-            
-        # Fallback: Save locally only if cloud upload failed
-        self.save_local_game_files(game_id, pgn_text)
-        if self.logger:
-            self.logger.info(f"Game {game_id} saved locally.")
-
+            try:
+                self.data_collector('game_result', game_result_data)
+            except Exception as e:
+                if self.logger:
+                    self.logger.error(f"Failed to upload game data to cloud: {e}")                # If cloud upload fails, save locally
+                self.save_local_game_files(game_id, pgn_text)
+                self.quick_save_pgn(f"games/{game_id}.pgn")
+        
     def quick_save_pgn(self, filename):
         """Save PGN to local file."""
         try:
@@ -597,7 +601,7 @@ class ChessGame:
         move_start_time = time.perf_counter()
         
         nodes_before_search = 0
-        if isinstance(current_ai_engine, V7P3REvaluationEngine): # Changed from EvaluationEngine
+        if isinstance(current_ai_engine, v7p3rEvaluationEngine): # Changed from EvaluationEngine
             nodes_before_search = current_ai_engine.nodes_searched
 
         try:
@@ -609,7 +613,7 @@ class ChessGame:
             nodes_this_move = 0
             pv_line_info = ""
             
-            if isinstance(current_ai_engine, V7P3REvaluationEngine): # Changed from EvaluationEngine
+            if isinstance(current_ai_engine, v7p3rEvaluationEngine): # Changed from EvaluationEngine
                 nodes_after_search = current_ai_engine.nodes_searched
                 nodes_this_move = nodes_after_search - nodes_before_search
             elif isinstance(current_ai_engine, StockfishHandler):
@@ -860,53 +864,75 @@ class ChessGame:
             if isinstance(self.black_engine, StockfishHandler):
                 self.black_engine.quit()
 
-    def _setup_background_sync(self):
-        """Initialize background synchronization (local ETL only)."""
-        import threading
-        self.sync_active = True
-        def background_sync_worker():
-            import time
-            while self.sync_active:
-                try:
-                    # Only trigger ETL processing for metrics computation
-                    self._trigger_etl_processing()
-                except Exception as e:
-                    if self.logger:
-                        self.logger.warning(f"Background sync error: {e}")
-                for _ in range(30):
-                    if not self.sync_active:
-                        break
-                    time.sleep(1)
-        self.sync_thread = threading.Thread(target=background_sync_worker, daemon=True)
-        self.sync_thread.start()
-        if self.logging_enabled and self.logger:
-            self.logger.info("Background ETL processing initialized (local only)")
+if __name__ == "__main__":
+    # Load configuration from YAML files
+    import yaml
+    
+    class ChessGameConfig:
+        def __init__(self):
+            self.fen_position = None
+            self.data_collector = None
+            
+            # Load chess game configuration
+            try:
+                with open('config/chess_game_config.yaml', 'r') as f:
+                    chess_config = yaml.safe_load(f)
+                self.game_config = chess_config
+            except FileNotFoundError:
+                print("Warning: chess_game_config.yaml not found, using default settings")
+                self.game_config = {
+                    'monitoring': {
+                        'enable_logging': True,
+                        'show_thinking': True
+                    },
+                    'game_config': {
+                        'human_color': 'random',
+                        'starting_position': 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+                        'ai_game_count': 1,
+                        'ai_vs_ai': True,
+                        'rated': True
+                    },
+                    'white_engine_config': {
+                        'engine': 'v7p3r',
+                        'depth': 4,
+                        'exclude_from_metrics': False
+                    },
+                    'black_engine_config': {
+                        'engine': 'stockfish',
+                        'depth': 3,
+                        'exclude_from_metrics': True
+                    }
+                }
+            
+            # Load v7p3r configuration
+            try:
+                with open('config/v7p3r_config.yaml', 'r') as f:
+                    self.v7p3r_config = yaml.safe_load(f)
+            except FileNotFoundError:
+                print("Warning: v7p3r_config.yaml not found, using default settings")
+                self.v7p3r_config = {
+                    'v7p3r': {
+                        'ruleset': 'default_evaluation',
+                        'depth': 3
+                    }
+                }
+            
+            # Load Stockfish configuration
+            try:
+                with open('config/stockfish_config.yaml', 'r') as f:
+                    self.stockfish_handler = yaml.safe_load(f)
+            except FileNotFoundError:
+                print("Warning: stockfish_config.yaml not found, using default settings")
+                self.stockfish_handler = {
+                    'stockfish_handler': {
+                        'path': None,
+                        'elo_rating': None,
+                        'skill_level': None,
+                        'debug_stockfish': False
+                    }
+                }
 
-    def _trigger_etl_processing(self):
-        """Trigger ETL processing to update metrics reporting layer."""
-        try:
-            # Import ETL components for processing raw game data
-            from cloud_functions.etl_functions import trigger_metrics_etl
-            
-            # Trigger ETL processing of raw game results into metrics
-            trigger_metrics_etl()
-            
-            if self.logger:
-                self.logger.debug("Triggered ETL processing for metrics update")
-                
-        except ImportError:
-            # ETL functions not available, skip silently
-            pass
-        except Exception as e:
-            if self.logger:
-                self.logger.warning(f"ETL processing trigger failed: {e}")
-    
-    def _cleanup_background_sync(self):
-        """Clean up background sync threads."""
-        if hasattr(self, 'sync_active'):
-            self.sync_active = False
-        if hasattr(self, 'sync_thread') and self.sync_thread.is_alive():
-            self.sync_thread.join(timeout=5.0)
-    
-    # ================================
-    # ====== GAME CONFIGURATION ======
+    config = ChessGameConfig()
+    game = ChessGame(config)
+    game.run()
+    game.metrics_store.close()
