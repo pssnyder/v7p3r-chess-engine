@@ -1,4 +1,4 @@
-# V7P3R Chess Engine - Product README
+# v7p3r Chess Engine - Product README
 
 ## Features (Streamlit App)
 
@@ -15,7 +15,7 @@
 
 ## Firebase Backend
 
-V7P3R Chess Engine now uses Firebase for backend storage, analytics, and data processing. Key features:
+v7p3r Chess Engine now uses Firebase for backend storage, analytics, and data processing. Key features:
 
 - **Cloud Storage**: Store PGN files, trained models, and evaluation data
 - **Firestore Database**: Maintain game metadata, metrics, and model tracking
@@ -58,7 +58,7 @@ For setup instructions, see [FIREBASE_SETUP.md](FIREBASE_SETUP.md)
 
 ### Stockfish ELO Finder
 
-Determine the ELO strength of your V7P3R configuration:
+Determine the ELO strength of your v7p3r configuration:
 
 1. Quick run with default settings:
 
@@ -139,7 +139,7 @@ Open source — feel free to use and modify!
 
 ### Analytics ETL System
 
-The V7P3R Chess Engine includes a robust ETL (Extract, Transform, Load) system for analytics:
+The v7p3r Chess Engine includes a robust ETL (Extract, Transform, Load) system for analytics:
 
 1. Run the ETL process to transform raw game data into analytics-ready format:
 

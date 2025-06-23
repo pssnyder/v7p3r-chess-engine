@@ -1,14 +1,14 @@
-# V7P3R Chess Engine - Unit Testing Suite Guide
+# v7p3r Chess Engine - Unit Testing Suite Guide
 
 ## Overview
 
-The V7P3R Chess Engine includes a comprehensive, configurable unit testing suite designed to ensure code quality, reliability, and performance. The testing suite supports parallel execution, extensive configuration options, and multiple output formats suitable for both development and CI/CD integration.
+The v7p3r Chess Engine includes a comprehensive, configurable unit testing suite designed to ensure code quality, reliability, and performance. The testing suite supports parallel execution, extensive configuration options, and multiple output formats suitable for both development and CI/CD integration.
 
 ## Features
 
 ### ✅ Comprehensive Test Coverage
 - **Engine Utilities**: Testing for all engine utility modules including database management, cloud storage, ETL processing, and more
-- **Core Engine**: Tests for the main V7P3R evaluation engine, move generation, and position analysis
+- **Core Engine**: Tests for the main v7p3r evaluation engine, move generation, and position analysis
 - **Metrics & Analytics**: Tests for metrics collection, storage, and analysis functionality  
 - **Chess Game Logic**: Tests for the main chess game implementation and UI components
 - **Firebase Integration**: Tests for cloud backend functionality and data synchronization
@@ -105,8 +105,8 @@ test_selection:
 # Environment Configuration
 environment:
   test_env_vars:
-    V7P3R_TEST_MODE: "true"
-    V7P3R_LOG_LEVEL: "WARNING"
+    v7p3r_TEST_MODE: "true"
+    v7p3r_LOG_LEVEL: "WARNING"
   mock_external:
     stockfish: false         # Mock Stockfish engine
     lichess_api: true        # Mock external API calls
@@ -156,7 +156,7 @@ environment:
 ### Terminal Output
 Real-time progress with status indicators:
 ```bash
-🚀 Starting V7P3R Chess Engine Unit Test Suite at 2025-06-22T10:30:00
+🚀 Starting v7p3r Chess Engine Unit Test Suite at 2025-06-22T10:30:00
 ================================================================================
 📋 Found 25 test modules to execute
 ⚙️  Configuration: 4 parallel threads, continue mode
@@ -197,7 +197,7 @@ Structured data for programmatic consumption:
 
 ### XML Output (JUnit Compatible)
 ```xml
-<testsuite name="V7P3R_Unit_Tests" tests="25" failures="3" errors="0" time="45.67">
+<testsuite name="v7p3r_Unit_Tests" tests="25" failures="3" errors="0" time="45.67">
   <testcase name="chess_game_testing" classname="chess_game_testing" time="2.34"/>
   <testcase name="stockfish_handler_testing" classname="stockfish_handler_testing" time="1.23">
     <failure message="Mock engine not configured">Stack trace here...</failure>
@@ -302,8 +302,8 @@ python launch_unit_testing_suite.py --include "*performance*" "*benchmark*"
 ### Environment Customization
 ```bash
 # Set custom environment variables
-export V7P3R_TEST_DB_PATH="/tmp/test_metrics.db"
-export V7P3R_MOCK_STOCKFISH="true"
+export v7p3r_TEST_DB_PATH="/tmp/test_metrics.db"
+export v7p3r_MOCK_STOCKFISH="true"
 python launch_unit_testing_suite.py
 ```
 

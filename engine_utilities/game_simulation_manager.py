@@ -293,7 +293,7 @@ max_concurrent_simulations: 2
 
 simulations:
   # Simple test simulation
-  - name: "Quick Test - V7P3R vs. Stockfish (Skill 1)"
+  - name: "Quick Test - v7p3r vs. Stockfish (Skill 1)"
     games_to_run: 2
     chess_game:
       white_engine_config:

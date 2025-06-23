@@ -2,7 +2,7 @@
 # engine_utilities/run_elo_finder.py
 """
 Simplified script to run the Stockfish ELO Finder simulation.
-This allows users to quickly determine the ELO rating of their V7P3R engine configuration.
+This allows users to quickly determine the ELO rating of their v7p3r engine configuration.
 """
 
 import argparse
@@ -21,7 +21,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 def main():
-    parser = argparse.ArgumentParser(description='Run the Stockfish ELO Finder simulation for V7P3R chess engine')
+    parser = argparse.ArgumentParser(description='Run the Stockfish ELO Finder simulation for v7p3r chess engine')
     
     # Core parameters
     parser.add_argument('--initial-elo', type=int, default=1500,
@@ -43,18 +43,18 @@ def main():
     parser.add_argument('--use-central-storage', action='store_true',
                         help='Use central database storage for results')
     
-    # V7P3R configuration
+    # v7p3r configuration
     parser.add_argument('--v7p3r-depth', type=int, default=None,
-                        help='Search depth for V7P3R engine')
+                        help='Search depth for v7p3r engine')
     parser.add_argument('--v7p3r-ruleset', type=str, default=None,
                         choices=['aggressive_evaluation', 'conservative_evaluation', 'balanced_evaluation'],
-                        help='Evaluation ruleset for V7P3R engine')
+                        help='Evaluation ruleset for v7p3r engine')
     parser.add_argument('--v7p3r-config', type=str, default=None,
-                        help='Path to custom V7P3R configuration YAML file')
+                        help='Path to custom v7p3r configuration YAML file')
     
     args = parser.parse_args()
     
-    # Load custom V7P3R config if provided
+    # Load custom v7p3r config if provided
     v7p3r_config = {}
     if args.v7p3r_config and os.path.exists(args.v7p3r_config):
         with open(args.v7p3r_config, 'r') as f:
@@ -84,7 +84,7 @@ def main():
     )
     
     logger.info("Starting Stockfish ELO Finder simulation")
-    logger.info(f"V7P3R config: {v7p3r_config}")
+    logger.info(f"v7p3r config: {v7p3r_config}")
     
     results = simulator.run_simulation()
     
@@ -92,7 +92,7 @@ def main():
     print("\n" + "="*60)
     print("STOCKFISH ELO FINDER RESULTS")
     print("="*60)
-    print(f"V7P3R estimated ELO: {results['v7p3r_estimated_elo']}")
+    print(f"v7p3r estimated ELO: {results['v7p3r_estimated_elo']}")
     print(f"Games played: {results['games_played']}")
     print(f"Win rate: {results['win_rate']*100:.1f}%")
     print(f"Final Stockfish ELO: {results['final_elo']}")

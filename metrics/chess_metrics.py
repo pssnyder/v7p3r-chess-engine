@@ -21,14 +21,12 @@ metrics_store = MetricsStore()
 try:
     with open("config/chess_game_config.yaml", "r") as config_file:
         config_data = yaml.safe_load(config_file)
-        # engine_types is still loaded as metrics_store might use it internally or for logging,
-        # but engine_type_OPTIONS is no longer needed for UI dropdowns for white/black AI.
-        engine_types = config_data.get("engine_types", [])
-        # unique_engine_types = sorted(list(set(engine_types + ['Viper', 'Stockfish']))) # No longer needed for UI
-        # engine_type_OPTIONS = [{"label": engine_type.capitalize(), "value": engine_type} for engine_type in unique_engine_types] # No longer needed for UI
+        engine_types = config_data.get("white_engine_type", {}).get("engine", None)
+        # unique_search_algorithms = sorted(list(set(search_algorithms + ['Viper', 'Stockfish']))) # No longer needed for UI
+        # engine_type_OPTIONS = [{"label": engine_type.capitalize(), "value": engine_type} for engine_type in unique_search_algorithms] # No longer needed for UI
 except Exception as e:
     print(f"Error loading chess_game_config.yaml for AI types: {e}")
-    engine_types = []
+    search_algorithms = []
     # engine_type_OPTIONS = []
 
 # --- DARK MODE COLORS ---
@@ -109,27 +107,7 @@ app.layout = html.Div([
     html.Div([
         html.H2("A/B Testing & Metric Trends", style={"textAlign": "center", "marginBottom": "15px", "color": DARK_TEXT}),
         html.Div([
-            # html.Div([ # Removed White AI Type Filter
-            #     html.Label("White AI Type:", style={"color": DARK_TEXT}),
-            #     dcc.Dropdown(
-            #         id="white-ai-type-filter",
-            #         options=[{"label": str(option["label"]), "value": str(option["value"])} for option in engine_type_OPTIONS],
-            #         multi=True,
-            #         placeholder="Select White AI Type(s)",
-            #         style={"backgroundColor": DARK_PANEL, "color": DARK_TEXT, "borderColor": DARK_BORDER}
-            #     )
-            # ], style={'width': '30%', 'display': 'inline-block', 'marginRight': '2%', 'verticalAlign': 'top'}),
-            # html.Div([ # Removed Black AI Type Filter
-            #     html.Label("Black AI Type:", style={"color": DARK_TEXT}),
-            #     dcc.Dropdown(
-            #         id="black-ai-type-filter",
-            #         options=[{"label": str(option["label"]), "value": str(option["value"])} for option in engine_type_OPTIONS],
-            #         multi=True,
-            #         placeholder="Select Black AI Type(s)",
-            #         style={"backgroundColor": DARK_PANEL, "color": DARK_TEXT, "borderColor": DARK_BORDER}
-            #     )
-            # ], style={'width': '30%', 'display': 'inline-block', 'verticalAlign': 'top'}),             html.Div([
-                html.Label("Metric to Plot (for V7P3R Engine):", style={"color": DARK_TEXT}),
+                html.Label("Metric to Plot (for v7p3r Engine):", style={"color": DARK_TEXT}),
                 dcc.Dropdown(
                     id="dynamic-metric-selector",
                     options=[], # Populated dynamically
@@ -171,7 +149,7 @@ def update_dynamic_metric_options(_):
      # Input("black-ai-type-filter", "value"), # Removed
      Input("dynamic-metric-selector", "value")]
 )
-def update_ab_testing_section(_, selected_metric): # Removed white_engine_types, black_engine_types
+def update_ab_testing_section(_, selected_metric): # Removed white_search_algorithms, black_search_algorithms
     fig_ab_test = go.Figure()
     move_metrics_details_components = []
 
@@ -186,26 +164,26 @@ def update_ab_testing_section(_, selected_metric): # Removed white_engine_types,
         )
         fig_ab_test.add_annotation(text="Please select a metric from the dropdown.", xref="paper", yref="paper", showarrow=False, font=dict(size=16, color=DARK_TEXT))
         move_metrics_details_components.append(html.P("Please select a metric from the dropdown to visualize Viper's performance trend.", style={"color": DARK_TEXT}))
-        return fig_ab_test, move_metrics_details_components    # Get all moves made by V7P3R (check engine_type for V7P3R types and exclude_from_metrics = False)
-    # V7P3R engine types include: deepsearch, lookahead, minimax, negamax, negascout, etc.
-    v7p3r_engine_types = ['deepsearch', 'lookahead', 'minimax', 'negamax', 'negascout', 
+        return fig_ab_test, move_metrics_details_components    # Get all moves made by v7p3r (filter by engine name, not search algorithm)
+    # v7p3r engine types include: deepsearch, lookahead, minimax, negamax, negascout, etc.
+    v7p3r_search_algorithms = ['deepsearch', 'lookahead', 'minimax', 'negamax', 'negascout', 
                           'transposition_only', 'simple_search', 'quiescence_only', 
                           'simple_eval', 'v7p3r']
     
     all_v7p3r_moves_raw = metrics_store.get_filtered_move_metrics(
-        white_engine_types=v7p3r_engine_types, # V7P3R engine types as white
-        black_engine_types=v7p3r_engine_types, # V7P3R engine types as black
+        white_engine_names=['v7p3r'],  # Use engine name from config
+        black_engine_names=['v7p3r'],
         metric_name=selected_metric
     )
     if not all_v7p3r_moves_raw:
         fig_ab_test.update_layout(
-            title=f"No '{selected_metric}' Data for V7P3R Engine",
+            title=f"No '{selected_metric}' Data for v7p3r Engine",
             paper_bgcolor=DARK_PANEL, plot_bgcolor=DARK_PANEL, font=dict(color=DARK_TEXT),
             xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
             yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
         )
-        fig_ab_test.add_annotation(text=f"No move data found for V7P3R playing '{selected_metric}'.", xref="paper", yref="paper", showarrow=False, font=dict(size=16, color=DARK_TEXT))
-        move_metrics_details_components.append(html.P(f"No move metrics data found for V7P3R for the metric: {selected_metric}.", style={"color": DARK_TEXT}))
+        fig_ab_test.add_annotation(text=f"No move data found for v7p3r playing '{selected_metric}'.", xref="paper", yref="paper", showarrow=False, font=dict(size=16, color=DARK_TEXT))
+        move_metrics_details_components.append(html.P(f"No move metrics data found for v7p3r for the metric: {selected_metric}.", style={"color": DARK_TEXT}))
         return fig_ab_test, move_metrics_details_components
 
     df_all_v7p3r_moves = pd.DataFrame(all_v7p3r_moves_raw)

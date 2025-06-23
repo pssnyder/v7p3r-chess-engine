@@ -9,7 +9,7 @@ metrics_to_track:
 
 # Only include these engines in analysis (by engine_name or engine_id prefix)
 include_engines:
-  - V7P3R
+  - v7p3r
 
 # Exclude these engine_ids (full hash or prefix)
 exclude_engine_ids: []

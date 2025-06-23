@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Unit tests for opening_book.py - V7P3R Chess Engine Opening Book
+Unit tests for opening_book.py - v7p3r Chess Engine Opening Book
 
 This module contains comprehensive unit tests for the OpeningBook class,
 testing book population, move selection, and opening theory integration.
 
-Author: V7P3R Testing Suite
+Author: v7p3r Testing Suite
 Date: 2025-06-22
 """
 
