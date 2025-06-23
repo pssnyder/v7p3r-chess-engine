@@ -127,7 +127,7 @@ class V7P3REvaluationEngine: # Renamed class from EvaluationEngine
         self.game_phase_awareness = self.engine_config.get('game_phase_awareness', True)
         self.endgame_factor = 0.0
 
-        self.reset(self.board)
+        self.reset()
 
     def _ensure_engine_config(self, engine_config_runtime: Optional[Dict[str, Any]], player: chess.Color) -> Dict[str, Any]:
         # 1. Start with base V7P3R engine settings from v7p3r_config.yaml
@@ -250,8 +250,16 @@ class V7P3REvaluationEngine: # Renamed class from EvaluationEngine
         if self.show_thoughts and self.logger:
             self.logger.debug(f"V7P3R AI configured for {'White' if board.turn == chess.WHITE else 'Black'}: type={self.engine_type} depth={self.depth}, ruleset={self.ruleset}")
 
-    def reset(self, board: chess.Board):
-        self.board = board.copy()
+    def close(self):
+        self.reset()
+        if self.show_thoughts and self.logger:
+            self.logger.debug("V7P3REvaluationEngine closed and resources cleaned up.")
+
+    def reset(self):
+        if self.board is None:
+            board = chess.Board()
+        else:
+            board = self.board
         self.current_player = chess.WHITE if board.turn else chess.BLACK
         self.nodes_searched = 0
         self.transposition_table.clear()
@@ -1206,7 +1214,7 @@ if __name__ == "__main__":
 
     try:
         board.reset()
-        engine.reset(board)
+        engine.reset()
         engine.engine_type = 'deepsearch'
         engine.depth = 3
         
