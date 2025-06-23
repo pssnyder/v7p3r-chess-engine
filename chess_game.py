@@ -431,7 +431,7 @@ class ChessGame:
             self.game.comment = f"Initial Eval: {score:.2f}"
             
     def save_game_data(self):
-        """Upload the game data to GCS and Firestore instead of local files."""
+        """Save the game data to local files and database only."""
         timestamp = self.game_start_timestamp
         game_id = f"eval_game_{timestamp}"
 

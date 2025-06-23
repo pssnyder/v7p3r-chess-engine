@@ -72,11 +72,9 @@ def run_category_tests(category):
         category_tests = [t for t in all_tests if "v7p3r" in t.lower()]
     elif category == "utilities":
         category_tests = [t for t in all_tests if any(util in t.lower() for util in 
-                         ["engine_db", "stockfish", "opening", "time", "cloud", "etl"])]
+                         ["engine_db", "stockfish", "opening", "time", "etl"])]
     elif category == "metrics":
         category_tests = [t for t in all_tests if "metrics" in t.lower()]
-    elif category == "firebase":
-        category_tests = [t for t in all_tests if "firebase" in t.lower() or "cloud" in t.lower()]
     elif category == "chess":
         category_tests = [t for t in all_tests if "chess_game" in t.lower()]
     else:
@@ -116,7 +114,7 @@ def list_tests():
         "Engine Tests": [t for t in tests if "v7p3r" in t.lower()],
         "Chess Game Tests": [t for t in tests if "chess_game" in t.lower()],
         "Utility Tests": [t for t in tests if any(util in t.lower() for util in 
-                         ["engine_db", "stockfish", "opening", "time", "cloud", "etl"])],
+                         ["engine_db", "stockfish", "opening", "time", "etl"])],
         "Metrics Tests": [t for t in tests if "metrics" in t.lower()],
         "Firebase Tests": [t for t in tests if "firebase" in t.lower()],
         "Other Tests": []

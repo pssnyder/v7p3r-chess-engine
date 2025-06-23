@@ -53,4 +53,86 @@ Acceptance Criteria
  In-game Transposition Table, permanent transpositon_move library and anti_transposition_move libraries are all operating as expected to improve move selection and provide more human like learning capabilities.
 Rationale
 This enhancement will provide a standardized and automated way to evaluate engine improvements, benchmark configurations, and streamline the release process by surfacing the best-performing setups for immediate use or further development. It also contributes to the engines overall performance by improving its move library available for quicker access during play.
+
 """
+
+import os
+import yaml
+import random
+from datetime import datetime
+from engine_utilities.puzzle_db_manager import PuzzleDBManager
+
+class PuzzleSolver:
+    def __init__(self, config_path="config/puzzle_config.yaml", db_path="puzzles/puzzle_data.db"):
+        self.config = self._load_config(config_path)
+        self.db = PuzzleDBManager(db_path)
+        self.max_attempts = self.config.get('max_attempts_per_puzzle', 3)
+        self.elo_step = self.config.get('elo_step', 50)
+        self.min_elo = self.config.get('min_elo', 800)
+        self.max_elo = self.config.get('max_elo', 3200)
+        self.engine_config = self.config.get('engine_config', {})
+
+    def _load_config(self, config_path):
+        if os.path.exists(config_path):
+            with open(config_path, 'r') as f:
+                return yaml.safe_load(f) or {}
+        return {}
+
+    def solve_puzzles(self, start_elo=None, end_elo=None, limit=50):
+        elo = start_elo or self.min_elo
+        end_elo = end_elo or self.max_elo
+        results = []
+        while elo <= end_elo:
+            puzzles = self.db.get_puzzles_by_elo(elo, elo + self.elo_step, limit=limit)
+            if not puzzles:
+                break
+            puzzle = random.choice(puzzles)
+            puzzle_id, fen, moves = puzzle[1], puzzle[2], puzzle[3].split()
+            attempts = 0
+            solved = False
+            while attempts < self.max_attempts and not solved:
+                # Here you would call the engine to solve the puzzle (stubbed)
+                engine_moves = self._engine_solve(fen)
+                correct = engine_moves[:len(moves)] == moves
+                self.db.record_attempt(
+                    puzzle_id=puzzle_id,
+                    engine_config=self.engine_config,
+                    attempt_moves=engine_moves,
+                    correct=correct,
+                    attempts_count=attempts+1,
+                    result_elo=elo
+                )
+                if correct:
+                    self.db.add_transposition(fen, moves[0], 1.0, source='puzzle')
+                    solved = True
+                else:
+                    if engine_moves:
+                        self.db.add_anti_transposition(fen, engine_moves[0], -1.0, source='puzzle')
+                attempts += 1
+            results.append({
+                'puzzle_id': puzzle_id,
+                'elo': elo,
+                'solved': solved,
+                'attempts': attempts
+            })
+            # Adaptive/logarithmic ELO climbing
+            if solved:
+                elo = int(elo + self.elo_step * (1.2 if elo > 2000 else 1.5))
+            else:
+                elo = int(elo + self.elo_step // 2)
+        return results
+
+    def _engine_solve(self, fen):
+        # TODO: Integrate with your chess engine here
+        # Example: moves = my_engine.solve_puzzle(fen)
+        # For now, return a stub (random or fixed move)
+        return ["e2e4"]
+
+    def close(self):
+        self.db.close()
+
+if __name__ == "__main__":
+    solver = PuzzleSolver()
+    results = solver.solve_puzzles()
+    print("Puzzle solving results:", results)
+    solver.close()

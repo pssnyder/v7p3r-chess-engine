@@ -11,9 +11,6 @@ game_config:
   game_increment: 0 #2           # Increment in seconds per move, 0 for no increment
   rated: true                    # Set to true to record game and move metrics for analysis.
 
-  # Cloud storage settings
-  cloud_storage_enabled: false   # Set to true to enable cloud storage for game data
-  cloud_bucket_name: "viper-chess-engine-data"  # GCS bucket name for storing game data
   # AI vs AI game_config settings
   ai_vs_ai: true                 # Set to true for AI vs AI matches
   ai_game_count: 10               # Number of games to play in AI vs AI mode

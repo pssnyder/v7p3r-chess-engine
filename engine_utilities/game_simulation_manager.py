@@ -26,7 +26,7 @@ from engine_utilities.adaptive_elo_finder import AdaptiveEloSimulator
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-def run_game_instance(game_config_override, v7p3r_config_override, stockfish_handler_override, sim_name, simulation_id, use_central_storage=False):
+def run_game_instance(game_config_override, v7p3r_config_override, stockfish_handler_override, sim_name, simulation_id):
     """Wrapper function to run a single game instance in a separate process."""
     try:
         logger.info(f"Starting game simulation process for: {sim_name}")
@@ -96,9 +96,6 @@ def run_game_instance(game_config_override, v7p3r_config_override, stockfish_han
             'v7p3r_config': final_v7p3r_config,
             'stockfish_handler': final_stockfish_handler,
         }
-        if use_central_storage:
-            combined_config['data_collector'] = data_collector
-
         # Pass the combined configuration to ChessGame
         game = ChessGame(config=combined_config)
         result = game.run()
@@ -127,7 +124,6 @@ class GameSimulationManager:
             self.max_concurrent_simulations = os.cpu_count() or 1
         else:
             self.max_concurrent_simulations = int(max_sim)
-        self.use_central_storage = bool(self.config.get('use_central_storage', False))
         # Central storage logic removed
         self.templates = self.config.get('simulation_templates', [])
     
@@ -183,8 +179,7 @@ class GameSimulationManager:
                         min_games_for_convergence=sim_config.get('min_games_for_convergence', 20),
                         max_games=sim_config.get('max_games', 100),
                         v7p3r_config=sim_details.get('v7p3r', {}),
-                        game_config=sim_details.get('chess_game', {}),
-                        use_central_storage=self.use_central_storage
+                        game_config=sim_details.get('chess_game', {})
                     )
                     
                     # Run the simulation
@@ -225,8 +220,7 @@ class GameSimulationManager:
                     deepcopy(v7p3r_config_override),
                     deepcopy(stockfish_handler_override),
                     f"{name} - Game {i+1}/{num_games}",
-                    simulation_id,
-                    self.use_central_storage
+                    simulation_id
                 )
                 tasks.append(task_args)
 
@@ -296,9 +290,6 @@ if __name__ == "__main__":
 
 # Maximum number of simulations to run in parallel.
 max_concurrent_simulations: 2
-
-# Enable central data storage for simulation results
-use_central_storage: false
 
 simulations:
   # Simple test simulation
