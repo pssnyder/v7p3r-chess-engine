@@ -171,7 +171,7 @@ def update_ab_testing_section(_, selected_metric): # Removed white_search_algori
                           'simple_eval', 'v7p3r']
     
     all_v7p3r_moves_raw = metrics_store.get_filtered_move_metrics(
-        white_engine_type = v7p3r_search_algorithmsithms, # V7P3R engine types as white
+        white_engine_type = v7p3r_search_algorithms, # V7P3R engine types as white
         black_engine_type = v7p3r_search_algorithms, # V7P3R engine types as black
         metric_name=selected_metric
     )
