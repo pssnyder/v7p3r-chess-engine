@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Unit tests for v7p3r.py - V7P3R Chess Engine Evaluation Engine
+Unit tests for v7p3r.py - v7p3r Chess Engine Evaluation Engine
 
-This module contains comprehensive unit tests for the V7P3REvaluationEngine class,
+This module contains comprehensive unit tests for the v7p3rEvaluationEngine class,
 testing initialization, search algorithms, evaluation functions, and performance.
 
-Author: V7P3R Testing Suite
+Author: v7p3r Testing Suite
 Date: 2025-06-22
 """
 
@@ -24,7 +24,7 @@ import threading
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 
-from v7p3r_engine.v7p3r import V7P3REvaluationEngine, LimitedSizeDict
+from v7p3r_engine.v7p3r import v7p3rEvaluationEngine, LimitedSizeDict
 
 
 class TestLimitedSizeDict(unittest.TestCase):
@@ -63,8 +63,8 @@ class TestLimitedSizeDict(unittest.TestCase):
         self.assertIn('d', d)
 
 
-class TestV7P3REvaluationEngineInitialization(unittest.TestCase):
-    """Test V7P3REvaluationEngine initialization."""
+class Testv7p3rEvaluationEngineInitialization(unittest.TestCase):
+    """Test v7p3rEvaluationEngine initialization."""
 
     def setUp(self):
         """Set up test fixtures."""
@@ -104,7 +104,7 @@ class TestV7P3REvaluationEngineInitialization(unittest.TestCase):
         """Test initialization with default values."""
         mock_yaml.side_effect = [self.v7p3r_config, self.game_config]
         
-        engine = V7P3REvaluationEngine()
+        engine = v7p3rEvaluationEngine()
         
         self.assertIsInstance(engine.board, chess.Board)
         self.assertEqual(engine.current_player, chess.WHITE)
@@ -124,7 +124,7 @@ class TestV7P3REvaluationEngineInitialization(unittest.TestCase):
         mock_yaml.side_effect = [self.v7p3r_config, self.game_config]
         
         custom_board = chess.Board("rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2")
-        engine = V7P3REvaluationEngine(board=custom_board, player=chess.BLACK)
+        engine = v7p3rEvaluationEngine(board=custom_board, player=chess.BLACK)
         
         self.assertEqual(engine.board, custom_board)
         self.assertEqual(engine.current_player, chess.BLACK)
@@ -134,7 +134,7 @@ class TestV7P3REvaluationEngineInitialization(unittest.TestCase):
     @patch('builtins.open', side_effect=FileNotFoundError)
     def test_init_missing_config_files(self, mock_open_file, mock_book, mock_time):
         """Test initialization when config files are missing."""
-        engine = V7P3REvaluationEngine()
+        engine = v7p3rEvaluationEngine()
         
         self.assertEqual(engine.v7p3r_config_data, {})
         self.assertEqual(engine.game_settings_config_data, {})
@@ -148,22 +148,22 @@ class TestV7P3REvaluationEngineInitialization(unittest.TestCase):
         """Test that v7p3r config takes priority over game config."""
         mock_yaml.side_effect = [self.v7p3r_config, self.game_config]
         
-        engine = V7P3REvaluationEngine()
+        engine = v7p3rEvaluationEngine()
         
         # v7p3r config should take priority
         self.assertEqual(engine.hash_size, 1024000)
         self.assertEqual(engine.threads, 2)
 
 
-class TestV7P3REvaluationEngineBasicMethods(unittest.TestCase):
-    """Test basic V7P3REvaluationEngine methods."""
+class Testv7p3rEvaluationEngineBasicMethods(unittest.TestCase):
+    """Test basic v7p3rEvaluationEngine methods."""
 
     def setUp(self):
         """Set up test fixtures."""
         with patch('v7p3r_engine.v7p3r.TimeManager'), \
              patch('v7p3r_engine.v7p3r.OpeningBook'), \
              patch('builtins.open', side_effect=FileNotFoundError):
-            self.engine = V7P3REvaluationEngine()
+            self.engine = v7p3rEvaluationEngine()
 
     def test_piece_values(self):
         """Test piece value constants."""
@@ -200,15 +200,15 @@ class TestV7P3REvaluationEngineBasicMethods(unittest.TestCase):
             self.assertEqual(self.engine.board.fen(), original_fen)
 
 
-class TestV7P3REvaluationEngineSearchMethods(unittest.TestCase):
-    """Test V7P3REvaluationEngine search algorithms."""
+class Testv7p3rEvaluationEngineSearchMethods(unittest.TestCase):
+    """Test v7p3rEvaluationEngine search algorithms."""
 
     def setUp(self):
         """Set up test fixtures."""
         with patch('v7p3r_engine.v7p3r.TimeManager'), \
              patch('v7p3r_engine.v7p3r.OpeningBook'), \
              patch('builtins.open', side_effect=FileNotFoundError):
-            self.engine = V7P3REvaluationEngine()
+            self.engine = v7p3rEvaluationEngine()
 
     def test_transposition_table_usage(self):
         """Test transposition table functionality."""
@@ -242,15 +242,15 @@ class TestV7P3REvaluationEngineSearchMethods(unittest.TestCase):
         self.assertEqual(self.engine.history_table[move], depth)
 
 
-class TestV7P3REvaluationEnginePerformance(unittest.TestCase):
-    """Test V7P3REvaluationEngine performance characteristics."""
+class Testv7p3rEvaluationEnginePerformance(unittest.TestCase):
+    """Test v7p3rEvaluationEngine performance characteristics."""
 
     def setUp(self):
         """Set up test fixtures."""
         with patch('v7p3r_engine.v7p3r.TimeManager'), \
              patch('v7p3r_engine.v7p3r.OpeningBook'), \
              patch('builtins.open', side_effect=FileNotFoundError):
-            self.engine = V7P3REvaluationEngine()
+            self.engine = v7p3rEvaluationEngine()
 
     def test_transposition_table_size_limit(self):
         """Test that transposition table respects size limits."""
@@ -292,8 +292,8 @@ class TestV7P3REvaluationEnginePerformance(unittest.TestCase):
         self.assertLess(final_size, initial_size * 100)  # Reasonable growth limit
 
 
-class TestV7P3REvaluationEngineErrorHandling(unittest.TestCase):
-    """Test V7P3REvaluationEngine error handling."""
+class Testv7p3rEvaluationEngineErrorHandling(unittest.TestCase):
+    """Test v7p3rEvaluationEngine error handling."""
 
     def test_invalid_board_state_handling(self):
         """Test handling of invalid board states."""
@@ -305,7 +305,7 @@ class TestV7P3REvaluationEngineErrorHandling(unittest.TestCase):
             try:
                 import chess
                 empty_board = chess.Board()
-                engine = V7P3REvaluationEngine(board=empty_board)
+                engine = v7p3rEvaluationEngine(board=empty_board)
                 # Should handle gracefully or raise appropriate exception
             except (TypeError, AttributeError):
                 pass  # Expected for invalid input
@@ -317,7 +317,7 @@ class TestV7P3REvaluationEngineErrorHandling(unittest.TestCase):
              patch('v7p3r_engine.v7p3r.OpeningBook'), \
              patch('builtins.open', side_effect=Exception("Config error")):
             
-            engine = V7P3REvaluationEngine()
+            engine = v7p3rEvaluationEngine()
             
             # Should log error and continue with defaults
             mock_logger.error.assert_called()
@@ -332,14 +332,14 @@ class TestV7P3REvaluationEngineErrorHandling(unittest.TestCase):
              patch('v7p3r_engine.v7p3r.OpeningBook'), \
              patch('builtins.open', mock_open(read_data="invalid: yaml: content:")):
             
-            engine = V7P3REvaluationEngine()
+            engine = v7p3rEvaluationEngine()
             
             # Should handle YAML errors gracefully
             self.assertEqual(engine.v7p3r_config_data, {})
 
 
-class TestV7P3REvaluationEngineIntegration(unittest.TestCase):
-    """Test V7P3REvaluationEngine integration with other components."""
+class Testv7p3rEvaluationEngineIntegration(unittest.TestCase):
+    """Test v7p3rEvaluationEngine integration with other components."""
 
     def setUp(self):
         """Set up test fixtures."""
@@ -354,7 +354,7 @@ class TestV7P3REvaluationEngineIntegration(unittest.TestCase):
         mock_book_class.return_value = self.mock_opening_book
         
         with patch('builtins.open', side_effect=FileNotFoundError):
-            engine = V7P3REvaluationEngine()
+            engine = v7p3rEvaluationEngine()
         
         mock_time_class.assert_called_once()
         self.assertEqual(engine.time_manager, self.mock_time_manager)
@@ -367,7 +367,7 @@ class TestV7P3REvaluationEngineIntegration(unittest.TestCase):
         mock_book_class.return_value = self.mock_opening_book
         
         with patch('builtins.open', side_effect=FileNotFoundError):
-            engine = V7P3REvaluationEngine()
+            engine = v7p3rEvaluationEngine()
         
         mock_book_class.assert_called_once()
         self.assertEqual(engine.opening_book, self.mock_opening_book)

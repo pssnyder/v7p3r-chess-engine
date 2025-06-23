@@ -1,5 +1,5 @@
 """
-ETL Scheduler for V7P3R Chess Engine Analytics
+ETL Scheduler for v7p3r Chess Engine Analytics
 
 This module provides scheduling and orchestration for the ETL process,
 supporting both local execution and Google Cloud Scheduler integration.
@@ -30,7 +30,7 @@ logger = logging.getLogger("etl_scheduler")
 
 class ETLScheduler:
     """
-    Scheduler for V7P3R Chess Engine ETL jobs.
+    Scheduler for v7p3r Chess Engine ETL jobs.
     
     This class provides both local scheduling and Google Cloud Scheduler
     integration for ETL jobs, with monitoring and alerting capabilities.
@@ -227,7 +227,7 @@ class ETLScheduler:
             
             job = scheduler_v1.Job(
                 name=job_name,
-                description="V7P3R Chess Engine ETL Process",
+                description="v7p3r Chess Engine ETL Process",
                 schedule=schedule,
                 time_zone=self.config.get('schedule', {}).get('timezone', "UTC"),
                 http_target=http_target
@@ -290,7 +290,7 @@ class ETLScheduler:
             task_cmd = f'"{sys.executable}" "{script_path}" --run-job'
             
             # Create a unique task name
-            task_name = "V7P3RChessETL"
+            task_name = "v7p3rChessETL"
             
             # Build the schtasks command
             cmd = [
@@ -333,7 +333,7 @@ class ETLScheduler:
             existing_crontab = result.stdout if result.returncode == 0 else ""
             
             # Check if our job is already in crontab
-            job_marker = f"# V7P3R Chess ETL Job"
+            job_marker = f"# v7p3r Chess ETL Job"
             if job_marker in existing_crontab:
                 # Remove old job
                 lines = existing_crontab.splitlines()
@@ -374,7 +374,7 @@ class ETLScheduler:
 def parse_args(parser=None):
     """Parse command line arguments."""
     if parser is None:
-        parser = argparse.ArgumentParser(description='V7P3R Chess Engine ETL Scheduler')
+        parser = argparse.ArgumentParser(description='v7p3r Chess Engine ETL Scheduler')
     
     parser.add_argument('--config', default='config/etl_config.yaml',
                         help='Path to ETL configuration file')

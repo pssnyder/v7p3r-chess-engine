@@ -1,14 +1,14 @@
-# V7P3R Chess Engine Test Guide
+# v7p3r Chess Engine Test Guide
 
 ## Stockfish ELO Finder Simulation
 
-This guide explains how to use the Stockfish ELO Finder simulation to determine the approximate ELO strength of your V7P3R chess engine configuration.
+This guide explains how to use the Stockfish ELO Finder simulation to determine the approximate ELO strength of your v7p3r chess engine configuration.
 
 ### Overview
 
 The Stockfish ELO Finder is a specialized simulation type that automatically adjusts the ELO rating of the Stockfish opponent based on game results. This adaptive approach helps to:
 
-1. Determine the approximate ELO strength of your current V7P3R configuration
+1. Determine the approximate ELO strength of your current v7p3r configuration
 2. Track ELO progression as you make improvements to the engine
 3. Compare different engine configurations in terms of absolute playing strength
 
@@ -16,24 +16,24 @@ The Stockfish ELO Finder is a specialized simulation type that automatically adj
 
 The simulation follows these steps:
 
-1. V7P3R (playing as White) plays a series of games against Stockfish
+1. v7p3r (playing as White) plays a series of games against Stockfish
 2. After each game:
-   - If V7P3R wins, Stockfish's ELO rating increases for the next game
-   - If V7P3R loses, Stockfish's ELO rating decreases for the next game
+   - If v7p3r wins, Stockfish's ELO rating increases for the next game
+   - If v7p3r loses, Stockfish's ELO rating decreases for the next game
    - If there's a draw, Stockfish's ELO increases slightly
 3. The magnitude of ELO adjustments decreases over time as the simulation converges
 4. The simulation stops when either:
    - The win rate stabilizes (convergence is reached)
    - The maximum number of games is played
 
-At the end, the V7P3R's estimated ELO is calculated based on the final Stockfish ELO and the win/loss ratio.
+At the end, the v7p3r's estimated ELO is calculated based on the final Stockfish ELO and the win/loss ratio.
 
 ### Setup Instructions
 
 #### Option 1: Run from Command Line
 
 1. Open a terminal or command prompt
-2. Navigate to the V7P3R Chess Engine directory
+2. Navigate to the v7p3r Chess Engine directory
 3. Run the following command:
 
 ```powershell
@@ -49,7 +49,7 @@ This will run the ELO finder with default settings.
 
 ```yaml
 simulations:
-  - name: "Find ELO for Default V7P3R"
+  - name: "Find ELO for Default v7p3r"
     template: "stockfish_elo_finder"
     config:
       initial_elo: 1500
@@ -81,7 +81,7 @@ You can customize the ELO finder behavior with these parameters:
 | `min_games_for_convergence` | Minimum games before checking convergence | 20 |
 | `max_games` | Maximum number of games to play | 100 |
 
-You can also override any V7P3R or game configuration parameters as needed.
+You can also override any v7p3r or game configuration parameters as needed.
 
 ### Example Test Scenarios
 
@@ -91,7 +91,7 @@ Here are some example scenarios to try:
 
 ```yaml
 simulations:
-  - name: "V7P3R Basic ELO Finder"
+  - name: "v7p3r Basic ELO Finder"
     template: "stockfish_elo_finder"
     config:
       initial_elo: 1500
@@ -102,12 +102,12 @@ simulations:
 
 ```yaml
 simulations:
-  - name: "V7P3R Depth-4 ELO Finder"
+  - name: "v7p3r Depth-4 ELO Finder"
     template: "stockfish_elo_finder"
     v7p3r:
       v7p3r:
         depth: 4
-  - name: "V7P3R Depth-5 ELO Finder"
+  - name: "v7p3r Depth-5 ELO Finder"
     template: "stockfish_elo_finder"
     v7p3r:
       v7p3r:
@@ -118,12 +118,12 @@ simulations:
 
 ```yaml
 simulations:
-  - name: "V7P3R Aggressive ELO Finder"
+  - name: "v7p3r Aggressive ELO Finder"
     template: "stockfish_elo_finder"
     v7p3r:
       v7p3r:
         ruleset: "aggressive_evaluation"
-  - name: "V7P3R Conservative ELO Finder"
+  - name: "v7p3r Conservative ELO Finder"
     template: "stockfish_elo_finder"
     v7p3r:
       v7p3r:

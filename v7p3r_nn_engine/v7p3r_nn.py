@@ -1,5 +1,5 @@
 # v7p3r_nn_engine/v7p3r_nn.py
-# V7P3R Chess Engine Neural Network Module
+# v7p3r Chess Engine Neural Network Module
 import os
 import sys
 import numpy as np
@@ -279,8 +279,8 @@ class MoveLibrary:
         if self.conn:
             self.conn.close()
 
-class V7P3RNeuralNetwork:
-    """Neural network-based chess engine for V7P3R"""
+class v7p3rNeuralNetwork:
+    """Neural network-based chess engine for v7p3r"""
     
     def __init__(self, config_path="config/v7p3r_nn_config.yaml"):
         """Initialize the neural network engine with configuration"""
@@ -731,7 +731,7 @@ class V7P3RNeuralNetwork:
     def reset(self, board: Optional[chess.Board] = None):
         """
         Reset the engine state for a new board position.
-        Compatible with the V7P3REvaluationEngine interface.
+        Compatible with the v7p3rEvaluationEngine interface.
         
         Args:
             board: chess.Board object with the new position
@@ -742,7 +742,7 @@ class V7P3RNeuralNetwork:
     def evaluate_position_from_perspective(self, board, perspective):
         """
         Evaluate a chess position from a specific perspective.
-        Compatible with the V7P3REvaluationEngine interface.
+        Compatible with the v7p3rEvaluationEngine interface.
         
         Args:
             board: chess.Board object
@@ -763,7 +763,7 @@ class V7P3RNeuralNetwork:
     def search(self, board, player_color, engine_config=None):
         """
         Search for the best move in the current position.
-        This method is compatible with the V7P3REvaluationEngine interface
+        This method is compatible with the v7p3rEvaluationEngine interface
         expected by chess_game.py.
         
         Args:
@@ -820,7 +820,7 @@ class V7P3RNeuralNetwork:
 if __name__ == "__main__":
     import argparse
     
-    parser = argparse.ArgumentParser(description="V7P3R Neural Network Chess Engine")
+    parser = argparse.ArgumentParser(description="v7p3r Neural Network Chess Engine")
     parser.add_argument("--train", action="store_true", help="Train the neural network")
     parser.add_argument("--pgn", nargs="+", help="PGN files to train on")
     parser.add_argument("--db", help="Database path for game records")
@@ -830,7 +830,7 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     
-    v7p3r_nn = V7P3RNeuralNetwork()
+    v7p3r_nn = v7p3rNeuralNetwork()
     
     try:
         if args.train:

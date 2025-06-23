@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-V7P3R Chess Engine - Unit Testing Suite Launcher
+v7p3r Chess Engine - Unit Testing Suite Launcher
 
 This module provides a comprehensive, configurable unit testing launcher that can run
 tests in parallel with robust error handling and detailed reporting. It supports
@@ -15,7 +15,7 @@ Features:
 - CI/CD-ready structured output
 - Real-time progress monitoring
 
-Author: V7P3R Testing Suite
+Author: v7p3r Testing Suite
 Date: 2025-06-22
 """
 
@@ -358,7 +358,7 @@ class TestSuiteLauncher:
         self.start_time = datetime.now()
         start_time_str = self.start_time.isoformat()
         
-        print(f"🚀 Starting V7P3R Chess Engine Unit Test Suite at {start_time_str}")
+        print(f"🚀 Starting v7p3r Chess Engine Unit Test Suite at {start_time_str}")
         print("=" * 80)
         
         # Discover tests
@@ -627,7 +627,7 @@ class TestSuiteLauncher:
         import xml.etree.ElementTree as ET
         
         root = ET.Element('testsuite')
-        root.set('name', 'V7P3R_Unit_Tests')
+        root.set('name', 'v7p3r_Unit_Tests')
         root.set('tests', str(result.total_tests))
         root.set('failures', str(result.failed))
         root.set('errors', str(result.errors))
@@ -657,7 +657,7 @@ class TestSuiteLauncher:
     def _save_text_results(self, result: TestSuiteResult, filename: str):
         """Save results in text format."""
         with open(filename, 'w') as f:
-            f.write("V7P3R Chess Engine - Unit Test Results\n")
+            f.write("v7p3r Chess Engine - Unit Test Results\n")
             f.write("=" * 50 + "\n\n")
             
             f.write(f"Execution Time: {result.start_time} to {result.end_time}\n")
@@ -686,7 +686,7 @@ class TestSuiteLauncher:
 
 def main():
     """Main entry point for the test suite launcher."""
-    parser = argparse.ArgumentParser(description='V7P3R Chess Engine Unit Test Suite')
+    parser = argparse.ArgumentParser(description='v7p3r Chess Engine Unit Test Suite')
     parser.add_argument('--config', '-c', help='Path to configuration file')
     parser.add_argument('--verbose', '-v', action='store_true', help='Verbose output')
     parser.add_argument('--quiet', '-q', action='store_true', help='Quiet output')

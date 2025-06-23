@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Unit tests for chess_game.py - V7P3R Chess Engine
+Unit tests for chess_game.py - v7p3r Chess Engine
 
 This module contains comprehensive unit tests for the ChessGame class,
 testing initialization, game logic, move validation, and integration points.
 
-Author: V7P3R Testing Suite
+Author: v7p3r Testing Suite
 Date: 2025-06-22
 """
 
@@ -300,7 +300,7 @@ class TestChessGameIntegration(unittest.TestCase):
         self.v7p3r_config = {'engine': {'depth': 6, 'time_limit': 5.0}}
         self.stockfish_handler = {'path': '/usr/bin/stockfish', 'depth': 15}
 
-    @patch('chess_game.V7P3REvaluationEngine')
+    @patch('chess_game.v7p3rEvaluationEngine')
     @patch('chess_game.StockfishHandler')
     @patch('chess_game.MetricsStore')
     @patch('chess_game.CloudStore')
@@ -377,7 +377,7 @@ def run_chess_game_tests():
 if __name__ == '__main__':
     # Run tests when executed directly
     print("=" * 60)
-    print("V7P3R Chess Engine - Chess Game Unit Tests")
+    print("v7p3r Chess Engine - Chess Game Unit Tests")
     print("=" * 60)
     
     results = run_chess_game_tests()

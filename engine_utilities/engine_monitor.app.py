@@ -1,6 +1,6 @@
 # engine_utilities/engine_monitor.app.py
 """
-V7P3R Chess Engine Analysis Dashboard
+v7p3r Chess Engine Analysis Dashboard
 
 This module provides a Streamlit-based dashboard for analyzing chess engine 
 performance metrics over time, supporting both local and cloud-based data sources
@@ -381,13 +381,13 @@ def load_yaml(filepath):
 
 def main():
     st.set_page_config(
-        page_title="V7P3R Chess Engine Analytics Dashboard",
+        page_title="v7p3r Chess Engine Analytics Dashboard",
         page_icon="♟️",
         layout="wide",
         initial_sidebar_state="expanded"
     )
     
-    st.title("V7P3R Chess Engine Analytics Dashboard")
+    st.title("v7p3r Chess Engine Analytics Dashboard")
     
     # Initialize variables to avoid undefined references
     refresh_data = False

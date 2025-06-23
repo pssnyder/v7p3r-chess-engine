@@ -1,5 +1,5 @@
 # training/v7p3r_rl_training.py
-# Training launcher for the V7P3R chess engine's reinforcement learning module.
+# Training launcher for the v7p3r chess engine's reinforcement learning module.
 
 import torch
 import torch.nn as nn
