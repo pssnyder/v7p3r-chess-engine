@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# run_elo_finder.py
+# engine_utilities/run_elo_finder.py
 """
 Simplified script to run the Stockfish ELO Finder simulation.
 This allows users to quickly determine the ELO rating of their V7P3R engine configuration.
@@ -9,6 +9,11 @@ import argparse
 import logging
 import yaml
 import os
+import sys
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from engine_utilities.adaptive_elo_finder import AdaptiveEloSimulator
 
 # Configure logging

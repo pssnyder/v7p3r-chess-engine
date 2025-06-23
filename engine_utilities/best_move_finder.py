@@ -33,7 +33,7 @@ def get_sorted_legal_moves(board, engine, player):
     
     return [move for move, _ in scored_moves]
 
-def find_best_move(FEN, depth=3, ai_type='deepsearch'):
+def find_best_move(FEN, depth=3, engine_type='deepsearch'):
     try:
         board = chess.Board()
         board.set_fen(FEN)
@@ -43,7 +43,7 @@ def find_best_move(FEN, depth=3, ai_type='deepsearch'):
         
         # Initialize the engine with the specified settings
         engine = V7P3REvaluationEngine()
-        engine.ai_type = ai_type
+        engine.engine_type = engine_type
         engine.depth = depth
         
         # Search for the best move

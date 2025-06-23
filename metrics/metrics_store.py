@@ -91,7 +91,7 @@ Database Schema Documentation:
      - move_uci: The move in UCI format (e.g., 'e2e4').
      - fen_before: FEN string of the board *before* the move.
      - evaluation: The evaluation score after the move from the perspective of the player whose turn it *became*.
-     - ai_type: The AI type used for this move (e.g., 'deepsearch', 'negamax').
+     - engine_type: The AI type used for this move (e.g., 'deepsearch', 'negamax').
      - depth: The search depth reached for this move.
      - nodes_searched: Number of nodes explored for this move.
      - time_taken: Time in seconds taken to find the move.
@@ -166,7 +166,7 @@ class MetricsStore:
                 move_uci TEXT,
                 fen_before TEXT,
                 evaluation REAL,
-                ai_type TEXT,
+                engine_type TEXT,
                 depth INTEGER,
                 nodes_searched INTEGER,
                 time_taken REAL,
@@ -176,8 +176,7 @@ class MetricsStore:
                 engine_name TEXT,
                 engine_version TEXT,
                 exclude_from_metrics INTEGER
-            )''')
-            # Create new config_settings table
+            )''')            # Create new config_settings table
             cursor.execute('''
             CREATE TABLE IF NOT EXISTS config_settings (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -188,16 +187,28 @@ class MetricsStore:
                 engine_id TEXT,
                 engine_name TEXT,
                 engine_version TEXT,
+                white_engine_type TEXT,
+                black_engine_type TEXT,
+                white_depth INTEGER,
+                black_depth INTEGER,
                 created_at TEXT
             )''')
-            connection.commit()
-        
-            # Add missing columns to game_results table for direct config access
+            connection.commit()            # Add missing columns to game_results table for direct config access
             try:
-                cursor.execute('ALTER TABLE game_results ADD COLUMN white_ai_type TEXT')
-                cursor.execute('ALTER TABLE game_results ADD COLUMN black_ai_type TEXT')
+                cursor.execute('ALTER TABLE game_results ADD COLUMN white_engine_type TEXT')
+                cursor.execute('ALTER TABLE game_results ADD COLUMN black_engine_type TEXT')
                 cursor.execute('ALTER TABLE game_results ADD COLUMN white_depth INTEGER')
                 cursor.execute('ALTER TABLE game_results ADD COLUMN black_depth INTEGER')
+            except sqlite3.OperationalError as e:
+                if "duplicate column name" not in str(e):
+                    raise
+
+            # Add missing columns to config_settings table
+            try:
+                cursor.execute('ALTER TABLE config_settings ADD COLUMN white_engine_type TEXT')
+                cursor.execute('ALTER TABLE config_settings ADD COLUMN black_engine_type TEXT')
+                cursor.execute('ALTER TABLE config_settings ADD COLUMN white_depth INTEGER')
+                cursor.execute('ALTER TABLE config_settings ADD COLUMN black_depth INTEGER')
             except sqlite3.OperationalError as e:
                 if "duplicate column name" not in str(e):
                     raise
@@ -300,17 +311,43 @@ class MetricsStore:
                 winner = headers.get("Result", "*")
                 white_player = headers.get("White", "Unknown")
                 black_player = headers.get("Black", "Unknown")
-                
-                # Retrieve AI config data that should have been collected by collect_config_data
+                  # Retrieve AI config data that should have been collected by collect_config_data
                 # We need to link by game_id which is based on timestamp
                 config_id = game_id.replace('.pgn', '.yaml')
-                cursor.execute("SELECT white_ai_type, black_ai_type, white_depth, black_depth FROM config_settings WHERE config_id = ?", (config_id,))
-                config_row = cursor.fetchone()
+                
+                # Try to get config data, handle missing columns gracefully
+                try:
+                    cursor.execute("SELECT white_engine_type, black_engine_type, white_depth, black_depth FROM config_settings WHERE config_id = ?", (config_id,))
+                    config_row = cursor.fetchone()
+                except sqlite3.OperationalError:
+                    # Columns don't exist, use default values
+                    config_row = None
 
-                white_ai_type = config_row[0] if config_row else "unknown"
-                black_ai_type = config_row[1] if config_row else "unknown"
-                white_depth = config_row[2] if config_row else 0
-                black_depth = config_row[3] if config_row else 0
+                if config_row:
+                    white_engine_type = config_row[0] if config_row[0] else "unknown"
+                    black_engine_type = config_row[1] if config_row[1] else "unknown"
+                    white_depth = config_row[2] if config_row[2] else 0
+                    black_depth = config_row[3] if config_row[3] else 0
+                else:
+                    # Extract engine info from PGN headers if config not available
+                    white_player_header = white_player
+                    black_player_header = black_player
+                    
+                    # Parse engine type from headers like "AI: viper via simple_search"
+                    white_engine_type = "unknown"
+                    black_engine_type = "unknown"
+                    white_depth = 0
+                    black_depth = 0
+                    
+                    if "via" in white_player_header:
+                        parts = white_player_header.split("via")
+                        if len(parts) > 1:
+                            white_engine_type = parts[1].strip().rstrip(")")
+                    
+                    if "via" in black_player_header:
+                        parts = black_player_header.split("via")
+                        if len(parts) > 1:
+                            black_engine_type = parts[1].strip().rstrip(")")
 
                 game_length = 0
                 board = game.board()
@@ -327,7 +364,7 @@ class MetricsStore:
                     cursor = connection.cursor()
                     self._execute_with_retry(cursor, '''
                     INSERT OR IGNORE INTO game_results
-                    (game_id, timestamp, winner, game_pgn, white_player, black_player, game_length, white_ai_type, black_ai_type, white_depth, black_depth)
+                    (game_id, timestamp, winner, game_pgn, white_player, black_player, game_length, white_engine_type, black_engine_type, white_depth, black_depth)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ''', (
                         game_id,
@@ -337,8 +374,8 @@ class MetricsStore:
                         white_player,
                         black_player,
                         game_length,
-                        white_ai_type,
-                        black_ai_type,
+                        white_engine_type,
+                        black_engine_type,
                         white_depth,
                         black_depth
                     ))
@@ -366,15 +403,23 @@ class MetricsStore:
                 self._execute_with_retry(cursor, "SELECT COUNT(*) FROM config_settings WHERE config_id = ?", (config_id,))
                 if cursor.fetchone()[0] > 0:
                     return  # Already processed
-            
-            # Parse the YAML file
+              # Parse the YAML file
             with open(yaml_file, 'r') as f:
                 config_data = yaml.safe_load(f)
                 
             # Extract key configuration details
-            engine_id = hashlib.md5(config_data.get('white_ai_config', {}).get('engine', 'unknown').encode()).hexdigest()
-            engine_name = config_data.get('white_ai_config', {}).get('engine', 'unknown')
-            engine_version = config_data.get('white_ai_config', {}).get('version', 'unknown')
+            white_engine_config = config_data.get('white_engine_config', {})
+            black_engine_config = config_data.get('black_engine_config', {})
+            
+            engine_id = hashlib.md5(white_engine_config.get('engine', 'unknown').encode()).hexdigest()
+            engine_name = white_engine_config.get('engine', 'unknown')
+            engine_version = white_engine_config.get('version', 'unknown')
+            
+            # Extract engine types and depths
+            white_engine_type = white_engine_config.get('engine_type', 'unknown')
+            black_engine_type = black_engine_config.get('engine_type', 'unknown')
+            white_depth = white_engine_config.get('depth', 0)
+            black_depth = black_engine_config.get('depth', 0)
             
             # Match with corresponding game
             game_id = config_id.replace('.yaml', '.pgn')
@@ -390,8 +435,9 @@ class MetricsStore:
                 cursor = connection.cursor()
                 self._execute_with_retry(cursor, '''
                 INSERT OR IGNORE INTO config_settings
-                (config_id, timestamp, game_id, config_data, engine_id, engine_name, engine_version)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                (config_id, timestamp, game_id, config_data, engine_id, engine_name, engine_version,
+                 white_engine_type, black_engine_type, white_depth, black_depth)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
                     config_id,
                     timestamp,
@@ -399,7 +445,11 @@ class MetricsStore:
                     json.dumps(config_data),
                     engine_id,
                     engine_name,
-                    engine_version
+                    engine_version,
+                    white_engine_type,
+                    black_engine_type,
+                    white_depth,
+                    black_depth
                 ))
                 connection.commit()
         
@@ -446,8 +496,7 @@ class MetricsStore:
                             (metric_name, metric_value, side, function_name, timestamp)
                             VALUES (?, ?, ?, ?, ?)
                             ''', (
-                                metric_name,
-                                metric_value,
+                                metric_name,                                metric_value,
                                 side,
                                 function_name,
                                 timestamp
@@ -456,10 +505,10 @@ class MetricsStore:
                         except sqlite3.Error as e:
                             print(f"Error storing metric {metric_name}: {e}")
                 _store_metric(metric_name, metric_value, side, function_name, timestamp)
-    
+
     def add_game_result(self, game_id: str, timestamp: str, winner: str, game_pgn: str,
                         white_player: str, black_player: str, game_length: int,
-                        white_ai_config: dict, black_ai_config: dict):
+                        white_engine_config: dict, black_engine_config: dict):
         """
         Inserts a single game's result and associated AI configurations into the game_results table.
         """
@@ -468,21 +517,26 @@ class MetricsStore:
             cursor = connection.cursor()
             try:
                 # Extract AI types and depths from the provided configs
-                white_engine_id = hashlib.md5(white_ai_config.get('engine', 'unknown').encode()).hexdigest()
-                black_engine_id = hashlib.md5(black_ai_config.get('engine', 'unknown').encode()).hexdigest()
-                white_engine_name = white_ai_config.get('engine', 'unknown')
-                black_engine_name = black_ai_config.get('engine', 'unknown')
-                white_engine_version = white_ai_config.get('version', 'unknown')
-                black_engine_version = black_ai_config.get('version', 'unknown')
+                white_engine_id = hashlib.md5(white_engine_config.get('engine', 'unknown').encode()).hexdigest()
+                black_engine_id = hashlib.md5(black_engine_config.get('engine', 'unknown').encode()).hexdigest()
+                white_engine_name = white_engine_config.get('engine', 'unknown')
+                black_engine_name = black_engine_config.get('engine', 'unknown')
+                white_engine_version = white_engine_config.get('version', 'unknown')
+                black_engine_version = black_engine_config.get('version', 'unknown')
+                exclude_white_from_metrics = int(white_engine_config.get('exclude_from_metrics', False))
+                exclude_black_from_metrics = int(black_engine_config.get('exclude_from_metrics', False))
+                created_at = datetime.now().isoformat()
 
                 self._execute_with_retry(cursor, '''
                 INSERT OR IGNORE INTO game_results
                 (game_id, timestamp, winner, game_pgn, white_player, black_player, game_length,
-                 white_engine_id, black_engine_id, white_engine_name, black_engine_name, white_engine_version, black_engine_version)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 created_at, white_engine_id, black_engine_id, white_engine_name, black_engine_name, 
+                 white_engine_version, black_engine_version, exclude_white_from_metrics, exclude_black_from_metrics)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
                     game_id, timestamp, winner, game_pgn, white_player, black_player, game_length,
-                    white_engine_id, black_engine_id, white_engine_name, black_engine_name, white_engine_version, black_engine_version
+                    created_at, white_engine_id, black_engine_id, white_engine_name, black_engine_name, 
+                    white_engine_version, black_engine_version, exclude_white_from_metrics, exclude_black_from_metrics
                 ))
                 connection.commit()
             except sqlite3.Error as e:
@@ -491,7 +545,7 @@ class MetricsStore:
 
     def add_move_metric(self, game_id: str, move_number: int, player_color: str,
                         move_uci: str, fen_before: str, evaluation: float,
-                        ai_type: str, depth: int, nodes_searched: int,
+                        engine_type: str, depth: int, nodes_searched: int,
                         time_taken: float, pv_line: str):
         """
         Inserts a single move's detailed metrics into the move_metrics table.
@@ -512,11 +566,11 @@ class MetricsStore:
                 self._execute_with_retry(cursor, '''
                 INSERT OR IGNORE INTO move_metrics
                 (game_id, move_number, player_color, move_uci, fen_before,
-                 evaluation, ai_type, depth, nodes_searched, time_taken, pv_line)
+                 evaluation, engine_type, depth, nodes_searched, time_taken, pv_line)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
                     game_id, move_number, player_color_db, move_uci, fen_before,
-                    evaluation, ai_type, depth, nodes_searched, time_taken, pv_line
+                    evaluation, engine_type, depth, nodes_searched, time_taken, pv_line
                 ))
                 connection.commit()
             except sqlite3.Error as e:
@@ -572,7 +626,7 @@ class MetricsStore:
             columns_info = cursor.fetchall()
             
             plot_eligible_types = ['REAL', 'INTEGER'] # Numeric types
-            exclude_names = ['id', 'game_id', 'move_number', 'player_color', 'move_uci', 'fen_before', 'ai_type', 'pv_line', 'created_at']
+            exclude_names = ['id', 'game_id', 'move_number', 'player_color', 'move_uci', 'fen_before', 'engine_type', 'pv_line', 'created_at']
             
             metric_names = []
             for col in columns_info:
@@ -583,9 +637,9 @@ class MetricsStore:
                     metric_names.append(col_name)
         return sorted(metric_names)
 
-    def get_filtered_move_metrics(self, white_ai_types: Optional[list] = None, black_ai_types: Optional[list] = None, metric_name: Optional[str] = None):
+    def get_filtered_move_metrics(self, white_engine_types: Optional[list] = None, black_engine_types: Optional[list] = None, metric_name: Optional[str] = None):
         """
-        Retrieves move metrics filtered by white_ai_type and black_ai_type
+        Retrieves move metrics filtered by white_engine_type and black_engine_type
         and joins with game_results to get AI configurations.
         Returns a list of dictionaries.
         """
@@ -595,15 +649,15 @@ class MetricsStore:
         where_clauses = []
         params = []
 
-        if white_ai_types:
-            placeholders = ','.join(['?'] * len(white_ai_types))
-            where_clauses.append(f"gr.white_ai_type IN ({placeholders})")
-            params.extend(white_ai_types)
+        if white_engine_types:
+            placeholders = ','.join(['?'] * len(white_engine_types))
+            where_clauses.append(f"gr.white_engine_type IN ({placeholders})")
+            params.extend(white_engine_types)
         
-        if black_ai_types:
-            placeholders = ','.join(['?'] * len(black_ai_types))
-            where_clauses.append(f"gr.black_ai_type IN ({placeholders})")
-            params.extend(black_ai_types)
+        if black_engine_types:
+            placeholders = ','.join(['?'] * len(black_engine_types))
+            where_clauses.append(f"gr.black_engine_type IN ({placeholders})")
+            params.extend(black_engine_types)
         
         # Ensure we only fetch numeric metric_name if specified
         select_columns = "mm.game_id, mm.move_number, mm.player_color, mm.move_uci, mm.fen_before, mm.created_at, mm.evaluation, mm.nodes_searched, mm.time_taken, mm.depth, mm.pv_line"
@@ -617,7 +671,7 @@ class MetricsStore:
                  return [] # Return empty if invalid metric_name
         
         query = f"""
-        SELECT {select_columns}, gr.white_ai_type, gr.black_ai_type, gr.white_depth, gr.black_depth
+        SELECT {select_columns}, gr.white_engine_type, gr.black_engine_type, gr.white_depth, gr.black_depth
         FROM move_metrics mm
         JOIN game_results gr ON mm.game_id = gr.game_id
         """
@@ -743,7 +797,7 @@ class MetricsStore:
             self.local.connection.close()
             self.local.connection = None
 
-    def _get_ai_config(self, color):
+    def _get_engine_config(self, color):
         """Retrieve AI configuration for the given color. (Placeholder for real config loading)"""
         return {}
 
@@ -782,8 +836,8 @@ class MetricsStore:
             with open(yaml_file, 'r') as f:
                 config_data = yaml.safe_load(f)
             # Extract engine configs and exclusion flags
-            white_cfg = config_data.get('white_ai_config', {})
-            black_cfg = config_data.get('black_ai_config', {})
+            white_cfg = config_data.get('white_engine_config', {})
+            black_cfg = config_data.get('black_engine_config', {})
             white_engine = white_cfg.get('engine', 'unknown')
             black_engine = black_cfg.get('engine', 'unknown')
             white_exclude = bool(white_cfg.get('exclude_from_metrics', False))
@@ -899,34 +953,34 @@ if __name__ == "__main__":
     # Simulate a game result with full AI configs
     test_game_id_1 = f"eval_game_{datetime.now().strftime('%Y%m%d_%H%M%S')}_1.pgn"
     test_timestamp_1 = datetime.now().strftime('%Y%m%d_%H%M%S')
-    white_config_1 = {'ai_type': 'deepsearch', 'depth': 5, 'engine': 'Viper', 'exclude_from_metrics': False}
-    black_config_1 = {'ai_type': 'negamax', 'depth': 4, 'engine': 'Viper', 'exclude_from_metrics': False}
+    white_config_1 = {'engine_type': 'deepsearch', 'depth': 5, 'engine': 'Viper', 'exclude_from_metrics': False}
+    black_config_1 = {'engine_type': 'negamax', 'depth': 4, 'engine': 'Viper', 'exclude_from_metrics': False}
     
     store.add_game_result(
         game_id=test_game_id_1, timestamp=test_timestamp_1, winner='1-0', game_pgn="...",
         white_player='Viper Deep', black_player='Viper Negamax', game_length=42,
-        white_ai_config=white_config_1, black_ai_config=black_config_1
+        white_engine_config=white_config_1, black_engine_config=black_config_1
     )
 
     # Simulate moves for game 1
-    store.add_move_metric(game_id=test_game_id_1, move_number=1, player_color='w', move_uci='e2e4', fen_before='...', evaluation=0.2, ai_type='deepsearch', depth=3, nodes_searched=1500, time_taken=0.15, pv_line='e2e4 c7c5 g1f3')
-    store.add_move_metric(game_id=test_game_id_1, move_number=1, player_color='b', move_uci='c7c5', fen_before='...', evaluation=-0.1, ai_type='negamax', depth=2, nodes_searched=800, time_taken=0.08, pv_line='c7c5 g1f3 d7d6')
-    store.add_move_metric(game_id=test_game_id_1, move_number=2, player_color='w', move_uci='g1f3', fen_before='...', evaluation=0.3, ai_type='deepsearch', depth=4, nodes_searched=2500, time_taken=0.25, pv_line='g1f3 d7d6 d2d4')
+    store.add_move_metric(game_id=test_game_id_1, move_number=1, player_color='w', move_uci='e2e4', fen_before='...', evaluation=0.2, engine_type='deepsearch', depth=3, nodes_searched=1500, time_taken=0.15, pv_line='e2e4 c7c5 g1f3')
+    store.add_move_metric(game_id=test_game_id_1, move_number=1, player_color='b', move_uci='c7c5', fen_before='...', evaluation=-0.1, engine_type='negamax', depth=2, nodes_searched=800, time_taken=0.08, pv_line='c7c5 g1f3 d7d6')
+    store.add_move_metric(game_id=test_game_id_1, move_number=2, player_color='w', move_uci='g1f3', fen_before='...', evaluation=0.3, engine_type='deepsearch', depth=4, nodes_searched=2500, time_taken=0.25, pv_line='g1f3 d7d6 d2d4')
 
     time.sleep(1) # Simulate time passing for next game
     test_game_id_2 = f"eval_game_{datetime.now().strftime('%Y%m%d_%H%M%S')}_2.pgn"
     test_timestamp_2 = datetime.now().strftime('%Y%m%d_%H%M%S')
-    white_config_2 = {'ai_type': 'stockfish', 'depth': 0, 'engine': 'Stockfish', 'exclude_from_metrics': False}
-    black_config_2 = {'ai_type': 'deepsearch', 'depth': 3, 'engine': 'Viper', 'exclude_from_metrics': False}
+    white_config_2 = {'engine_type': 'stockfish', 'depth': 0, 'engine': 'Stockfish', 'exclude_from_metrics': False}
+    black_config_2 = {'engine_type': 'deepsearch', 'depth': 3, 'engine': 'Viper', 'exclude_from_metrics': False}
 
     store.add_game_result(
         game_id=test_game_id_2, timestamp=test_timestamp_2, winner='0-1', game_pgn="...",
         white_player='Stockfish', black_player='Viper Deep', game_length=30,
-        white_ai_config=white_config_2, black_ai_config=black_config_2
+        white_engine_config=white_config_2, black_engine_config=black_config_2
     )
     # Simulate moves for game 2
-    store.add_move_metric(game_id=test_game_id_2, move_number=1, player_color='w', move_uci='d2d4', fen_before='...', evaluation=0.1, ai_type='stockfish', depth=18, nodes_searched=100000, time_taken=0.5, pv_line='d2d4 g8f6 c2c4')
-    store.add_move_metric(game_id=test_game_id_2, move_number=1, player_color='b', move_uci='g8f6', fen_before='...', evaluation=-0.3, ai_type='deepsearch', depth=3, nodes_searched=2000, time_taken=0.2, pv_line='g8f6 c2c4 e7e6')
+    store.add_move_metric(game_id=test_game_id_2, move_number=1, player_color='w', move_uci='d2d4', fen_before='...', evaluation=0.1, engine_type='stockfish', depth=18, nodes_searched=100000, time_taken=0.5, pv_line='d2d4 g8f6 c2c4')
+    store.add_move_metric(game_id=test_game_id_2, move_number=1, player_color='b', move_uci='g8f6', fen_before='...', evaluation=-0.3, engine_type='deepsearch', depth=3, nodes_searched=2000, time_taken=0.2, pv_line='g8f6 c2c4 e7e6')
 
 
     print("\nTesting get_distinct_move_metric_names:")
@@ -936,8 +990,8 @@ if __name__ == "__main__":
 
     print("\nTesting get_filtered_move_metrics (White: deepsearch, Black: negamax, Metric: evaluation):")
     filtered_moves = store.get_filtered_move_metrics(
-        white_ai_types=['deepsearch'],
-        black_ai_types=['negamax'],
+        white_engine_types=['deepsearch'],
+        black_engine_types=['negamax'],
         metric_name='evaluation'
     )
     print(f"Filtered moves count: {len(filtered_moves)}")
@@ -947,8 +1001,8 @@ if __name__ == "__main__":
 
     print("\nTesting get_filtered_move_metrics (White: Stockfish, Black: deepsearch, Metric: nodes_searched):")
     filtered_moves_sf = store.get_filtered_move_metrics(
-        white_ai_types=['stockfish'],
-        black_ai_types=['deepsearch'],
+        white_engine_types=['stockfish'],
+        black_engine_types=['deepsearch'],
         metric_name='nodes_searched'
     )
     print(f"Filtered moves count: {len(filtered_moves_sf)}")
