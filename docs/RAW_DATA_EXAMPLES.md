@@ -1,11 +1,14 @@
+# RAW DATA EXAMPLES
 
-# CSV files contain puzzles solutions and move sequences
+## CSV files contain puzzles solutions and move sequences
+
 csv_puzzle_filepath = "puzzles/puzzles.csv"  # Path to the CSV file containing puzzle solutions
 csv_puzzle_headers = "PuzzleId,FEN,Moves,Rating,RatingDeviation,Popularity,NbPlays,Themes,GameUrl,OpeningTags"
 csv_puzzle_example1 = "00sHx,q3k1nr/1pp1nQpp/3p4/1P2p3/4P3/B1PP1b2/B5PP/5K2 b k - 0 17,e8d7 a2e6 d7d8 f7f8,1760,80,83,72,mate mateIn2 middlegame short,https://lichess.org/yyznGmXs/black#34,Italian_Game Italian_Game_Classical_Variation"
 csv_puzzle_example2 = "00sJ9,r3r1k1/p4ppp/2p2n2/1p6/3P1qb1/2NQR3/PPB2PP1/R1B3K1 w - - 5 18,e3g3 e8e1 g1h2 e1c1 a1c1 f4h6 h2g1 h6c1,2671,105,87,325,advantage attraction fork middlegame sacrifice veryLong,https://lichess.org/gyFeQsOE#35,French_Defense French_Defense_Exchange_Variation"
 
-# JSON files contain evaluation records from engine analysis
+## JSON files contain evaluation records from engine analysis
+
 json_evaluation_filepath = "evaluations/evaluations.jsonl"  # Path to the JSON file containing evaluation records
 json_evaluation_format = {          # json_evaluation_format describes the expected JSON structure
     "fen": "",                      #   "fen": the position FEN only contains pieces, active color, castling rights, and en passant square.
@@ -71,8 +74,10 @@ json_evaluation_example = {
   ]
 }
 
-# Evaluation Rule settings example yaml
-# YAML formatted files define the game config and evaluation rules and their respective weights for the chess engine.
+## Evaluation Rule settings example yaml
+
+### YAML formatted files define the game config and evaluation rules and their respective weights for the chess engine
+
 yaml_config_filepath = "games/eval_game_%d%Y%m%d_%H%M%S.yaml"  # Path to the YAML file containing game config
 evaluation_rules = {
     "checkmate_bonus": 1000000.0,        # Bonus for checkmate threats
@@ -128,12 +133,13 @@ evaluation_rules = {
     "counter_move_bonus": 1000           # Bonus for finding a strong countermove during move ordering scoring
 }
 
-# PGN files contain game results and move sequences.
-# PGN files are used to store chess games in a standard format, including metadata like event, site, date, players, and the moves played.
+## PGN files contain game results and move sequences
+### PGN files are used to store chess games in a standard format, including metadata like event, site, date, players, and the moves played
+
 pgn_game_filepath = "games/eval_game_%d%Y%m%d_%H%M%S.pgn"  # Path to the PGN file containing game results
-"""
+
 Example PGN file content:
-```
+```bash
 [Event "AI vs. AI Game"]
 [Site "Local Computer"]
 [Date "2025.06.06"]
@@ -154,12 +160,11 @@ Example PGN file content:
 { Eval: 30.28 } 15. Nc7+ { Eval: 25.78 } 15... Ke4 { Eval: 30.13 } 16. d4
 { Eval: 25.27 } 16... h5 { Eval: 1000025.49 } 1-0
 ```
-"""
 
-# CSV files contain static metrics on overall performance and individual game statistics
+## CSV files contain static metrics on overall performance and individual game statistics
 csv_all_game_metrics_filepath = "metrics/static_metrics.csv"
 csv_all_game_metrics_header = "total_games,wins,losses,draws,trend_df"
 csv_all_game_metrics_data = "96,25,6,63,datetime   result  win  loss  draw  cum_win  cum_loss  cum_draw\n0  2025-05-31 03:05:04  1/2-1/2    0     0     1        0         0         1"
 
-# Log files contain engine evaluation logs
+## Log files contain engine evaluation logs
 log_engine_evaluation_filepath = "logging/engine_eval.log"  # Path to the log file containing engine evaluation logs
