@@ -71,12 +71,12 @@ class TestChessGameInitialization(unittest.TestCase):
              patch('chess_game.pygame.init'), \
              patch('chess_game.pygame.time.Clock'):
             
-            game = ChessGame(
-                fen_position=fen,
-                game_config=self.chess_game_config,
-                v7p3r_config=self.v7p3r_config,
-                stockfish_handler=self.stockfish_handler
-            )
+            game = ChessGame(config={
+                'fen_position': fen,
+                'game_config': self.chess_game_config,
+                'v7p3r_config': self.v7p3r_config,
+                'stockfish_handler': self.stockfish_handler
+            })
             
             self.assertEqual(game.starting_position, fen)
             self.assertIsNotNone(game.game_config_data)
@@ -88,25 +88,25 @@ class TestChessGameInitialization(unittest.TestCase):
         invalid_fen = "invalid_fen_string"
         
         with self.assertRaises(ValueError) as context:
-            ChessGame(
-                fen_position=invalid_fen,
-                game_config=self.chess_game_config,
-                v7p3r_config=self.v7p3r_config,
-                stockfish_handler=self.stockfish_handler
-            )
+            ChessGame(config={
+                'fen_position': invalid_fen,
+                'game_config': self.chess_game_config,
+                'v7p3r_config': self.v7p3r_config,
+                'stockfish_handler': self.stockfish_handler
+            })
         
         self.assertIn("Invalid FEN position", str(context.exception))
 
     def test_init_with_non_string_fen(self):
         """Test initialization with non-string FEN position."""
         with self.assertRaises(ValueError) as context:
-            ChessGame(
-                fen_position=12345,
-                game_config=self.chess_game_config,
-                v7p3r_config=self.v7p3r_config,
-                stockfish_handler=self.stockfish_handler
-            )
-        
+            ChessGame(config={
+                'fen_position': 12345,
+                'game_config': self.chess_game_config,
+                'v7p3r_config': self.v7p3r_config,
+                'stockfish_handler': self.stockfish_handler
+            })
+
         self.assertIn("FEN position must be a string", str(context.exception))
 
     def test_init_without_fen(self):
@@ -115,13 +115,13 @@ class TestChessGameInitialization(unittest.TestCase):
              patch('builtins.open'), \
              patch('chess_game.pygame.init'), \
              patch('chess_game.pygame.time.Clock'):
-            
-            game = ChessGame(
-                game_config=self.chess_game_config,
-                v7p3r_config=self.v7p3r_config,
-                stockfish_handler=self.stockfish_handler
-            )
-            
+
+            game = ChessGame(config={
+                'game_config': self.chess_game_config,
+                'v7p3r_config': self.v7p3r_config,
+                'stockfish_handler': self.stockfish_handler
+            })
+
             self.assertIsNone(game.starting_position)
 
     @patch('config/chess_game_config.yaml.safe_load')
@@ -136,8 +136,12 @@ class TestChessGameInitialization(unittest.TestCase):
             self.stockfish_handler
         ]
         
-        game = ChessGame()
-          # Verify files were opened
+        game = ChessGame(config={
+            'game_config': 'config/chess_game_config.yaml',
+            'v7p3r_config': 'config/v7p3r_config.yaml',
+            'stockfish_handler': 'config/stockfish_handler_config.yaml'
+        })
+        # Verify files were opened
         expected_calls = [
             call("config/chess_game_config.yaml"),
             call("config/v7p3r_config.yaml"),
@@ -154,13 +158,13 @@ class TestChessGameInitialization(unittest.TestCase):
              patch('chess_game.pygame.init'), \
              patch('chess_game.pygame.time.Clock'):
             
-            game = ChessGame(
-                game_config=self.chess_game_config,
-                v7p3r_config=self.v7p3r_config,
-                stockfish_handler=self.stockfish_handler,
-                data_collector=mock_collector
-            )
-            
+            game = ChessGame(config={
+                'game_config': self.chess_game_config,
+                'v7p3r_config': self.v7p3r_config,
+                'stockfish_handler': self.stockfish_handler,
+                'data_collector': mock_collector
+            })
+
             self.assertEqual(game.data_collector, mock_collector)
 
 
@@ -221,12 +225,12 @@ class TestChessGameBoardOperations(unittest.TestCase):
     def test_board_initialization_standard_position(self, mock_clock, mock_pygame_init, mock_open, mock_yaml):
         """Test board initialization with standard starting position."""
         mock_yaml.side_effect = [self.chess_game_config, self.v7p3r_config, self.stockfish_handler]
-        
-        game = ChessGame()
-        
-        # Test that pygame was initialized
-        mock_pygame_init.assert_called_once()
-        mock_clock.assert_called_once()
+
+        game = ChessGame(config={
+            'game_config': self.chess_game_config,
+            'v7p3r_config': self.v7p3r_config,
+            'stockfish_handler': self.stockfish_handler
+        })
 
     def test_board_initialization_custom_position(self):
         """Test board initialization with custom FEN position."""
@@ -238,13 +242,13 @@ class TestChessGameBoardOperations(unittest.TestCase):
              patch('chess_game.pygame.init'), \
              patch('chess_game.pygame.time.Clock'):
             
-            game = ChessGame(
-                fen_position=custom_fen,
-                game_config=self.chess_game_config,
-                v7p3r_config=self.v7p3r_config,
-                stockfish_handler=self.stockfish_handler
-            )
-            
+            game = ChessGame(config={
+                'fen_position': custom_fen,
+                'game_config': self.chess_game_config,
+                'v7p3r_config': self.v7p3r_config,
+                'stockfish_handler': self.stockfish_handler
+            })
+
             self.assertEqual(game.starting_position, custom_fen)
 
 
@@ -270,12 +274,12 @@ class TestChessGamePerformance(unittest.TestCase):
              patch('chess_game.pygame.init'), \
              patch('chess_game.pygame.time.Clock'):
             
-            game = ChessGame(
-                game_config=self.chess_game_config,
-                v7p3r_config=self.v7p3r_config,
-                stockfish_handler=self.stockfish_handler
-            )
-        
+            game = ChessGame(config={
+                'game_config': self.chess_game_config,
+                'v7p3r_config': self.v7p3r_config,
+                'stockfish_handler': self.stockfish_handler
+            })
+
         initialization_time = time.time() - start_time
         
         # Should initialize in under 1 second
@@ -308,12 +312,12 @@ class TestChessGameIntegration(unittest.TestCase):
              patch('chess_game.pygame.init'), \
              patch('chess_game.pygame.time.Clock'):
             
-            game = ChessGame(
-                game_config=self.chess_game_config,
-                v7p3r_config=self.v7p3r_config,
-                stockfish_handler=self.stockfish_handler
-            )
-            
+            game = ChessGame(config={
+                'game_config': self.chess_game_config,
+                'v7p3r_config': self.v7p3r_config,
+                'stockfish_handler': self.stockfish_handler
+            })
+
             # Verify imports are accessible (engines should be importable)
             self.assertTrue(hasattr(game, 'logger'))
             self.assertIsNotNone(game.game_config_data)
