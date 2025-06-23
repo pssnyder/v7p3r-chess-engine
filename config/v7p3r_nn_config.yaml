@@ -13,19 +13,33 @@ training:
     hidden_layers: [256, 128, 64]
     dropout_rate: 0.3
     activation: "relu"
-  
-  # Data preprocessing
+    # Data preprocessing
   data:
     validation_split: 0.2
     augmentation: true
     normalize: true
     
-  # Firebase integration
-  firebase:
+  # Local storage settings
+  storage:
     enabled: true
-    upload_model: true
-    upload_metrics: true
-    model_name: "v7p3r_chess_ai"
-    metrics_collection: "training_metrics"
+    save_model: true
+    save_metrics: true
+    model_path: "v7p3r_nn_engine/models"
+    metrics_path: "v7p3r_nn_engine/metrics"
     store_checkpoints: true
     checkpoint_frequency: 5  # Save every 5 epochs
+    
+  # Stockfish analysis settings
+  stockfish:
+    enabled: true
+    depth: 15  # Depth of analysis for positions
+    positions_per_game: 20  # How many positions to analyze per game
+    time_per_position: 5  # Seconds to spend on each position
+    
+# Move library settings
+move_library:
+  enabled: true
+  db_path: "v7p3r_nn_engine/move_library.db"
+  confidence_threshold: 0.7  # Minimum confidence to use a move from the library
+  prune_old_evaluations: true  # Remove outdated evaluations
+  max_positions: 1000000  # Maximum number of positions to store

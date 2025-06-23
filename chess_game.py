@@ -17,8 +17,9 @@ from io import StringIO
 # Define the maximum frames per second for the game loop
 MAX_FPS = 60
 from v7p3r_engine.v7p3r import V7P3REvaluationEngine # Corrected import for V7P3REvaluationEngine
+from v7p3r_nn_engine.v7p3r_nn import V7P3RNeuralNetwork # Import Neural Network engine
 from engine_utilities.stockfish_handler import StockfishHandler # Corrected import path and name
-from metrics.metrics_store import MetricsStore # Import MetricsStore (assuming it's in project root or accessible)
+from metrics.metrics_store import MetricsStore # Import MetricsStore
 
 # Resource path config for distro
 def resource_path(relative_path):
@@ -200,14 +201,15 @@ class ChessGame:
 
         # V7P3R engine general settings from v7p3r_config.yaml
         v7p3r_ruleset = self.v7p3r_config_data.get('v7p3r', {}).get('ruleset', 'default_evaluation')
-        v7p3r_depth = self.v7p3r_config_data.get('v7p3r', {}).get('depth', 3)
-
-
-        # White Engine
+        v7p3r_depth = self.v7p3r_config_data.get('v7p3r', {}).get('depth', 3)        # White Engine
         if self.white_engine_config.get('engine', '').lower() == 'v7p3r':
             # Pass relevant parts of v7p3r_config_data and game_config_data (white_engine_config)
             v7p3r_engine_config = {**self.v7p3r_config_data.get('v7p3r', {}), **self.white_engine_config}
             self.white_engine = V7P3REvaluationEngine(self.board, chess.WHITE, engine_config=v7p3r_engine_config)
+        elif self.white_engine_config.get('engine', '').lower() == 'v7p3r_nn':
+            # Initialize Neural Network engine
+            self.white_engine = V7P3RNeuralNetwork(config_path="config/v7p3r_nn_config.yaml")
+            self.logger.info("Initialized V7P3R Neural Network engine for White")
         elif self.white_engine_config.get('engine', '').lower() == 'stockfish':
             if not stockfish_path or not os.path.exists(stockfish_path):
                 self.logger.error(f"Stockfish executable not found at: {stockfish_path}. White AI defaulting to V7P3R.")
@@ -224,13 +226,15 @@ class ChessGame:
         else: # Default to V7P3R if unknown engine
             self.logger.warning(f"Unknown engine for White AI: {self.white_engine_config['engine']}. Defaulting to V7P3R.")
             self.white_engine = V7P3REvaluationEngine(self.board, chess.WHITE, engine_config=self.white_engine_config)
-            self.white_engine_config['engine'] = 'V7P3R'
-
-        # Black Engine
+            self.white_engine_config['engine'] = 'V7P3R'        # Black Engine
         if self.black_engine_config.get('engine', '').lower() == 'v7p3r':
             # Pass relevant parts of v7p3r_config_data and game_config_data (black_engine_config)
             v7p3r_engine_config = {**self.v7p3r_config_data.get('v7p3r', {}), **self.black_engine_config}
             self.black_engine = V7P3REvaluationEngine(self.board, chess.BLACK, engine_config=v7p3r_engine_config)
+        elif self.black_engine_config.get('engine', '').lower() == 'v7p3r_nn':
+            # Initialize Neural Network engine
+            self.black_engine = V7P3RNeuralNetwork(config_path="config/v7p3r_nn_config.yaml")
+            self.logger.info("Initialized V7P3R Neural Network engine for Black")
         elif self.black_engine_config.get('engine', '').lower() == 'stockfish':
             if not stockfish_path or not os.path.exists(stockfish_path):
                 self.logger.error(f"Stockfish executable not found at: {stockfish_path}. Black AI defaulting to V7P3R.")
@@ -250,8 +254,8 @@ class ChessGame:
             self.black_engine_config['engine'] = 'V7P3R'
 
         # Reset and configure engines for the new game board
-        self.white_engine.reset(self.board)
-        self.black_engine.reset(self.board)
+        self.white_engine.reset()
+        self.black_engine.reset()
 
     def set_headers(self):
         # Set initial PGN headers
@@ -881,26 +885,19 @@ class ChessGame:
         self.sync_thread.start()
         if self.logging_enabled and self.logger:
             self.logger.info("Background ETL processing initialized (local only)")
-
-    def _trigger_etl_processing(self):
-        """Trigger ETL processing to update metrics reporting layer."""
-        try:
-            # Import ETL components for processing raw game data
-            from cloud_functions.etl_functions import trigger_metrics_etl
-            
-            # Trigger ETL processing of raw game results into metrics
-            trigger_metrics_etl()
-            
-            if self.logger:
-                self.logger.debug("Triggered ETL processing for metrics update")
-                
-        except ImportError:
-            # ETL functions not available, skip silently
-            pass
-        except Exception as e:
-            if self.logger:
-                self.logger.warning(f"ETL processing trigger failed: {e}")
     
+    def _trigger_etl_processing(self):
+        """Trigger ETL processing for metrics computation."""
+        if self.metrics_store:
+            if hasattr(self.metrics_store, 'compute_metrics'):
+                self.metrics_store.compute_metrics()
+            else:
+                if self.logging_enabled and self.logger:
+                    self.logger.warning("MetricsStore does not support 'process_etl'. Skipping ETL processing.")
+        else:
+            if self.logging_enabled and self.logger:
+                self.logger.warning("MetricsStore not initialized, skipping ETL processing")
+                
     def _cleanup_background_sync(self):
         """Clean up background sync threads."""
         if hasattr(self, 'sync_active'):
