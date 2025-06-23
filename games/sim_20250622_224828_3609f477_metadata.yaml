@@ -9,7 +9,7 @@ config:
       max_games: 100
       min_elo: 800
       min_games_for_convergence: 20
-    description: Determines the ELO rating of the V7P3R engine by playing adaptive
+    description: Determines the ELO rating of the v7p3r engine by playing adaptive
       matches against Stockfish
     id: stockfish_elo_finder
     name: Stockfish ELO Finder
@@ -22,7 +22,7 @@ config:
         engine: v7p3r
         engine_type: deepsearch
     games_to_run: 100
-    name: V7P3R vs. Stockfish (Skill 5)
+    name: v7p3r vs. Stockfish (Skill 5)
     stockfish_handler:
       stockfish_handler:
         skill_level: 5
@@ -37,7 +37,7 @@ config:
         engine: v7p3r
         engine_type: deepsearch
     games_to_run: 100
-    name: V7P3R (Aggressive) vs. Stockfish (Skill 5)
+    name: v7p3r (Aggressive) vs. Stockfish (Skill 5)
     stockfish_handler:
       stockfish_handler:
         skill_level: 5
@@ -55,7 +55,7 @@ config:
         engine_type: deepsearch
         ruleset: conservative_evaluation
     games_to_run: 100
-    name: V7P3R (Conservative) vs. V7P3R (Aggressive)
+    name: v7p3r (Conservative) vs. v7p3r (Aggressive)
     v7p3r:
       v7p3r:
         depth: 3
@@ -69,7 +69,7 @@ config:
         engine_type: deepsearch
         ruleset: aggressive_evaluation
     games_to_run: 100
-    name: V7P3R (Aggressive) vs. V7P3R (Conservative)
+    name: v7p3r (Aggressive) vs. v7p3r (Conservative)
     v7p3r:
       v7p3r:
         depth: 3
@@ -81,7 +81,7 @@ config:
         engine_type: deepsearch
         ruleset: conservative_evaluation
     games_to_run: 100
-    name: V7P3R (Conservative) vs. Stockfish (Skill 5)
+    name: v7p3r (Conservative) vs. Stockfish (Skill 5)
     stockfish_handler:
       stockfish_handler:
         skill_level: 5
@@ -95,7 +95,7 @@ config:
         engine: stockfish
         engine_type: deepsearch
     games_to_run: 100
-    name: Stockfish (Skill 5) vs. V7P3R
+    name: Stockfish (Skill 5) vs. v7p3r
     v7p3r:
       stockfish_handler:
         stockfish_handler:
@@ -108,7 +108,7 @@ config:
       white_engine_config:
         engine: stockfish
     games_to_run: 100
-    name: Stockfish (Skill 5) vs. V7P3R (Aggressive)
+    name: Stockfish (Skill 5) vs. v7p3r (Aggressive)
     v7p3r:
       stockfish_handler:
         stockfish_handler:
@@ -121,7 +121,7 @@ config:
       white_engine_config:
         engine: stockfish
     games_to_run: 100
-    name: Stockfish (Skill 5) vs. V7P3R (Conservative)
+    name: Stockfish (Skill 5) vs. v7p3r (Conservative)
     v7p3r:
       stockfish_handler:
         stockfish_handler:
@@ -136,7 +136,7 @@ config:
         engine_type: deepsearch
         ruleset: aggressive_evaluation
     games_to_run: 100
-    name: V7P3R (Aggressive) vs. V7P3R (Aggressive)
+    name: v7p3r (Aggressive) vs. v7p3r (Aggressive)
     v7p3r:
       v7p3r:
         depth: 4
@@ -150,7 +150,7 @@ config:
         engine_type: deepsearch
         ruleset: conservative_evaluation
     games_to_run: 100
-    name: V7P3R (Conservative) vs. V7P3R (Conservative)
+    name: v7p3r (Conservative) vs. v7p3r (Conservative)
     v7p3r:
       v7p3r:
         depth: 4

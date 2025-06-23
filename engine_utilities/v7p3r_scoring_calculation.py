@@ -1,9 +1,9 @@
 # v7p3r_scoring_calculation.py
 
-""" V7P3R Scoring Calculation Module
+""" v7p3r Scoring Calculation Module
 This module is responsible for calculating the score of a chess position based on various factors,
 including material balance, piece-square tables, king safety, and other positional features.
-It is designed to be used by the V7P3R chess engine.
+It is designed to be used by the v7p3r chess engine.
 """
 
 import chess
@@ -24,7 +24,7 @@ if not v7p3r_scoring_logger.handlers:
     if not os.path.exists('logging'):
         os.makedirs('logging', exist_ok=True)
     from logging.handlers import RotatingFileHandler
-    log_file_path = "logging/v7p3r_scoring_calculation.log" # New log file for V7P3RScoringCalculation
+    log_file_path = "logging/v7p3r_scoring_calculation.log" # New log file for v7p3rScoringCalculation
     file_handler = RotatingFileHandler(
         log_file_path,
         maxBytes=10*1024*1024,
@@ -39,7 +39,7 @@ if not v7p3r_scoring_logger.handlers:
 v7p3r_scoring_logger.addHandler(file_handler)
 v7p3r_scoring_logger.propagate = False
 
-class V7P3RScoringCalculation:
+class v7p3rScoringCalculation:
     def __init__(self, v7p3r_yaml_config: dict, engine_config: dict, piece_values: dict, pst: PieceSquareTables):
         self.v7p3r_config = v7p3r_yaml_config # This is the full v7p3r_config.yaml content
         self.engine_config = engine_config # This is the resolved AI config for the current player/engine instance
@@ -54,7 +54,7 @@ class V7P3RScoringCalculation:
 
         self.logger = v7p3r_scoring_logger
         if self.engine_config.get('monitoring', {}).get('enable_logging', True):
-            self.logger.debug(f"V7P3RScoringCalculation initialized with ruleset: {self.ruleset_name}")
+            self.logger.debug(f"v7p3rScoringCalculation initialized with ruleset: {self.ruleset_name}")
             self.logger.debug(f"Current ruleset parameters: {self.current_ruleset}")
 
     def _get_rule_value(self, rule_name: str, default_value: float = 0.0) -> float:

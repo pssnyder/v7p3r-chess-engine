@@ -22,7 +22,7 @@ game_config:
   human_elo: 100                 # Elo rating for human player, used for AI vs Human games to adapt Engine to human skill level               
 
 # Engine configurations
-# These configurations are for the AI engines used in the game, such as V7P3R and Stockfish.
+# These configurations are for the AI engines used in the game, such as v7p3r and Stockfish.
 white_engine_config:
   exclude_from_metrics: false   # Flag to exclude this engines performance from metrics collection, useful for testing, non-competitive, or third party AIs who's performance you may not want to record for this set of games, should flag all outputs from this color and engine for this match date_timestamp as being excluded from metrics, these metrics should still be gathered as a fallback, and in the event I do want to use them so we just want to have a flag in the database for exclude from metrics. Then I can always toggle the flags per game record in the database if I want to see a game or vice versa.
   engine: v7p3r                 # Name of the engine being used (e.g., 'v7p3r', 'stockfish'), this value is a direct reference to the engine configuration values below
@@ -34,11 +34,11 @@ black_engine_config:
 performance:
   max_moves_evaluated: 50         # Limit moves evaluated per position, only if move ordering is on to prevent misses. Set to null for no limit.
   use_transposition_table: true   # Cache evaluations for faster processing
-  parallel_evaluation: false      # Enable parallel move evaluation (TODO: Implement in V7P3REvaluationEngine)
-  async_mode: false               # Control via setting - Enables thread processing of eval functions (TODO: Implement in V7P3REvaluationEngine)
-  thread_limit: 4                 # Enables an upper limit in thread count during async_mode (TODO: Implement in V7P3REvaluationEngine)
+  parallel_evaluation: false      # Enable parallel move evaluation (TODO: Implement in v7p3rEvaluationEngine)
+  async_mode: false               # Control via setting - Enables thread processing of eval functions (TODO: Implement in v7p3rEvaluationEngine)
+  thread_limit: 4                 # Enables an upper limit in thread count during async_mode (TODO: Implement in v7p3rEvaluationEngine)
   hash_size: 64                   # MB limit for hash tables
-  max_depth: 8                    # Max depth for iterative deepening search (V7P3REvaluationEngine deepsearch)
+  max_depth: 8                    # Max depth for iterative deepening search (v7p3rEvaluationEngine deepsearch)
 
 # Monitoring settings
 monitoring:

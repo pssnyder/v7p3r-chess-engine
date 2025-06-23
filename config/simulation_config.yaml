@@ -9,7 +9,7 @@ max_concurrent_simulations: 4
 simulation_templates:
   - id: "stockfish_elo_finder"
     name: "Stockfish ELO Finder"
-    description: "Determines the ELO rating of the V7P3R engine by playing adaptive matches against Stockfish"
+    description: "Determines the ELO rating of the v7p3r engine by playing adaptive matches against Stockfish"
     type: "adaptive_elo"
     config:
       initial_elo: 1500
@@ -22,7 +22,7 @@ simulation_templates:
 
 simulations:
   # Simulation #1
-  - name: "V7P3R vs. Stockfish (Skill 5)"
+  - name: "v7p3r vs. Stockfish (Skill 5)"
     games_to_run: 100 # Number of games to play with this configuration
     chess_game:
       white_engine_config:
@@ -40,7 +40,7 @@ simulations:
         skill_level: 5
   
   # Simulation #2
-  - name: "V7P3R (Aggressive) vs. Stockfish (Skill 5)"
+  - name: "v7p3r (Aggressive) vs. Stockfish (Skill 5)"
     games_to_run: 100 # Number of games to play with this configuration
     chess_game:
       white_engine_config:
@@ -58,7 +58,7 @@ simulations:
         skill_level: 5
 
   # Simulation #3
-  - name: "V7P3R (Conservative) vs. V7P3R (Aggressive)"
+  - name: "v7p3r (Conservative) vs. v7p3r (Aggressive)"
     games_to_run: 100
     chess_game:
       white_engine_config:
@@ -76,7 +76,7 @@ simulations:
         depth: 3
 
   # Simulation #4
-  - name: "V7P3R (Aggressive) vs. V7P3R (Conservative)"
+  - name: "v7p3r (Aggressive) vs. v7p3r (Conservative)"
     games_to_run: 100
     chess_game:
       white_engine_config:
@@ -94,7 +94,7 @@ simulations:
         depth: 3
 
   # Simulation #5
-  - name: "V7P3R (Conservative) vs. Stockfish (Skill 5)"
+  - name: "v7p3r (Conservative) vs. Stockfish (Skill 5)"
     games_to_run: 100
     chess_game:
       white_engine_config:
@@ -111,7 +111,7 @@ simulations:
         skill_level: 5
 
   # Simulation #6
-  - name: "Stockfish (Skill 5) vs. V7P3R"
+  - name: "Stockfish (Skill 5) vs. v7p3r"
     games_to_run: 100
     chess_game:
       white_engine_config:
@@ -119,14 +119,14 @@ simulations:
         engine_type: 'deepsearch'
       black_engine_config:
         engine: 'v7p3r'
-        # V7P3R settings are inside v7p3r_config.yaml, but can be overridden
+        # v7p3r settings are inside v7p3r_config.yaml, but can be overridden
     v7p3r:
       stockfish_handler:
         stockfish_handler:
           skill_level: 5
   
   # Simulation #7
-  - name: "Stockfish (Skill 5) vs. V7P3R (Aggressive)"
+  - name: "Stockfish (Skill 5) vs. v7p3r (Aggressive)"
     games_to_run: 100
     chess_game:
       white_engine_config:
@@ -141,7 +141,7 @@ simulations:
           skill_level: 5
 
   # Simulation #8
-  - name: "Stockfish (Skill 5) vs. V7P3R (Conservative)"
+  - name: "Stockfish (Skill 5) vs. v7p3r (Conservative)"
     games_to_run: 100
     chess_game:
       white_engine_config:
@@ -156,7 +156,7 @@ simulations:
           skill_level: 5
 
   # Simulation #9
-  - name: "V7P3R (Aggressive) vs. V7P3R (Aggressive)"
+  - name: "v7p3r (Aggressive) vs. v7p3r (Aggressive)"
     games_to_run: 100
     chess_game:
       white_engine_config:
@@ -172,7 +172,7 @@ simulations:
         depth: 4
 
   # Simulation #10
-  - name: "V7P3R (Conservative) vs. V7P3R (Conservative)"
+  - name: "v7p3r (Conservative) vs. v7p3r (Conservative)"
     games_to_run: 100
     chess_game:
       white_engine_config:

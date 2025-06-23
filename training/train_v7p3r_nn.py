@@ -1,11 +1,11 @@
 # training/train_v7p3r_nn.py
-# Sample script to train the V7P3R Neural Network engine
+# Sample script to train the v7p3r Neural Network engine
 
 import os
 import argparse
 import glob
 import logging
-from v7p3r_nn_engine.v7p3r_nn import V7P3RNeuralNetwork
+from v7p3r_nn_engine.v7p3r_nn import v7p3rNeuralNetwork
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, 
@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger("train_v7p3r_nn")
 
 def main():
-    parser = argparse.ArgumentParser(description="Train the V7P3R Neural Network engine")
+    parser = argparse.ArgumentParser(description="Train the v7p3r Neural Network engine")
     
     parser.add_argument("--pgn_dir", default="games", help="Directory containing PGN files")
     parser.add_argument("--analyze", action="store_true", help="Analyze games with Stockfish")
@@ -35,7 +35,7 @@ def main():
     logger.info(f"Found {len(pgn_files)} PGN files for training")
     
     # Initialize the neural network engine
-    v7p3r_nn = V7P3RNeuralNetwork(config_path=args.config)
+    v7p3r_nn = v7p3rNeuralNetwork(config_path=args.config)
     
     try:
         # Train on the PGN files

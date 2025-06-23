@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Quick Test Runner for V7P3R Chess Engine
+Quick Test Runner for v7p3r Chess Engine
 
 A simple script to quickly run individual tests or test categories
 for development and debugging purposes.
@@ -138,7 +138,7 @@ def list_tests():
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
-        description="Quick test runner for V7P3R Chess Engine",
+        description="Quick test runner for v7p3r Chess Engine",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:

@@ -1,7 +1,7 @@
 # v7p3r.py
 
-""" V7P3R Evaluation Engine
-This module implements the evaluation engine for the V7P3R chess AI.
+""" v7p3r Evaluation Engine
+This module implements the evaluation engine for the v7p3r chess AI.
 It provides various search algorithms, evaluation functions, and move ordering
 """
 # TODO: Refactor this module to use the new ruleset system and configuration management
@@ -18,7 +18,7 @@ from typing import Optional, Callable, Dict, Any, Tuple
 from engine_utilities.piece_square_tables import PieceSquareTables
 from engine_utilities.time_manager import TimeManager
 from engine_utilities.opening_book import OpeningBook
-from engine_utilities.v7p3r_scoring_calculation import V7P3RScoringCalculation # Import the new scoring module
+from engine_utilities.v7p3r_scoring_calculation import v7p3rScoringCalculation # Import the new scoring module
 from collections import OrderedDict
 
 # At module level, define a single logger for this file
@@ -29,7 +29,7 @@ if not v7p3r_engine_logger.handlers:
     if not os.path.exists('logging'):
         os.makedirs('logging', exist_ok=True)
     from logging.handlers import RotatingFileHandler
-    log_file_path = "logging/v7p3r_evaluation_engine.log" # New log file for V7P3REvaluationEngine
+    log_file_path = "logging/v7p3r_evaluation_engine.log" # New log file for v7p3rEvaluationEngine
     file_handler = RotatingFileHandler(
         log_file_path,
         maxBytes=10*1024*1024,
@@ -56,7 +56,7 @@ class LimitedSizeDict(OrderedDict):
             oldest = next(iter(self))
             del self[oldest]
 
-class V7P3REvaluationEngine: # Renamed class from EvaluationEngine
+class v7p3rEvaluationEngine: # Renamed class from EvaluationEngine
     def __init__(self, board: chess.Board = chess.Board(), player: chess.Color = chess.WHITE, engine_config=None):
         self.board = board
         self.current_player = player
@@ -86,7 +86,7 @@ class V7P3REvaluationEngine: # Renamed class from EvaluationEngine
                 game_data = yaml.safe_load(f) or {}
                 self.game_settings_config_data = game_data
         except Exception as e:
-            v7p3r_engine_logger.error(f"Error loading V7P3R or game settings YAML files: {e}")
+            v7p3r_engine_logger.error(f"Error loading v7p3r or game settings YAML files: {e}")
             self.v7p3r_config_data = {}
             self.game_settings_config_data = {}
 
@@ -107,7 +107,7 @@ class V7P3REvaluationEngine: # Renamed class from EvaluationEngine
         if not self.logging_enabled:
             self.show_thoughts = False
         if self.logging_enabled:
-            self.logger.debug("Logging enabled for V7P3REvaluationEngine")
+            self.logger.debug("Logging enabled for v7p3rEvaluationEngine")
 
         # Initial engine_config resolution
         self.engine_config = self._ensure_engine_config(engine_config, player)
@@ -115,7 +115,7 @@ class V7P3REvaluationEngine: # Renamed class from EvaluationEngine
         
         self.pst = PieceSquareTables()
 
-        self.scoring_calculator = V7P3RScoringCalculation(
+        self.scoring_calculator = v7p3rScoringCalculation(
             v7p3r_yaml_config=self.v7p3r_config_data, # Pass full v7p3r_config.yaml data
             engine_config=self.engine_config, # Pass resolved engine_config
             piece_values=self.piece_values,
@@ -130,7 +130,7 @@ class V7P3REvaluationEngine: # Renamed class from EvaluationEngine
         self.reset()
 
     def _ensure_engine_config(self, engine_config_runtime: Optional[Dict[str, Any]], player: chess.Color) -> Dict[str, Any]:
-        # 1. Start with base V7P3R engine settings from v7p3r_config.yaml
+        # 1. Start with base v7p3r engine settings from v7p3r_config.yaml
         final_config = self.v7p3r_config_data.copy()
 
         # 2. Merge/override with player-specific AI config from chess_game_config.yaml
@@ -218,7 +218,7 @@ class V7P3REvaluationEngine: # Renamed class from EvaluationEngine
         self.scoring_modifier = self.engine_config.get('scoring_modifier')
 
         if self.logging_enabled and self.logger:
-            self.logger.debug(f"Configuring V7P3R AI for {'White' if board.turn == chess.WHITE else 'Black'} with resolved config: {self.engine_config}")
+            self.logger.debug(f"Configuring v7p3r AI for {'White' if board.turn == chess.WHITE else 'Black'} with resolved config: {self.engine_config}")
         
         if self.move_time_limit is None:
             self.move_time_limit = 0
@@ -248,12 +248,12 @@ class V7P3REvaluationEngine: # Renamed class from EvaluationEngine
             self.scoring_calculator.pst_weight = self.pst_weight   # pst_weight from resolved config
 
         if self.show_thoughts and self.logger:
-            self.logger.debug(f"V7P3R AI configured for {'White' if board.turn == chess.WHITE else 'Black'}: type={self.engine_type} depth={self.depth}, ruleset={self.ruleset}")
+            self.logger.debug(f"v7p3r AI configured for {'White' if board.turn == chess.WHITE else 'Black'}: type={self.engine_type} depth={self.depth}, ruleset={self.ruleset}")
 
     def close(self):
         self.reset()
         if self.show_thoughts and self.logger:
-            self.logger.debug("V7P3REvaluationEngine closed and resources cleaned up.")
+            self.logger.debug("v7p3rEvaluationEngine closed and resources cleaned up.")
 
     def reset(self):
         if self.board is None:
@@ -267,7 +267,7 @@ class V7P3REvaluationEngine: # Renamed class from EvaluationEngine
         self.history_table.clear()
         self.counter_moves.clear()
         if self.show_thoughts and self.logger:
-            self.logger.debug(f"V7P3REvaluationEngine for {self.ai_color} reset to initial state.")
+            self.logger.debug(f"v7p3rEvaluationEngine for {self.ai_color} reset to initial state.")
         
         self.configure_for_side(self.board, self.engine_config)
 
@@ -1199,11 +1199,11 @@ if __name__ == "__main__":
         ch.setFormatter(formatter)
         test_logger.addHandler(ch)
 
-    print("--- V7P3REvaluationEngine Test ---")
+    print("--- v7p3rEvaluationEngine Test ---")
 
     try:
         board = chess.Board()
-        engine = V7P3REvaluationEngine(board, chess.WHITE)
+        engine = v7p3rEvaluationEngine(board, chess.WHITE)
         score = engine.evaluate_position(board)
         print(f"Initial Evaluation: {score:.3f}")
         assert score is not None, "Initial evaluation failed"
@@ -1230,7 +1230,7 @@ if __name__ == "__main__":
     try:
         endgame_fen = "8/8/8/8/4k3/4K3/8/8 w - - 0 1"
         endgame_board = chess.Board(endgame_fen)
-        engine_eg = V7P3REvaluationEngine(endgame_board, chess.WHITE)
+        engine_eg = v7p3rEvaluationEngine(endgame_board, chess.WHITE)
         engine_eg.game_phase_awareness = True
 
         initial_eval_eg = engine_eg.evaluate_position(endgame_board)
@@ -1250,7 +1250,7 @@ if __name__ == "__main__":
         
     try:
         board.reset()
-        engine_tt = V7P3REvaluationEngine(board, chess.WHITE)
+        engine_tt = v7p3rEvaluationEngine(board, chess.WHITE)
         engine_tt.engine_type = 'negamax'
         engine_tt.depth = 2
         engine_tt.transposition_table.clear()
@@ -1283,7 +1283,7 @@ if __name__ == "__main__":
     try:
         tactical_fen = "rnbqkbnr/pp1ppp1p/6p1/2pP4/8/8/PPP1PPPP/RNBQKBNR w KQkq - 0 3"
         tactical_board = chess.Board(tactical_fen)
-        engine_q = V7P3REvaluationEngine(tactical_board, chess.WHITE)
+        engine_q = v7p3rEvaluationEngine(tactical_board, chess.WHITE)
         engine_q.quiescence_enabled = True
         engine_q.engine_type = 'deepsearch'
 
@@ -1297,7 +1297,7 @@ if __name__ == "__main__":
 
     try:
         board_fallback = chess.Board()
-        engine_fb = V7P3REvaluationEngine(board_fallback, chess.WHITE)
+        engine_fb = v7p3rEvaluationEngine(board_fallback, chess.WHITE)
         engine_fb.engine_type = 'non_existent_engine_type'
         engine_fb.depth = 0
 
@@ -1312,7 +1312,7 @@ if __name__ == "__main__":
 
     try:
         board_opening = chess.Board()
-        engine_opening = V7P3REvaluationEngine(board_opening, chess.WHITE)
+        engine_opening = v7p3rEvaluationEngine(board_opening, chess.WHITE)
         engine_opening.solutions_enabled = True
         
         print("\n--- Test 7: Opening Book Lookup ---")
@@ -1333,4 +1333,4 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Test 7: Opening Book Lookup - FAILED: {e}")
 
-    print("\n--- All V7P3REvaluationEngine Tests Complete ---")
+    print("\n--- All v7p3rEvaluationEngine Tests Complete ---")

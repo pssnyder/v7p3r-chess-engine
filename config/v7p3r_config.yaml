@@ -1,7 +1,7 @@
-# V7P3R Engine Configuration
+# v7p3r Engine Configuration
 
-# V7P3R Engine Options
-# These are the options for the V7P3R chess engine, which is a custom chess engine designed for analytical research and development.
+# v7p3r Engine Options
+# These are the options for the v7p3r chess engine, which is a custom chess engine designed for analytical research and development.
 v7p3r:
   ruleset: default_evaluation         # Name of the evaluation rule set to use, see below for available options
   scoring_method: calculate_score    # Overrides the scoring method, v7p3r engine defaults to the inbuilt _v7p3r_scoring_calculation() function
@@ -34,7 +34,7 @@ v7p3r_opponent:
   scoring_modifier: 1.0               # Optional overall scoring multiplier/divider
   game_phase_awareness: false         # Enable/disable game phase-specific evaluation (opening, middlegame, endgame)
 
-# Engine Search Types (search algorithms used by V7P3R)
+# Engine Search Types (search algorithms used by v7p3r)
 search_algorithms: [
   'deepsearch',                    # Dynamic deep search with time control and iterative deepening
   'lookahead',                     # Lookahead search with max value comparison
@@ -47,14 +47,14 @@ search_algorithms: [
   'simple_eval',                   # Simple evaluation function
   'random',                        # Random move selection
   'stockfish',                     # Stockfish engine integration
-  'v7p3r',                         # V7P3R Static Evaluation Engine
-  'v7p3r_nn',                      # V7P3R NN AI Engine (TODO: Implement)
-  'v7p3r_ga',                      # V7P3R Genetic AI Engine (TODO: Implement)
-  'v7p3r_rl',                      # V7P3R Reinforcement AI Engine (TODO: Implement)
-  'v7p3r_nn_hybrid'                # V7P3R Hybrid NN-Search Engine (TODO: Implement)
+  'v7p3r',                         # v7p3r Static Evaluation Engine
+  'v7p3r_nn',                      # v7p3r NN AI Engine (TODO: Implement)
+  'v7p3r_ga',                      # v7p3r Genetic AI Engine (TODO: Implement)
+  'v7p3r_rl',                      # v7p3r Reinforcement AI Engine (TODO: Implement)
+  'v7p3r_nn_hybrid'                # v7p3r Hybrid NN-Search Engine (TODO: Implement)
 ]
 
-# V7P3R Engine Evaluation Rule settings (all scores in centipawns)
+# v7p3r Engine Evaluation Rule settings (all scores in centipawns)
 # Scoring personalities: default_evaluation, best_evaluation, simple_evaluation, aggressive_evaluation, conservative_evaluation, null_evaluation
 default_evaluation:
   checkmate_bonus: 1000000.0        # Bonus for checkmate threats

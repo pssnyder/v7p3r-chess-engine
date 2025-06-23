@@ -1,4 +1,4 @@
-# V7P3R Chess Engine Unit Testing Configuration
+# v7p3r Chess Engine Unit Testing Configuration
 # This file configures the unit testing suite behavior and test selection
 
 # Test Execution Settings
@@ -60,8 +60,8 @@ test_selection:
 environment:
   # Set up test-specific environment variables
   test_env_vars:
-    V7P3R_TEST_MODE: "true"
-    V7P3R_LOG_LEVEL: "WARNING"  # Reduce log noise during testing
+    v7p3r_TEST_MODE: "true"
+    v7p3r_LOG_LEVEL: "WARNING"  # Reduce log noise during testing
   
   # Test data directories
   test_data_dir: "testing/test_data"

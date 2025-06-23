@@ -511,6 +511,9 @@ class MetricsStore:
                         white_engine_config: dict, black_engine_config: dict):
         """
         Inserts a single game's result and associated AI configurations into the game_results table.
+        The columns white_engine_name and black_engine_name are set from
+        white_engine_config['engine'] and black_engine_config['engine'] respectively.
+        These values are the unique engine identifiers as defined in chess_game_config.yaml.
         """
         connection = self._get_connection()
         with connection:
@@ -549,7 +552,9 @@ class MetricsStore:
                         time_taken: float, pv_line: str):
         """
         Inserts a single move's detailed metrics into the move_metrics table.
-        Normalizes player_color to 'white' or 'black' for dashboard compatibility.
+        The engine_type field here refers to the search algorithm used for the move (e.g., 'deepsearch'),
+        not the engine name. The engine name for the move is determined by the parent game's
+        white_engine_name or black_engine_name in game_results, as set from the config's 'engine' key.
         """
         # Normalize player_color
         if player_color.lower() in ('w', 'white'):
@@ -637,11 +642,11 @@ class MetricsStore:
                     metric_names.append(col_name)
         return sorted(metric_names)
 
-    def get_filtered_move_metrics(self, white_search_algorithms: Optional[list] = None, black_search_algorithms: Optional[list] = None, metric_name: Optional[str] = None):
+    def get_filtered_move_metrics(self, white_engine_names: Optional[list] = None, black_engine_names: Optional[list] = None, metric_name: Optional[str] = None, white_search_algorithms: Optional[list] = None, black_search_algorithms: Optional[list] = None):
         """
-        Retrieves move metrics filtered by white_engine_type and black_engine_type
-        and joins with game_results to get AI configurations.
-        Returns a list of dictionaries.
+        Retrieves move metrics filtered by engine name (from config's 'engine' key, stored as white_engine_name/black_engine_name in game_results).
+        Optionally, can filter by search algorithm (engine_type in move_metrics) for deep-dive analysis.
+        Example: To get all moves by the 'v7p3r_nn' engine, set white_engine_names=['v7p3r_nn'] or black_engine_names=['v7p3r_nn'].
         """
         connection = self._get_connection()
         
@@ -649,54 +654,50 @@ class MetricsStore:
         where_clauses = []
         params = []
 
+        if white_engine_names:
+            placeholders = ','.join(['?'] * len(white_engine_names))
+            where_clauses.append(f"gr.white_engine_name IN ({placeholders})")
+            params.extend(white_engine_names)
+        if black_engine_names:
+            placeholders = ','.join(['?'] * len(black_engine_names))
+            where_clauses.append(f"gr.black_engine_name IN ({placeholders})")
+            params.extend(black_engine_names)
+        # Optional: secondary filter by search algorithm (engine_type in move_metrics)
         if white_search_algorithms:
             placeholders = ','.join(['?'] * len(white_search_algorithms))
-            where_clauses.append(f"gr.white_engine_type IN ({placeholders})")
+            where_clauses.append(f"(mm.player_color = 'white' AND mm.engine_type IN ({placeholders}))")
             params.extend(white_search_algorithms)
-        
         if black_search_algorithms:
             placeholders = ','.join(['?'] * len(black_search_algorithms))
-            where_clauses.append(f"gr.black_engine_type IN ({placeholders})")
+            where_clauses.append(f"(mm.player_color = 'black' AND mm.engine_type IN ({placeholders}))")
             params.extend(black_search_algorithms)
-        
-        # Ensure we only fetch numeric metric_name if specified
+
         select_columns = "mm.game_id, mm.move_number, mm.player_color, mm.move_uci, mm.fen_before, mm.created_at, mm.evaluation, mm.nodes_searched, mm.time_taken, mm.depth, mm.pv_line"
         if metric_name:
-            # Validate metric_name to prevent SQL injection and ensure it's a numeric column
-            # This is a basic validation, more robust validation against PRAGMA table_info is ideal.
             if metric_name in self.get_distinct_move_metric_names():
-                 select_columns += f", mm.{metric_name}"
+                select_columns += f", mm.{metric_name}"
             else:
-                 print(f"Warning: Attempted to query invalid or non-numeric metric_name: {metric_name}")
-                 return [] # Return empty if invalid metric_name
-        
+                print(f"Warning: Attempted to query invalid or non-numeric metric_name: {metric_name}")
+                return []
         query = f"""
-        SELECT {select_columns}, gr.white_engine_type, gr.black_engine_type, gr.white_depth, gr.black_depth
+        SELECT {select_columns}, gr.white_engine_name, gr.black_engine_name, gr.white_depth, gr.black_depth
         FROM move_metrics mm
         JOIN game_results gr ON mm.game_id = gr.game_id
         """
-        
         if where_clauses:
             query += " WHERE " + " AND ".join(where_clauses)
-        
-        # Ordering by created_at is good for time series plots
         query += " ORDER BY mm.created_at"
-
         results = []
         try:
             with connection:
                 cursor = connection.cursor()
                 cursor.execute(query, params)
-                
-                # Get column names from cursor description for dictionary creation
                 cols = [description[0] for description in cursor.description]
-                
                 for row in cursor.fetchall():
                     results.append(dict(zip(cols, row)))
         except sqlite3.Error as e:
             print(f"Error querying filtered move metrics: {e}")
             return []
-            
         return results
 
 
@@ -990,6 +991,8 @@ if __name__ == "__main__":
 
     print("\nTesting get_filtered_move_metrics (White: deepsearch, Black: negamax, Metric: evaluation):")
     filtered_moves = store.get_filtered_move_metrics(
+        white_engine_names=['Viper'],
+        black_engine_names=['Viper'],
         white_search_algorithms=['deepsearch'],
         black_search_algorithms=['negamax'],
         metric_name='evaluation'
@@ -1001,8 +1004,8 @@ if __name__ == "__main__":
 
     print("\nTesting get_filtered_move_metrics (White: Stockfish, Black: deepsearch, Metric: nodes_searched):")
     filtered_moves_sf = store.get_filtered_move_metrics(
-        white_search_algorithms=['stockfish'],
-        black_search_algorithms=['deepsearch'],
+        white_engine_names=['Stockfish'],
+        black_engine_names=['Viper'],
         metric_name='nodes_searched'
     )
     print(f"Filtered moves count: {len(filtered_moves_sf)}")

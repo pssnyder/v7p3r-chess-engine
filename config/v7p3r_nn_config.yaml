@@ -1,5 +1,5 @@
 # v7p3r_nn_engine/v7p3r_nn_config.yaml
-# Configuration file for the V7P3R Neural Network (NN) engine.
+# Configuration file for the v7p3r Neural Network (NN) engine.
 
 training:
   # Basic training parameters

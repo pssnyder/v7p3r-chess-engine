@@ -1,10 +1,10 @@
-# V7P3R Neural Network (NN) Engine
+# v7p3r Neural Network (NN) Engine
 
-The V7P3R Neural Network Engine is a machine learning-based chess engine that learns from historical games, improves through training, and leverages Stockfish analysis to enhance its positional understanding.
+The v7p3r Neural Network Engine is a machine learning-based chess engine that learns from historical games, improves through training, and leverages Stockfish analysis to enhance its positional understanding.
 
 ## Architecture
 
-The V7P3R Neural Network Engine consists of the following components:
+The v7p3r Neural Network Engine consists of the following components:
 
 1. **Neural Network Model**: A convolutional neural network that evaluates chess positions
 2. **Move Library**: A local SQLite database that stores positions, evaluations, and best moves

@@ -107,7 +107,7 @@ app.layout = html.Div([
     html.Div([
         html.H2("A/B Testing & Metric Trends", style={"textAlign": "center", "marginBottom": "15px", "color": DARK_TEXT}),
         html.Div([
-                html.Label("Metric to Plot (for V7P3R Engine):", style={"color": DARK_TEXT}),
+                html.Label("Metric to Plot (for v7p3r Engine):", style={"color": DARK_TEXT}),
                 dcc.Dropdown(
                     id="dynamic-metric-selector",
                     options=[], # Populated dynamically
@@ -164,26 +164,26 @@ def update_ab_testing_section(_, selected_metric): # Removed white_search_algori
         )
         fig_ab_test.add_annotation(text="Please select a metric from the dropdown.", xref="paper", yref="paper", showarrow=False, font=dict(size=16, color=DARK_TEXT))
         move_metrics_details_components.append(html.P("Please select a metric from the dropdown to visualize Viper's performance trend.", style={"color": DARK_TEXT}))
-        return fig_ab_test, move_metrics_details_components    # Get all moves made by V7P3R (check engine_type for V7P3R and exclude_from_metrics = False)
-    # V7P3R engine types include: deepsearch, lookahead, minimax, negamax, negascout, etc.
+        return fig_ab_test, move_metrics_details_components    # Get all moves made by v7p3r (filter by engine name, not search algorithm)
+    # v7p3r engine types include: deepsearch, lookahead, minimax, negamax, negascout, etc.
     v7p3r_search_algorithms = ['deepsearch', 'lookahead', 'minimax', 'negamax', 'negascout', 
                           'transposition_only', 'simple_search', 'quiescence_only', 
                           'simple_eval', 'v7p3r']
     
     all_v7p3r_moves_raw = metrics_store.get_filtered_move_metrics(
-        white_engine_type = v7p3r_search_algorithms, # V7P3R engine types as white
-        black_engine_type = v7p3r_search_algorithms, # V7P3R engine types as black
+        white_engine_names=['v7p3r'],  # Use engine name from config
+        black_engine_names=['v7p3r'],
         metric_name=selected_metric
     )
     if not all_v7p3r_moves_raw:
         fig_ab_test.update_layout(
-            title=f"No '{selected_metric}' Data for V7P3R Engine",
+            title=f"No '{selected_metric}' Data for v7p3r Engine",
             paper_bgcolor=DARK_PANEL, plot_bgcolor=DARK_PANEL, font=dict(color=DARK_TEXT),
             xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
             yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
         )
-        fig_ab_test.add_annotation(text=f"No move data found for V7P3R playing '{selected_metric}'.", xref="paper", yref="paper", showarrow=False, font=dict(size=16, color=DARK_TEXT))
-        move_metrics_details_components.append(html.P(f"No move metrics data found for V7P3R for the metric: {selected_metric}.", style={"color": DARK_TEXT}))
+        fig_ab_test.add_annotation(text=f"No move data found for v7p3r playing '{selected_metric}'.", xref="paper", yref="paper", showarrow=False, font=dict(size=16, color=DARK_TEXT))
+        move_metrics_details_components.append(html.P(f"No move metrics data found for v7p3r for the metric: {selected_metric}.", style={"color": DARK_TEXT}))
         return fig_ab_test, move_metrics_details_components
 
     df_all_v7p3r_moves = pd.DataFrame(all_v7p3r_moves_raw)

@@ -1,5 +1,5 @@
 # training/evaluate_v7p3r_nn.py
-# Script to evaluate the V7P3R Neural Network engine against other engines
+# Script to evaluate the v7p3r Neural Network engine against other engines
 
 import os
 import argparse
@@ -9,8 +9,8 @@ import chess
 import chess.pgn
 import time
 import yaml
-from v7p3r_nn_engine.v7p3r_nn import V7P3RNeuralNetwork
-from v7p3r_engine.v7p3r import V7P3REvaluationEngine
+from v7p3r_nn_engine.v7p3r_nn import v7p3rNeuralNetwork
+from v7p3r_engine.v7p3r import v7p3rEvaluationEngine
 from engine_utilities.stockfish_handler import StockfishHandler
 
 # Configure logging
@@ -41,11 +41,11 @@ def play_game(white_engine, black_engine, game_options=None):
     
     # Create a new game
     game = chess.pgn.Game()
-    game.headers["Event"] = "V7P3R NN Evaluation"
+    game.headers["Event"] = "v7p3r NN Evaluation"
     game.headers["Site"] = "Local"
     game.headers["Date"] = datetime.datetime.now().strftime("%Y.%m.%d")
     game.headers["Round"] = "1"
-    game.headers["White"] = game_options.get("white_name", "V7P3R Neural Network")
+    game.headers["White"] = game_options.get("white_name", "v7p3r Neural Network")
     game.headers["Black"] = game_options.get("black_name", "Opponent")
     
     # Set up the main variation
@@ -121,7 +121,7 @@ def save_game(game, output_dir="games"):
     return output_file
 
 def main():
-    parser = argparse.ArgumentParser(description="Evaluate the V7P3R Neural Network engine")
+    parser = argparse.ArgumentParser(description="Evaluate the v7p3r Neural Network engine")
     
     parser.add_argument("--opponent", default="v7p3r", choices=["v7p3r", "stockfish"], 
                         help="Opponent engine to play against")
@@ -129,7 +129,7 @@ def main():
     parser.add_argument("--nn_config", default="config/v7p3r_nn_config.yaml", 
                         help="Path to NN configuration file")
     parser.add_argument("--v7p3r_config", default="config/v7p3r_config.yaml", 
-                        help="Path to V7P3R configuration file")
+                        help="Path to v7p3r configuration file")
     parser.add_argument("--stockfish_config", default="config/stockfish_handler.yaml", 
                         help="Path to Stockfish configuration file")
     parser.add_argument("--alternate", action="store_true", 
@@ -138,24 +138,24 @@ def main():
     args = parser.parse_args()
     
     # Initialize the Neural Network engine
-    nn_engine = V7P3RNeuralNetwork(config_path=args.nn_config)
+    nn_engine = v7p3rNeuralNetwork(config_path=args.nn_config)
     
     # Initialize the opponent engine
     opponent_engine = None
     opponent_name = ""
     
     if args.opponent == "v7p3r":
-        # Load V7P3R configuration
+        # Load v7p3r configuration
         try:
             with open(args.v7p3r_config, 'r') as f:
                 v7p3r_config = yaml.safe_load(f)
         except Exception as e:
-            logger.error(f"Failed to load V7P3R config: {e}")
+            logger.error(f"Failed to load v7p3r config: {e}")
             v7p3r_config = {}
         
-        # Initialize V7P3R engine
-        opponent_engine = V7P3REvaluationEngine(chess.Board(), chess.BLACK, engine_config=v7p3r_config.get('v7p3r', {}))
-        opponent_name = "V7P3R"
+        # Initialize v7p3r engine
+        opponent_engine = v7p3rEvaluationEngine(chess.Board(), chess.BLACK, engine_config=v7p3r_config.get('v7p3r', {}))
+        opponent_name = "v7p3r"
     
     elif args.opponent == "stockfish":
         # Load Stockfish configuration
@@ -201,8 +201,8 @@ def main():
             white_engine = nn_engine if nn_plays_white else opponent_engine
             black_engine = opponent_engine if nn_plays_white else nn_engine
             
-            white_name = "V7P3R Neural Network" if nn_plays_white else opponent_name
-            black_name = opponent_name if nn_plays_white else "V7P3R Neural Network"
+            white_name = "v7p3r Neural Network" if nn_plays_white else opponent_name
+            black_name = opponent_name if nn_plays_white else "v7p3r Neural Network"
             
             game_options = {
                 "white_name": white_name,
@@ -235,7 +235,7 @@ def main():
             
             # Log current results
             logger.info(f"Game {game_num} result: {result}")
-            logger.info(f"Current results - V7P3R NN: {nn_results['wins']} wins, {nn_results['losses']} losses, {nn_results['draws']} draws")
+            logger.info(f"Current results - v7p3r NN: {nn_results['wins']} wins, {nn_results['losses']} losses, {nn_results['draws']} draws")
     
     finally:
         # Close engines to release resources
@@ -246,10 +246,10 @@ def main():
     
     # Print final results
     logger.info("Evaluation complete")
-    logger.info(f"Final results - V7P3R NN vs {opponent_name}:")
-    logger.info(f"V7P3R NN: {nn_results['wins']} wins, {nn_results['losses']} losses, {nn_results['draws']} draws")
+    logger.info(f"Final results - v7p3r NN vs {opponent_name}:")
+    logger.info(f"v7p3r NN: {nn_results['wins']} wins, {nn_results['losses']} losses, {nn_results['draws']} draws")
     win_rate = (nn_results['wins'] + nn_results['draws'] * 0.5) / args.games * 100
-    logger.info(f"V7P3R NN score: {win_rate:.2f}%")
+    logger.info(f"v7p3r NN score: {win_rate:.2f}%")
 
 if __name__ == "__main__":
     main()

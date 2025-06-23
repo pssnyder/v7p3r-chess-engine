@@ -1,5 +1,5 @@
 """
-ETL Monitor for V7P3R Chess Engine Analytics
+ETL Monitor for v7p3r Chess Engine Analytics
 
 This module provides monitoring capabilities for the ETL process, tracking:
 1. Job status and metrics
@@ -39,7 +39,7 @@ logger = logging.getLogger("etl_monitor")
 
 class ETLMonitor:
     """
-    Monitor for V7P3R Chess Engine ETL jobs.
+    Monitor for v7p3r Chess Engine ETL jobs.
     
     This class provides monitoring capabilities for ETL jobs, including:
     - Job status tracking
@@ -439,7 +439,7 @@ class ETLMonitor:
 
 def parse_args():
     """Parse command line arguments."""
-    parser = argparse.ArgumentParser(description='V7P3R Chess Engine ETL Monitor')
+    parser = argparse.ArgumentParser(description='v7p3r Chess Engine ETL Monitor')
     parser.add_argument('--config', default='config/etl_config.yaml',
                         help='Path to ETL configuration file')
     parser.add_argument('--job-history', action='store_true',
@@ -536,5 +536,5 @@ if __name__ == "__main__":
                     print(f"  {engine}: {count}")
     
     else:
-        parser = argparse.ArgumentParser(description='V7P3R Chess Engine ETL Monitor')
+        parser = argparse.ArgumentParser(description='v7p3r Chess Engine ETL Monitor')
         parser.print_help()
