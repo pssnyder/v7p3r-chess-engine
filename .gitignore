@@ -77,6 +77,9 @@ Thumbs.db # Windows
 # Data files
 *.csv
 *.jsonl
+*.db
+*.db-*
+*.sqlite
 
 # Model files
 *.pt
