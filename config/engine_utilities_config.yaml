@@ -7,15 +7,6 @@ database:
   backup_interval_hours: 24
   max_size_mb: 1000  # Alert if database exceeds this size
 
-# Cloud storage configuration
-cloud:
-  enabled: false  # Set to true to enable cloud storage
-  bucket_name: "viper-chess-engine-data"  # GCS bucket name
-  firestore_collection: "games"  # Firestore collection for game data
-  raw_collection: "raw_simulations"  # Firestore collection for raw simulation data
-  upload_retry_count: 5
-  upload_retry_delay_seconds: 1
-
 # Server configuration
 server:
   host: "0.0.0.0"  # Listen on all interfaces

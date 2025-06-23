@@ -45,7 +45,6 @@ test_selection:
     metrics: true
     main_engine: true
     chess_game: true
-    firebase: true
   
   # Individual test files to include (overrides run_all if specified)
   include_tests: []
@@ -56,7 +55,6 @@ test_selection:
   # Individual test files to exclude
   exclude_tests: []
     # - "lichess_handler_testing"  # Requires API keys
-    # - "cloud_store_testing"      # Requires GCP credentials
 
 # Test Environment Configuration
 environment:
@@ -73,8 +71,6 @@ environment:
   mock_external:
     stockfish: false      # Set to true to mock Stockfish engine
     lichess_api: true     # Mock Lichess API calls
-    firebase: false       # Set to true to mock Firebase calls
-    gcp_services: true    # Mock Google Cloud Platform services
 
 # Performance Testing Configuration
 performance:
@@ -99,7 +95,6 @@ integration:
   # Test real integrations with external services
   external_services:
     stockfish: false      # Requires Stockfish installation
-    firebase: false       # Requires Firebase credentials
     lichess: false        # Requires API access
 
 # Reporting Configuration

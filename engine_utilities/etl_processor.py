@@ -244,8 +244,8 @@ class ChessAnalyticsETL:
                 schema_version TEXT,
                 white_engine TEXT,
                 black_engine TEXT,
-                white_ai_type TEXT,
-                black_ai_type TEXT,
+                white_engine_type TEXT,
+                black_engine_type TEXT,
                 white_engine_version TEXT,
                 black_engine_version TEXT,
                 result TEXT,
@@ -332,7 +332,7 @@ class ChessAnalyticsETL:
                 id TEXT PRIMARY KEY,
                 engine_name TEXT,
                 engine_version TEXT,
-                ai_type TEXT,
+                engine_type TEXT,
                 processing_date TEXT,
                 schema_version TEXT,
                 games_played INTEGER,
@@ -610,8 +610,8 @@ class ChessAnalyticsETL:
         # Extract config data
         configs = game.get('configs', {})
         game_config = configs.get('game', {})
-        white_config = game_config.get('white_ai_config', {})
-        black_config = game_config.get('black_ai_config', {})
+        white_config = game_config.get('white_engine_config', {})
+        black_config = game_config.get('black_engine_config', {})
         
         # Extract PGN data
         pgn = game.get('pgn', '')
@@ -631,8 +631,8 @@ class ChessAnalyticsETL:
             'schema_version': '1.0',
             'white_engine': white_config.get('engine', 'unknown'),
             'black_engine': black_config.get('engine', 'unknown'),
-            'white_ai_type': white_config.get('ai_type', 'unknown'),
-            'black_ai_type': black_config.get('ai_type', 'unknown'),
+            'white_engine_type': white_config.get('engine_type', 'unknown'),
+            'black_engine_type': black_config.get('engine_type', 'unknown'),
             'white_engine_version': white_config.get('engine_version', '1.0'),
             'black_engine_version': black_config.get('engine_version', '1.0'),
             'result': result or 'unknown',
@@ -881,14 +881,14 @@ class ChessAnalyticsETL:
         # Update white engine data
         white_engine = game_result.get('white_engine')
         white_version = game_result.get('white_engine_version')
-        white_ai_type = game_result.get('white_ai_type')
-        white_key = f"{white_engine}_{white_version}_{white_ai_type}"
+        white_engine_type = game_result.get('white_engine_type')
+        white_key = f"{white_engine}_{white_version}_{white_engine_type}"
         
         if white_key not in performance_data:
             performance_data[white_key] = {
                 'engine_name': white_engine,
                 'engine_version': white_version,
-                'ai_type': white_ai_type,
+                'engine_type': white_engine_type,
                 'games_played': 0,
                 'games_won': 0,
                 'games_lost': 0,
@@ -907,14 +907,14 @@ class ChessAnalyticsETL:
         # Update black engine data
         black_engine = game_result.get('black_engine')
         black_version = game_result.get('black_engine_version')
-        black_ai_type = game_result.get('black_ai_type')
-        black_key = f"{black_engine}_{black_version}_{black_ai_type}"
+        black_engine_type = game_result.get('black_engine_type')
+        black_key = f"{black_engine}_{black_version}_{black_engine_type}"
         
         if black_key not in performance_data:
             performance_data[black_key] = {
                 'engine_name': black_engine,
                 'engine_version': black_version,
-                'ai_type': black_ai_type,
+                'engine_type': black_engine_type,
                 'games_played': 0,
                 'games_won': 0,
                 'games_lost': 0,
@@ -1011,7 +1011,7 @@ class ChessAnalyticsETL:
                 'id': str(uuid.uuid4()),
                 'engine_name': data['engine_name'],
                 'engine_version': data['engine_version'],
-                'ai_type': data['ai_type'],
+                'engine_type': data['engine_type'],
                 'processing_date': datetime.datetime.now().isoformat(),
                 'schema_version': '1.0',
                 'games_played': games_played,

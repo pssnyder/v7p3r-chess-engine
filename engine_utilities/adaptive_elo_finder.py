@@ -7,6 +7,7 @@ game results, helping to find the true strength of the V7P3R engine configuratio
 """
 
 import os
+import sys
 import uuid
 import yaml
 import json
@@ -15,6 +16,10 @@ import logging
 import datetime
 from typing import Dict, List, Any, Optional, Tuple
 from copy import deepcopy
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from chess_game import ChessGame
 from engine_utilities.engine_db_manager import EngineDBClient
 
@@ -60,26 +65,27 @@ class AdaptiveEloSimulator:
         self.adjustment_factor = adjustment_factor
         self.convergence_threshold = convergence_threshold
         self.min_games_for_convergence = min_games_for_convergence
-        self.max_games = max_games
+        self.max_games = max_games        # Load base configurations
+        config_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config")
+        self.project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         
-        # Load base configurations
-        with open("config/chess_game_config.yaml") as f:
+        with open(os.path.join(config_dir, "chess_game_config.yaml")) as f:
             self.base_game_config = yaml.safe_load(f)
-        with open("config/v7p3r_config.yaml") as f:
+        with open(os.path.join(config_dir, "v7p3r_config.yaml")) as f:
             self.base_v7p3r_config = yaml.safe_load(f)
-        with open("config/stockfish_handler_config.yaml") as f:
-            self.base_stockfish_config = yaml.safe_load(f)
+        with open(os.path.join(config_dir, "stockfish_config.yaml")) as f:
+            self.base_stockfish_handler = yaml.safe_load(f)
             
         # Apply overrides
         self.v7p3r_config = self._deep_merge(v7p3r_config or {}, deepcopy(self.base_v7p3r_config))
         self.game_config = self._deep_merge(game_config or {}, deepcopy(self.base_game_config))
         
         # Initialize stockfish config with the initial ELO
-        self.stockfish_config = deepcopy(self.base_stockfish_config)
-        if 'stockfish_config' not in self.stockfish_config:
-            self.stockfish_config['stockfish_config'] = {}
-        self.stockfish_config['stockfish_config']['elo_rating'] = self.current_elo
-        self.stockfish_config['stockfish_config']['uci_limit_strength'] = True
+        self.stockfish_handler = deepcopy(self.base_stockfish_handler)
+        if 'stockfish_handler' not in self.stockfish_handler:
+            self.stockfish_handler['stockfish_handler'] = {}
+        self.stockfish_handler['stockfish_handler']['elo_rating'] = self.current_elo
+        self.stockfish_handler['stockfish_handler']['uci_limit_strength'] = True
         
         # Initialize game history and stats
         self.games_played = 0
@@ -152,7 +158,7 @@ class AdaptiveEloSimulator:
         self.current_elo = new_elo
         
         # Update stockfish config with new ELO
-        self.stockfish_config['stockfish_config']['elo_rating'] = self.current_elo
+        self.stockfish_handler['stockfish_handler']['elo_rating'] = self.current_elo
     
     def _check_convergence(self) -> bool:
         """
@@ -198,13 +204,13 @@ class AdaptiveEloSimulator:
     def _create_data_collector(self, game_id: str):
         """Create a data collector function for the chess game."""
         def data_collector(data_type, data):
-            """Collect data from the chess game and send to central storage if enabled."""
-            # Always save locally first
+            """Collect data from the chess game and send to central storage if enabled."""            # Always save locally first
             if data_type == 'game_result':
                 # Write PGN to file
                 if 'game_pgn' in data:
-                    os.makedirs('games', exist_ok=True)
-                    with open(f"games/{game_id}.pgn", 'w') as f:
+                    games_dir = os.path.join(self.project_root, 'games')
+                    os.makedirs(games_dir, exist_ok=True)
+                    with open(os.path.join(games_dir, f"{game_id}.pgn"), 'w') as f:
                         f.write(data['game_pgn'])
                 
                 # Write metadata to YAML
@@ -213,13 +219,14 @@ class AdaptiveEloSimulator:
                 metadata['games_played'] = self.games_played
                 metadata['win_rate'] = self.games_won / self.games_played if self.games_played > 0 else 0
                 
-                with open(f"games/{game_id}.yaml", 'w') as f:
+                with open(os.path.join(games_dir, f"{game_id}.yaml"), 'w') as f:
                     yaml.dump(metadata, f)
                     
             elif data_type == 'move_metric':
                 # Append to move metrics file
-                os.makedirs('games', exist_ok=True)
-                with open(f"games/{game_id}_moves.json", 'a') as f:
+                games_dir = os.path.join(self.project_root, 'games')
+                os.makedirs(games_dir, exist_ok=True)
+                with open(os.path.join(games_dir, f"{game_id}_moves.json"), 'a') as f:
                     f.write(json.dumps(data) + '\n')
             
             # Send to central storage if enabled
@@ -260,11 +267,11 @@ class AdaptiveEloSimulator:
             'min_games_for_convergence': self.min_games_for_convergence,
             'max_games': self.max_games,
             'v7p3r_config': self.v7p3r_config,
-            'game_config': self.game_config,
-        }
+            'game_config': self.game_config,        }
         
-        os.makedirs('games', exist_ok=True)
-        with open(f"games/{self.simulation_id}_metadata.yaml", 'w') as f:
+        games_dir = os.path.join(self.project_root, 'games')
+        os.makedirs(games_dir, exist_ok=True)
+        with open(os.path.join(games_dir, f"{self.simulation_id}_metadata.yaml"), 'w') as f:
             yaml.dump(simulation_metadata, f)
         
         # Send metadata to central storage if enabled
@@ -283,22 +290,27 @@ class AdaptiveEloSimulator:
             
             # Log current state
             logger.info(f"Starting game {self.games_played + 1}/{self.max_games} with Stockfish ELO: {self.current_elo}")
-            
-            # Set up the game
+              # Set up the game
             game_config = deepcopy(self.game_config)
             game_config['game_id'] = game_id
             
+            # Disable cloud storage for ELO finder simulations
+            if 'game_config' not in game_config:
+                game_config['game_config'] = {}
+            game_config['game_config']['cloud_storage_enabled'] = False
+            
             # Make sure V7P3R plays white (for consistency in the adaptive algorithm)
-            game_config['white_ai_config'] = {'engine': 'v7p3r', 'ai_type': 'deepsearch'}
-            game_config['black_ai_config'] = {'engine': 'stockfish'}
+            game_config['white_engine_config'] = {'engine': 'v7p3r', 'engine_type': 'deepsearch'}
+            game_config['black_engine_config'] = {'engine': 'stockfish'}
             
             # Create and run the game
-            game = ChessGame(
-                game_config=game_config,
-                v7p3r_config=deepcopy(self.v7p3r_config),
-                stockfish_config=deepcopy(self.stockfish_config),
-                data_collector=self._create_data_collector(game_id)
-            )
+            combined_config = {
+                'game_config': game_config,
+                'v7p3r_config': deepcopy(self.v7p3r_config),
+                'stockfish_handler': deepcopy(self.stockfish_handler),
+                'data_collector': self._create_data_collector(game_id)
+            }
+            game = ChessGame(config=combined_config)
             
             # Run the game and get the result
             result = game.run()
@@ -359,9 +371,8 @@ class AdaptiveEloSimulator:
         # Adjust based on win percentage - each 10% above/below 50% ~ +/-100 ELO points
         v7p3r_estimated_elo = self.current_elo + ((win_rate - 0.5) * 1000)
         final_results['v7p3r_estimated_elo'] = int(v7p3r_estimated_elo)
-        
-        # Save final results
-        with open(f"games/{self.simulation_id}_results.yaml", 'w') as f:
+          # Save final results
+        with open(os.path.join(games_dir, f"{self.simulation_id}_results.yaml"), 'w') as f:
             yaml.dump(final_results, f)
             
         # Send final results to central storage if enabled

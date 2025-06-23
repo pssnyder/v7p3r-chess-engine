@@ -155,7 +155,7 @@ environment:
 
 ### Terminal Output
 Real-time progress with status indicators:
-```
+```bash
 🚀 Starting V7P3R Chess Engine Unit Test Suite at 2025-06-22T10:30:00
 ================================================================================
 📋 Found 25 test modules to execute
