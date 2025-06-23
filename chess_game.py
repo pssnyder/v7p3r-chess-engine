@@ -121,7 +121,7 @@ class ChessGame:
         # Initialize AI configurations
         self.game_count = self.game_config_data.get('game_config', {}).get('ai_game_count', 0) # Adjusted path
         self.ai_vs_ai = self.game_config_data.get('game_config', {}).get('ai_vs_ai', False) # Adjusted path
-        self.engine_types = self.game_config_data.get('engine_types', []) # Adjusted path
+        self.search_algorithms = self.game_config_data.get('search_algorithms', []) # Adjusted path
 
         self.white_engine_config = self.game_config_data.get('white_engine_config', {}) # Adjusted path
         self.black_engine_config = self.game_config_data.get('black_engine_config', {}) # Adjusted path

@@ -28,7 +28,7 @@ white_engine_config:
   engine: v7p3r                 # Name of the engine being used (e.g., 'v7p3r', 'stockfish'), this value is a direct reference to the engine configuration values below
 black_engine_config:
   exclude_from_metrics: false    # does the same as above but for this engines performance as this color           
-  engine: stockfish             # sets this colors engine type, same as above, important note that if the engines are set the same then only whites metrics will be collected to prevent negation in win loss metrics
+  engine: v7p3r_opponent             # sets this colors engine type, same as above, important note that if the engines are set the same then only whites metrics will be collected to prevent negation in win loss metrics
 
 # Performance settings
 performance:
@@ -45,26 +45,6 @@ monitoring:
   enable_logging: true            # Turn logging on or off, auto-disables thoughts if false
   show_evaluation: true           # Show the evaluation during a game
   show_thinking: true             # Show what the AI is thinking during the game (TODO: add thinking time to the log for each color
-
-# Engine Types
-engine_types: [
-  'deepsearch',                    # Dynamic deep search with time control and iterative deepening
-  'lookahead',                     # Lookahead search with max value comparison
-  'minimax',                       # Minimax search with alpha-beta pruning
-  'negamax',                       # Negamax search with alpha-beta pruning
-  'negascout',                     # Negascout search with alpha-beta pruning
-  'transposition_only',            # Transposition table search
-  'simple_search',                 # Simple 1 ply search
-  'quiescence_only',               # Quiescence search that evaluates only stable positions
-  'simple_eval',                   # Simple evaluation function
-  'random',                        # Random move selection
-  'stockfish',                     # Stockfish engine integration
-  'v7p3r',                         # V7P3R Static Evaluation Engine
-  'v7p3r_nn',                      # V7P3R NN AI Engine (TODO: Implement)
-  'v7p3r_ga',                      # V7P3R Genetic AI Engine (TODO: Implement)
-  'v7p3r_rl',                      # V7P3R Reinforcement AI Engine (TODO: Implement)
-  'v7p3r_nn_hybrid'                # V7P3R Hybrid NN-Search Engine (TODO: Implement)
-]
 
 # Starting positions
 starting_positions:
