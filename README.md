@@ -1,8 +1,4 @@
-# V7P3R ChessBot - Streamlit Web Demo
-
-A simple web demo of the V7P3R ChessBot engine, allowing you to play against the AI or evaluate any chess position using a FEN string. This version is designed for easy sharing and does **not** require a Python environment for your friends to try it out (when deployed on Streamlit Cloud).
-
----
+# v7p3r Chess Engine - Product README
 
 ## Features (Streamlit App)
 
@@ -17,67 +13,150 @@ A simple web demo of the V7P3R ChessBot engine, allowing you to play against the
 
 ---
 
-## Quick Start (Local)
+## Firebase Backend
 
-1. **Install dependencies:**
+v7p3r Chess Engine now uses Firebase for backend storage, analytics, and data processing. Key features:
+
+- **Cloud Storage**: Store PGN files, trained models, and evaluation data
+- **Firestore Database**: Maintain game metadata, metrics, and model tracking
+- **Authentication**: Optional user accounts for personalized experiences
+- **Analytics**: Track engine performance and user engagement
+
+For setup instructions, see [FIREBASE_SETUP.md](FIREBASE_SETUP.md)
+
+---
+
+## Quick Start
+
+### Web Demo (Streamlit)
+
+1. Install dependencies:
+
     ```bash
     pip install -r requirements.txt
     ```
 
-2. **Run the Streamlit app:**
+2. Run the web app:
+
     ```bash
     streamlit run streamlit_app.py
     ```
 
+### Local Metrics Dashboard
+
+1. Install dependencies:
+
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+2. Run the dashboard:
+
+    ```bash
+    python metrics/chess_metrics.py
+    ```
+
+### Stockfish ELO Finder
+
+Determine the ELO strength of your v7p3r configuration:
+
+1. Quick run with default settings:
+
+   ```bash
+   python run_elo_finder.py
+   ```
+
+2. Customize parameters:
+
+   ```bash
+   python run_elo_finder.py --initial-elo 1500 --v7p3r-depth 4 --v7p3r-ruleset aggressive_evaluation
+   ```
+
+3. For more options and advanced usage:
+
+   ```bash
+   python run_elo_finder.py --help
+   ```
+
+See [TEST_GUIDE.md](TEST_GUIDE.md) for detailed instructions and interpretation of ELO results.
+
 ---
 
-## How to Use
+## Significant File Overview
 
-- **Set Position:** Paste a FEN string and click "Set Position from FEN" to load any chess position.
-- **Play a Move:** Use the dropdown to select your move (in chess notation) and click "Play Move". The AI will respond automatically.
-- **Evaluate:** Click "Evaluate Position" to see the engine's evaluation of the current board.
-- **Configure AI:** Use the sidebar to change AI type and depth.
-- **Refresh Board:** If the board does not update after the AI moves, click "Evaluate Position" or interact with the board.
+- `chess_game.py` — Core chess game logic and rules
+- `v7p3r_scoring_calculation.py` — AI scoring and evaluation logic
+- `chess_metrics.py` — Engine performance metrics dashboard
+- `metrics_store.py` — Metrics database and logic
+- `v7p3r.py` — Core chess engine logic
+- `piece_square_tables.py` — Piece-square evaluation tables
 
----
-
-## Deployment (Share with Friends)
-
-You can deploy this app for free using [Streamlit Cloud](https://streamlit.io/cloud):
-
-1. Push your code to GitHub.
-2. Go to [streamlit.io/cloud](https://streamlit.io/cloud) and sign in.
-3. Click "New app", select your repo, and deploy.
-4. Share the link!
-
----
-
-## File Overview
-
-- `streamlit_app.py` — The Streamlit web app (all main features are here)
-- `evaluation_engine.py` — Chess engine logic and evaluation
-- `piece_square_tables.py` — Piece-square tables for evaluation
 - `config.yaml` — Engine and AI configuration
+- `testing/` — Unit and integration tests for each module
+- `games/` — Saved games, configs, and logs (for local/dev use)
 
 ---
 
-## Limitations (Web Demo)
+## Testing
 
-- No Lichess integration or UCI protocol in this demo.
-- No Pygame GUI or advanced visualizations.
-- Only single-game, human-vs-AI play (no AI vs AI or puzzle mode).
-- Board may require manual refresh after AI moves (see sidebar instructions).
+- Each main `.py` file has a corresponding `[module]_testing.py` in `testing/`.
+- Run individual tests:
+
+    ```bash
+    python testing/metrics_store_testing.py
+    ```
+
+- Or run a suite (see `testing/launch_testing_suite.py` and `testing/testing.yaml`).
+
+---
+
+## Deployment
+
+- **Web:** Deploy `streamlit_app.py` to [Streamlit Cloud](https://streamlit.io/cloud).
+- **Local:** Run any module directly for advanced features and metrics.
+
+---
+
+## Limitations
+
+- No Lichess/UCI integration in the web demo.
+- Local metrics dashboard requires Python environment.
+- AI vs AI and distributed/cloud database support are in development.
 
 ---
 
 ## Example Usage
 
-- **Play a game:** Start from the default position and play as White or Black.
-- **Test a position:** Paste a FEN (e.g., from a puzzle or analysis) and see what the engine thinks.
-- **Experiment:** Try different AI types and depths to see how the engine responds.
+- Play a game or analyze a position in the web app.
+- Tune engine parameters and visualize results in the dashboard.
+- Run tests to verify engine and metrics correctness.
 
 ---
 
 ## License
 
 Open source — feel free to use and modify!
+
+### Analytics ETL System
+
+The v7p3r Chess Engine includes a robust ETL (Extract, Transform, Load) system for analytics:
+
+1. Run the ETL process to transform raw game data into analytics-ready format:
+
+    ```bash
+    python -m engine_utilities.etl_processor
+    ```
+
+2. Set up scheduled ETL jobs:
+
+    ```bash
+    python -m engine_utilities.etl_scheduler --setup-local
+    ```
+
+3. Monitor ETL performance:
+
+    ```bash
+    python -m engine_utilities.etl_monitor --job-history
+    ```
+
+See [ETL System Documentation](docs/etl_system.md) for details on the analytics architecture.

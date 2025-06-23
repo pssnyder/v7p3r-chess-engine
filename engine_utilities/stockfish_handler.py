@@ -201,7 +201,7 @@ class StockfishHandler:
         self._send_command(f"position fen {board.fen()}")
         self.logger.debug(f"Set position: {board.fen()}")
 
-    def search(self, board: chess.Board, player: chess.Color, ai_config: Dict[str, Any], stop_callback: Optional[Callable[[], bool]] = None):
+    def search(self, board: chess.Board, player: chess.Color, engine_config: Dict[str, Any], stop_callback: Optional[Callable[[], bool]] = None):
         """
         Initiates a search for the best move for the current position.
         This function will parse Stockfish's 'info' lines for nodes searched and best move.
@@ -214,8 +214,8 @@ class StockfishHandler:
         self.nodes_searched = 0
         self.last_search_info = {'score': 0.0, 'nodes': 0, 'pv': ''}
 
-        move_time_limit_ms = ai_config.get('time_limit', 0)
-        depth_limit = ai_config.get('depth', 0)
+        move_time_limit_ms = engine_config.get('time_limit', 0)
+        depth_limit = engine_config.get('depth', 0)
 
         command = "go"
         if move_time_limit_ms > 0:
@@ -360,6 +360,9 @@ class StockfishHandler:
             return -score
         return score
 
+    def close(self):
+        quit()
+
     def quit(self):
         """Quits the Stockfish engine process."""
         if self.process:
@@ -379,12 +382,12 @@ class StockfishHandler:
                     pass
 
 
-    def reset(self, board: chess.Board):
+    def reset(self, board: Optional[chess.Board] = None):
         """Resets the handler state, similar to how EvaluationEngine.reset works."""
         if self.process:
             self._send_command("ucinewgame")
             self._wait_for_response("readyok") # Wait for Stockfish to confirm reset
-            self.set_position(board) # Set initial position after reset
+            self.set_position(board if board else chess.Board()) # Set initial position after reset
             self.nodes_searched = 0
             self.last_search_info = {'score': 0.0, 'nodes': 0, 'pv': ''}
             self.logger.info("StockfishHandler reset for new game.")
@@ -393,7 +396,7 @@ class StockfishHandler:
             try:
                 self._start_engine() # Try to restart if it crashed
                 if self.process: # If restart was successful
-                    self.set_position(board)
+                    self.set_position(board if board else chess.Board())
                     self.nodes_searched = 0
                     self.last_search_info = {'score': 0.0, 'nodes': 0, 'pv': ''}
                     self.logger.info("StockfishHandler successfully restarted and reset.")
@@ -429,8 +432,8 @@ if __name__ == "__main__":
         assert isinstance(eval_score, float), "Evaluation should be a float"
         
         print("\n--- Test 2: Search for a move (movetime 1000ms) ---")
-        ai_config_test = {'time_limit': 1000, 'depth': 0}
-        best_move = handler.search(board.copy(), chess.WHITE, ai_config=ai_config_test)
+        engine_config_test = {'time_limit': 1000, 'depth': 0}
+        best_move = handler.search(board.copy(), chess.WHITE, engine_config=engine_config_test)
         print(f"Best move found: {best_move}")
         assert isinstance(best_move, chess.Move), "Search should return a chess.Move"
         
@@ -439,8 +442,8 @@ if __name__ == "__main__":
         board.reset()
         board.push_uci("e2e4")
         board.push_uci("e7e5")
-        ai_config_elo = {'time_limit': 500, 'depth': 0}
-        move_elo = handler_elo.search(board.copy(), chess.BLACK, ai_config=ai_config_elo)
+        engine_config_elo = {'time_limit': 500, 'depth': 0}
+        move_elo = handler_elo.search(board.copy(), chess.BLACK, engine_config=engine_config_elo)
         print(f"Move from ELO 1500 engine: {move_elo}")
         handler_elo.quit()
 

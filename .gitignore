@@ -1,4 +1,4 @@
-# gitignore file for ViperChessEngine
+# gitignore file for v7p3r_chess_engine project
 
 # General catch-all for do-not-commit files
 *.do-not-commit
@@ -7,18 +7,19 @@
 *.wip*
 
 # Project-specific resource files and directories
-*.viper_chess_engine
-*.viper_chess_engine.*
-.viper_chess_engine_project_files/
+*.v7p3r_chess_engine
+*.v7p3r_chess_engine.*
+.v7p3r_chess_engine_project_files/
+templates/
+.db-shm
+.db-wal
+
+# Omit external engine files
+*/external_engines/*
 
 # Directories to ignore
-puzzles/
 evaluation/
-training/
-testing/
 models/
-logging/
-external_engines/
 venv/
 .history/
 
@@ -76,6 +77,9 @@ Thumbs.db # Windows
 # Data files
 *.csv
 *.jsonl
+*.db
+*.db-*
+*.sqlite
 
 # Model files
 *.pt
@@ -112,3 +116,4 @@ dmypy.json
 # Docker
 Dockerfile
 docker-compose.yml
+*/example_

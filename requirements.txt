@@ -12,3 +12,8 @@ dash
 plotly
 wmi
 seaborn
+firebase-admin>=6.2.0
+firebase-functions
+firebase-auth
+google-cloud-storage>=2.9.0
+google-cloud-firestore>=2.11.0
