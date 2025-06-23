@@ -13,7 +13,6 @@ import requests
 # Ensure project root is in sys.path for local script execution
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from cloud_store import CloudStore
 from metrics.metrics_store import MetricsStore
 
 
@@ -25,7 +24,7 @@ logger = logging.getLogger(__name__)
 class EngineDBManager:
     """
     Manages the database of chess engine configurations and their metrics.
-    Can run as a local or server-side service to receive and store data from remote engines.
+    Local-only version: all data is stored in local SQLite DBs.
     """
     def __init__(self, db_path="metrics/chess_metrics.db", config_path="config/engine_utilities.yaml"):
         self.db_path = db_path
@@ -34,18 +33,6 @@ class EngineDBManager:
         self.server_thread = None
         self.httpd = None
         self.running = False
-        
-        # Initialize cloud storage if enabled in config
-        self.cloud_store = None
-        self.cloud_enabled = self.config.get('cloud', {}).get('enabled', False)
-        if self.cloud_enabled:
-            try:
-                bucket_name = self.config.get('cloud', {}).get('bucket_name')
-                self.cloud_store = CloudStore(bucket_name=bucket_name)
-                logger.info(f"Cloud storage initialized with bucket: {bucket_name}")
-            except Exception as e:
-                logger.error(f"Failed to initialize cloud storage: {e}")
-                self.cloud_enabled = False
 
     def _load_config(self, config_path):
         if os.path.exists(config_path):
@@ -78,7 +65,6 @@ class EngineDBManager:
                 try:
                     data = json.loads(post_data.decode('utf-8'))
                     response_data = {'status': 'success', 'message': ''}
-                    
                     # Process different request types
                     if data.get('type') == 'game':
                         manager._handle_game_data(data['game_data'])
@@ -98,12 +84,10 @@ class EngineDBManager:
                         self.end_headers()
                         self.wfile.write(json.dumps({'status': 'error', 'message': 'Unknown data type'}).encode('utf-8'))
                         return
-                    
                     self.send_response(200)
                     self.send_header('Content-Type', 'application/json')
                     self.end_headers()
                     self.wfile.write(json.dumps(response_data).encode('utf-8'))
-                    
                 except Exception as e:
                     logger.error(f"Error processing request: {e}")
                     self.send_response(500)
@@ -111,80 +95,28 @@ class EngineDBManager:
                     self.end_headers()
                     error_message = str(e)
                     self.wfile.write(json.dumps({'status': 'error', 'message': f'Error: {error_message}'}).encode('utf-8'))
-                    
             def log_message(self, format, *args):
                 # Override to use our logger instead of printing to stderr
                 logger.info(f"{self.client_address[0]} - {format%args}")
-                
         return Handler
 
     def _handle_game_data(self, game_data):
-        """Handle incoming game data: store locally and in cloud if enabled."""
-        # Store in local database
+        """Handle incoming game data: store locally only."""
         self.metrics_store.add_game_result(**game_data)
-        
-        # Store in cloud if enabled
-        if self.cloud_enabled and self.cloud_store:
-            try:
-                # Extract fields needed for cloud storage
-                game_id = game_data.get('game_id')
-                if not game_id:
-                    game_id = str(uuid.uuid4())
-                    game_data['game_id'] = game_id
-                
-                # Prepare data for cloud storage
-                pgn_text = game_data.get('game_pgn', '')
-                
-                # Upload to cloud
-                self.cloud_store.upload_game_pgn(game_id, pgn_text)
-                self.cloud_store.upload_game_metadata(game_id, game_data)
-                
-                logger.info(f"Game data for {game_id} uploaded to cloud storage")
-            except Exception as e:
-                logger.error(f"Failed to upload game data to cloud: {e}")
 
     def _handle_move_data(self, move_data):
-        """Handle incoming move data: store locally and in cloud if enabled."""
-        # Store in local database
+        """Handle incoming move data: store locally only."""
         self.metrics_store.add_move_metric(**move_data)
-        
-        # Store in cloud if enabled
-        if self.cloud_enabled and self.cloud_store:
-            try:
-                game_id = move_data.get('game_id')
-                if game_id:
-                    # Upload as part of a move metrics batch
-                    # Note: We could accumulate and batch these for efficiency
-                    self.cloud_store.upload_move_metrics(game_id, [move_data])
-                    logger.info(f"Move data for game {game_id} uploaded to cloud storage")
-            except Exception as e:
-                logger.error(f"Failed to upload move data to cloud: {e}")
-    
+
     def _handle_raw_simulation(self, simulation_data):
-        """Handle raw simulation data by storing directly to cloud storage."""
-        if not self.cloud_enabled or not self.cloud_store:
-            logger.warning("Cloud storage not enabled, storing raw simulation data locally only")
-            # Store locally in a special format that can be processed later
-            with open(f"logging/raw_simulation_{simulation_data.get('id', uuid.uuid4())}.json", 'w') as f:
-                json.dump(simulation_data, f, indent=2)
-            return
-            
-        try:
-            simulation_id = simulation_data.get('id', str(uuid.uuid4()))
-            self.cloud_store.upload_raw_simulation_data(simulation_id, simulation_data)
-            logger.info(f"Raw simulation data {simulation_id} uploaded to cloud storage")
-        except Exception as e:
-            logger.error(f"Failed to upload raw simulation data to cloud: {e}")
-            # Fallback to local storage
-            with open(f"logging/raw_simulation_{simulation_id}.json", 'w') as f:
-                json.dump(simulation_data, f, indent=2)
+        """Handle raw simulation data by storing locally only."""
+        with open(f"logging/raw_simulation_{simulation_data.get('id', uuid.uuid4())}.json", 'w') as f:
+            json.dump(simulation_data, f, indent=2)
 
     def bulk_upload(self, data_list):
         """Accept a list of game/move data for bulk upload."""
-        # Group data by type for more efficient processing
         games_data = []
         moves_data = {}  # game_id -> list of moves
-        
         for item in data_list:
             if item.get('type') == 'game':
                 games_data.append(item['game_data'])
@@ -195,24 +127,11 @@ class EngineDBManager:
                     if game_id not in moves_data:
                         moves_data[game_id] = []
                     moves_data[game_id].append(move)
-        
-        # Process all games
         for game_data in games_data:
             self._handle_game_data(game_data)
-        
-        # Process all moves by game
         for game_id, moves in moves_data.items():
-            # Store locally
             for move in moves:
                 self.metrics_store.add_move_metric(**move)
-            
-            # Store in cloud if enabled
-            if self.cloud_enabled and self.cloud_store:
-                try:
-                    self.cloud_store.upload_move_metrics(game_id, moves)
-                    logger.info(f"Bulk uploaded {len(moves)} moves for game {game_id}")
-                except Exception as e:
-                    logger.error(f"Failed to bulk upload moves to cloud: {e}")
 
     def listen_and_store(self):
         """Main loop for local/remote data collection."""
