@@ -13,10 +13,23 @@ logger = logging.getLogger(__name__)
 
 class CloudStore:
     def __init__(self, bucket_name=None, firestore_collection='games', max_retries=5, retry_delay=1):
-        # GCS bucket
+        # GCS bucket - try config parameter, then environment variable
         self.bucket_name = bucket_name or os.getenv('GCS_BUCKET_NAME')
         if not self.bucket_name:
-            raise ValueError('GCS_BUCKET_NAME env var or bucket_name argument required')
+            # Try to load from config if available
+            try:
+                import yaml
+                config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'engine_utilities_config.yaml')
+                if os.path.exists(config_path):
+                    with open(config_path, 'r') as f:
+                        config = yaml.safe_load(f)
+                        self.bucket_name = config.get('cloud_storage', {}).get('bucket_name')
+            except Exception:
+                pass
+        
+        if not self.bucket_name:
+            raise ValueError('bucket_name argument, GCS_BUCKET_NAME env var, or config/engine_utilities_config.yaml required')
+            
         self.storage_client = storage.Client()
         self.bucket = self.storage_client.bucket(self.bucket_name)
 
@@ -160,3 +173,104 @@ class CloudStore:
             return url
         
         return self._retry_operation(_upload)
+
+    def get_all_game_results(self):
+        """
+        Retrieve all game metadata from Firestore.
+        
+        Returns:
+            List of dictionaries containing game result data
+        """
+        def _retrieve():
+            docs = self.collection.stream()
+            game_results = []
+            
+            for doc in docs:
+                data = doc.to_dict()
+                if data:
+                    # Format data to match what metrics_store expects
+                    game_result = {
+                        'game_id': doc.id,
+                        'timestamp': data.get('timestamp', ''),
+                        'winner': data.get('result', '*'),
+                        'game_pgn': '',  # We don't store full PGN in metadata
+                        'white_player': data.get('white_player', ''),
+                        'black_player': data.get('black_player', ''),
+                        'game_length': data.get('game_length', 0),
+                        'white_engine_config': data.get('game_settings', {}).get('white_engine_config', {}),
+                        'black_engine_config': data.get('game_settings', {}).get('black_engine_config', {})
+                    }
+                    game_results.append(game_result)
+            
+            logger.info(f'Retrieved {len(game_results)} game results from Firestore')
+            return game_results
+        
+        return self._retry_operation(_retrieve)
+
+    def get_all_move_metrics(self):
+        """
+        Retrieve all move metrics from Firestore across all games.
+        
+        Returns:
+            List of dictionaries containing move metric data
+        """
+        def _retrieve():
+            all_move_metrics = []
+            
+            # Get all game documents
+            game_docs = self.collection.stream()
+            
+            for game_doc in game_docs:
+                game_id = game_doc.id
+                
+                # Get move metrics subcollection for this game
+                moves_collection = self.collection.document(game_id).collection('moves')
+                move_docs = moves_collection.stream()
+                
+                for move_doc in move_docs:
+                    move_data = move_doc.to_dict()
+                    if move_data:
+                        # Ensure game_id is included in the move metric
+                        move_data['game_id'] = game_id
+                        all_move_metrics.append(move_data)
+            
+            logger.info(f'Retrieved {len(all_move_metrics)} move metrics from Firestore')
+            return all_move_metrics
+        
+        return self._retry_operation(_retrieve)
+
+    def get_recent_game_results(self, limit=100):
+        """
+        Retrieve recent game results from Firestore (most recent first).
+        
+        Args:
+            limit: Maximum number of games to retrieve
+        
+        Returns:
+            List of dictionaries containing recent game result data
+        """
+        def _retrieve():
+            # Query with ordering by timestamp descending and limit
+            docs = self.collection.order_by('timestamp', direction=firestore.Query.DESCENDING).limit(limit).stream()
+            game_results = []
+            
+            for doc in docs:
+                data = doc.to_dict()
+                if data:
+                    game_result = {
+                        'game_id': doc.id,
+                        'timestamp': data.get('timestamp', ''),
+                        'winner': data.get('result', '*'),
+                        'game_pgn': '',  # We don't store full PGN in metadata
+                        'white_player': data.get('white_player', ''),
+                        'black_player': data.get('black_player', ''),
+                        'game_length': data.get('game_length', 0),
+                        'white_engine_config': data.get('game_settings', {}).get('white_engine_config', {}),
+                        'black_engine_config': data.get('game_settings', {}).get('black_engine_config', {})
+                    }
+                    game_results.append(game_result)
+            
+            logger.info(f'Retrieved {len(game_results)} recent game results from Firestore')
+            return game_results
+        
+        return self._retry_operation(_retrieve)

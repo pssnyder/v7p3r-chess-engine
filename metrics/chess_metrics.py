@@ -17,15 +17,83 @@ from datetime import datetime # Import datetime for parsing timestamps
 # Initialize the metrics store globally
 metrics_store = MetricsStore()
 
-# Start data collection in background
-def start_metrics_collection():
-    # Collect initial data
-    metrics_store.collect_all_data()
-    # Start periodic collection (every 30 seconds)
-    metrics_store.start_collection(interval=30)
+# Initialize cloud-based metrics collection
+def start_centralized_metrics_collection():
+    """Start metrics collection from centralized cloud storage instead of local files."""
+    try:
+        from engine_utilities.cloud_store import CloudStore
+        cloud_store = CloudStore()
+        
+        # Sync cloud data to local database for dashboard queries
+        sync_cloud_to_local_database(cloud_store)
+        
+        # Start periodic cloud sync and ETL processing (every 60 seconds)
+        start_cloud_sync_collection(cloud_store, interval=60)
+        
+    except Exception as e:
+        print(f"Cloud metrics collection failed, falling back to local: {e}")
+        # Fallback to local file collection
+        metrics_store.collect_all_data()
+        metrics_store.start_collection(interval=30)
 
-# Start collection in a background thread to avoid blocking the dashboard
-collection_thread = threading.Thread(target=start_metrics_collection, daemon=True)
+def sync_cloud_to_local_database(cloud_store):
+    """Sync metrics data from cloud storage to local database for dashboard queries."""
+    try:
+        # Pull latest game results from Firestore
+        game_results = cloud_store.get_all_game_results()
+        
+        # Update local database with cloud data
+        for game_result in game_results:
+            metrics_store.add_game_result(**game_result)
+        
+        # Pull move metrics from cloud
+        move_metrics = cloud_store.get_all_move_metrics()
+        for metric in move_metrics:
+            metrics_store.add_move_metric(**metric)
+            
+        print(f"Synced {len(game_results)} games and {len(move_metrics)} moves from cloud")
+        
+    except Exception as e:
+        print(f"Cloud sync failed: {e}")
+
+def start_cloud_sync_collection(cloud_store, interval=60):
+    """Start periodic sync from cloud and trigger ETL processing."""
+    import threading
+    import time
+    
+    def cloud_sync_worker():
+        while True:
+            try:
+                # Sync cloud data to local
+                sync_cloud_to_local_database(cloud_store)
+                
+                # Trigger ETL processing for metrics computation
+                trigger_cloud_etl_processing(cloud_store)
+                
+            except Exception as e:
+                print(f"Cloud sync worker error: {e}")
+            
+            time.sleep(interval)
+    
+    sync_thread = threading.Thread(target=cloud_sync_worker, daemon=True)
+    sync_thread.start()
+
+def trigger_cloud_etl_processing(cloud_store):
+    """Trigger ETL processing to compute metrics from raw game data."""
+    try:
+        # Import and trigger ETL functions
+        from cloud_functions.etl_functions import trigger_metrics_etl
+        trigger_metrics_etl()
+        
+    except ImportError:
+        print("ETL functions not available, computing metrics locally")
+        # Fallback to local metrics computation
+        metrics_store.compute_metrics()
+    except Exception as e:
+        print(f"ETL processing failed: {e}")
+
+# Start centralized collection in a background thread
+collection_thread = threading.Thread(target=start_centralized_metrics_collection, daemon=True)
 collection_thread.start()
 
 # Load AI types from chess_game_config.yaml (for dropdowns)
@@ -139,9 +207,8 @@ app.layout = html.Div([
             #         placeholder="Select Black AI Type(s)",
             #         style={"backgroundColor": DARK_PANEL, "color": DARK_TEXT, "borderColor": DARK_BORDER}
             #     )
-            # ], style={'width': '30%', 'display': 'inline-block', 'verticalAlign': 'top'}),
-             html.Div([
-                html.Label("Metric to Plot (for Viper Engine):", style={"color": DARK_TEXT}),
+            # ], style={'width': '30%', 'display': 'inline-block', 'verticalAlign': 'top'}),             html.Div([
+                html.Label("Metric to Plot (for V7P3R Engine):", style={"color": DARK_TEXT}),
                 dcc.Dropdown(
                     id="dynamic-metric-selector",
                     options=[], # Populated dynamically
@@ -204,27 +271,29 @@ def update_ab_testing_section(_, selected_metric): # Removed white_engine_types,
         )
         fig_ab_test.add_annotation(text="Please select a metric from the dropdown.", xref="paper", yref="paper", showarrow=False, font=dict(size=16, color=DARK_TEXT))
         move_metrics_details_components.append(html.P("Please select a metric from the dropdown to visualize Viper's performance trend.", style={"color": DARK_TEXT}))
-        return fig_ab_test, move_metrics_details_components
-
-    # Get all moves made by Viper
-    all_viper_moves_raw = metrics_store.get_filtered_move_metrics(
-        white_engine_types=['Viper'], # Only Viper as white
-        black_engine_types=['Viper'], # Only Viper as black
+        return fig_ab_test, move_metrics_details_components    # Get all moves made by V7P3R (check engine_type for V7P3R types and exclude_from_metrics = False)
+    # V7P3R engine types include: deepsearch, lookahead, minimax, negamax, negascout, etc.
+    v7p3r_engine_types = ['deepsearch', 'lookahead', 'minimax', 'negamax', 'negascout', 
+                          'transposition_only', 'simple_search', 'quiescence_only', 
+                          'simple_eval', 'v7p3r']
+    
+    all_v7p3r_moves_raw = metrics_store.get_filtered_move_metrics(
+        white_engine_types=v7p3r_engine_types, # V7P3R engine types as white
+        black_engine_types=v7p3r_engine_types, # V7P3R engine types as black
         metric_name=selected_metric
     )
-    
-    if not all_viper_moves_raw:
+      if not all_v7p3r_moves_raw:
         fig_ab_test.update_layout(
-            title=f"No '{selected_metric}' Data for Viper Engine",
+            title=f"No '{selected_metric}' Data for V7P3R Engine",
             paper_bgcolor=DARK_PANEL, plot_bgcolor=DARK_PANEL, font=dict(color=DARK_TEXT),
             xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
             yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
         )
-        fig_ab_test.add_annotation(text=f"No move data found for Viper playing '{selected_metric}'.", xref="paper", yref="paper", showarrow=False, font=dict(size=16, color=DARK_TEXT))
-        move_metrics_details_components.append(html.P(f"No move metrics data found for Viper for the metric: {selected_metric}.", style={"color": DARK_TEXT}))
+        fig_ab_test.add_annotation(text=f"No move data found for V7P3R playing '{selected_metric}'.", xref="paper", yref="paper", showarrow=False, font=dict(size=16, color=DARK_TEXT))
+        move_metrics_details_components.append(html.P(f"No move metrics data found for V7P3R for the metric: {selected_metric}.", style={"color": DARK_TEXT}))
         return fig_ab_test, move_metrics_details_components
 
-    df_all_viper_moves = pd.DataFrame(all_viper_moves_raw)
+    df_all_v7p3r_moves = pd.DataFrame(all_v7p3r_moves_raw)
     df_games_raw = metrics_store.get_all_game_results_df()
 
     if df_games_raw is None or df_games_raw.empty:
