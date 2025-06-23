@@ -1,8 +1,8 @@
 # engine_utilities/engine_db_manager.py
 # This module manages the database of chess engine configurations and their metrics.
 # It can be expanded as the engines db utility toolkit needs expand as well.
-
 import os
+import sys
 import threading
 import time
 import json
@@ -10,9 +10,13 @@ import yaml
 import uuid
 import logging
 import requests
+# Ensure project root is in sys.path for local script execution
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from cloud_store import CloudStore
 from metrics.metrics_store import MetricsStore
-from engine_utilities.cloud_store import CloudStore
+
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
