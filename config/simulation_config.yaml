@@ -33,13 +33,13 @@ simulations:
         engine_type: 'deepsearch'
       black_engine_config:
         engine: 'stockfish'
-        # Stockfish settings are inside stockfish_handler.yaml, but can be overridden
+        # Stockfish settings are inside stockfish_config.yaml, but can be overridden
     v7p3r:
       v7p3r: # Corresponds to the engine name key in v7p3r_config.yaml
         ruleset: 'aggressive_evaluation'
         depth: 4
     stockfish_handler:
-      stockfish_config:
+      stockfish_handler:
         skill_level: 5
 
   - name: "V7P3R (Conservative) vs. V7P3R (Aggressive)"

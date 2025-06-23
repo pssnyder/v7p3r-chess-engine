@@ -18,7 +18,7 @@ from engine_utilities.adaptive_elo_finder import AdaptiveEloSimulator
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-def run_game_instance(game_config_override, v7p3r_config_override, stockfish_config_override, sim_name, simulation_id, use_central_storage=False):
+def run_game_instance(game_config_override, v7p3r_config_override, stockfish_handler_override, sim_name, simulation_id, use_central_storage=False):
     """Wrapper function to run a single game instance in a separate process."""
     try:
         logger.info(f"Starting game simulation process for: {sim_name}")
@@ -31,8 +31,8 @@ def run_game_instance(game_config_override, v7p3r_config_override, stockfish_con
             base_game_config = yaml.safe_load(f)
         with open("config/v7p3r_config.yaml") as f:
             base_v7p3r_config = yaml.safe_load(f)
-        with open("config/stockfish_handler.yaml") as f:
-            base_stockfish_config = yaml.safe_load(f)
+        with open("config/stockfish_config.yaml") as f:
+            base_stockfish_handler = yaml.safe_load(f)
 
         # Deep merge the overrides
         def deep_merge(source, destination):
@@ -45,7 +45,7 @@ def run_game_instance(game_config_override, v7p3r_config_override, stockfish_con
 
         final_game_config = deep_merge(game_config_override, base_game_config)
         final_v7p3r_config = deep_merge(v7p3r_config_override, base_v7p3r_config)
-        final_stockfish_config = deep_merge(stockfish_config_override, base_stockfish_config)
+        final_stockfish_handler = deep_merge(stockfish_handler_override, base_stockfish_handler)
         
         # Include game_id in configuration
         if 'game_id' not in final_game_config:
@@ -96,7 +96,7 @@ def run_game_instance(game_config_override, v7p3r_config_override, stockfish_con
         game = ChessGame(
             game_config=final_game_config,
             v7p3r_config=final_v7p3r_config,
-            stockfish_config=final_stockfish_config,
+            stockfish_handler=final_stockfish_handler,
             data_collector=data_collector if use_central_storage else None
         )
         result = game.run()
@@ -114,7 +114,7 @@ def run_game_instance(game_config_override, v7p3r_config_override, stockfish_con
                     'configs': {
                         'game': final_game_config,
                         'v7p3r': final_v7p3r_config,
-                        'stockfish': final_stockfish_config
+                        'stockfish': final_stockfish_handler
                     }
                 }
                 
@@ -248,13 +248,13 @@ class GameSimulationManager:
             for i in range(num_games):
                 game_config_override = sim_details.get('chess_game', {})
                 v7p3r_config_override = sim_details.get('v7p3r', {})
-                stockfish_config_override = sim_details.get('stockfish_handler', {})
+                stockfish_handler_override = sim_details.get('stockfish_handler', {})
                 
                 # The configs need to be deepcopied for each process
                 task_args = (
                     deepcopy(game_config_override),
                     deepcopy(v7p3r_config_override),
-                    deepcopy(stockfish_config_override),
+                    deepcopy(stockfish_handler_override),
                     f"{name} - Game {i+1}/{num_games}",
                     simulation_id,
                     self.use_central_storage
