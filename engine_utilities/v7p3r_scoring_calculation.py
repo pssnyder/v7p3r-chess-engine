@@ -504,34 +504,34 @@ class V7P3RScoringCalculation:
         return score
 
     def _pawn_weaknesses(self, board: chess.Board, color: chess.Color) -> float:
-        """Evaluate pawn weaknesses (e.g., backward pawns)"""
+        """Evaluate pawn weaknesses (e.g., backward pawns)."""
         score = 0.0
-        
-        # Count backward pawns
-        # A pawn is backward if it cannot be defended by another pawn and is on an open or semi-open file
+
         direction = 1 if color == chess.WHITE else -1
         for square in board.pieces(chess.PAWN, color):
-            # Example: Check if a pawn is passed (this is just an example, not backward pawn logic)
-            # if board.is_passed_pawn(square): # Changed from is_passed - This method does not exist on board
-            # TODO: Implement actual backward pawn logic here
-            # TODO: Implement passed pawn check here if desired, e.g. by checking files ahead.
-            # Example for passed pawn (simplified, does not check attacks):
-            # is_passed = True
-            # opponent_pawn_squares = board.pieces(chess.PAWN, not color)
-            # current_file = chess.square_file(square)
-            # current_rank = chess.square_rank(square)
-            # for opp_pawn_sq in opponent_pawn_squares:
-            #     opp_file = chess.square_file(opp_pawn_sq)
-            #     opp_rank = chess.square_rank(opp_pawn_sq)
-            #     if opp_file >= current_file -1 and opp_file <= current_file + 1: # same or adjacent files
-            #         if (color == chess.WHITE and opp_rank > current_rank) or \
-            #            (color == chess.BLACK and opp_rank < current_rank): # in front of our pawn
-            #             is_passed = False
-            #             break
-            # if is_passed:
-            #     score += self._get_rule_value('passed_pawn_bonus', 0.0) 
-            pass # Placeholder for backward/passed pawn logic
-        
+            file = chess.square_file(square)
+            rank = chess.square_rank(square)
+            is_backward = True
+
+            # Check if the pawn is defended by another pawn
+            for offset in [-1, 1]:  # Check adjacent files
+                adjacent_file = file + offset
+                if 0 <= adjacent_file <= 7:  # Ensure file is valid
+                    defender_square = chess.square(adjacent_file, rank - direction)
+                    defender_piece = board.piece_at(defender_square)
+                    if defender_piece and defender_piece.piece_type == chess.PAWN and defender_piece.color == color:
+                        is_backward = False
+                        break
+
+            # Check if the file is open or semi-open
+            if is_backward:
+                has_opponent_pawn = any(
+                    (piece := board.piece_at(chess.square(file, r))) and piece.piece_type == chess.PAWN and piece.color != color
+                    for r in range(8)
+                )
+                if not has_opponent_pawn:  # File is open
+                    score += self._get_rule_value('backward_pawn_penalty', 0.0)
+
         return score
 
     def _pawn_majority(self, board: chess.Board, color: chess.Color) -> float:
