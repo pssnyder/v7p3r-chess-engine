@@ -85,16 +85,9 @@ def run_etl_processing(req):
         return https_fn.Response(json.dumps(response_data), status=200, mimetype="application/json")  # type: ignore
 
     except Exception as e:
-        error_msg = f"Error in ETL processing: {str(e)}"
-        logger.error(error_msg)
-        logger.error(f"Traceback: {traceback.format_exc()}")
-        
-        response_data = {
-            "status": "error",
-            "error": error_msg
-        }
-        
-        return https_fn.Response(json.dumps(response_data), status=500, mimetype="application/json")  # type: ignore
+        logger.error(f"ETL processing failed: {str(e)}")
+        logger.error(traceback.format_exc())
+        return https_fn.Response(json.dumps({"status": "error", "message": str(e)}), status=500, headers={"Content-Type": "application/json"})  # type: ignore
 
 
 @https_fn.on_request(cors=CorsOptions(cors_origins="*", cors_methods=["get"]))
@@ -132,3 +125,31 @@ def get_etl_status(req):
         }
         
         return https_fn.Response(json.dumps(response_data), status=500, mimetype="application/json")  # type: ignore
+
+
+def trigger_metrics_etl():
+    """
+    Non-Cloud Function version for triggering ETL processing locally.
+    
+    This function can be called from chess_game.py and chess_metrics.py
+    to trigger ETL processing without going through HTTP endpoints.
+    """
+    try:
+        logger.info("Starting local ETL processing for metrics update")
+          # Initialize the ETL processor
+        etl = ChessAnalyticsETL()
+        
+        # Process raw game data into analytics format
+        # This will read from Firestore and update the metrics
+        results = etl.run_etl_job()
+        
+        logger.info(f"ETL processing completed successfully: {results}")
+        return {"status": "success", "results": results}
+        
+    except Exception as e:
+        logger.error(f"Local ETL processing failed: {str(e)}")
+        logger.error(traceback.format_exc())
+        return {"status": "error", "message": str(e)}
+
+
+# Additional utility functions for cloud integration

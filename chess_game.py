@@ -153,6 +153,9 @@ class ChessGame:
         self._move_metrics_batch = []  # in-memory store of move metrics
         self.game_start_timestamp = get_timestamp()
         self.current_game_db_id = f"eval_game_{self.game_start_timestamp}.pgn"
+        
+        # Initialize background data sync to centralized storage
+        self._setup_background_sync()
 
         # Initialize board and new game
         # Add rated flag from config
@@ -162,13 +165,13 @@ class ChessGame:
         # Set headers
         
         # Set headers        # Add rated flag from config
-        self.rated = self.game_config_data.get('game_config', {}).get('rated', True)
-
-        # Initialize Cloud storage backend if enabled
+        self.rated = self.game_config_data.get('game_config', {}).get('rated', True)        # Initialize Cloud storage backend if enabled
         cloud_enabled = self.game_config_data.get('game_config', {}).get('cloud_storage_enabled', False)
         if cloud_enabled:
             try:
-                self.cloud_store = CloudStore()
+                # Get bucket name from config
+                bucket_name = self.game_config_data.get('game_config', {}).get('cloud_bucket_name', 'viper-chess-engine-data')
+                self.cloud_store = CloudStore(bucket_name=bucket_name)
             except Exception as e:
                 chess_game_logger.warning(f"Failed to initialize cloud storage: {e}")
                 self.cloud_store = None
@@ -495,15 +498,16 @@ class ChessGame:
             "exclude_white_from_metrics": self.exclude_white_performance,
             "exclude_black_from_metrics": self.exclude_black_performance
         }
-        
-        # Use the data collector if available
+          # Use the data collector if available
         if self.data_collector:
-            self.data_collector('game_result', game_result_data)        # Upload to cloud storage if available
+            self.data_collector('game_result', game_result_data)
+            
+        # Priority 1: Upload to centralized cloud storage
+        cloud_upload_success = False
         if self.cloud_store:
             try:
                 pgn_url = self.cloud_store.upload_game_pgn(game_id, pgn_text)
-                
-                # --- Upload metadata to Firestore ---
+                  # --- Upload metadata to Firestore ---
                 metadata = {
                     "result": result,
                     "game_id": game_id,
@@ -512,6 +516,7 @@ class ChessGame:
                     "white_player": self.game.headers.get("White"),
                     "black_player": self.game.headers.get("Black"),
                     "rated": self.rated,
+                    "game_length": self.board.fullmove_number,
                     # include configs
                     "game_settings": self.game_config_data,
                     "v7p3r_settings": self.v7p3r_config_data,
@@ -519,18 +524,81 @@ class ChessGame:
                 }
                 self.cloud_store.upload_game_metadata(game_id, metadata)
 
-                # Optionally upload move metrics to Firestore
+                # Upload all move metrics to centralized storage
                 if self._move_metrics_batch:
                     self.cloud_store.upload_move_metrics(game_id, self._move_metrics_batch)
+                    self._move_metrics_batch.clear()  # Clear after successful upload
+                
+                cloud_upload_success = True
+                
+                # Trigger ETL processing for immediate metrics update
+                self._trigger_etl_processing()
+                
+                if self.logger:
+                    self.logger.info(f"Successfully uploaded game {game_id} to centralized storage")
+                    
             except Exception as e:
                 if self.logger:
                     self.logger.error(f"Failed to upload game data to cloud: {e}")
-                # If cloud upload fails, save locally
-                self.quick_save_pgn(f"games/{game_id}.pgn")
+                cloud_upload_success = False
+        
+        # Fallback: Save locally only if cloud upload failed
+        if not cloud_upload_success:
+            self.save_local_game_files(game_id, pgn_text)
+            if self.logger:
+                self.logger.warning(f"Game {game_id} saved locally due to cloud upload failure")
 
     def quick_save_pgn(self, filename):
-        """Deprecated in cloud mode."""
-        pass
+        """Save PGN to local file."""
+        try:
+            # Ensure games directory exists
+            import os
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
+            
+            with open(filename, 'w', encoding='utf-8') as f:
+                # Get PGN text
+                buf = StringIO()
+                exporter = chess.pgn.FileExporter(buf)
+                self.game.accept(exporter)
+                f.write(buf.getvalue())
+        except Exception as e:
+            if self.logger:
+                self.logger.error(f"Failed to save PGN to {filename}: {e}")
+
+    def save_local_game_files(self, game_id, pgn_text):
+        """Save both PGN and YAML config files locally for metrics processing."""
+        try:
+            import os
+            import yaml
+            
+            # Ensure games directory exists
+            os.makedirs("games", exist_ok=True)
+            
+            # Save PGN file
+            pgn_path = f"games/{game_id}.pgn"
+            with open(pgn_path, 'w', encoding='utf-8') as f:
+                f.write(pgn_text)
+            
+            # Save YAML config file for metrics processing
+            yaml_path = f"games/{game_id}.yaml"
+            config_data = {
+                'game_id': game_id,
+                'timestamp': self.game_start_timestamp,
+                'white_engine_config': self.white_engine_config,
+                'black_engine_config': self.black_engine_config,
+                'game_settings': self.game_config_data,
+                'v7p3r_settings': self.v7p3r_config_data,
+                'stockfish_settings': self.stockfish_handler_data
+            }
+            with open(yaml_path, 'w', encoding='utf-8') as f:
+                yaml.dump(config_data, f, default_flow_style=False)
+            
+            if self.logger:
+                self.logger.debug(f"Saved local files: {pgn_path}, {yaml_path}")
+                
+        except Exception as e:
+            if self.logger:
+                self.logger.error(f"Failed to save local game files for {game_id}: {e}")
 
     def import_fen(self, fen_string):
         """Import a position from FEN notation"""
@@ -840,6 +908,9 @@ class ChessGame:
 
             self.clock.tick(MAX_FPS)
             
+        # Cleanup
+        self._cleanup_background_sync()  # Stop background sync threads
+        
         if pygame.get_init():
             pygame.quit()
         if hasattr(self, 'white_engine') and self.white_engine:
@@ -849,75 +920,87 @@ class ChessGame:
             if isinstance(self.black_engine, StockfishHandler):
                 self.black_engine.quit()
 
-if __name__ == "__main__":
-    # Load configuration from YAML files
-    import yaml
+    def _setup_background_sync(self):
+        """Initialize background synchronization with centralized data storage."""
+        import threading
+        
+        # Start a background thread for periodic cloud sync
+        self.sync_active = True
+        
+        def background_sync_worker():
+            """Background worker to sync local data to centralized storage."""
+            import time
+            
+            while self.sync_active:
+                try:
+                    # Trigger data sync every 30 seconds during gameplay
+                    if hasattr(self, 'cloud_store') and self.cloud_store:
+                        self._sync_to_centralized_storage()
+                    
+                    # Also trigger ETL processing for metrics computation
+                    self._trigger_etl_processing()
+                    
+                except Exception as e:
+                    if self.logger:
+                        self.logger.warning(f"Background sync error: {e}")
+                
+                # Sleep for 30 seconds, but check sync_active every second
+                for _ in range(30):
+                    if not self.sync_active:
+                        break
+                    time.sleep(1)
+        
+        # Start the background sync thread
+        self.sync_thread = threading.Thread(target=background_sync_worker, daemon=True)
+        self.sync_thread.start()
+        
+        if self.logging_enabled and self.logger:
+            self.logger.info("Background cloud sync and ETL processing initialized")
     
-    class ChessGameConfig:
-        def __init__(self):
-            self.fen_position = None
-            self.data_collector = None
+    def _sync_to_centralized_storage(self):
+        """Sync pending game data to centralized storage."""
+        try:
+            # If we have pending move metrics, batch upload them
+            if self._move_metrics_batch and self.cloud_store:
+                # Upload current batch of move metrics
+                temp_game_id = f"partial_game_{self.game_start_timestamp}"
+                self.cloud_store.upload_move_metrics(temp_game_id, self._move_metrics_batch)
+                
+                if self.logger:
+                    self.logger.debug(f"Uploaded {len(self._move_metrics_batch)} move metrics to cloud")
+                
+                # Clear the batch after successful upload
+                self._move_metrics_batch.clear()
+                
+        except Exception as e:
+            if self.logger:
+                self.logger.warning(f"Failed to sync to centralized storage: {e}")
+    
+    def _trigger_etl_processing(self):
+        """Trigger ETL processing to update metrics reporting layer."""
+        try:
+            # Import ETL components for processing raw game data
+            from cloud_functions.etl_functions import trigger_metrics_etl
             
-            # Load chess game configuration
-            try:
-                with open('config/chess_game_config.yaml', 'r') as f:
-                    chess_config = yaml.safe_load(f)
-                self.game_config = chess_config
-            except FileNotFoundError:
-                print("Warning: chess_game_config.yaml not found, using default settings")
-                self.game_config = {
-                    'monitoring': {
-                        'enable_logging': True,
-                        'show_thinking': True
-                    },
-                    'game_config': {
-                        'human_color': 'random',
-                        'starting_position': 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
-                        'ai_game_count': 1,
-                        'ai_vs_ai': True,
-                        'rated': True
-                    },
-                    'white_engine_config': {
-                        'engine': 'v7p3r',
-                        'depth': 4,
-                        'exclude_from_metrics': False
-                    },
-                    'black_engine_config': {
-                        'engine': 'stockfish',
-                        'depth': 3,
-                        'exclude_from_metrics': True
-                    }
-                }
+            # Trigger ETL processing of raw game results into metrics
+            trigger_metrics_etl()
             
-            # Load V7P3R configuration
-            try:
-                with open('config/v7p3r_config.yaml', 'r') as f:
-                    self.v7p3r_config = yaml.safe_load(f)
-            except FileNotFoundError:
-                print("Warning: v7p3r_config.yaml not found, using default settings")
-                self.v7p3r_config = {
-                    'v7p3r': {
-                        'ruleset': 'default_evaluation',
-                        'depth': 3
-                    }
-                }
-            
-            # Load Stockfish configuration
-            try:
-                with open('config/stockfish_config.yaml', 'r') as f:
-                    self.stockfish_handler = yaml.safe_load(f)
-            except FileNotFoundError:
-                print("Warning: stockfish_config.yaml not found, using default settings")
-                self.stockfish_handler = {
-                    'stockfish_handler': {
-                        'path': None,
-                        'elo_rating': None,
-                        'skill_level': None,
-                        'debug_stockfish': False
-                    }
-                }
-
-    config = ChessGameConfig()
-    game = ChessGame(config)
-    game.run()
-    game.metrics_store.close()
+            if self.logger:
+                self.logger.debug("Triggered ETL processing for metrics update")
+                
+        except ImportError:
+            # ETL functions not available, skip silently
+            pass
+        except Exception as e:
+            if self.logger:
+                self.logger.warning(f"ETL processing trigger failed: {e}")
+    
+    def _cleanup_background_sync(self):
+        """Clean up background sync threads."""
+        if hasattr(self, 'sync_active'):
+            self.sync_active = False
+        if hasattr(self, 'sync_thread') and self.sync_thread.is_alive():
+            self.sync_thread.join(timeout=5.0)
+    
+    # ================================
+    # ====== GAME CONFIGURATION ======

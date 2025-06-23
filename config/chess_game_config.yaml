@@ -1,7 +1,6 @@
 # chess_game_config.yaml
 # Configuration for the automated game handler
 # This is where pygame chess game settings are configured, as well as the white and black engine paths to use for the game. Additional configurations for those engines will be in engine_utilities/external_engines/<engine_name>_handler.yaml
-# TODO: update to handle new configuration and engine functionality options
 
 # game_config settings
 game_config:
@@ -9,12 +8,14 @@ game_config:
   # General game settings
   game_type: standard            # Options: standard, chess960, king_of_the_hill, three_check, antichess, atomic, racing_kings
   game_clock: 0 #300             # Time in seconds for each player, 0 for no clock
-  game_increment: 0 #2           # Increment in seconds per move, 0 for no increment
-  rated: true                    # Set to true to record game and move metrics for analysis.
-
+  game_increment: 0 #2           # Increment in seconds per move, 0 for no increment  rated: true                    # Set to true to record game and move metrics for analysis.
+  
+  # Cloud storage settings
+  cloud_storage_enabled: false   # Set to true to enable cloud storage for game data
+  cloud_bucket_name: "viper-chess-engine-data"  # GCS bucket name for storing game data
   # AI vs AI game_config settings
   ai_vs_ai: true                 # Set to true for AI vs AI matches
-  ai_game_count: 100           # Number of games to play in AI vs AI mode
+  ai_game_count: 10               # Number of games to play in AI vs AI mode
   starting_position: default     # Default starting position name (or FEN string)
   strict_draw_prevention: true   # Enforce strict draw rules to fully block drawing moves that would lead to stalemate, insufficient material, and threefold repetition
   
@@ -25,7 +26,7 @@ game_config:
 # Engine configurations
 # These configurations are for the AI engines used in the game, such as V7P3R and Stockfish.
 white_engine_config:
-  exclude_from_metrics: false   # TODO Implement flag to exclude this engines performance from metrics collection, useful for testing, non-competitive, or third party AIs who's performance you may not want to record for this set of games, should flag all outputs from this color and engine for this match date_timestamp as being excluded from metrics, these metrics should still be gathered as a fallback, and in the event I do want to use them so we just want to have a flag in the database for exclude from metrics. Then I can always toggle the flags per game record in the database if I want to see a game or vice versa.
+  exclude_from_metrics: false   # Flag to exclude this engines performance from metrics collection, useful for testing, non-competitive, or third party AIs who's performance you may not want to record for this set of games, should flag all outputs from this color and engine for this match date_timestamp as being excluded from metrics, these metrics should still be gathered as a fallback, and in the event I do want to use them so we just want to have a flag in the database for exclude from metrics. Then I can always toggle the flags per game record in the database if I want to see a game or vice versa.
   engine: v7p3r                 # Name of the engine being used (e.g., 'v7p3r', 'stockfish'), this value is a direct reference to the engine configuration values below
 black_engine_config:
   exclude_from_metrics: true    # does the same as above but for this engines performance as this color           
@@ -60,11 +61,11 @@ engine_types: [
   'simple_eval',                   # Simple evaluation function
   'random',                        # Random move selection
   'stockfish',                     # Stockfish engine integration
-  'v7p3r',                         # V7P3R AI Engine (Static Evaluation Function)
-  'v7p3r_nn_ai_engine',            # V7P3R NN AI Engine (Supervised Learning - TODO: Implement)
-  'v7p3r_genetic_ai_engine',       # V7P3R Genetic AI Engine (TODO: Implement)
-  'v7p3r_reinforcement_ai_engine', # V7P3R Reinforcement AI Engine (TODO: Implement)
-  'v7p3r_hybrid_nn_search_engine'  # V7P3R Hybrid NN-Search Engine (TODO: Implement)
+  'v7p3r',                         # V7P3R Static Evaluation Engine
+  'v7p3r_nn',                      # V7P3R NN AI Engine (TODO: Implement)
+  'v7p3r_ga',                      # V7P3R Genetic AI Engine (TODO: Implement)
+  'v7p3r_rl',                      # V7P3R Reinforcement AI Engine (TODO: Implement)
+  'v7p3r_nn_hybrid'                # V7P3R Hybrid NN-Search Engine (TODO: Implement)
 ]
 
 # Starting positions
