@@ -1,6 +1,7 @@
 # v7p3r_nn_engine/v7p3r_nn.py
 # V7P3R Chess Engine Neural Network Module
 import os
+import sys
 import numpy as np
 import chess
 import chess.pgn
@@ -17,6 +18,10 @@ import random
 from io import StringIO
 from collections import defaultdict
 from typing import List, Dict, Tuple, Optional, Union
+
+# Add the project root to the Python path to allow imports from anywhere in the project
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from engine_utilities.stockfish_handler import StockfishHandler
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, 
@@ -153,7 +158,7 @@ class ChessNN(nn.Module):
 class MoveLibrary:
     """Local storage for chess positions, evaluations, and best moves"""
     
-    def __init__(self, db_path="v7p3r_nn_engine/v7p3r_nn_move_vocab/move_library.db"):
+    def __init__(self, db_path="v7p3r_nn_engine/move_library.db"):
         """Initialize the move library with a local SQLite database"""
         os.makedirs(os.path.dirname(db_path), exist_ok=True)
         self.conn = sqlite3.connect(db_path)
@@ -314,13 +319,13 @@ class V7P3RNeuralNetwork:
             
         return model
         
-    def _get_latest_model_path(self):
+    def _get_latest_model_path(self):        
         """Get the path to the latest saved model"""
         storage_config = self.config.get("training", {}).get("storage", {})
         if not storage_config.get("enabled", False):
             return None
             
-        model_dir = storage_config.get("model_path", "v7p3r_nn_engine/v7p3r_nn_models")
+        model_dir = storage_config.get("model_path", "v7p3r_nn_engine/models")
         os.makedirs(model_dir, exist_ok=True)
         
         # Find the most recent model file
@@ -501,7 +506,7 @@ class V7P3RNeuralNetwork:
     
     def _save_checkpoint(self, epoch):
         """Save a checkpoint of the model during training"""
-        storage_config = self.config.get("training", {}).get("storage", {})
+        storage_config = self.config.get("training", {}).get("storage", {})        
         if not storage_config.get("enabled", False) or not storage_config.get("store_checkpoints", False):
             return
             
@@ -509,7 +514,7 @@ class V7P3RNeuralNetwork:
         if (epoch + 1) % checkpoint_freq != 0:
             return
             
-        model_dir = storage_config.get("model_path", "v7p3r_nn_engine/v7p3r_nn_models")
+        model_dir = storage_config.get("model_path", "v7p3r_nn_engine/models")
         os.makedirs(model_dir, exist_ok=True)
         
         checkpoint_path = os.path.join(model_dir, f"v7p3r_nn_checkpoint_epoch_{epoch+1}.pt")
@@ -518,11 +523,11 @@ class V7P3RNeuralNetwork:
     
     def _save_model(self):
         """Save the trained model"""
-        storage_config = self.config.get("training", {}).get("storage", {})
+        storage_config = self.config.get("training", {}).get("storage", {})        
         if not storage_config.get("enabled", False) or not storage_config.get("save_model", False):
             return
             
-        model_dir = storage_config.get("model_path", "v7p3r_nn_engine/v7p3r_nn_models")
+        model_dir = storage_config.get("model_path", "v7p3r_nn_engine/models")
         os.makedirs(model_dir, exist_ok=True)
         
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -593,8 +598,6 @@ class V7P3RNeuralNetwork:
         
     def analyze_game_with_stockfish(self, pgn_path, stockfish_path=None):
         """Analyze a game with Stockfish and update the move library"""
-        from engine_utilities.stockfish_handler import StockfishHandler
-        
         # Get stockfish path from config if not provided
         if not stockfish_path:
             try:
