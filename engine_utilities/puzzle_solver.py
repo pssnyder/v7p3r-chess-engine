@@ -34,8 +34,8 @@ Any puzzle related configurations will be found in config/puzzle_config.yaml
 If use_transposition_table is disabled in settings then no moves should be added to the temporary in game transposition table and thus no permanent memory should be stored of new transposition_move entries nor anti_transposition_move entires (this is a useful option for testing when we do not want moves stored as results could report incorrectly and corrupt the engines clean move library)
 Data Handling:
 
-Record each puzzle attempt and result, then upload the data to the new centralized data storage location as puzzle data results.
-The existing db_manager should process these results as part of its data cleanup and reporting etls, in addition to simulation data for games that should already be processed.
+Record each puzzle attempt and result, then store the data locally as puzzle data results.
+The local database manager processes these results as part of its data cleanup and reporting ETLs, in addition to simulation data for games that should already be processed.
 If enabled, Transposition moves stored in temporary transposition tables should be added to permanent storage transposition_move and anti-transposition_move libraries/tables (ensuring no duplicates).
 Output and Reporting:
 
@@ -48,7 +48,7 @@ Acceptance Criteria
  Puzzle data import can be run on lichess_db_puzzle.csv
  Engine supports dynamic ELO-based puzzle selection with logarithmic rating increments.
  Puzzle Elo finding can be run with one or multiple configurations, and results are linked appropriately.
- Data uploads to the central storage, and is processed by db_manager or equivalent etls, for reporting.
+ Data is stored locally and processed by the local database manager for reporting.
  Best configuration outputs are generated in the correct format and location.
  In-game Transposition Table, permanent transpositon_move library and anti_transposition_move libraries are all operating as expected to improve move selection and provide more human like learning capabilities.
 Rationale

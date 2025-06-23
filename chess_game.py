@@ -19,7 +19,6 @@ MAX_FPS = 60
 from v7p3r_engine.v7p3r import V7P3REvaluationEngine # Corrected import for V7P3REvaluationEngine
 from engine_utilities.stockfish_handler import StockfishHandler # Corrected import path and name
 from metrics.metrics_store import MetricsStore # Import MetricsStore (assuming it's in project root or accessible)
-from engine_utilities.cloud_store import CloudStore
 
 # Resource path config for distro
 def resource_path(relative_path):
@@ -154,9 +153,6 @@ class ChessGame:
         self.game_start_timestamp = get_timestamp()
         self.current_game_db_id = f"eval_game_{self.game_start_timestamp}.pgn"
         
-        # Initialize background data sync to centralized storage
-        self._setup_background_sync()
-
         # Initialize board and new game
         # Add rated flag from config
         self.rated = self.game_config_data.get('game_config', {}).get('rated', True)
@@ -164,19 +160,6 @@ class ChessGame:
         
         # Set headers
         
-        # Set headers        # Add rated flag from config
-        self.rated = self.game_config_data.get('game_config', {}).get('rated', True)        # Initialize Cloud storage backend if enabled
-        cloud_enabled = self.game_config_data.get('game_config', {}).get('cloud_storage_enabled', False)
-        if cloud_enabled:
-            try:
-                # Get bucket name from config
-                bucket_name = self.game_config_data.get('game_config', {}).get('cloud_bucket_name', 'viper-chess-engine-data')
-                self.cloud_store = CloudStore(bucket_name=bucket_name)
-            except Exception as e:
-                chess_game_logger.warning(f"Failed to initialize cloud storage: {e}")
-                self.cloud_store = None
-        else:
-            self.cloud_store = None
     # ================================
     # ====== GAME CONFIGURATION ======
     
@@ -502,51 +485,10 @@ class ChessGame:
         if self.data_collector:
             self.data_collector('game_result', game_result_data)
             
-        # Priority 1: Upload to centralized cloud storage
-        cloud_upload_success = False
-        if self.cloud_store:
-            try:
-                pgn_url = self.cloud_store.upload_game_pgn(game_id, pgn_text)
-                  # --- Upload metadata to Firestore ---
-                metadata = {
-                    "result": result,
-                    "game_id": game_id,
-                    "pgn_url": pgn_url,
-                    "timestamp": timestamp,
-                    "white_player": self.game.headers.get("White"),
-                    "black_player": self.game.headers.get("Black"),
-                    "rated": self.rated,
-                    "game_length": self.board.fullmove_number,
-                    # include configs
-                    "game_settings": self.game_config_data,
-                    "v7p3r_settings": self.v7p3r_config_data,
-                    "stockfish_settings": self.stockfish_handler_data
-                }
-                self.cloud_store.upload_game_metadata(game_id, metadata)
-
-                # Upload all move metrics to centralized storage
-                if self._move_metrics_batch:
-                    self.cloud_store.upload_move_metrics(game_id, self._move_metrics_batch)
-                    self._move_metrics_batch.clear()  # Clear after successful upload
-                
-                cloud_upload_success = True
-                
-                # Trigger ETL processing for immediate metrics update
-                self._trigger_etl_processing()
-                
-                if self.logger:
-                    self.logger.info(f"Successfully uploaded game {game_id} to centralized storage")
-                    
-            except Exception as e:
-                if self.logger:
-                    self.logger.error(f"Failed to upload game data to cloud: {e}")
-                cloud_upload_success = False
-        
         # Fallback: Save locally only if cloud upload failed
-        if not cloud_upload_success:
-            self.save_local_game_files(game_id, pgn_text)
-            if self.logger:
-                self.logger.warning(f"Game {game_id} saved locally due to cloud upload failure")
+        self.save_local_game_files(game_id, pgn_text)
+        if self.logger:
+            self.logger.info(f"Game {game_id} saved locally.")
 
     def quick_save_pgn(self, filename):
         """Save PGN to local file."""
@@ -909,8 +851,6 @@ class ChessGame:
             self.clock.tick(MAX_FPS)
             
         # Cleanup
-        self._cleanup_background_sync()  # Stop background sync threads
-        
         if pygame.get_init():
             pygame.quit()
         if hasattr(self, 'white_engine') and self.white_engine:
@@ -921,61 +861,27 @@ class ChessGame:
                 self.black_engine.quit()
 
     def _setup_background_sync(self):
-        """Initialize background synchronization with centralized data storage."""
+        """Initialize background synchronization (local ETL only)."""
         import threading
-        
-        # Start a background thread for periodic cloud sync
         self.sync_active = True
-        
         def background_sync_worker():
-            """Background worker to sync local data to centralized storage."""
             import time
-            
             while self.sync_active:
                 try:
-                    # Trigger data sync every 30 seconds during gameplay
-                    if hasattr(self, 'cloud_store') and self.cloud_store:
-                        self._sync_to_centralized_storage()
-                    
-                    # Also trigger ETL processing for metrics computation
+                    # Only trigger ETL processing for metrics computation
                     self._trigger_etl_processing()
-                    
                 except Exception as e:
                     if self.logger:
                         self.logger.warning(f"Background sync error: {e}")
-                
-                # Sleep for 30 seconds, but check sync_active every second
                 for _ in range(30):
                     if not self.sync_active:
                         break
                     time.sleep(1)
-        
-        # Start the background sync thread
         self.sync_thread = threading.Thread(target=background_sync_worker, daemon=True)
         self.sync_thread.start()
-        
         if self.logging_enabled and self.logger:
-            self.logger.info("Background cloud sync and ETL processing initialized")
-    
-    def _sync_to_centralized_storage(self):
-        """Sync pending game data to centralized storage."""
-        try:
-            # If we have pending move metrics, batch upload them
-            if self._move_metrics_batch and self.cloud_store:
-                # Upload current batch of move metrics
-                temp_game_id = f"partial_game_{self.game_start_timestamp}"
-                self.cloud_store.upload_move_metrics(temp_game_id, self._move_metrics_batch)
-                
-                if self.logger:
-                    self.logger.debug(f"Uploaded {len(self._move_metrics_batch)} move metrics to cloud")
-                
-                # Clear the batch after successful upload
-                self._move_metrics_batch.clear()
-                
-        except Exception as e:
-            if self.logger:
-                self.logger.warning(f"Failed to sync to centralized storage: {e}")
-    
+            self.logger.info("Background ETL processing initialized (local only)")
+
     def _trigger_etl_processing(self):
         """Trigger ETL processing to update metrics reporting layer."""
         try:
