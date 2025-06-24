@@ -13,6 +13,9 @@
 templates/
 .db-shm
 .db-wal
+games/
+logging/
+*.db
 
 # Omit external engine files
 */external_engines/*
