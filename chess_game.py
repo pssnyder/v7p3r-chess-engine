@@ -125,14 +125,9 @@ class ChessGame:
         self.white_engine_config = self.game_config_data.get('white_engine_config', {}) # Adjusted path
         self.black_engine_config = self.game_config_data.get('black_engine_config', {}) # Adjusted path
         
-        # Ensure 'engine_type' and 'engine' keys exist in AI configs
-        self.white_engine_config['engine_type'] = self.white_engine_config.get('engine_type', 'random')
+        # Set 'engine' keys in AI configs
         self.white_engine_config['engine'] = self.white_engine_config.get('engine', 'v7p3r')
-        self.black_engine_config['engine_type'] = self.black_engine_config.get('engine_type', 'random')
         self.black_engine_config['engine'] = self.black_engine_config.get('engine', 'v7p3r')
-
-        self.white_engine_type = self.white_engine_config['engine_type']
-        self.black_engine_type = self.black_engine_config['engine_type']
         self.white_eval_engine = self.white_engine_config['engine']
         self.black_eval_engine = self.black_engine_config['engine']
 
@@ -141,8 +136,8 @@ class ChessGame:
         
         if self.logging_enabled and self.logger:
             self.logger.debug(f"Initializing ChessGame with {self.starting_position} position")
-            self.logger.debug(f"White AI Type: {self.white_engine_type}, Engine: {self.white_eval_engine}")
-            self.logger.debug(f"Black AI Type: {self.black_engine_type}, Engine: {self.black_eval_engine}")
+            self.logger.debug(f"White Engine: {self.white_eval_engine}")
+            self.logger.debug(f"Black Engine: {self.black_eval_engine}")
         
         # Debug settings
         self.show_eval = self.game_config_data.get('monitoring', {}).get('show_evaluation', False) # Adjusted path for debug settings if they were moved, assuming they are in 'monitoring' or similar in chess_game_config.yaml
@@ -435,6 +430,8 @@ class ChessGame:
             
     def save_game_data(self):
         """Save the game data to local files and database only."""
+        games_dir = "games"
+        os.makedirs(games_dir, exist_ok=True)
         timestamp = self.game_start_timestamp
         game_id = f"eval_game_{timestamp}"
 
@@ -464,6 +461,56 @@ class ChessGame:
         # Save locally using metrics_store
         self.metrics_store.add_game_result(**metrics_data)
         
+        # Save locally into pgn file
+        pgn_filepath = f"games/eval_game_{timestamp}.pgn"
+        with open(pgn_filepath, "w") as f:
+            exporter = chess.pgn.FileExporter(f)
+            self.game.accept(exporter)
+            # Always append the result string at the end for compatibility
+            if result != "*":
+                f.write(f"\n{result}\n")
+        if self.logging_enabled and self.logger:
+            self.logger.info(f"Game PGN saved to {pgn_filepath}")
+
+        # Save YAML config file for metrics processing
+        config_filepath = f"games/eval_game_{timestamp}.yaml"
+        # Save a combined config for this specific game, including relevant parts of all loaded configs
+        game_specific_config = {
+            "game_settings": self.game_config_data,
+            "v7p3r_settings": self.v7p3r_config_data,
+            "stockfish_settings": self.stockfish_handler_data,
+            "white_actual_config": self.white_engine_config, # The specific config used by white AI for this game
+            "black_actual_config": self.black_engine_config  # The specific config used by black AI for this game
+        }
+        with open(config_filepath, "w") as f:
+            yaml.dump(game_specific_config, f)
+        if self.logging_enabled and self.logger:
+            self.logger.info(f"Game-specific combined configuration saved to {config_filepath}")
+
+        log_filepath = f"games/eval_game_{timestamp}.log"
+        eval_log_dir = "logging"
+        
+        log_files_to_copy = []
+        for f_name in os.listdir(eval_log_dir):
+            if f_name.startswith("v7p3r_evaluation_engine.log") or \
+               f_name.startswith("v7p3r_scoring_calculation.log") or \
+               f_name.startswith("chess_game.log") or \
+               f_name.startswith("stockfish_handler.log"):
+                log_files_to_copy.append(os.path.join(eval_log_dir, f_name))
+        log_files_to_copy.sort()
+        
+        with open(log_filepath, "w") as outfile:
+            for log_file in log_files_to_copy:
+                try:
+                    with open(log_file, "r") as infile:
+                        outfile.write(f"\n--- {os.path.basename(log_file)} ---\n")
+                        outfile.write(infile.read())
+                except Exception as e:
+                    if self.logging_enabled and self.logger:
+                        self.logger.warning(f"Could not read {log_file}: {e}")
+        if self.logging_enabled and self.logger:
+            self.logger.info(f"Combined logs saved to {log_filepath}")
+
         # Prepare complete game result data for data collector
         game_result_data = {
             "game_id": game_id,
@@ -484,7 +531,11 @@ class ChessGame:
             "exclude_white_from_metrics": self.exclude_white_performance,
             "exclude_black_from_metrics": self.exclude_black_performance
         }
-          # Use the data collector if available
+
+        # Save the game result to a file for instant analysis
+        self.quick_save_pgn(f"games/{game_id}.pgn")  
+
+        # Use the data collector if available
         if self.data_collector:
             try:
                 self.data_collector('game_result', game_result_data)
@@ -492,8 +543,21 @@ class ChessGame:
                 if self.logger:
                     self.logger.error(f"Failed to upload game data to cloud: {e}")                # If cloud upload fails, save locally
                 self.save_local_game_files(game_id, pgn_text)
-                self.quick_save_pgn(f"games/{game_id}.pgn")
+            
+
+    def quick_save_pgn_to_file(self, filename):
+        """Quick save the current game to a PGN file"""
+        # Inject or update Result header so the PGN shows the game outcome
+        if self.board.is_game_over():
+            self.game.headers["Result"] = self.get_board_result()
+            self.game_node = self.game.end()
+        else:
+            self.game.headers["Result"] = "*"
         
+        with open(filename, "w") as f:
+            exporter = chess.pgn.FileExporter(f)
+            self.game.accept(exporter)
+
     def quick_save_pgn(self, filename):
         """Save PGN to local file."""
         try:
@@ -664,10 +728,6 @@ class ChessGame:
                 else:
                     if self.logging_enabled and self.logger:
                         self.logger.error(f"AI ({current_player_color}) returned null move unexpectedly. | FEN: {self.board.fen()}")
-                    if current_player_color == chess.WHITE:
-                        self.white_engine_config['exclude_from_metrics'] = True
-                    else:
-                        self.black_engine_config['exclude_from_metrics'] = True
             else:
                 if self.logging_enabled and self.logger:
                     self.logger.error(f"AI ({current_player_color}) returned an invalid object type or illegal move: {ai_move}. Forcing random move. | FEN: {self.board.fen()}")
@@ -682,10 +742,6 @@ class ChessGame:
                         self.logger.info(f"AI ({current_player_color}) played fallback move: {fallback_move} (Eval: {self.current_eval:.2f})")
                     self.last_ai_move = fallback_move
 
-                    if current_player_color == chess.WHITE:
-                        self.white_engine_config['exclude_from_metrics'] = True
-                    else:
-                        self.black_engine_config['exclude_from_metrics'] = True
                     color_str = 'White' if current_player_color == chess.WHITE else 'Black'
                     if self.logger:
                         self.logger.info(f"{color_str} AI excluded from metrics this game due to invalid move.")
@@ -723,10 +779,6 @@ class ChessGame:
                     self.logger.info(f"AI ({current_player_color}) played emergency fallback move: {fallback_move} (Eval: {self.current_eval:.2f})")
                 self.last_ai_move = fallback_move
                 
-                if current_player_color == chess.WHITE:
-                    self.white_engine_config['exclude_from_metrics'] = True
-                else:
-                    self.black_engine_config['exclude_from_metrics'] = True
                 color_str = 'White' if current_player_color == chess.WHITE else 'Black'
                 if self.logger:
                     self.logger.info(f"{color_str} AI excluded from metrics this game due to critical error.")
