@@ -13,7 +13,7 @@ game_config:
 
   # AI vs AI game_config settings
   ai_vs_ai: true                 # Set to true for AI vs AI matches
-  ai_game_count: 1              # Number of games to play in AI vs AI mode
+  ai_game_count: 20              # Number of games to play in AI vs AI mode
   starting_position: default     # Default starting position name (or FEN string)
   strict_draw_prevention: true   # Enforce strict draw rules to fully block drawing moves that would lead to stalemate, insufficient material, and threefold repetition
   
@@ -24,11 +24,9 @@ game_config:
 # Engine configurations
 # These configurations are for the AI engines used in the game, such as v7p3r and Stockfish.
 white_engine_config:
-  exclude_from_metrics: false   # Flag to exclude this engines performance from metrics collection, useful for testing, non-competitive, or third party AIs who's performance you may not want to record for this set of games, should flag all outputs from this color and engine for this match date_timestamp as being excluded from metrics, these metrics should still be gathered as a fallback, and in the event I do want to use them so we just want to have a flag in the database for exclude from metrics. Then I can always toggle the flags per game record in the database if I want to see a game or vice versa.
-  engine: v7p3r                 # Name of the engine being used (e.g., 'v7p3r', 'stockfish'), this value is a direct reference to the engine configuration values below
+  engine: v7p3r                 # Name of the engine being used (e.g., 'v7p3r', 'stockfish'), this value is a direct reference to the engine configuration values in their respective config files
 black_engine_config:
-  exclude_from_metrics: false   # does the same as above but for this engines performance as this color           
-  engine: v7p3r_opponent        # sets this colors engine type, same as above, important note that if the engines are set the same then only whites metrics will be collected to prevent negation in win loss metrics
+  engine: v7p3r_opponent        # sets this colors engine configuration name, same as above, important note that if the engines are set the same then only whites metrics will be collected to prevent negation in win loss metrics
 
 # Performance settings
 performance:
