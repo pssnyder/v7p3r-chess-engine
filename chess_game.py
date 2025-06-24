@@ -254,17 +254,21 @@ class ChessGame:
     def set_headers(self):
         # Set initial PGN headers
         white_depth = self.white_engine_config.get('depth') # Depth might come from white_engine_config in chess_game_config.yaml
-        if white_depth is None and self.white_engine_config.get('engine','').lower() == 'v7p3r': # Or from v7p3r_config.yaml if v7p3r
+        if white_depth is None and (self.white_engine_config.get('engine','').lower() == 'v7p3r' or self.white_engine_config.get('engine','').lower() == 'v7p3r_nn'): # Or from v7p3r_config.yaml if v7p3r
             white_depth = self.v7p3r_config_data.get('v7p3r', {}).get('depth', '#')
+        elif white_depth is None and (self.white_engine_config.get('engine','').lower() == 'v7p3r_opponent' or self.white_engine_config.get('engine','').lower() == 'v7p3r_nn_opponent'):
+            white_depth = self.v7p3r_config_data.get('v7p3r_opponent', {}).get('depth', '#')
         elif white_depth is None and self.white_engine_config.get('engine','').lower() == 'stockfish': # Or from stockfish.yaml if Stockfish
-             white_depth = self.stockfish_handler_data.get('stockfish', {}).get('depth', '#') # Fallback for Stockfish depth
+            white_depth = self.stockfish_handler_data.get('stockfish', {}).get('depth', '#') # Fallback for Stockfish depth
         else:
             white_depth = '#'
 
 
         black_depth = self.black_engine_config.get('depth') # Depth might come from black_engine_config in chess_game_config.yaml
-        if black_depth is None and self.black_engine_config.get('engine','').lower() == 'v7p3r': # Or from v7p3r_config.yaml if v7p3r
+        if black_depth is None and (self.black_engine_config.get('engine','').lower() == 'v7p3r' or self.black_engine_config.get('engine','').lower() == 'v7p3r_nn'): # Or from v7p3r_config.yaml if v7p3r
             black_depth = self.v7p3r_config_data.get('v7p3r', {}).get('depth', '#')
+        elif black_depth is None and (self.black_engine_config.get('engine','').lower() == 'v7p3r_opponent' or self.black_engine_config.get('engine','').lower() == 'v7p3r_nn_opponent'):
+            black_depth = self.v7p3r_config_data.get('v7p3r_opponent', {}).get('depth', '#')
         elif black_depth is None and self.black_engine_config.get('engine','').lower() == 'stockfish': # Or from stockfish.yaml if Stockfish
             black_depth = self.stockfish_handler_data.get('stockfish', {}).get('depth', '#') # Fallback for Stockfish depth
         else:
@@ -526,8 +530,6 @@ class ChessGame:
             "black_engine_name": self.black_eval_engine,
             "white_engine_version": self.white_engine_config.get('engine_version', '1.0'),
             "black_engine_version": self.black_engine_config.get('engine_version', '1.0'),
-            "white_engine_type": self.white_engine_type,
-            "black_engine_type": self.black_engine_type,
             "exclude_white_from_metrics": self.exclude_white_performance,
             "exclude_black_from_metrics": self.exclude_black_performance
         }
@@ -873,9 +875,9 @@ class ChessGame:
         running = True
         game_count_remaining = self.game_count
         
-        print(f"White AI: {self.white_eval_engine} via {self.white_engine_type} vs Black AI: {self.black_eval_engine} via {self.black_engine_type}")
+        print(f"White Engine: {self.white_eval_engine} vs Black Engine: {self.black_eval_engine}")
         if self.logging_enabled and self.logger:
-            self.logger.info(f"White AI: {self.white_eval_engine} via {self.white_engine_type} vs Black AI: {self.black_eval_engine} via {self.black_engine_type}")
+            self.logger.info(f"White Engine: {self.white_eval_engine} vs Black Engine: {self.black_eval_engine}")
         
         self._initialize_ai_engines()
 

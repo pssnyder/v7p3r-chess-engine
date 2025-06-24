@@ -204,29 +204,7 @@ class PGNWatcher:
                 # Extract player names and evaluation
                 white = game.headers.get('White', 'Unknown')
                 black = game.headers.get('Black', 'Unknown')
-                # Heuristic: replace "AI:" with "Engine:" and "viper via random" with "Viper", "Stockfish" stays
-                def normalize(name):
-                    name = name.replace("AI:", "Engine:")
-                    name = name.replace("viper via random", "Viper")
-                    name = name.replace("Viper via random", "Viper")
-                    # If Stockfish is present, keep as is
-                    return name.strip()
-                white = normalize(white)
-                black = normalize(black)
-                # Try to extract depth if present
-                white_depth = game.headers.get('WhiteDepth', None)
-                black_depth = game.headers.get('BlackDepth', None)
-                # If depth is not in headers, try to extract from name
-                import re
-                def extract_depth(name):
-                    m = re.search(r'Depth\s*(\d+)', name)
-                    return m.group(1) if m else None
-                w_depth = white_depth or extract_depth(white)
-                b_depth = black_depth or extract_depth(black)
-                if w_depth and "Depth" not in white:
-                    white += f" (Depth {w_depth})"
-                if b_depth and "Depth" not in black:
-                    black += f" (Depth {b_depth})"
+                
                 # Extract evaluation if present
                 eval_str = ""
                 for key in ("Eval", "Evaluation"):
