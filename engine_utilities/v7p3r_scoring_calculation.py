@@ -110,15 +110,9 @@ class v7p3rScoringCalculation:
         # Material and piece-square table evaluation
         score += self.scoring_modifier * self._material_score(board, color)
         if self.pst_enabled:
-            # Pass endgame_factor directly to PST evaluation
-            # The PST evaluation itself should be color-aware or return a neutral score
-            # that is then interpreted by the caller (ViperEvaluationEngine.evaluate_position)
-            # For now, assuming pst.evaluate_board_position gives a score from White's perspective.
-            # If calculate_score is for a specific color, PST score might need adjustment if it's neutral.
-            # Let's assume pst.evaluate_board_position is neutral and needs to be perspectivized if color is BLACK.
-            pst_board_score = self.pst.evaluate_board_position(board, endgame_factor) # This is likely from White's perspective
+            pst_board_score = self.pst.evaluate_board_position(board, endgame_factor)
             if color == chess.BLACK:
-                pst_board_score = -pst_board_score # Adjust if PST is always White-centric
+                pst_board_score = -pst_board_score
             score += self.scoring_modifier * self.pst_weight * pst_board_score
 
         # Piece coordination and control
@@ -147,10 +141,63 @@ class v7p3rScoringCalculation:
         score += self.scoring_modifier * (self._open_files(board, color) or 0.0)
         score += self.scoring_modifier * (self._stalemate(board) or 0.0)
 
+        # New evaluation functions integration
+        self.calculate_game_phase(board)
+        # score += self.queen_capture(move, board, color, config)
+        # score += self.king_endangerment(move, board, color, config)
+
         if self.logger:
             self.logger.debug(f"Final score for {color}: {score:.3f} (Ruleset: {self.ruleset_name}, Modifier: {self.scoring_modifier}) | FEN: {board.fen()}")
 
         return score
+
+    def calculate_game_phase(self, board: chess.Board) -> str:
+        """
+        Determines the current phase of the game: 'opening', 'middlegame', or 'endgame'.
+        Uses material and castling rights as heuristics.
+        Sets self.game_phase for use in other scoring functions.
+        """
+        # Count total material (excluding kings)
+        material = sum([
+            len(board.pieces(piece_type, chess.WHITE)) + len(board.pieces(piece_type, chess.BLACK))
+            for piece_type in [chess.PAWN, chess.KNIGHT, chess.BISHOP, chess.ROOK, chess.QUEEN]
+        ])
+        # Heuristic: opening if all queens/rooks/bishops/knights are present, endgame if queens are gone or little material
+        if material >= 28:
+            phase = 'opening'
+        elif material <= 12 or (not board.pieces(chess.QUEEN, chess.WHITE) and not board.pieces(chess.QUEEN, chess.BLACK)):
+            phase = 'endgame'
+        else:
+            phase = 'middlegame'
+        self.game_phase = phase
+        return phase
+
+    def queen_capture(self, move: chess.Move, board: chess.Board, color: chess.Color, config: dict) -> float:
+        """
+        Awards a large bonus for capturing the opponent's queen with a lesser-valued piece.
+        """
+        if board.is_capture(move):
+            captured_piece = board.piece_at(move.to_square)
+            if captured_piece and captured_piece.piece_type == chess.QUEEN:
+                mover_piece = board.piece_at(move.from_square)
+                if mover_piece and mover_piece.piece_type != chess.QUEEN:
+                    return config.get('queen_capture_bonus', 1000.0)
+        return 0.0
+
+    def king_endangerment(self, move: chess.Move, board: chess.Board, color: chess.Color, config: dict) -> float:
+        """
+        Penalizes non-castling king moves outside the endgame.
+        Uses self.game_phase (should be set by calculate_game_phase).
+        """
+        mover_piece = board.piece_at(move.from_square)
+        if mover_piece and mover_piece.piece_type == chess.KING:
+            # Ignore castling
+            if board.is_castling(move):
+                return 0.0
+            # Penalize king moves in opening/middlegame
+            if getattr(self, 'game_phase', None) != 'endgame':
+                return config.get('king_safety_penalty', -100.0)
+        return 0.0
 
     # ==========================================
     # ========= RULE SCORING FUNCTIONS =========
