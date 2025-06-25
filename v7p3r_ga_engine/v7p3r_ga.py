@@ -95,6 +95,23 @@ class ChessAI(nn.Module):
         
         return policy, value
 
+    def select_move(self, board):
+        """
+        Selects a move for the given board state.
+        NOTE: This is a placeholder implementation. It should use the neural network
+        to predict the best move. Currently, it returns a random legal move.
+        """
+        legal_moves = list(board.legal_moves)
+        if not legal_moves:
+            return None, 0
+        
+        # In a real implementation, you would:
+        # 1. Convert the board to a tensor.
+        # 2. Pass the tensor through the model's forward() method.
+        # 3. Decode the policy head's output to select a move.
+        
+        return random.choice(legal_moves), 0
+
 
 class GeneticAlgorithm:
     def __init__(self, population_size=30, mutation_rate=0.2, elite_count=3):
