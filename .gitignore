@@ -16,6 +16,10 @@ templates/
 games/
 logging/
 *.db
+<<<<<<< HEAD
+metrics/chess_metrics.db
+=======
+>>>>>>> 07a8bd8b88a40e25c3039c45e202a1c15bd0bce9
 
 # Omit external engine files
 */external_engines/*
