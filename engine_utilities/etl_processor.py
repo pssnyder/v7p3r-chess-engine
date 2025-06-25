@@ -43,10 +43,6 @@ import re
 from typing import Dict, List, Any, Optional, Tuple, Set
 from dataclasses import dataclass, field
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from google.cloud import storage, firestore
-from google.cloud.scheduler_v1 import CloudSchedulerClient
-from google.cloud.scheduler_v1.types import Job  # Import the Job type
-from google.api_core import exceptions
 
 # Configure logging
 logging.basicConfig(
@@ -139,10 +135,7 @@ class ETLJobMetrics:
 class ChessAnalyticsETL:
     """
     ETL processor for chess game data.
-    
-    This class handles the extraction, transformation, and loading of chess game data
-    from raw sources (cloud storage or local files) into an analytics-optimized schema
-    for reporting and analysis.
+    Extracts from local chess_metrics.db only. No cloud or file support.
     """
     
     def __init__(self, config_path="config/etl_config.yaml"):
@@ -157,30 +150,16 @@ class ChessAnalyticsETL:
             job_id=str(uuid.uuid4()),
             start_time=datetime.datetime.now()
         )
-        
-        # Initialize cloud clients if cloud is enabled
-        self.cloud_enabled = self.config.get('cloud', {}).get('enabled', False)
-        self.storage_client = None
-        self.firestore_client = None
-        self.bucket = None
-        
-        if self.cloud_enabled:
-            self._init_cloud_clients()
-        
-        # Initialize reporting database
+        # Only local DB
+        self.metrics_db_path = self.config.get('metrics_db', {}).get('path', 'metrics/chess_metrics.db')
         self.db_path = self.config.get('reporting_db', {}).get('path', 'metrics/chess_analytics.db')
         os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
         self.db_lock = threading.RLock()
         self._init_reporting_db()
-        
-        # Track processed record IDs to avoid duplicates
         self.processed_game_ids = set()
         self.processed_move_ids = set()
-        
-        # Set batch size for processing
         self.batch_size = self.config.get('processing', {}).get('batch_size', 100)
         self.max_workers = self.config.get('processing', {}).get('max_workers', 4)
-        
         logger.info(f"ChessAnalyticsETL initialized with job ID: {self.job_metrics.job_id}")
     
     def _load_config(self, config_path: str) -> Dict[str, Any]:
@@ -190,23 +169,6 @@ class ChessAnalyticsETL:
                 return yaml.safe_load(f)
         logger.warning(f"Config file not found at {config_path}, using defaults")
         return {}
-    
-    def _init_cloud_clients(self):
-        """Initialize Google Cloud clients if cloud storage is enabled."""
-        try:
-            # Initialize Storage client
-            self.storage_client = storage.Client()
-            bucket_name = self.config.get('cloud', {}).get('bucket_name')
-            if bucket_name:
-                self.bucket = self.storage_client.bucket(bucket_name)
-            
-            # Initialize Firestore client
-            self.firestore_client = firestore.Client()
-            
-            logger.info("Cloud clients initialized successfully")
-        except Exception as e:
-            logger.error(f"Failed to initialize cloud clients: {e}")
-            self.cloud_enabled = False
     
     def _init_reporting_db(self):
         """Initialize the reporting database schema."""
@@ -383,9 +345,9 @@ class ChessAnalyticsETL:
         conn.row_factory = sqlite3.Row
         return conn
     
-    def extract_raw_game_data(self, limit=None, start_date=None, end_date=None) -> List[Dict[str, Any]]:
+    def extract_raw_game_data(self, limit=None, start_date=None, end_date=None) -> list:
         """
-        Extract raw game data from cloud storage or local files.
+        Extract raw game and move data from local chess_metrics.db only.
         
         Args:
             limit: Maximum number of games to extract (for testing/debugging)
@@ -401,88 +363,55 @@ class ChessAnalyticsETL:
         # Determine which games have already been processed
         self._load_processed_game_ids()
         
-        if self.cloud_enabled and self.firestore_client:
-            # Extract from Firestore
-            try:
-                collection = self.firestore_client.collection(
-                    self.config.get('cloud', {}).get('raw_collection', 'raw_simulations')
-                )
-                query = collection
+        try:
+            conn = sqlite3.connect(self.metrics_db_path)
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            # Build query for game_results
+            query = "SELECT * FROM game_results"
+            params = []
+            if start_date:
+                query += " WHERE timestamp >= ?"
+                params.append(start_date)
+            if end_date:
+                if 'WHERE' in query:
+                    query += " AND timestamp <= ?"
+                else:
+                    query += " WHERE timestamp <= ?"
+                params.append(end_date)
+            if limit:
+                query += " LIMIT ?"
+                params.append(limit)
+            cursor.execute(query, params)
+            games = cursor.fetchall()
+            for game_row in games:
+                game_id = game_row['game_id']
                 
-                # Apply date filters if provided
-                if start_date:
-                    query = query.where("timestamp", ">=", start_date)
-                if end_date:
-                    query = query.where("timestamp", "<=", end_date)
+                if game_id in self.processed_game_ids:
+                    self.job_metrics.records_skipped += 1
+                    continue
                 
-                # Apply limit if provided
-                if limit:
-                    query = query.limit(limit)
+                # Get moves for this game
+                move_cursor = conn.cursor()
+                move_cursor.execute("SELECT * FROM move_metrics WHERE game_id = ? ORDER BY move_number ASC", (game_id,))
+                moves = move_cursor.fetchall()
                 
-                docs = query.stream()
-                for doc in docs:
-                    game_data = doc.to_dict()
-                    game_id = doc.id
-                    
-                    # Skip if already processed
-                    if game_id in self.processed_game_ids:
-                        self.job_metrics.records_skipped += 1
-                        continue
-                    
-                    # Add document ID to the data
-                    game_data['_firestore_id'] = game_id
-                    raw_games.append(game_data)
-                      # Update metrics
-                    self.job_metrics.records_processed += 1
-                    self.job_metrics.bytes_processed += len(json.dumps(game_data))
-            except Exception as e:
-                error_msg = f"Error extracting game data from Firestore: {e}"
-                logger.error(error_msg)
-                self.job_metrics.add_error("extraction", error_msg)
-                self.job_metrics.records_failed += 1
-        else:
-            # Extract from local files
-            try:
-                local_path = self.config.get('local', {}).get('raw_path', 'logging')
-                files = []
+                # Build game dict
+                game_data = dict(game_row)
+                game_data['moves'] = [dict(m) for m in moves]
+                raw_games.append(game_data)
                 
-                # Find all raw simulation files
-                for file in os.listdir(local_path):
-                    if file.startswith('raw_simulation_') and file.endswith('.json'):
-                        files.append(os.path.join(local_path, file))
-                
-                # Apply limit if provided
-                if limit and len(files) > limit:
-                    files = files[:limit]
-                
-                for file_path in files:
-                    try:
-                        with open(file_path, 'r') as f:
-                            game_data = json.load(f)
-                        
-                        game_id = game_data.get('id', os.path.basename(file_path))
-                        
-                        # Skip if already processed
-                        if game_id in self.processed_game_ids:
-                            self.job_metrics.records_skipped += 1
-                            continue
-                        
-                        # Add file path to the data
-                        game_data['_file_path'] = file_path
-                        raw_games.append(game_data)
-                        
-                        # Update metrics
-                        self.job_metrics.records_processed += 1
-                        self.job_metrics.bytes_processed += os.path.getsize(file_path)
-                    except Exception as e:
-                        error_msg = f"Error processing file {file_path}: {e}"
-                        logger.error(error_msg)
-                        self.job_metrics.add_error("extraction", error_msg, game_id)
-                        self.job_metrics.records_failed += 1
-            except Exception as e:                
-                error_msg = f"Error extracting game data from local files: {e}"
-                logger.error(error_msg)
-                self.job_metrics.add_error("extraction", error_msg)
+                # Update metrics
+                self.job_metrics.records_processed += 1
+                self.job_metrics.bytes_processed += len(json.dumps(game_data))
+            
+            conn.close()
+        except Exception as e:
+            error_msg = f"Error extracting from chess_metrics.db: {e}"
+            logger.error(error_msg)
+            self.job_metrics.add_error("extraction", error_msg)
+            self.job_metrics.records_failed += 1
         
         self.job_metrics.extraction_time_seconds = time.time() - extraction_start
         logger.info(f"Extracted {len(raw_games)} raw game records in {self.job_metrics.extraction_time_seconds:.2f} seconds")
@@ -662,7 +591,7 @@ class ChessAnalyticsETL:
             'capture_count_black': game_stats.get('capture_count_black', 0),
             'check_count_white': game_stats.get('check_count_white', 0),
             'check_count_black': game_stats.get('check_count_black', 0),
-            'source_type': 'cloud' if self.cloud_enabled else 'local',
+            'source_type': 'local',
             'source_system': game.get('source_system', 'unknown'),
             'tags': json.dumps(game.get('tags', {}))
         }
@@ -1253,55 +1182,7 @@ class ChessAnalyticsETL:
             return self.job_metrics
     
     def schedule_etl_job(self, frequency: str = "hourly"):
-        """
-        Schedule the ETL job using Google Cloud Scheduler.
-
-        Args:
-            frequency: Frequency of the job (e.g., "hourly", "daily", "weekly")
-        """
-        try:
-            client = CloudSchedulerClient()
-            project_id = self.config.get('cloud', {}).get('project_id')
-            location = self.config.get('cloud', {}).get('location', 'us-central1')
-            queue = self.config.get('cloud', {}).get('scheduler_queue', 'etl-jobs-queue')
-
-            # Construct the fully qualified queue name
-            parent = f"projects/{project_id}/locations/{location}"
-
-            # Create a job name
-            job_name = f"{parent}/jobs/chess-etl-job-{uuid.uuid4().hex[:8]}"
-
-            # Create the job using the Job type
-            job = Job(
-                name=job_name,
-                http_target={
-                    "uri": f"https://{location}-{project_id}.cloudfunctions.net/run_etl_job",
-                    "http_method": "POST",
-                    "headers": {
-                        "Content-Type": "application/json"
-                    },
-                    "body": json.dumps({
-                        "limit": self.config.get('processing', {}).get('limit', 100),
-                        "start_date": None,
-                        "end_date": None
-                    }).encode()
-                },
-                schedule=frequency,
-                retry_config={
-                    "retry_count": 3,
-                    "max_retry_duration": {"seconds": 3600},
-                    "min_backoff_duration": {"seconds": 10},
-                    "max_backoff_duration": {"seconds": 3600},
-                    "max_doublings": 16
-                },
-                time_zone="UTC"
-            )
-
-            # Send the request to create the job using the proper method
-            response = client.create_job(parent=parent, job=job)  # Pass the Job object
-            logger.info(f"Scheduled ETL job: {response.name}")
-        except Exception as e:
-            logger.error(f"Failed to schedule ETL job: {e}")
+        pass  # Remove GCP scheduler logic
 
 
 # Example usage

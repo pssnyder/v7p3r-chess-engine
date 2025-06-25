@@ -13,6 +13,7 @@ import math
 import socket
 import time # Import time for measuring move duration
 from io import StringIO
+import hashlib
 
 # Define the maximum frames per second for the game loop
 MAX_FPS = 60
@@ -452,7 +453,8 @@ class ChessGame:
         exporter = chess.pgn.FileExporter(buf)
         self.game.accept(exporter)
         pgn_text = buf.getvalue()
-          # Prepare game result data for metrics_store
+
+        # Prepare game result data for metrics_store (ensure all fields are present)
         metrics_data = {
             "game_id": game_id,
             "timestamp": timestamp,
@@ -462,9 +464,21 @@ class ChessGame:
             "black_player": self.game.headers.get("Black"),
             "game_length": self.board.fullmove_number,
             "white_engine_config": self.white_engine_config,
-            "black_engine_config": self.black_engine_config
+            "black_engine_config": self.black_engine_config,
+            # Add extra fields for full schema coverage:
+            "white_engine_id": hashlib.md5(self.white_engine_config.get('engine', 'unknown').encode()).hexdigest(),
+            "black_engine_id": hashlib.md5(self.black_engine_config.get('engine', 'unknown').encode()).hexdigest(),
+            "white_engine_name": self.white_engine_config.get('engine', 'unknown'),
+            "black_engine_name": self.black_engine_config.get('engine', 'unknown'),
+            "white_engine_version": self.white_engine_config.get('engine_version', self.white_engine_config.get('version', '1.0')),
+            "black_engine_version": self.black_engine_config.get('engine_version', self.black_engine_config.get('version', '1.0')),
+            "exclude_white_from_metrics": int(self.white_engine_config.get('exclude_from_metrics', False)),
+            "exclude_black_from_metrics": int(self.black_engine_config.get('exclude_from_metrics', False)),
+            "white_engine_type": self.white_engine_config.get('search_algorithm', ''),
+            "black_engine_type": self.black_engine_config.get('search_algorithm', ''),
+            "white_depth": self.white_engine_config.get('depth', 0),
+            "black_depth": self.black_engine_config.get('depth', 0)
         }
-        
         # Save locally using metrics_store
         self.metrics_store.add_game_result(**metrics_data)
         
@@ -696,7 +710,6 @@ class ChessGame:
             if isinstance(ai_move, chess.Move) and self.board.is_legal(ai_move):
                 fen_before_move = self.board.fen()
                 move_number = self.board.fullmove_number
-
                 self.push_move(ai_move)
                 
                 if self.logging_enabled and self.logger:
@@ -704,6 +717,7 @@ class ChessGame:
                 self.last_ai_move = ai_move
 
                 if self.rated:
+                    # Ensure all move metric fields are present
                     metric = {
                         'game_id': self.current_game_db_id,
                         'move_number': move_number,
@@ -711,11 +725,17 @@ class ChessGame:
                         'move_uci': ai_move.uci(),
                         'fen_before': fen_before_move,
                         'evaluation': self.current_eval,
-                        'engine_type': current_engine_config.get('engine_type', 'unknown'),
+                        'engine_type': current_engine_config.get('search_algorithm', current_engine_config.get('engine_type', 'unknown')),
                         'depth': current_engine_config.get('depth', 0),
                         'nodes_searched': nodes_this_move,
                         'time_taken': self.move_duration,
-                        'pv_line': pv_line_info                    }
+                        'pv_line': pv_line_info,
+                        # Full schema coverage:
+                        'engine_id': hashlib.md5(current_engine_config.get('engine', 'unknown').encode()).hexdigest(),
+                        'engine_name': current_engine_config.get('engine', 'unknown'),
+                        'engine_version': current_engine_config.get('engine_version', current_engine_config.get('version', '1.0')),
+                        'exclude_from_metrics': int(current_engine_config.get('exclude_from_metrics', False))
+                    }
                     self.metrics_store.add_move_metric(**metric)
                     self._move_metrics_batch.append(metric)
                     
