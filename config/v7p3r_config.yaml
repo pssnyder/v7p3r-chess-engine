@@ -113,47 +113,49 @@ default_evaluation:
 
 best_evaluation:                    # Best evaluation record (set from various testing and training methods)
   checkmate_bonus: 0.0              # Bonus for checkmate threats
-  repetition_penalty: 0.0           # Penalty for threefold repetition
+  repetition_penalty: -0.0           # Penalty for threefold repetition
   center_control_bonus: 0.0         # Bonus per center square controlled
   knight_activity_bonus: 0.0        # Multiplier per square attacked by knight
   bishop_activity_bonus: 0.0        # Multiplier per square attacked by bishop
   king_safety_bonus: 0.0            # Bonus per pawn in king shield
-  king_threat_penalty: 0.0          # Penalty for being checked (increased for king safety)
-  undeveloped_penalty: 0.0          # Penalty for having under-developed minor pieces (increased)
+  king_threat_penalty: -0.0          # Penalty for being checked (increased for king safety)
+  king_safety_penalty: -0.0        # Penalty for moving the king too early (that isn't a castling move)
+  undeveloped_penalty: -0.0          # Penalty for having under-developed minor pieces (increased)
   check_bonus: 0.0                  # Bonus for giving check (reduced)
-  in_check_penalty: 0.0             # Penalty for being in check
+  in_check_penalty: -0.0             # Penalty for being in check
   capture_bonus: 0.0                # Base bonus for captures (increased)
+  queen_capture_bonus: 1000.0       # Bonus for capturing the opponent's queen
   castling_bonus: 0.0               # Bonus for castling
   en_passant_bonus: 0.0             # Bonus for en passant opportunity
   pawn_promotion_bonus: 0.0         # Bonus for pawn promotion
   passed_pawn_bonus: 0.0            # Bonus for having an un-opposed pawn (increased)
   hanging_piece_bonus: 0.0          # Bonus for attacking hanging pieces
-  trapped_piece_penalty: 0.0        # Penalty for trapped pieces
+  trapped_piece_penalty: -0.0        # Penalty for trapped pieces
   piece_development_bonus: 0.0      # Bonus for developing minor pieces
   piece_activity_bonus: 0.0         # Bonus for activating minor pieces
   knight_pair_bonus: 0.0            # Bonus for having knight pair
-  knight_vision_penalty: 0.0        # Penalty for having the knight on a less active square
+  knight_vision_penalty: -0.0        # Penalty for having the knight on a less active square
   pawn_advancement_bonus: 0.0       # Bonus for advancing pawns
-  rook_development_penalty: 0.0     # Penalty for not developing rooks
+  rook_development_penalty: -0.0     # Penalty for not developing rooks
   castling_protection_bonus: 0.0    # Bonus for keeping the right to castle
-  castling_protection_penalty: 0.0  # Penalty for giving up castling rights without castling
+  castling_protection_penalty: -0.0  # Penalty for giving up castling rights without castling
   material_weight: 0.0              # Material calculation impact on eval
   piece_coordination_bonus: 0.0     # Bonus for piece coordination
-  doubled_pawn_penalty: 0.0         # Penalty for having doubled pawns
-  isolated_pawn_penalty: 0.0        # Penalty for having isolated pawns
-  backward_pawn_penalty: 0.0        # Penalty for having backward pawns
+  doubled_pawn_penalty: -0.0         # Penalty for having doubled pawns
+  isolated_pawn_penalty: -0.0        # Penalty for having isolated pawns
+  backward_pawn_penalty: -0.0        # Penalty for having backward pawns
   bishop_vision_bonus: 0.0          # Bonus for the bishops having good board vision
   tempo_bonus: 0.0                  # Bonus for keeping the game moving forward, as opposed to an end scenario
   stacked_rooks_bonus: 0.0          # Bonus for having the rooks on the same file
   coordinated_rooks_bonus: 0.0      # Bonus for having the rooks on the same rank
-  stalemate_penalty: 0.0            # Penalty for stalemate situations
-  draw_penalty: 0.0                 # Penalty for draw situations
-  undefended_piece_penalty: 0.0     # Penalty for undefended pieces
+  stalemate_penalty: -0.0            # Penalty for stalemate situations
+  draw_penalty: -0.0                 # Penalty for draw situations
+  undefended_piece_penalty: -0.0     # Penalty for undefended pieces
   pawn_structure_bonus: 0.0         # Evaluate pawn structure
   file_control_bonus: 0.0           # Bonus for controlling open files
   open_file_bonus: 0.0              # Bonus for having rooks on open files
   rook_position_bonus: 0.0          # Bonus for rooks on the 7th rank
-  exposed_king_penalty: 0.0         # Penalty for having the king on an open file
+  exposed_king_penalty: -0.0         # Penalty for having the king on an open file
   piece_mobility_bonus: 0.0         # Bonus for piece mobility
   # move ordering bonuses - do not impact evaluation - do not update these values
   checkmate_move_bonus: 1000000     # Bonus for finding a checkmate during move ordering scoring
@@ -174,16 +176,18 @@ simple_evaluation:
   bishop_activity_bonus: 0.0        # Multiplier per square attacked by bishop
   king_safety_bonus: 1.5            # Bonus per pawn in king shield
   king_threat_penalty: -50.0        # Penalty for being checked (increased for king safety)
+  king_safety_penalty: -100.0       # Penalty for moving the king too early (that isn't a castling move)
   undeveloped_penalty: 0.0          # Penalty for having under-developed minor pieces (increased)
   check_bonus: 50.0                 # Bonus for giving check (reduced)
   in_check_penalty: -10.0           # Penalty for being in check
   capture_bonus: 15.0               # Base bonus for captures (increased)
+  queen_capture_bonus: 0.0          # Bonus for capturing the opponent's queen
   castling_bonus: 0.0               # Bonus for castling
   en_passant_bonus: 0.0             # Bonus for en passant opportunity
   pawn_promotion_bonus: 0.0         # Bonus for pawn promotion
   passed_pawn_bonus: 0.0            # Bonus for having an un-opposed pawn (increased)
   hanging_piece_bonus: 0.0          # Bonus for attacking hanging pieces
-  trapped_piece_penalty: 0.0       # Penalty for trapped pieces
+  trapped_piece_penalty: 0.0        # Penalty for trapped pieces
   piece_development_bonus: 0.0      # Bonus for developing minor pieces
   piece_activity_bonus: 0.0         # Bonus for activating minor pieces
   knight_pair_bonus: 0.0            # Bonus for having knight pair
@@ -229,10 +233,12 @@ aggressive_evaluation:
   bishop_activity_bonus: 0.5        # Multiplier per square attacked by bishop
   king_safety_bonus: 0.5            # Bonus per pawn in king shield
   king_threat_penalty: -10.0        # Penalty for being checked (increased for king safety)
+  king_safety_penalty: 0.0          # Penalty for moving the king too early (that isn't a castling move)
   undeveloped_penalty: -5.0         # Penalty for having under-developed minor pieces (increased)
   check_bonus: 100.0                # Bonus for giving check (reduced)
   in_check_penalty: -5.0            # Penalty for being in check
   capture_bonus: 50.0               # Base bonus for captures (increased)
+  queen_capture_bonus: 5000.0       # Bonus for capturing the opponent's queen
   castling_bonus: 1.0               # Bonus for castling
   en_passant_bonus: 0.0             # Bonus for en passant opportunity
   pawn_promotion_bonus: 5.0         # Bonus for pawn promotion
@@ -284,10 +290,12 @@ conservative_evaluation:
   bishop_activity_bonus: 0.075      # Multiplier per square attacked by bishop
   king_safety_bonus: 10.0           # Bonus per pawn in king shield
   king_threat_penalty: -50.0        # Penalty for being checked (increased for king safety)
+  king_safety_penalty: -500.0        # Penalty for moving the king too early (that isn't a castling move)
   undeveloped_penalty: -0.5         # Penalty for having under-developed minor pieces (increased)
   check_bonus: 50.0                 # Bonus for giving check (reduced)
   in_check_penalty: -10.0           # Penalty for being in check
   capture_bonus: 1.0                # Base bonus for captures (increased)
+  queen_capture_bonus: 10.0         # Bonus for capturing the opponent's queen
   castling_bonus: 15.0              # Bonus for castling
   en_passant_bonus: 1.0             # Bonus for en passant opportunity
   pawn_promotion_bonus: 5.0         # Bonus for pawn promotion
@@ -338,10 +346,12 @@ null_evaluation:                    # empty evaluation for testing purposes
   bishop_activity_bonus: 0.0        # Multiplier per square attacked by bishop
   king_safety_bonus: 0.0            # Bonus per pawn in king shield
   king_threat_penalty: 0.0          # Penalty for being checked (increased for king safety)
+  king_safety_penalty: 0.0          # Penalty for moving the king too early (that isn't a castling move)
   undeveloped_penalty: 0.0          # Penalty for having under-developed minor pieces (increased)
   check_bonus: 0.0                  # Bonus for giving check (reduced)
   in_check_penalty: 0.0             # Penalty for being in check
   capture_bonus: 0.0                # Base bonus for captures (increased)
+  queen_capture_bonus: 0.0          # Bonus for capturing the opponent's queen
   castling_bonus: 0.0               # Bonus for castling
   en_passant_bonus: 0.0             # Bonus for en passant opportunity
   pawn_promotion_bonus: 0.0         # Bonus for pawn promotion
