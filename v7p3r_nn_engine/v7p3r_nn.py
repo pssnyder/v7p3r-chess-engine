@@ -156,14 +156,16 @@ class ChessNN(nn.Module):
         return x * 10.0
 
 class MoveLibrary:
-    """Local storage for chess positions, evaluations, and best moves"""
-    
-    def __init__(self, db_path="v7p3r_nn_engine/move_library.db"):
-        """Initialize the move library with a local SQLite database"""
-        os.makedirs(os.path.dirname(db_path), exist_ok=True)
+    """A class to manage a library of chess moves and positions in an SQLite database."""
+    def __init__(self, db_path="v7p3r_move_library.db"):
+        """Initialize the MoveLibrary and create the database and tables if they don't exist."""
+        self.db_path = db_path
+        if db_path != ":memory:":
+            os.makedirs(os.path.dirname(db_path), exist_ok=True)
         self.conn = sqlite3.connect(db_path)
+        self.conn.row_factory = sqlite3.Row
         self._create_tables()
-        
+
     def _create_tables(self):
         """Create the necessary tables if they don't exist"""
         cursor = self.conn.cursor()
@@ -275,7 +277,7 @@ class MoveLibrary:
         return row[0] if row else None
         
     def close(self):
-        """Close the database connection"""
+        """Close the database connection."""
         if self.conn:
             self.conn.close()
 
