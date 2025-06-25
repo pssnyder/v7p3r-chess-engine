@@ -1,0 +1,159 @@
+config:
+  max_concurrent_simulations: 4
+  simulation_templates:
+  - config:
+      adjustment_factor: 1.0
+      convergence_threshold: 0.05
+      initial_elo: 1500
+      max_elo: 3200
+      max_games: 100
+      min_elo: 800
+      min_games_for_convergence: 20
+    description: Determines the ELO rating of the v7p3r engine by playing adaptive
+      matches against Stockfish
+    id: stockfish_elo_finder
+    name: Stockfish ELO Finder
+    type: adaptive_elo
+  simulations:
+  - chess_game:
+      black_engine_config:
+        engine: stockfish
+      white_engine_config:
+        engine: v7p3r
+        engine_type: deepsearch
+    games_to_run: 100
+    name: v7p3r vs. Stockfish (Skill 5)
+    stockfish_handler:
+      stockfish_handler:
+        skill_level: 5
+    v7p3r:
+      v7p3r:
+        depth: 4
+        ruleset: default_evaluation
+  - chess_game:
+      black_engine_config:
+        engine: stockfish
+      white_engine_config:
+        engine: v7p3r
+        engine_type: deepsearch
+    games_to_run: 100
+    name: v7p3r (Aggressive) vs. Stockfish (Skill 5)
+    stockfish_handler:
+      stockfish_handler:
+        skill_level: 5
+    v7p3r:
+      v7p3r:
+        depth: 4
+        ruleset: aggressive_evaluation
+  - chess_game:
+      black_engine_config:
+        engine: v7p3r
+        engine_type: deepsearch
+        ruleset: aggressive_evaluation
+      white_engine_config:
+        engine: v7p3r
+        engine_type: deepsearch
+        ruleset: conservative_evaluation
+    games_to_run: 100
+    name: v7p3r (Conservative) vs. v7p3r (Aggressive)
+    v7p3r:
+      v7p3r:
+        depth: 3
+  - chess_game:
+      black_engine_config:
+        engine: v7p3r
+        engine_type: deepsearch
+        ruleset: conservative_evaluation
+      white_engine_config:
+        engine: v7p3r
+        engine_type: deepsearch
+        ruleset: aggressive_evaluation
+    games_to_run: 100
+    name: v7p3r (Aggressive) vs. v7p3r (Conservative)
+    v7p3r:
+      v7p3r:
+        depth: 3
+  - chess_game:
+      black_engine_config:
+        engine: stockfish
+      white_engine_config:
+        engine: v7p3r
+        engine_type: deepsearch
+        ruleset: conservative_evaluation
+    games_to_run: 100
+    name: v7p3r (Conservative) vs. Stockfish (Skill 5)
+    stockfish_handler:
+      stockfish_handler:
+        skill_level: 5
+    v7p3r:
+      v7p3r:
+        depth: 4
+  - chess_game:
+      black_engine_config:
+        engine: v7p3r
+      white_engine_config:
+        engine: stockfish
+        engine_type: deepsearch
+    games_to_run: 100
+    name: Stockfish (Skill 5) vs. v7p3r
+    v7p3r:
+      stockfish_handler:
+        stockfish_handler:
+          skill_level: 5
+  - chess_game:
+      black_engine_config:
+        engine: v7p3r
+        engine_type: deepsearch
+        ruleset: aggressive_evaluation
+      white_engine_config:
+        engine: stockfish
+    games_to_run: 100
+    name: Stockfish (Skill 5) vs. v7p3r (Aggressive)
+    v7p3r:
+      stockfish_handler:
+        stockfish_handler:
+          skill_level: 5
+  - chess_game:
+      black_engine_config:
+        engine: v7p3r
+        engine_type: deepsearch
+        ruleset: conservative_evaluation
+      white_engine_config:
+        engine: stockfish
+    games_to_run: 100
+    name: Stockfish (Skill 5) vs. v7p3r (Conservative)
+    v7p3r:
+      stockfish_handler:
+        stockfish_handler:
+          skill_level: 5
+  - chess_game:
+      black_engine_config:
+        engine: v7p3r
+        engine_type: deepsearch
+        ruleset: aggressive_evaluation
+      white_engine_config:
+        engine: v7p3r
+        engine_type: deepsearch
+        ruleset: aggressive_evaluation
+    games_to_run: 100
+    name: v7p3r (Aggressive) vs. v7p3r (Aggressive)
+    v7p3r:
+      v7p3r:
+        depth: 4
+  - chess_game:
+      black_engine_config:
+        engine: v7p3r
+        engine_type: deepsearch
+        ruleset: conservative_evaluation
+      white_engine_config:
+        engine: v7p3r
+        engine_type: deepsearch
+        ruleset: conservative_evaluation
+    games_to_run: 100
+    name: v7p3r (Conservative) vs. v7p3r (Conservative)
+    v7p3r:
+      v7p3r:
+        depth: 4
+  use_central_storage: true
+id: sim_20250623_000638_331f0e37
+timestamp: '2025-06-23T00:06:38.954681'
