@@ -298,7 +298,6 @@ simulations:
     chess_game:
       white_engine_config:
         engine: 'v7p3r'
-        engine_type: 'deepsearch'
       black_engine_config:
         engine: 'stockfish'
       game_config:

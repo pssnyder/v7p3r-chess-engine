@@ -23,7 +23,7 @@ simulation_templates:
 simulations:
   # Simulation #1
   - name: "v7p3r vs. Stockfish (Skill 5)"
-    games_to_run: 100 # Number of games to play with this configuration
+    games_to_run: 10 # Number of games to play with this configuration
     chess_game:
       white_engine_config:
         engine: 'v7p3r'
@@ -40,58 +40,56 @@ simulations:
         skill_level: 5
   
   # Simulation #2
-  - name: "v7p3r (Aggressive) vs. Stockfish (Skill 5)"
-    games_to_run: 100 # Number of games to play with this configuration
+  - name: "v7p3r vs. v7p3r (Aggressive)"
+    games_to_run: 10 # Number of games to play with this configuration
     chess_game:
       white_engine_config:
         engine: 'v7p3r'
-        engine_type: 'deepsearch'
       black_engine_config:
-        engine: 'stockfish'
-        # Stockfish settings are inside stockfish_config.yaml, but can be overridden
+        engine: 'v7p3r_opponent'
     v7p3r:
       v7p3r: # Corresponds to the engine name key in v7p3r_config.yaml
+        ruleset: 'default_evaluation'
+        depth: 4
+      v7p3r_opponent: # Corresponds to the opponent engine name key in v7p3r_config.yaml
         ruleset: 'aggressive_evaluation'
         depth: 4
-    stockfish_handler:
-      stockfish_handler:
-        skill_level: 5
 
   # Simulation #3
-  - name: "v7p3r (Conservative) vs. v7p3r (Aggressive)"
+  - name: "v7p3r vs. v7p3r (Conservative)"
     games_to_run: 100
     chess_game:
       white_engine_config:
         engine: 'v7p3r'
-        engine_type: 'deepsearch'
-        ruleset: 'conservative_evaluation' # Can also be specified here
       black_engine_config:
-        engine: 'v7p3r'
-        engine_type: 'deepsearch'
-        ruleset: 'aggressive_evaluation'
+        engine: 'v7p3r_opponent'
     v7p3r:
       # No overrides needed if we specify everything in chess_game config's engine_config
       # But we can override base engine parameters if we want
       v7p3r:
-        depth: 3
+        ruleset: 'default_evaluation' # Can also be specified here
+        depth: 4
+      v7p3r_opponent:
+        ruleset: 'conservative_evaluation' # Can also be specified here
+        depth: 4
 
   # Simulation #4
-  - name: "v7p3r (Aggressive) vs. v7p3r (Conservative)"
-    games_to_run: 100
+  - name: "v7p3r vs. v7p3r (Simple)"
+    games_to_run: 10
     chess_game:
       white_engine_config:
         engine: 'v7p3r'
-        engine_type: 'deepsearch'
-        ruleset: 'aggressive_evaluation' # Can also be specified here
       black_engine_config:
-        engine: 'v7p3r'
-        engine_type: 'deepsearch'
-        ruleset: 'conservative_evaluation'
+        engine: 'v7p3r_opponent'
     v7p3r:
       # No overrides needed if we specify everything in chess_game config's engine_config
       # But we can override base engine parameters if we want
       v7p3r:
-        depth: 3
+        ruleset: 'default_evaluation' # Can also be specified here
+        depth: 4
+      v7p3r_opponent:
+        ruleset: 'simple_evaluation' # Can also be specified here
+        depth: 4
 
   # Simulation #5
   - name: "v7p3r (Conservative) vs. Stockfish (Skill 5)"
