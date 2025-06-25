@@ -10,9 +10,11 @@ metrics_to_track:
 # Only include these engines in analysis (by engine_name or engine_id prefix)
 include_engines:
   - v7p3r
+  - v7p3r_nn
+  - v7p3r_ga
 
 # Exclude these engine_ids (full hash or prefix)
-exclude_engine_ids: []
+exclude_engine_ids: ['v7p3r_opponent', 'stockfish', 'chatfish']
 
 # Grouping options: by 'engine_id', 'engine_name', 'engine_version', or 'color'
 group_by: engine_id
