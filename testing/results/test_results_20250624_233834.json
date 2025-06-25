@@ -1,0 +1,113 @@
+{
+  "total_tests": 1,
+  "passed": 0,
+  "failed": 1,
+  "skipped": 0,
+  "errors": 0,
+  "timeouts": 0,
+  "total_duration": 3.648868,
+  "start_time": "2025-06-24T23:38:30.727723",
+  "end_time": "2025-06-24T23:38:34.376591",
+  "success_rate": 0.0,
+  "average_duration": 3.648868,
+  "max_memory_usage": 0.078125,
+  "test_results": [
+    {
+      "test_name": "v7p3r_ga_testing",
+      "module_name": "v7p3r_ga_testing.py",
+      "status": "failed",
+      "duration": 3.648868,
+      "start_time": "2025-06-24T23:38:30.727723",
+      "end_time": "2025-06-24T23:38:34.376591",
+      "error_message": "test_evaluate_fitness (unit_test_launchers.v7p3r_ga_testing.TestGeneticAlgorithm.test_evaluate_fitness)\nTest the fitness evaluation logic. ... ERROR\ntest_evolve_population (unit_test_launchers.v7p3r_ga_testing.TestGeneticAlgorithm.test_evolve_population)\nTest the main population evolution process. ... ERROR\ntest_initialization (unit_test_launchers.v7p3r_ga_testing.TestGeneticAlgorithm.test_initialization)\nTest the initialization of the GeneticAlgorithm class. ... ERROR\ntest_initialize_population (unit_test_launchers.v7p3r_ga_testing.TestGeneticAlgorithm.test_initialize_population)\nTest the population initialization process. ... ERROR\n\n======================================================================\nERROR: test_evaluate_fitness (unit_test_launchers.v7p3r_ga_testing.TestGeneticAlgorithm.test_evaluate_fitness)\nTest the fitness evaluation logic.\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"S:\\Maker Stuff\\Programming\\V7P3R Chess Engine\\viper_chess_engine\\testing\\unit_test_launchers\\v7p3r_ga_testing.py\", line 39, in setUp\n    self.mock_model_template.deepcopy.return_value = self.mock_model_template\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\unittest\\mock.py\", line 658, in __getattr__\n    raise AttributeError(\"Mock object has no attribute %r\" % name)\nAttributeError: Mock object has no attribute 'deepcopy'\n\n======================================================================\nERROR: test_evolve_population (unit_test_launchers.v7p3r_ga_testing.TestGeneticAlgorithm.test_evolve_population)\nTest the main population evolution process.\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"S:\\Maker Stuff\\Programming\\V7P3R Chess Engine\\viper_chess_engine\\testing\\unit_test_launchers\\v7p3r_ga_testing.py\", line 39, in setUp\n    self.mock_model_template.deepcopy.return_value = self.mock_model_template\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\unittest\\mock.py\", line 658, in __getattr__\n    raise AttributeError(\"Mock object has no attribute %r\" % name)\nAttributeError: Mock object has no attribute 'deepcopy'\n\n======================================================================\nERROR: test_initialization (unit_test_launchers.v7p3r_ga_testing.TestGeneticAlgorithm.test_initialization)\nTest the initialization of the GeneticAlgorithm class.\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"S:\\Maker Stuff\\Programming\\V7P3R Chess Engine\\viper_chess_engine\\testing\\unit_test_launchers\\v7p3r_ga_testing.py\", line 39, in setUp\n    self.mock_model_template.deepcopy.return_value = self.mock_model_template\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\unittest\\mock.py\", line 658, in __getattr__\n    raise AttributeError(\"Mock object has no attribute %r\" % name)\nAttributeError: Mock object has no attribute 'deepcopy'\n\n======================================================================\nERROR: test_initialize_population (unit_test_launchers.v7p3r_ga_testing.TestGeneticAlgorithm.test_initialize_population)\nTest the population initialization process.\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"S:\\Maker Stuff\\Programming\\V7P3R Chess Engine\\viper_chess_engine\\testing\\unit_test_launchers\\v7p3r_ga_testing.py\", line 39, in setUp\n    self.mock_model_template.deepcopy.return_value = self.mock_model_template\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\unittest\\mock.py\", line 658, in __getattr__\n    raise AttributeError(\"Mock object has no attribute %r\" % name)\nAttributeError: Mock object has no attribute 'deepcopy'\n\n----------------------------------------------------------------------\nRan 4 tests in 0.005s\n\nFAILED (errors=4)\n",
+      "stack_trace": "test_evaluate_fitness (unit_test_launchers.v7p3r_ga_testing.TestGeneticAlgorithm.test_evaluate_fitness)\nTest the fitness evaluation logic. ... ERROR\ntest_evolve_population (unit_test_launchers.v7p3r_ga_testing.TestGeneticAlgorithm.test_evolve_population)\nTest the main population evolution process. ... ERROR\ntest_initialization (unit_test_launchers.v7p3r_ga_testing.TestGeneticAlgorithm.test_initialization)\nTest the initialization of the GeneticAlgorithm class. ... ERROR\ntest_initialize_population (unit_test_launchers.v7p3r_ga_testing.TestGeneticAlgorithm.test_initialize_population)\nTest the population initialization process. ... ERROR\n\n======================================================================\nERROR: test_evaluate_fitness (unit_test_launchers.v7p3r_ga_testing.TestGeneticAlgorithm.test_evaluate_fitness)\nTest the fitness evaluation logic.\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"S:\\Maker Stuff\\Programming\\V7P3R Chess Engine\\viper_chess_engine\\testing\\unit_test_launchers\\v7p3r_ga_testing.py\", line 39, in setUp\n    self.mock_model_template.deepcopy.return_value = self.mock_model_template\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\unittest\\mock.py\", line 658, in __getattr__\n    raise AttributeError(\"Mock object has no attribute %r\" % name)\nAttributeError: Mock object has no attribute 'deepcopy'\n\n======================================================================\nERROR: test_evolve_population (unit_test_launchers.v7p3r_ga_testing.TestGeneticAlgorithm.test_evolve_population)\nTest the main population evolution process.\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"S:\\Maker Stuff\\Programming\\V7P3R Chess Engine\\viper_chess_engine\\testing\\unit_test_launchers\\v7p3r_ga_testing.py\", line 39, in setUp\n    self.mock_model_template.deepcopy.return_value = self.mock_model_template\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\unittest\\mock.py\", line 658, in __getattr__\n    raise AttributeError(\"Mock object has no attribute %r\" % name)\nAttributeError: Mock object has no attribute 'deepcopy'\n\n======================================================================\nERROR: test_initialization (unit_test_launchers.v7p3r_ga_testing.TestGeneticAlgorithm.test_initialization)\nTest the initialization of the GeneticAlgorithm class.\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"S:\\Maker Stuff\\Programming\\V7P3R Chess Engine\\viper_chess_engine\\testing\\unit_test_launchers\\v7p3r_ga_testing.py\", line 39, in setUp\n    self.mock_model_template.deepcopy.return_value = self.mock_model_template\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\unittest\\mock.py\", line 658, in __getattr__\n    raise AttributeError(\"Mock object has no attribute %r\" % name)\nAttributeError: Mock object has no attribute 'deepcopy'\n\n======================================================================\nERROR: test_initialize_population (unit_test_launchers.v7p3r_ga_testing.TestGeneticAlgorithm.test_initialize_population)\nTest the population initialization process.\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"S:\\Maker Stuff\\Programming\\V7P3R Chess Engine\\viper_chess_engine\\testing\\unit_test_launchers\\v7p3r_ga_testing.py\", line 39, in setUp\n    self.mock_model_template.deepcopy.return_value = self.mock_model_template\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\unittest\\mock.py\", line 658, in __getattr__\n    raise AttributeError(\"Mock object has no attribute %r\" % name)\nAttributeError: Mock object has no attribute 'deepcopy'\n\n----------------------------------------------------------------------\nRan 4 tests in 0.005s\n\nFAILED (errors=4)\n",
+      "memory_usage": 0.078125,
+      "assertions_count": null,
+      "warnings": []
+    }
+  ],
+  "configuration": {
+    "execution": {
+      "test_timeout": 300,
+      "max_threads": 4,
+      "failure_mode": "continue"
+    },
+    "output": {
+      "verbosity": "standard",
+      "terminal": {
+        "enabled": true,
+        "show_progress": true,
+        "show_timing": true,
+        "colored_output": true
+      },
+      "file_logging": {
+        "enabled": true,
+        "log_directory": "testing/results",
+        "log_format": "json",
+        "include_stack_traces": true,
+        "timestamp_format": "%Y%m%d_%H%M%S"
+      }
+    },
+    "test_selection": {
+      "run_all": false,
+      "categories": {
+        "engine_utilities": true,
+        "metrics": true,
+        "main_engine": true,
+        "chess_game": true
+      },
+      "include_tests": [
+        "v7p3r_ga_testing"
+      ],
+      "exclude_tests": []
+    },
+    "environment": {
+      "test_env_vars": {
+        "v7p3r_TEST_MODE": "true",
+        "v7p3r_LOG_LEVEL": "WARNING"
+      },
+      "test_data_dir": "testing/test_data",
+      "temp_files_dir": "testing/temp",
+      "mock_external": {
+        "stockfish": false,
+        "lichess_api": true
+      }
+    },
+    "performance": {
+      "enabled": true,
+      "thresholds": {
+        "move_generation": 0.1,
+        "position_evaluation": 0.05,
+        "book_lookup": 0.01
+      },
+      "memory_monitoring": {
+        "enabled": true,
+        "max_memory_mb": 500
+      }
+    },
+    "integration": {
+      "enabled": true,
+      "external_services": {
+        "stockfish": false,
+        "lichess": false
+      }
+    },
+    "reporting": {
+      "generate_html_report": true,
+      "generate_junit_xml": true,
+      "include_coverage": true,
+      "include_performance_metrics": true,
+      "include_memory_usage": true,
+      "report_directory": "testing/reports"
+    }
+  },
+  "environment_info": {
+    "python_version": "3.12.4 (tags/v3.12.4:8e8a4ba, Jun  6 2024, 19:30:16) [MSC v.1940 64 bit (AMD64)]",
+    "platform": "win32",
+    "working_directory": "S:\\Maker Stuff\\Programming\\V7P3R Chess Engine\\viper_chess_engine\\testing",
+    "failed_early": false,
+    "total_system_memory": 31.836044311523438,
+    "available_memory": 22.291446685791016,
+    "cpu_count": 16
+  }
+}
