@@ -69,6 +69,9 @@ class ChessGame:
         """
         config: ChessGameConfig object containing all configuration parameters.
         """
+        # Always define human_color to avoid attribute errors
+        self.human_color = None
+
         # Extract configuration from the ChessGameConfig object
         self.starting_position = config.fen_position if hasattr(config, 'fen_position') else None
         self.data_collector = getattr(config, 'data_collector', None)
@@ -131,13 +134,37 @@ class ChessGame:
         self.white_eval_engine = self.white_engine_config['engine']
         self.black_eval_engine = self.black_engine_config['engine']
 
-        self.exclude_white_performance = self.white_engine_config.get('exclude_from_metrics', False)
-        self.exclude_black_performance = self.black_engine_config.get('exclude_from_metrics', False)
-        
+        # Compose engine description for headers
+        def engine_desc(engine_config, v7p3r_config_data, color):
+            engine = engine_config.get('engine', 'Unknown')
+            # Determine which v7p3r config to use for evaluation
+            if engine == 'v7p3r':
+                eval_name = v7p3r_config_data.get('v7p3r', {}).get('ruleset', 'default_evaluation')
+                search_algo = v7p3r_config_data.get('v7p3r', {}).get('search_algorithm', 'deepsearch')
+            elif engine == 'v7p3r_opponent':
+                eval_name = v7p3r_config_data.get('v7p3r_opponent', {}).get('ruleset', 'simple_evaluation')
+                search_algo = v7p3r_config_data.get('v7p3r_opponent', {}).get('search_algorithm', 'random')
+            else:
+                eval_name = engine_config.get('ruleset', engine_config.get('evaluation', ''))
+                search_algo = engine_config.get('search_algorithm', '')
+            # Allow override from engine_config
+            if 'ruleset' in engine_config:
+                eval_name = engine_config['ruleset']
+            if 'search_algorithm' in engine_config:
+                search_algo = engine_config['search_algorithm']
+            return f"{engine} ({eval_name}) via {search_algo}"
+
+        self.white_engine_desc = engine_desc(self.white_engine_config, self.v7p3r_config_data, 'white')
+        self.black_engine_desc = engine_desc(self.black_engine_config, self.v7p3r_config_data, 'black')
+
+        # Set exclude_from_metrics attributes for later use
+        self.exclude_white_from_metrics = self.white_engine_config.get('exclude_from_metrics', False)
+        self.exclude_black_from_metrics = self.black_engine_config.get('exclude_from_metrics', False)
+
         if self.logging_enabled and self.logger:
             self.logger.debug(f"Initializing ChessGame with {self.starting_position} position")
-            self.logger.debug(f"White Engine: {self.white_eval_engine}")
-            self.logger.debug(f"Black Engine: {self.black_eval_engine}")
+            self.logger.debug(f"White Engine: {self.white_engine_desc}")
+            self.logger.debug(f"Black Engine: {self.black_engine_desc}")
         
         # Debug settings
         self.show_eval = self.game_config_data.get('monitoring', {}).get('show_evaluation', False) # Adjusted path for debug settings if they were moved, assuming they are in 'monitoring' or similar in chess_game_config.yaml
@@ -277,42 +304,18 @@ class ChessGame:
         white_engine_name = self.white_engine_config.get('engine', 'Unknown')
         black_engine_name = self.black_engine_config.get('engine', 'Unknown')
 
+        # Use the new engine description for headers
         if self.ai_vs_ai:
             self.game.headers["Event"] = "AI vs. AI Game"
-            if white_engine_name.lower() == 'stockfish':
-                elo = self.stockfish_handler_data.get('stockfish_handler', {}).get('elo_rating') # from stockfish_config.yaml
-                skill = self.stockfish_handler_data.get('stockfish_handler', {}).get('skill_level') # from stockfish_config.yaml
-                elo_str = f"Elo {elo}" if elo is not None else (f"Skill {skill}" if skill is not None else "Max")
-                self.game.headers["White"] = f"AI: {white_engine_name} ({elo_str})"
-            else:
-                self.game.headers["White"] = f"AI: {white_engine_name} (Depth {white_depth})"
-            
-            if black_engine_name.lower() == 'stockfish':
-                elo = self.stockfish_handler_data.get('stockfish_handler', {}).get('elo_rating') # from stockfish_config.yaml
-                skill = self.stockfish_handler_data.get('stockfish_handler', {}).get('skill_level') # from stockfish_config.yaml
-                elo_str = f"Elo {elo}" if elo is not None else (f"Skill {skill}" if skill is not None else "Max")
-                self.game.headers["Black"] = f"AI: {black_engine_name} ({elo_str})"
-            else:
-                self.game.headers["Black"] = f"AI: {black_engine_name} (Depth {black_depth})"
+            self.game.headers["White"] = f"AI: {self.white_engine_desc}"
+            self.game.headers["Black"] = f"AI: {self.black_engine_desc}"
         elif not self.ai_vs_ai and self.human_color_pref:
             self.game.headers["Event"] = "Human vs. AI Game"
             if self.human_color == chess.WHITE:
                 self.game.headers["White"] = "Human"
-                if black_engine_name.lower() == 'stockfish':
-                    elo = self.stockfish_handler_data.get('stockfish_handler', {}).get('elo_rating') # from stockfish_config.yaml
-                    skill = self.stockfish_handler_data.get('stockfish_handler', {}).get('skill_level') # from stockfish_config.yaml
-                    elo_str = f"Elo {elo}" if elo is not None else (f"Skill {skill}" if skill is not None else "Max")
-                    self.game.headers["Black"] = f"AI: {black_engine_name} ({elo_str})"
-                else:
-                    self.game.headers["Black"] = f"AI: {black_engine_name} (Depth {black_depth})"
+                self.game.headers["Black"] = f"AI: {self.black_engine_desc}"
             else:
-                if white_engine_name.lower() == 'stockfish':
-                    elo = self.stockfish_handler_data.get('stockfish_handler', {}).get('elo_rating') # from stockfish_config.yaml
-                    skill = self.stockfish_handler_data.get('stockfish_handler', {}).get('skill_level') # from stockfish_config.yaml
-                    elo_str = f"Elo {elo}" if elo is not None else (f"Skill {skill}" if skill is not None else "Max")
-                    self.game.headers["White"] = f"AI: {white_engine_name} ({elo_str})"
-                else:
-                    self.game.headers["White"] = f"AI: {white_engine_name} (Depth {white_depth})"
+                self.game.headers["White"] = f"AI: {self.white_engine_desc}"
                 self.game.headers["Black"] = "Human"
 
         self.game.headers["Date"] = datetime.datetime.now().strftime("%Y.%m.%d")
@@ -530,8 +533,8 @@ class ChessGame:
             "black_engine_name": self.black_eval_engine,
             "white_engine_version": self.white_engine_config.get('engine_version', '1.0'),
             "black_engine_version": self.black_engine_config.get('engine_version', '1.0'),
-            "exclude_white_from_metrics": self.exclude_white_performance,
-            "exclude_black_from_metrics": self.exclude_black_performance
+            "exclude_white_from_metrics": self.exclude_white_from_metrics,
+            "exclude_black_from_metrics": self.exclude_black_from_metrics
         }
 
         # Save the game result to a file for instant analysis
