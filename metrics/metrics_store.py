@@ -506,30 +506,38 @@ class MetricsStore:
                             print(f"Error storing metric {metric_name}: {e}")
                 _store_metric(metric_name, metric_value, side, function_name, timestamp)
 
-    def add_game_result(self, game_id: str, timestamp: str, winner: str, game_pgn: str,
-                        white_player: str, black_player: str, game_length: int,
-                        white_engine_config: dict, black_engine_config: dict):
+    def add_game_result(self,
+                        game_id: Optional[str] = None,
+                        timestamp: Optional[str] = None,
+                        winner: Optional[str] = None,
+                        game_pgn: Optional[str] = None,
+                        white_player: Optional[str] = None,
+                        black_player: Optional[str] = None,
+                        game_length: Optional[int] = None,
+                        created_at: Optional[str] = None,
+                        white_engine_id: Optional[str] = None,
+                        black_engine_id: Optional[str] = None,
+                        white_engine_name: Optional[str] = None,
+                        black_engine_name: Optional[str] = None,
+                        white_engine_version: Optional[str] = None,
+                        black_engine_version: Optional[str] = None,
+                        exclude_white_from_metrics: int = 0,
+                        exclude_black_from_metrics: int = 0,
+                        **kwargs):
         """
         Inserts a single game's result and associated AI configurations into the game_results table.
-        The columns white_engine_name and black_engine_name are set from
-        white_engine_config['engine'] and black_engine_config['engine'] respectively.
-        These values are the unique engine identifiers as defined in chess_game_config.yaml.
+        Accepts all schema fields for full coverage. Can be called with a metrics dict using **kwargs.
         """
+        # Set defaults if not provided
+        from datetime import datetime
+        if created_at is None:
+            created_at = datetime.now().isoformat()
+        # Insert into DB
         connection = self._get_connection()
         with connection:
             cursor = connection.cursor()
             try:
-                # Extract AI types and depths from the provided configs
-                white_engine_id = hashlib.md5(white_engine_config.get('engine', 'unknown').encode()).hexdigest()
-                black_engine_id = hashlib.md5(black_engine_config.get('engine', 'unknown').encode()).hexdigest()
-                white_engine_name = white_engine_config.get('engine', 'unknown')
-                black_engine_name = black_engine_config.get('engine', 'unknown')
-                white_engine_version = white_engine_config.get('version', 'unknown')
-                black_engine_version = black_engine_config.get('version', 'unknown')
-                exclude_white_from_metrics = int(white_engine_config.get('exclude_from_metrics', False))
-                exclude_black_from_metrics = int(black_engine_config.get('exclude_from_metrics', False))
-                created_at = datetime.now().isoformat()
-
+                print(f"[DEBUG] Writing game result to DB: game_id={game_id}, timestamp={timestamp}, winner={winner}")
                 self._execute_with_retry(cursor, '''
                 INSERT OR IGNORE INTO game_results
                 (game_id, timestamp, winner, game_pgn, white_player, black_player, game_length,
@@ -538,10 +546,11 @@ class MetricsStore:
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
                     game_id, timestamp, winner, game_pgn, white_player, black_player, game_length,
-                    created_at, white_engine_id, black_engine_id, white_engine_name, black_engine_name, 
+                    created_at, white_engine_id, black_engine_id, white_engine_name, black_engine_name,
                     white_engine_version, black_engine_version, exclude_white_from_metrics, exclude_black_from_metrics
                 ))
                 connection.commit()
+                print(f"[DEBUG] Game result committed to DB: game_id={game_id}")
             except sqlite3.Error as e:
                 print(f"Error adding game result for game {game_id}: {e}")
 
@@ -549,12 +558,12 @@ class MetricsStore:
     def add_move_metric(self, game_id: str, move_number: int, player_color: str,
                         move_uci: str, fen_before: str, evaluation: float,
                         engine_type: str, depth: int, nodes_searched: int,
-                        time_taken: float, pv_line: str):
+                        time_taken: float, pv_line: str,
+                        engine_id: Optional[str] = None, engine_name: Optional[str] = None, engine_version: Optional[str] = None,
+                        exclude_from_metrics: int = 0, created_at: Optional[str] = None):
         """
         Inserts a single move's detailed metrics into the move_metrics table.
-        The engine_type field here refers to the search algorithm used for the move (e.g., 'deepsearch'),
-        not the engine name. The engine name for the move is determined by the parent game's
-        white_engine_name or black_engine_name in game_results, as set from the config's 'engine' key.
+        Accepts all schema fields for full coverage.
         """
         # Normalize player_color
         if player_color.lower() in ('w', 'white'):
@@ -564,6 +573,18 @@ class MetricsStore:
         else:
             player_color_db = player_color  # fallback, but should not happen
 
+        # Default created_at
+        from datetime import datetime
+        if created_at is None:
+            created_at = datetime.now().isoformat()
+        # Default engine_id, engine_name, engine_version
+        if engine_id is None:
+            engine_id = ''
+        if engine_name is None:
+            engine_name = ''
+        if engine_version is None:
+            engine_version = ''
+
         connection = self._get_connection()
         with connection:
             cursor = connection.cursor()
@@ -571,11 +592,13 @@ class MetricsStore:
                 self._execute_with_retry(cursor, '''
                 INSERT OR IGNORE INTO move_metrics
                 (game_id, move_number, player_color, move_uci, fen_before,
-                 evaluation, engine_type, depth, nodes_searched, time_taken, pv_line)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 evaluation, engine_type, depth, nodes_searched, time_taken, pv_line,
+                 created_at, engine_id, engine_name, engine_version, exclude_from_metrics)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
                     game_id, move_number, player_color_db, move_uci, fen_before,
-                    evaluation, engine_type, depth, nodes_searched, time_taken, pv_line
+                    evaluation, engine_type, depth, nodes_searched, time_taken, pv_line,
+                    created_at, engine_id, engine_name, engine_version, exclude_from_metrics
                 ))
                 connection.commit()
             except sqlite3.Error as e:

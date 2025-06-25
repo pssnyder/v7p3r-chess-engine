@@ -1,25 +1,6 @@
 # simulation_config.yaml
 # Main configuration for the Game Simulation Manager
 
-# Maximum number of simulations to run in parallel.
-# Defaults to the number of CPU cores if not specified.
-max_concurrent_simulations: 4
-
-# Predefined simulation types
-simulation_templates:
-  - id: stockfish_elo_finder
-    name: "Stockfish ELO Finder"
-    description: "Determines the ELO rating of the v7p3r engine by playing adaptive matches against Stockfish"
-    type: adaptive_elo
-    config:
-      initial_elo: 1500
-      min_elo: 800
-      max_elo: 3200
-      adjustment_factor: 1.0
-      convergence_threshold: 0.05
-      min_games_for_convergence: 20
-      max_games: 100
-
 simulations:
   # Simulation #0 - Random Control
   - name: "v7p3r vs. v7p3r (Random)"
@@ -249,7 +230,6 @@ simulations:
         time_limit: 0                       # Time limit for move calculation in milliseconds, 0 for no limit
         scoring_modifier: 1.0               # Optional overall scoring multiplier/divider
         game_phase_awareness: false          # Enable/disable game phase-specific evaluation (opening, middlegame, endgame)
-
 
   # Simulation #6
   - name: "Stockfish (Skill 5) vs v7p3r"

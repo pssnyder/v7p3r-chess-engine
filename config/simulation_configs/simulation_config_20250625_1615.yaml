@@ -32,7 +32,7 @@ simulations:
     v7p3r:
       v7p3r: # Corresponds to the engine name key in v7p3r_config.yaml
         ruleset: default_evaluation         # Name of the evaluation rule set to use, see below for available options
-        scoring_method: calculate_score    # Overrides the scoring method, v7p3r engine defaults to the inbuilt _v7p3r_scoring_calculation() function
+        scoring_method: calculate_score     # Overrides the scoring method, v7p3r engine defaults to the inbuilt _v7p3r_scoring_calculation() function
         scoring_path: engine_utilities/v7p3r_scoring_calculation  # Import path to the scoring function, used for custom scoring methods, 
         search_algorithm: deepsearch        # Move search type for White (see search_algorithms for options)
         depth: 5                            # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
@@ -46,20 +46,20 @@ simulations:
         scoring_modifier: 1.2               # Optional overall scoring multiplier/divider
         game_phase_awareness: true          # Enable/disable game phase-specific evaluation (opening, middlegame, endgame)
       v7p3r_opponent: # Corresponds to the opponent engine name key in v7p3r_config.yaml
-        ruleset: null_evaluation         # Name of the evaluation rule set to use, see below for available options
-        scoring_method: calculate_score    # Overrides the scoring method, v7p3r engine defaults to the inbuilt _v7p3r_scoring_calculation() function
+        ruleset: null_evaluation            # Name of the evaluation rule set to use, see below for available options
+        scoring_method: calculate_score     # Overrides the scoring method, v7p3r engine defaults to the inbuilt _v7p3r_scoring_calculation() function
         scoring_path: engine_utilities/v7p3r_scoring_calculation  # Import path to the scoring function, used for custom scoring methods, 
-        search_algorithm: random        # Move search type for White (see search_algorithms for options)
+        search_algorithm: random            # Move search type for White (see search_algorithms for options)
         depth: 0                            # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
         max_depth: 1                        # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
-        use_solutions: false                 # Use known positional solutions for evaluation (based on known puzzle solutions)
-        pst: false                           # Use piece-square tables for evaluation
+        use_solutions: false                # Use known positional solutions for evaluation (based on known puzzle solutions)
+        pst: false                          # Use piece-square tables for evaluation
         pst_weight: 0.0                     # Weight for piece-square table evaluation
-        move_ordering: false                 # Enable move ordering for better performance
-        quiescence: false                    # Enable quiescence search for tactical positions
+        move_ordering: false                # Enable move ordering for better performance
+        quiescence: false                   # Enable quiescence search for tactical positions
         time_limit: 0                       # Time limit for move calculation in milliseconds, 0 for no limit
         scoring_modifier: 0.0               # Optional overall scoring multiplier/divider
-        game_phase_awareness: false          # Enable/disable game phase-specific evaluation (opening, middlegame, endgame)
+        game_phase_awareness: false         # Enable/disable game phase-specific evaluation (opening, middlegame, endgame)
 
   # Simulation #1
   - name: "v7p3r vs. Stockfish (Skill 5)"
