@@ -79,28 +79,6 @@ class V7P3RRLAgent:
             if piece:
                 channel = piece.piece_type - 1 + (6 if piece.color == chess.BLACK else 0)
                 tensor[channel][7 - square//8][square%8] = 1
-<<<<<<< HEAD
-        return tensor
-
-    def __len__(self):
-        return len(self.positions)
-
-    def __getitem__(self, idx):
-        return self.positions[idx], self.moves[idx]
-
-class ChessAI(nn.Module):
-    def __init__(self, num_classes):
-        super().__init__()
-
-        # TODO build reinforcement learning model architecture
-        pass
-
-
-class ReinforcementLearningAlgorithm:
-    def __init__(self):
-    #TODO implement reinforcement learning algorithm
-        pass
-=======
         tensor[12, :, :] = 1 if board.turn == chess.WHITE else 0
         return torch.tensor(tensor, dtype=torch.float32).flatten()
 
@@ -204,4 +182,3 @@ class v7p3rRLEngine:
 
     def export_config(self, path):
         self.agent.export_config(path)
->>>>>>> 07a8bd8b88a40e25c3039c45e202a1c15bd0bce9
