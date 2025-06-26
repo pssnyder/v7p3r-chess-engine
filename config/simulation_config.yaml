@@ -4,7 +4,7 @@
 simulations:
   # Simulation #0 - Random Control
   - name: "v7p3r vs. v7p3r (Random)"
-    games_to_run: 1 # Number of games to play with this configuration
+    games_to_run: 10 # Number of games to play with this configuration
     chess_game:
       white_engine_config:
         engine: v7p3r
@@ -44,7 +44,7 @@ simulations:
 
   # Simulation #1
   - name: "v7p3r vs. Stockfish (Skill 5)"
-    games_to_run: 1 # Number of games to play with this configuration
+    games_to_run: 10 # Number of games to play with this configuration
     chess_game:
       white_engine_config:
         engine: v7p3r
@@ -72,7 +72,7 @@ simulations:
   
   # Simulation #2
   - name: "v7p3r vs. v7p3r (Aggressive)"
-    games_to_run: 1 # Number of games to play with this configuration
+    games_to_run: 10 # Number of games to play with this configuration
     chess_game:
       white_engine_config:
         engine: v7p3r
@@ -112,7 +112,7 @@ simulations:
 
   # Simulation #3
   - name: "v7p3r vs. v7p3r (Conservative)"
-    games_to_run: 1
+    games_to_run: 10
     chess_game:
       white_engine_config:
         engine: v7p3r
@@ -153,7 +153,7 @@ simulations:
 
   # Simulation #4
   - name: "v7p3r vs. v7p3r (Simple)"
-    games_to_run: 1
+    games_to_run: 10
     chess_game:
       white_engine_config:
         engine: v7p3r
@@ -193,7 +193,7 @@ simulations:
 
   # Simulation #5
   - name: "v7p3r vs. v7p3r (Default)"
-    games_to_run: 1
+    games_to_run: 10
     chess_game:
       white_engine_config:
         engine: v7p3r
@@ -233,7 +233,7 @@ simulations:
 
   # Simulation #6
   - name: "Stockfish (Skill 5) vs v7p3r"
-    games_to_run: 1 # Number of games to play with this configuration
+    games_to_run: 10 # Number of games to play with this configuration
     chess_game:
       white_engine_config:
         engine: stockfish
@@ -261,7 +261,7 @@ simulations:
   
   # Simulation #7
   - name: "v7p3r (Aggressive) vs. v7p3r"
-    games_to_run: 1 # Number of games to play with this configuration
+    games_to_run: 10 # Number of games to play with this configuration
     chess_game:
       white_engine_config:
         engine: v7p3r_opponent
@@ -301,7 +301,7 @@ simulations:
 
   # Simulation #8
   - name: "v7p3r (Conservative) vs. v7p3r"
-    games_to_run: 1
+    games_to_run: 10
     chess_game:
       white_engine_config:
         engine: v7p3r_opponent
@@ -342,7 +342,7 @@ simulations:
 
   # Simulation #9
   - name: "v7p3r (Simple) vs. v7p3r"
-    games_to_run: 1
+    games_to_run: 10
     chess_game:
       white_engine_config:
         engine: v7p3r_opponent
@@ -382,7 +382,7 @@ simulations:
 
   # Simulation #10
   - name: "v7p3r (Default) vs. v7p3r"
-    games_to_run: 1
+    games_to_run: 10
     chess_game:
       white_engine_config:
         engine: v7p3r_opponent
