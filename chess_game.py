@@ -237,7 +237,7 @@ class ChessGame:
                 self.logger.error(f"Stockfish executable not found at: {stockfish_path}. White AI defaulting to v7p3r.")
                 self.white_engine = v7p3rEvaluationEngine(self.board, chess.WHITE, engine_config=self.white_engine_config)
                 self.white_engine_config['engine'] = 'v7p3r' # Force engine name change
-                self.white_engine_config['engine_type'] = 'random' # Force type change as Stockfish type invalid
+                self.white_engine_config['search_algorithm'] = 'random' # Force type change as Stockfish type invalid
             else:
                 self.white_engine = StockfishHandler(
                     stockfish_path=stockfish_path,
@@ -262,7 +262,7 @@ class ChessGame:
                 self.logger.error(f"Stockfish executable not found at: {stockfish_path}. Black AI defaulting to v7p3r.")
                 self.black_engine = v7p3rEvaluationEngine(self.board, chess.BLACK, engine_config=self.black_engine_config)
                 self.black_engine_config['engine'] = 'v7p3r' # Force engine name change
-                self.black_engine_config['engine_type'] = 'random' # Force type change as Stockfish type invalid
+                self.black_engine_config['search_algorithm'] = 'random' # Force type change as Stockfish type invalid
             else:
                 self.black_engine = StockfishHandler(
                     stockfish_path=stockfish_path,
@@ -474,8 +474,8 @@ class ChessGame:
             "black_engine_version": self.black_engine_config.get('engine_version', self.black_engine_config.get('version', '1.0')),
             "exclude_white_from_metrics": int(self.white_engine_config.get('exclude_from_metrics', False)),
             "exclude_black_from_metrics": int(self.black_engine_config.get('exclude_from_metrics', False)),
-            "white_engine_type": self.white_engine_config.get('search_algorithm', ''),
-            "black_engine_type": self.black_engine_config.get('search_algorithm', ''),
+            "white_search_algorithm": self.white_engine_config.get('search_algorithm', ''),
+            "black_search_algorithm": self.black_engine_config.get('search_algorithm', ''),
             "white_depth": self.white_engine_config.get('depth', 0),
             "black_depth": self.black_engine_config.get('depth', 0)
         }
@@ -725,7 +725,7 @@ class ChessGame:
                         'move_uci': ai_move.uci(),
                         'fen_before': fen_before_move,
                         'evaluation': self.current_eval,
-                        'engine_type': current_engine_config.get('search_algorithm', current_engine_config.get('engine_type', 'unknown')),
+                        'search_algorithm': current_engine_config.get('search_algorithm', current_engine_config.get('search_algorithm', 'unknown')),
                         'depth': current_engine_config.get('depth', 0),
                         'nodes_searched': nodes_this_move,
                         'time_taken': self.move_duration,
@@ -779,7 +779,7 @@ class ChessGame:
                             move_uci=fallback_move.uci(),
                             fen_before=fen_before_move,
                             evaluation=self.current_eval,
-                            engine_type=current_engine_config.get('engine_type', 'unknown') + "_FALLBACK",
+                            search_algorithm=current_engine_config.get('search_algorithm', 'unknown') + "_FALLBACK",
                             depth=0,
                             nodes_searched=0,
                             time_taken=0.0,
@@ -816,7 +816,7 @@ class ChessGame:
                         move_uci=fallback_move.uci(),
                         fen_before=fen_before_move,
                         evaluation=self.current_eval,
-                        engine_type=current_engine_config.get('engine_type', 'unknown') + "_CRITICAL_FALLBACK",
+                        search_algorithm=current_engine_config.get('search_algorithm', 'unknown') + "_CRITICAL_FALLBACK",
                         depth=0,
                         nodes_searched=0,
                         time_taken=0.0,

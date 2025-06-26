@@ -1,15 +1,16 @@
-# local_metrics_dashboard.py
-# A locally running dashboard to visualize chess engine tuning metrics.
-# TODO add functionality that, upon initialization of the metrics dash, backs up the database so we have a snapshot, then cleans up any incomplete games that could skew the metrics since we don't actually know the result. then it should create fresh test records for white and black color selections, under a metrics-test engine name (formerly engine_type) so we can test the dashboard without affecting the actual metrics. These test metrics will need to cover basic scenarios for data appearing in the visuals to allow for end to end testing in the event there is no real game data populated in the dev environment, the metrics dash will always initialize with its own test data ready, marking it as exclude from metrics in production branches but exclude from metrics False in dev branches for testing.
+# metrics/chess_metrics.py
+""" A locally running dashboard to visualize chess engine tuning metrics.
+This dashboard uses Dash and Plotly to display metrics from chess games played by the V7P3R chess engine.
+It includes static metrics, A/B testing for dynamic metrics, and a dark mode theme. 
+"""
 
 import dash
-from dash import dcc, html, Output, Input # Removed State
+from dash import dcc, html, Output, Input
 import plotly.graph_objs as go
 import pandas as pd
 import numpy as np
-from metrics_store import MetricsStore # Use the existing MetricsStore
+from metrics_store import MetricsStore
 from metrics_backup import backup_metrics_db
-import threading
 import yaml
 import atexit
 from datetime import datetime # Import datetime for parsing timestamps
@@ -21,13 +22,10 @@ metrics_store = MetricsStore()
 try:
     with open("config/chess_game_config.yaml", "r") as config_file:
         config_data = yaml.safe_load(config_file)
-        engine_types = config_data.get("white_engine_type", {}).get("engine", None)
-        # unique_search_algorithms = sorted(list(set(search_algorithms + ['Viper', 'Stockfish']))) # No longer needed for UI
-        # engine_type_OPTIONS = [{"label": engine_type.capitalize(), "value": engine_type} for engine_type in unique_search_algorithms] # No longer needed for UI
+        search_algorithms = config_data.get("search_algorithms", [])
 except Exception as e:
-    print(f"Error loading chess_game_config.yaml for AI types: {e}")
+    print(f"Error loading chess_game_config.yaml for Search Algorithm types: {e}")
     search_algorithms = []
-    # engine_type_OPTIONS = []
 
 # --- DARK MODE COLORS ---
 DARK_BG = "#18191A"
@@ -62,12 +60,12 @@ def initialize_metrics_dashboard():
         white_player='metrics-test',
         black_player='metrics-test',
         game_length=10,
-        white_engine_config={'engine_type': 'metrics-test', 'exclude_from_metrics': False},
-        black_engine_config={'engine_type': 'metrics-test', 'exclude_from_metrics': False}
+        white_engine_config={'engine': 'metrics-test', 'exclude_from_metrics': False},
+        black_engine_config={'engine': 'metrics-test', 'exclude_from_metrics': False}
     )
     # Add a few test moves
-    metrics_store.add_move_metric(game_id=test_game_id, move_number=1, player_color='white', move_uci='e2e4', fen_before='rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1', evaluation=0.1, engine_type='metrics-test', depth=1, nodes_searched=10, time_taken=0.01, pv_line='e2e4 e7e5')
-    metrics_store.add_move_metric(game_id=test_game_id, move_number=1, player_color='black', move_uci='e7e5', fen_before='rnbqkbnr/pppppppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2', evaluation=0.0, engine_type='metrics-test', depth=1, nodes_searched=10, time_taken=0.01, pv_line='e7e5 Nf3')
+    metrics_store.add_move_metric(game_id=test_game_id, move_number=1, player_color='white', move_uci='e2e4', fen_before='rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1', evaluation=0.1, search_algorithm='metrics-test', depth=1, nodes_searched=10, time_taken=0.01, pv_line='e2e4 e7e5')
+    metrics_store.add_move_metric(game_id=test_game_id, move_number=1, player_color='black', move_uci='e7e5', fen_before='rnbqkbnr/pppppppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2', evaluation=0.0, search_algorithm='metrics-test', depth=1, nodes_searched=10, time_taken=0.01, pv_line='e7e5 Nf3')
     print("Test metrics data initialized.")
 
 # Call initialization at module load
@@ -86,7 +84,7 @@ app.layout = html.Div([
         dangerously_allow_html=True
     ),
     html.Div([
-        html.H1("Viper Chess Engine Tuning Dashboard", style={"textAlign": "center", "marginBottom": "20px", "color": DARK_TEXT}),
+        html.H1("V7P3R Chess Engine Tuning Dashboard", style={"textAlign": "center", "marginBottom": "20px", "color": DARK_TEXT}),
     ], style={"backgroundColor": DARK_BG}),
 
     # Main interval for refreshing data
@@ -145,17 +143,15 @@ def update_dynamic_metric_options(_):
     [Output("ab-test-trend-graph", "figure"),
      Output("move-metrics-details", "children")],
     [Input("interval", "n_intervals"), # Triggered by the main interval
-     # Input("white-ai-type-filter", "value"), # Removed
-     # Input("black-ai-type-filter", "value"), # Removed
      Input("dynamic-metric-selector", "value")]
 )
-def update_ab_testing_section(_, selected_metric): # Removed white_search_algorithms, black_search_algorithms
+def update_ab_testing_section(_, selected_metric):
     fig_ab_test = go.Figure()
     move_metrics_details_components = []
 
     if not selected_metric:
         fig_ab_test.update_layout(
-            title="Select a Metric to Plot for Viper Engine",
+            title="Select a Metric to Plot for V7P3R Engine",
             paper_bgcolor=DARK_PANEL,
             plot_bgcolor=DARK_PANEL,
             font=dict(color=DARK_TEXT),
@@ -163,12 +159,9 @@ def update_ab_testing_section(_, selected_metric): # Removed white_search_algori
             yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
         )
         fig_ab_test.add_annotation(text="Please select a metric from the dropdown.", xref="paper", yref="paper", showarrow=False, font=dict(size=16, color=DARK_TEXT))
-        move_metrics_details_components.append(html.P("Please select a metric from the dropdown to visualize Viper's performance trend.", style={"color": DARK_TEXT}))
+        move_metrics_details_components.append(html.P("Please select a metric from the dropdown to visualize V7P3R's performance trend.", style={"color": DARK_TEXT}))
         return fig_ab_test, move_metrics_details_components    # Get all moves made by v7p3r (filter by engine name, not search algorithm)
-    # v7p3r engine types include: deepsearch, lookahead, minimax, negamax, negascout, etc.
-    v7p3r_search_algorithms = ['deepsearch', 'lookahead', 'minimax', 'negamax', 'negascout', 
-                          'transposition_only', 'simple_search', 'quiescence_only', 
-                          'simple_eval', 'v7p3r']
+    v7p3r_search_algorithms = config_data.get("search_algorithms", [])
     
     all_v7p3r_moves_raw = metrics_store.get_filtered_move_metrics(
         white_engine_names=['v7p3r'],  # Use engine name from config
@@ -192,54 +185,54 @@ def update_ab_testing_section(_, selected_metric): # Removed white_search_algori
     if df_games_raw is None or df_games_raw.empty:
         # Handle case where there are no game results to filter by
         fig_ab_test.update_layout(title="No Game Results Available for Context", paper_bgcolor=DARK_PANEL, plot_bgcolor=DARK_PANEL, font=dict(color=DARK_TEXT))
-        move_metrics_details_components.append(html.P("No game results found to provide context for Viper's moves.", style={"color": DARK_TEXT}))
+        move_metrics_details_components.append(html.P("No game results found to provide context for V7P3R's moves.", style={"color": DARK_TEXT}))
         return fig_ab_test, move_metrics_details_components
 
-    # Determine which Viper moves to analyze based on game context
-    viper_perspectives = []
+    # Determine which V7P3R moves to analyze based on game context
+    v7p3r_perspectives = []
     for _, game_row in df_games_raw.iterrows():
         game_id = game_row['game_id']
-        white_is_viper = game_row.get('white_engine_type') == 'Viper'
-        black_is_viper = game_row.get('black_engine_type') == 'Viper'
+        white_is_v7p3r = game_row.get('white_search_algorithm') == 'v7p3r'
+        black_is_v7p3r = game_row.get('black_search_algorithm') == 'v7p3r'
         exclude_white = game_row.get('exclude_white_from_metrics', False)
         exclude_black = game_row.get('exclude_black_from_metrics', False)
         winner = game_row.get('winner')
 
-        if white_is_viper and black_is_viper: # Viper vs Viper
-            if winner == '1-0' and not exclude_white: # White Viper won
-                viper_perspectives.append({'game_id': game_id, 'viper_color_to_analyze': 'white'})
-            elif winner == '0-1' and not exclude_black: # Black Viper won
-                viper_perspectives.append({'game_id': game_id, 'viper_color_to_analyze': 'black'})
-            # Moves from drawn Viper vs Viper or losing Viper are excluded for this trend
-        elif white_is_viper and not exclude_white: # Viper (White) vs Non-Viper
-            viper_perspectives.append({'game_id': game_id, 'viper_color_to_analyze': 'white'})
-        elif black_is_viper and not exclude_black: # Viper (Black) vs Non-Viper
-            viper_perspectives.append({'game_id': game_id, 'viper_color_to_analyze': 'black'})
+        if white_is_v7p3r and black_is_v7p3r: # V7P3R vs V7P3R
+            if winner == '1-0' and not exclude_white: # White V7P3R won
+                v7p3r_perspectives.append({'game_id': game_id, 'v7p3r_color_to_analyze': 'white'})
+            elif winner == '0-1' and not exclude_black: # Black V7P3R won
+                v7p3r_perspectives.append({'game_id': game_id, 'v7p3r_color_to_analyze': 'black'})
+            # Moves from drawn V7P3R vs V7P3R or losing V7P3R are excluded for this trend
+        elif white_is_v7p3r and not exclude_white: # V7P3R (White) vs Non-V7P3R
+            v7p3r_perspectives.append({'game_id': game_id, 'v7p3r_color_to_analyze': 'white'})
+        elif black_is_v7p3r and not exclude_black: # V7P3R (Black) vs Non-V7P3R
+            v7p3r_perspectives.append({'game_id': game_id, 'v7p3r_color_to_analyze': 'black'})
             
-    if not viper_perspectives:
-        fig_ab_test.update_layout(title=f"No Valid Game Context for Viper's '{selected_metric}'", paper_bgcolor=DARK_PANEL, plot_bgcolor=DARK_PANEL, font=dict(color=DARK_TEXT))
-        move_metrics_details_components.append(html.P("No games found where Viper's performance can be analyzed based on current criteria.", style={"color": DARK_TEXT}))
+    if not v7p3r_perspectives:
+        fig_ab_test.update_layout(title=f"No Valid Game Context for V7P3R's '{selected_metric}'", paper_bgcolor=DARK_PANEL, plot_bgcolor=DARK_PANEL, font=dict(color=DARK_TEXT))
+        move_metrics_details_components.append(html.P("No games found where V7P3R's performance can be analyzed based on current criteria.", style={"color": DARK_TEXT}))
         return fig_ab_test, move_metrics_details_components
 
-    df_viper_perspectives = pd.DataFrame(viper_perspectives)
-    
-    # Merge Viper moves with the determined perspectives
-    df_merged_moves = pd.merge(df_all_v7p3r_moves, df_viper_perspectives, on='game_id', how='inner')
-    
-    # Filter moves to only those matching the 'viper_color_to_analyze'
+    df_v7p3r_perspectives = pd.DataFrame(v7p3r_perspectives)
+
+    # Merge V7P3R moves with the determined perspectives
+    df_merged_moves = pd.merge(df_all_v7p3r_moves, df_v7p3r_perspectives, on='game_id', how='inner')
+
+    # Filter moves to only those matching the 'v7p3r_color_to_analyze'
     # Ensure 'player_color' in df_merged_moves is comparable (e.g., 'white' or 'w')
     # Assuming 'player_color' in move_metrics is 'white' or 'black'
-    df_final_moves = df_merged_moves[df_merged_moves['player_color'].str.lower() == df_merged_moves['viper_color_to_analyze'].str.lower()]
+    df_final_moves = df_merged_moves[df_merged_moves['player_color'].str.lower() == df_merged_moves['v7p3r_color_to_analyze'].str.lower()]
 
     if df_final_moves.empty:
         fig_ab_test.update_layout(
-            title=f"No '{selected_metric}' Data for Viper (Post-Filtering)",
+            title=f"No '{selected_metric}' Data for V7P3R (Post-Filtering)",
             paper_bgcolor=DARK_PANEL, plot_bgcolor=DARK_PANEL, font=dict(color=DARK_TEXT),
             xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
             yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
         )
-        fig_ab_test.add_annotation(text=f"No '{selected_metric}' moves from Viper met the analysis criteria (e.g., winning side in Viper vs Viper).", xref="paper", yref="paper", showarrow=False, font=dict(size=16, color=DARK_TEXT))
-        move_metrics_details_components.append(html.P(f"No moves for '{selected_metric}' by Viper met the specific analysis criteria.", style={"color": DARK_TEXT}))
+        fig_ab_test.add_annotation(text=f"No '{selected_metric}' moves from V7P3R met the analysis criteria (e.g., winning side in V7P3R vs V7P3R).", xref="paper", yref="paper", showarrow=False, font=dict(size=16, color=DARK_TEXT))
+        move_metrics_details_components.append(html.P(f"No moves for '{selected_metric}' by V7P3R met the specific analysis criteria.", style={"color": DARK_TEXT}))
         return fig_ab_test, move_metrics_details_components
 
     df_final_moves = df_final_moves.copy() # Avoid SettingWithCopyWarning
@@ -250,7 +243,7 @@ def update_ab_testing_section(_, selected_metric): # Removed white_search_algori
         x=df_final_moves['created_at_dt'],
         y=df_final_moves[selected_metric],
         mode='markers',
-        name=f'Viper {selected_metric.replace("_", " ").title()}',
+        name=f'V7P3R {selected_metric.replace("_", " ").title()}',
         marker=dict(size=6, opacity=0.7, color=DARK_HIGHLIGHT)
     ))
     
@@ -275,7 +268,7 @@ def update_ab_testing_section(_, selected_metric): # Removed white_search_algori
             ))
 
     fig_ab_test.update_layout(
-        title=f"Viper Engine: {selected_metric.replace('_', ' ').title()} Trend",
+        title=f"V7P3R Engine: {selected_metric.replace('_', ' ').title()} Trend",
         xaxis_title="Time of Move",
         yaxis_title=selected_metric.replace('_', ' ').title(),
         hovermode="x unified",
@@ -287,7 +280,7 @@ def update_ab_testing_section(_, selected_metric): # Removed white_search_algori
         yaxis=dict(gridcolor=DARK_ACCENT)
     )
 
-    move_metrics_details_components.append(html.H4(f"Viper Summary for {selected_metric.replace('_', ' ').title()}", style={"color": DARK_TEXT}))
+    move_metrics_details_components.append(html.H4(f"V7P3R Summary for {selected_metric.replace('_', ' ').title()}", style={"color": DARK_TEXT}))
     
     metric_series = pd.to_numeric(df_final_moves[selected_metric], errors='coerce').dropna()
     if not metric_series.empty:
@@ -326,140 +319,140 @@ def update_static_metrics(_):
     
     if df_games_raw is None or df_games_raw.empty:
         metrics_display = html.Ul([
-            html.Li("Total Viper Games: 0", style={"color": DARK_SUBTEXT}),
-            html.Li("Viper Wins: 0", style={"color": DARK_SUBTEXT}),
-            html.Li("Viper Losses: 0", style={"color": DARK_SUBTEXT}),
-            html.Li("Viper Draws: 0", style={"color": DARK_SUBTEXT}),
+            html.Li("Total V7P3R Games: 0", style={"color": DARK_SUBTEXT}),
+            html.Li("V7P3R Wins: 0", style={"color": DARK_SUBTEXT}),
+            html.Li("V7P3R Losses: 0", style={"color": DARK_SUBTEXT}),
+            html.Li("V7P3R Draws: 0", style={"color": DARK_SUBTEXT}),
         ], style={"listStyleType": "none", "paddingLeft": "0"})
         
         fig_static_trend.update_layout(
-            title="No Game Result Data Available for Viper",
+            title="No Game Result Data Available for V7P3R",
             height=300, margin=dict(t=40, b=20, l=30, r=20),
             paper_bgcolor=DARK_PANEL, plot_bgcolor=DARK_PANEL, font=dict(color=DARK_TEXT),
             xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
             yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
         )
-        fig_static_trend.add_annotation(text="No game data for Viper to display.", xref="paper", yref="paper", showarrow=False, font=dict(size=16, color=DARK_TEXT))
+        fig_static_trend.add_annotation(text="No game data for V7P3R to display.", xref="paper", yref="paper", showarrow=False, font=dict(size=16, color=DARK_TEXT))
         return metrics_display, fig_static_trend
 
-    # Filter games relevant to Viper and respect exclusion flags
-    viper_games_data = []
+    # Filter games relevant to V7P3R and respect exclusion flags
+    v7p3r_games_data = []
     for _, row in df_games_raw.iterrows():
-        white_is_viper = row.get('white_engine_type') == 'Viper'
-        black_is_viper = row.get('black_engine_type') == 'Viper'
+        white_is_v7p3r = row.get('white_search_algorithm') == 'v7p3r'
+        black_is_v7p3r = row.get('black_search_algorithm') == 'v7p3r'
         exclude_white = row.get('exclude_white_from_metrics', False)
         exclude_black = row.get('exclude_black_from_metrics', False)
         
-        is_viper_game_and_not_excluded = False
-        if white_is_viper and not exclude_white:
-            is_viper_game_and_not_excluded = True
-        if black_is_viper and not exclude_black: # Can be true even if white is also viper and not excluded
-            is_viper_game_and_not_excluded = True
+        is_v7p3r_game_and_not_excluded = False
+        if white_is_v7p3r and not exclude_white:
+            is_v7p3r_game_and_not_excluded = True
+        if black_is_v7p3r and not exclude_black: # Can be true even if white is also v7p3r and not excluded
+            is_v7p3r_game_and_not_excluded = True
             
-        if is_viper_game_and_not_excluded:
-            viper_games_data.append(row)
+        if is_v7p3r_game_and_not_excluded:
+            v7p3r_games_data.append(row)
     
-    if not viper_games_data:
-        # Same display as no raw data, but specific to Viper after filtering
+    if not v7p3r_games_data:
+        # Same display as no raw data, but specific to V7P3R after filtering
         metrics_display = html.Ul([
-            html.Li("Total Viper Games: 0 (after exclusion)", style={"color": DARK_SUBTEXT}),
-            html.Li("Viper Wins: 0", style={"color": DARK_SUBTEXT}),
-            html.Li("Viper Losses: 0", style={"color": DARK_SUBTEXT}),
-            html.Li("Viper Draws: 0", style={"color": DARK_SUBTEXT}),
+            html.Li("Total V7P3R Games: 0 (after exclusion)", style={"color": DARK_SUBTEXT}),
+            html.Li("V7P3R Wins: 0", style={"color": DARK_SUBTEXT}),
+            html.Li("V7P3R Losses: 0", style={"color": DARK_SUBTEXT}),
+            html.Li("V7P3R Draws: 0", style={"color": DARK_SUBTEXT}),
         ], style={"listStyleType": "none", "paddingLeft": "0"})
-        fig_static_trend.update_layout(title="No Viper Games Meet Criteria", height=300, paper_bgcolor=DARK_PANEL, plot_bgcolor=DARK_PANEL, font=dict(color=DARK_TEXT))
-        fig_static_trend.add_annotation(text="No Viper games to display after applying exclusion filters.", xref="paper", yref="paper", showarrow=False, font=dict(size=16, color=DARK_TEXT))
+        fig_static_trend.update_layout(title="No V7P3R Games Meet Criteria", height=300, paper_bgcolor=DARK_PANEL, plot_bgcolor=DARK_PANEL, font=dict(color=DARK_TEXT))
+        fig_static_trend.add_annotation(text="No V7P3R games to display after applying exclusion filters.", xref="paper", yref="paper", showarrow=False, font=dict(size=16, color=DARK_TEXT))
         return metrics_display, fig_static_trend
 
-    df_viper_games = pd.DataFrame(viper_games_data)
+    df_v7p3r_games = pd.DataFrame(v7p3r_games_data)
     
-    total_viper_games = len(df_viper_games)
-    viper_wins = 0
-    viper_losses = 0
-    viper_draws = 0
+    total_v7p3r_games = len(df_v7p3r_games)
+    v7p3r_wins = 0
+    v7p3r_losses = 0
+    v7p3r_draws = 0
 
-    for _, row in df_viper_games.iterrows():
+    for _, row in df_v7p3r_games.iterrows():
         winner = row.get('winner')
-        white_is_viper_and_included = row.get('white_engine_type') == 'Viper' and not row.get('exclude_white_from_metrics', False)
-        black_is_viper_and_included = row.get('black_engine_type') == 'Viper' and not row.get('exclude_black_from_metrics', False)
+        white_is_v7p3r_and_included = row.get('white_engine') == 'v7p3r' and not row.get('exclude_white_from_metrics', False)
+        black_is_v7p3r_and_included = row.get('black_engine') == 'v7p3r' and not row.get('exclude_black_from_metrics', False)
 
         if winner == '1-0':
-            if white_is_viper_and_included: viper_wins +=1
-            if black_is_viper_and_included: viper_losses +=1
+            if white_is_v7p3r_and_included: v7p3r_wins +=1
+            if black_is_v7p3r_and_included: v7p3r_losses +=1
         elif winner == '0-1':
-            if black_is_viper_and_included: viper_wins +=1
-            if white_is_viper_and_included: viper_losses +=1
+            if black_is_v7p3r_and_included: v7p3r_wins +=1
+            if white_is_v7p3r_and_included: v7p3r_losses +=1
         elif winner == '1/2-1/2':
-            # A draw counts if Viper played and was not excluded
-            if white_is_viper_and_included or black_is_viper_and_included:
-                 viper_draws += 1
+            # A draw counts if V7P3R played and was not excluded
+            if white_is_v7p3r_and_included or black_is_v7p3r_and_included:
+                 v7p3r_draws += 1
     
     metrics_display = html.Ul([
-        html.Li(f"Total Viper Games (Analyzed): {total_viper_games}", style={"color": DARK_SUBTEXT}),
-        html.Li(f"Viper Wins: {viper_wins}", style={"color": DARK_SUBTEXT}),
-        html.Li(f"Viper Losses: {viper_losses}", style={"color": DARK_SUBTEXT}),
-        html.Li(f"Viper Draws: {viper_draws}", style={"color": DARK_SUBTEXT}),
+        html.Li(f"Total V7P3R Games (Analyzed): {total_v7p3r_games}", style={"color": DARK_SUBTEXT}),
+        html.Li(f"V7P3R Wins: {v7p3r_wins}", style={"color": DARK_SUBTEXT}),
+        html.Li(f"V7P3R Losses: {v7p3r_losses}", style={"color": DARK_SUBTEXT}),
+        html.Li(f"V7P3R Draws: {v7p3r_draws}", style={"color": DARK_SUBTEXT}),
     ], style={"listStyleType": "none", "paddingLeft": "0"})
     
-    # Trend graph for Viper game results
-    if not df_viper_games.empty:
-        df_viper_games = df_viper_games.copy() # Avoid SettingWithCopyWarning
+    # Trend graph for V7P3R game results
+    if not df_v7p3r_games.empty:
+        df_v7p3r_games = df_v7p3r_games.copy() # Avoid SettingWithCopyWarning
         try:
-            df_viper_games['timestamp_dt'] = pd.to_datetime(df_viper_games['timestamp'])
+            df_v7p3r_games['timestamp_dt'] = pd.to_datetime(df_v7p3r_games['timestamp'])
         except Exception: 
-             df_viper_games['timestamp_dt'] = pd.to_datetime(df_viper_games['timestamp'], format="%Y%m%d_%H%M%S", errors='coerce')
+             df_v7p3r_games['timestamp_dt'] = pd.to_datetime(df_v7p3r_games['timestamp'], format="%Y%m%d_%H%M%S", errors='coerce')
         
-        df_viper_games = df_viper_games.sort_values('timestamp_dt').reset_index(drop=True)
+        df_v7p3r_games = df_v7p3r_games.sort_values('timestamp_dt').reset_index(drop=True)
         
-        df_viper_games['cum_viper_wins'] = 0
-        df_viper_games['cum_viper_losses'] = 0
-        df_viper_games['cum_viper_draws'] = 0
+        df_v7p3r_games['cum_v7p3r_wins'] = 0
+        df_v7p3r_games['cum_v7p3r_losses'] = 0
+        df_v7p3r_games['cum_v7p3r_draws'] = 0
 
         current_wins = 0
         current_losses = 0
         current_draws = 0
         
-        for index, row in df_viper_games.iterrows():
+        for index, row in df_v7p3r_games.iterrows():
             winner = row.get('winner')
-            white_is_viper_and_included = row.get('white_engine_type') == 'Viper' and not row.get('exclude_white_from_metrics', False)
-            black_is_viper_and_included = row.get('black_engine_type') == 'Viper' and not row.get('exclude_black_from_metrics', False)
+            white_is_v7p3r_and_included = row.get('white_engine') == 'v7p3r' and not row.get('exclude_white_from_metrics', False)
+            black_is_v7p3r_and_included = row.get('black_engine') == 'v7p3r' and not row.get('exclude_black_from_metrics', False)
 
             if winner == '1-0':
-                if white_is_viper_and_included: current_wins += 1
-                if black_is_viper_and_included: current_losses += 1
+                if white_is_v7p3r_and_included: current_wins += 1
+                if black_is_v7p3r_and_included: current_losses += 1
             elif winner == '0-1':
-                if black_is_viper_and_included: current_wins += 1
-                if white_is_viper_and_included: current_losses += 1
+                if black_is_v7p3r_and_included: current_wins += 1
+                if white_is_v7p3r_and_included: current_losses += 1
             elif winner == '1/2-1/2':
-                if white_is_viper_and_included or black_is_viper_and_included:
+                if white_is_v7p3r_and_included or black_is_v7p3r_and_included:
                     current_draws += 1
-            df_viper_games.at[index, 'cum_viper_wins'] = current_wins
-            df_viper_games.at[index, 'cum_viper_losses'] = current_losses
-            df_viper_games.at[index, 'cum_viper_draws'] = current_draws
+            df_v7p3r_games.at[index, 'cum_v7p3r_wins'] = current_wins
+            df_v7p3r_games.at[index, 'cum_v7p3r_losses'] = current_losses
+            df_v7p3r_games.at[index, 'cum_v7p3r_draws'] = current_draws
 
         fig_static_trend.add_trace(go.Scatter(
-            x=df_viper_games['timestamp_dt'],
-            y=df_viper_games['cum_viper_wins'],
+            x=df_v7p3r_games['timestamp_dt'],
+            y=df_v7p3r_games['cum_v7p3r_wins'],
             mode='lines+markers',
             name='Cumulative Wins',
             line=dict(color=DARK_SUCCESS)
         ))
         fig_static_trend.add_trace(go.Scatter(
-            x=df_viper_games['timestamp_dt'],
-            y=df_viper_games['cum_viper_losses'],
+            x=df_v7p3r_games['timestamp_dt'],
+            y=df_v7p3r_games['cum_v7p3r_losses'],
             mode='lines+markers',
             name='Cumulative Losses',
             line=dict(color=DARK_ERROR)
         ))
         fig_static_trend.add_trace(go.Scatter(
-            x=df_viper_games['timestamp_dt'],
-            y=df_viper_games['cum_viper_draws'],
+            x=df_v7p3r_games['timestamp_dt'],
+            y=df_v7p3r_games['cum_v7p3r_draws'],
             mode='lines+markers',
             name='Cumulative Draws',
             line=dict(color=DARK_WARNING)
         ))
         fig_static_trend.update_layout(
-            title="Viper Game Results Over Time",
+            title="V7P3R Game Results Over Time",
             xaxis_title="Game Timestamp",
             yaxis_title="Cumulative Count",
             height=300,
@@ -471,13 +464,13 @@ def update_static_metrics(_):
         )
     else: # Should be covered by earlier checks, but as a fallback
         fig_static_trend.update_layout(
-            title="No Viper Game Result Data Available",
+            title="No V7P3R Game Result Data Available",
             height=300, margin=dict(t=40, b=20, l=30, r=20),
             paper_bgcolor=DARK_PANEL, plot_bgcolor=DARK_PANEL, font=dict(color=DARK_TEXT),
             xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
             yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
         )
-        fig_static_trend.add_annotation(text="No Viper game data to display.", xref="paper", yref="paper", showarrow=False, font=dict(size=16, color=DARK_TEXT))
+        fig_static_trend.add_annotation(text="No V7P3R game data to display.", xref="paper", yref="paper", showarrow=False, font=dict(size=16, color=DARK_TEXT))
             
     return metrics_display, fig_static_trend
 
