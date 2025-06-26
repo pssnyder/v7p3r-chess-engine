@@ -8,6 +8,7 @@ v7p3r:
   depth: 5                            # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
   max_depth: 8                        # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
   use_solutions: true                 # Use known positional solutions for evaluation (based on known puzzle solutions)
+  use_opening_book: true              # Use the engines opening book to play known positions at the start of the game
   pst: true                           # Use piece-square tables for evaluation
   pst_weight: 1.5                     # Weight for piece-square table evaluation
   move_ordering: true                 # Enable move ordering for better performance
@@ -22,6 +23,7 @@ v7p3r_opponent:
   depth: 1                            # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
   max_depth: 1                        # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
   use_solutions: false                # Use known positional solutions for evaluation (based on known puzzle solutions)
+  use_opening_book: false             # Use the engines opening book to play known positions at the start of the game
   pst: false                          # Use piece-square tables for evaluation
   pst_weight: 0.0                     # Weight for piece-square table evaluation
   move_ordering: false                # Enable move ordering for better performance

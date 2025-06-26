@@ -29,7 +29,7 @@ black_engine: v7p3r_opponent        # sets this colors engine configuration name
 # Performance settings
 performance:
   max_moves_evaluated: 50         # Limit moves evaluated per position, only if move ordering is on to prevent misses. Set to null for no limit.
-  use_transposition_table: true   # Cache evaluations for faster processing
+  use_transposition_table: false   # Cache evaluations for faster processing
   async_mode: false               # Control via setting - Enables thread processing of eval functions (TODO: Implement in v7p3rEvaluationEngine)
   thread_limit: 4                 # Enables an upper limit in thread count during async_mode (TODO: Implement in v7p3rEvaluationEngine)
   hash_size: 250                   # MB limit for hash tables
