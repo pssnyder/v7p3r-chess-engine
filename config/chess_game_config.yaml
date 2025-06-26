@@ -13,49 +13,13 @@ game_config:
 
   # AI vs AI game_config settings
   ai_vs_ai: true                 # Set to true for AI vs AI matches
-  ai_game_count: 1              # Number of games to play in AI vs AI mode
+  ai_game_count: 1               # Number of games to play in AI vs AI mode
   starting_position: default     # Default starting position name (or FEN string)
-  strict_draw_prevention: true   # Enforce strict draw rules to fully block drawing moves that would lead to stalemate, insufficient material, and threefold repetition
-  
+  white_engine: v7p3r            # Name of the engine being used (e.g., 'v7p3r', 'stockfish'), this value is a direct reference to the engine configuration values in their respective config files
+  black_engine: stockfish        # sets this colors engine configuration name, same as above, important note that if the engines are set the same then only whites metrics will be collected to prevent negation in win loss metrics
+
   # AI vs Human game_config settings
-  human_color: random            # Options: white, black, random (for human vs AI)
-  human_elo: 100                 # Elo rating for human player, used for AI vs Human games to adapt Engine to human skill level               
+  human_color_pref: random            # Options: white, black, random (for human vs AI)              
 
-# Engine configurations
-# These configurations are for the AI engines used in the game, such as v7p3r and Stockfish.
-white_engine: v7p3r                 # Name of the engine being used (e.g., 'v7p3r', 'stockfish'), this value is a direct reference to the engine configuration values in their respective config files
-black_engine: v7p3r_opponent        # sets this colors engine configuration name, same as above, important note that if the engines are set the same then only whites metrics will be collected to prevent negation in win loss metrics
 
-# Performance settings
-performance:
-  max_moves_evaluated: 50         # Limit moves evaluated per position, only if move ordering is on to prevent misses. Set to null for no limit.
-  use_transposition_table: false   # Cache evaluations for faster processing
-  async_mode: false               # Control via setting - Enables thread processing of eval functions (TODO: Implement in v7p3rEvaluationEngine)
-  thread_limit: 4                 # Enables an upper limit in thread count during async_mode (TODO: Implement in v7p3rEvaluationEngine)
-  hash_size: 250                   # MB limit for hash tables
   
-# Monitoring settings
-monitoring:
-  enable_logging: true            # Turn logging on or off, auto-disables thoughts if false
-  show_evaluation: true           # Show the evaluation during a game
-  show_thinking: true             # Show what the AI is thinking during the game (TODO: add thinking time to the log for each color
-
-# Starting positions
-starting_positions:
-  default: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'  # Standard chess starting position
-  london: 'rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq - 0 1' # London System starting position
-  kings_indian: 'rnbqkb1r/pppppppp/5n2/8/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 1 2' # King's Indian Defense starting position
-  caro_kann: 'rnbqkbnr/pp1ppppp/2p5/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2' # Caro-Kann Defense starting position
-  scandinavian: 'rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2' # Scandinavian Defense starting position
-  dutch: 'rnbqkbnr/ppppp1pp/8/5p2/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 0 2' # Dutch Defense starting position
-  sicilian: 'rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2' # Sicilian Defense starting position
-  english: 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2' # English Opening starting position
-  vienna: 'rnbqkbnr/pppp1ppp/8/4p3/4P3/2N5/PPPP1PPP/R1BQKBNR b KQkq - 1 2' # Vienna Game starting position
-  french: 'rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2' # French Defense starting position
-  nimzo_indian: 'rnbqkb1r/pppp1ppp/5n2/4p3/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 1 2' # Nimzo-Indian Defense starting position
-  slav: 'rnbqkbnr/pppp1ppp/5n2/4p3/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 1 2' # Slav Defense starting position
-  queens_gambit: 'rnbqkbnr/pppp1ppp/5n2/4p3/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 1 2' # Queen's Gambit starting position
-  kings_gambit: 'rnbqkbnr/pppp1ppp/5n2/4p3/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 1 2' # King's Gambit starting position
-  benoni: 'rnbqkbnr/pppp1ppp/5n2/4p3/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 1 2' # Benoni Defense starting position
-  pirc: 'rnbqkbnr/pppp1ppp/5n2/4p3/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 1 2' # Pirc Defense starting position
-  alekhine: 'rnbqkbnr/pppp1ppp/5n2/4p3/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 1 2' # Alekhine's Defense starting position

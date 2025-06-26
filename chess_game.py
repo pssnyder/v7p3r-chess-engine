@@ -77,7 +77,7 @@ class ChessGame:
         self.starting_position = config.fen_position if hasattr(config, 'fen_position') else None
         self.data_collector = getattr(config, 'data_collector', None)
         self.game_config_data = getattr(config, 'game_config', {})
-        self.v7p3r_config_data = getattr(config, 'v7p3r_config', {})
+        self.v7p3r_config = getattr(config, 'v7p3r_config', {})
         self.stockfish_handler_data = getattr(config, 'stockfish_handler', {})
 
         # Initialize Pygame (even in headless mode, for internal timing)
@@ -136,15 +136,15 @@ class ChessGame:
         self.black_eval_engine = self.black_engine_config['engine']
 
         # Compose engine description for headers
-        def engine_desc(engine_config, v7p3r_config_data, color):
+        def engine_desc(engine_config, v7p3r_config, color):
             engine = engine_config.get('engine', 'Unknown')
             # Determine which v7p3r config to use for evaluation
             if engine == 'v7p3r':
-                eval_name = v7p3r_config_data.get('v7p3r', {}).get('ruleset', 'default_evaluation')
-                search_algo = v7p3r_config_data.get('v7p3r', {}).get('search_algorithm', 'deepsearch')
+                eval_name = v7p3r_config.get('v7p3r', {}).get('ruleset', 'default_evaluation')
+                search_algo = v7p3r_config.get('v7p3r', {}).get('search_algorithm', 'deepsearch')
             elif engine == 'v7p3r_opponent':
-                eval_name = v7p3r_config_data.get('v7p3r_opponent', {}).get('ruleset', 'simple_evaluation')
-                search_algo = v7p3r_config_data.get('v7p3r_opponent', {}).get('search_algorithm', 'random')
+                eval_name = v7p3r_config.get('v7p3r_opponent', {}).get('ruleset', 'simple_evaluation')
+                search_algo = v7p3r_config.get('v7p3r_opponent', {}).get('search_algorithm', 'random')
             else:
                 eval_name = engine_config.get('ruleset', engine_config.get('evaluation', ''))
                 search_algo = engine_config.get('search_algorithm', '')
@@ -155,12 +155,8 @@ class ChessGame:
                 search_algo = engine_config['search_algorithm']
             return f"{engine} ({eval_name}) via {search_algo}"
 
-        self.white_engine_desc = engine_desc(self.white_engine_config, self.v7p3r_config_data, 'white')
-        self.black_engine_desc = engine_desc(self.black_engine_config, self.v7p3r_config_data, 'black')
-
-        # Set exclude_from_metrics attributes for later use
-        self.exclude_white_from_metrics = self.white_engine_config.get('exclude_from_metrics', False)
-        self.exclude_black_from_metrics = self.black_engine_config.get('exclude_from_metrics', False)
+        self.white_engine_desc = engine_desc(self.white_engine_config, self.v7p3r_config, 'white')
+        self.black_engine_desc = engine_desc(self.black_engine_config, self.v7p3r_config, 'black')
 
         if self.logging_enabled and self.logger:
             self.logger.debug(f"Initializing ChessGame with {self.starting_position} position")
@@ -223,8 +219,8 @@ class ChessGame:
 
         # v7p3r engine general settings from v7p3r_config.yaml
         if self.white_engine_config.get('engine', '').lower() == 'v7p3r':
-            # Pass relevant parts of v7p3r_config_data and game_config_data (white_engine_config)
-            v7p3r_engine_config = {**self.v7p3r_config_data.get('v7p3r', {}), **self.white_engine_config}
+            # Pass relevant parts of v7p3r_config and game_config_data (white_engine_config)
+            v7p3r_engine_config = {**self.v7p3r_config.get('v7p3r', {}), **self.white_engine_config}
             self.white_engine = v7p3rEvaluationEngine(self.board, chess.WHITE, engine_config=v7p3r_engine_config)
         elif self.white_engine_config.get('engine', '').lower() == 'v7p3r_nn':
             # Initialize Neural Network engine
@@ -248,30 +244,9 @@ class ChessGame:
             self.white_engine = v7p3rEvaluationEngine(self.board, chess.WHITE, engine_config=self.white_engine_config)
             self.white_engine_config['engine'] = 'v7p3r'        # Black Engine
         if self.black_engine_config.get('engine', '').lower() == 'v7p3r':
-            # Pass relevant parts of v7p3r_config_data and game_config_data (black_engine_config)
-            v7p3r_engine_config = {**self.v7p3r_config_data.get('v7p3r', {}), **self.black_engine_config}
+            # Pass relevant parts of v7p3r_config and game_config_data (black_engine_config)
+            v7p3r_engine_config = {**self.v7p3r_config.get('v7p3r', {}), **self.black_engine_config}
             self.black_engine = v7p3rEvaluationEngine(self.board, chess.BLACK, engine_config=v7p3r_engine_config)
-        elif self.black_engine_config.get('engine', '').lower() == 'v7p3r_nn':
-            # Initialize Neural Network engine
-            self.black_engine = v7p3rNeuralNetwork(config_path="config/v7p3r_nn_config.yaml")
-            self.logger.info("Initialized v7p3r Neural Network engine for Black")
-        elif self.black_engine_config.get('engine', '').lower() == 'stockfish':
-            if not stockfish_path or not os.path.exists(stockfish_path):
-                self.logger.error(f"Stockfish executable not found at: {stockfish_path}. Black AI defaulting to v7p3r.")
-                self.black_engine = v7p3rEvaluationEngine(self.board, chess.BLACK, engine_config=self.black_engine_config)
-                self.black_engine_config['engine'] = 'v7p3r' # Force engine name change
-                self.black_engine_config['search_algorithm'] = 'random' # Force type change as Stockfish type invalid
-            else:
-                self.black_engine = StockfishHandler(
-                    stockfish_path=stockfish_path,
-                    elo_rating=stockfish_elo,
-                    skill_level=stockfish_skill,
-                    debug_mode=debug_stockfish
-                )
-        else: # Default to v7p3r if unknown engine
-            self.logger.warning(f"Unknown engine for Black AI: {self.black_engine_config['engine']}. Defaulting to v7p3r.")
-            self.black_engine = v7p3rEvaluationEngine(self.board, chess.BLACK, engine_config=self.black_engine_config)
-            self.black_engine_config['engine'] = 'v7p3r'
 
         # Reset and configure engines for the new game board
         self.white_engine.reset()
@@ -281,9 +256,9 @@ class ChessGame:
         # Set initial PGN headers
         white_depth = self.white_engine_config.get('depth') # Depth might come from white_engine_config in chess_game_config.yaml
         if white_depth is None and (self.white_engine_config.get('engine','').lower() == 'v7p3r' or self.white_engine_config.get('engine','').lower() == 'v7p3r_nn'): # Or from v7p3r_config.yaml if v7p3r
-            white_depth = self.v7p3r_config_data.get('v7p3r', {}).get('depth', '#')
+            white_depth = self.v7p3r_config.get('v7p3r', {}).get('depth', '#')
         elif white_depth is None and (self.white_engine_config.get('engine','').lower() == 'v7p3r_opponent' or self.white_engine_config.get('engine','').lower() == 'v7p3r_nn_opponent'):
-            white_depth = self.v7p3r_config_data.get('v7p3r_opponent', {}).get('depth', '#')
+            white_depth = self.v7p3r_config.get('v7p3r_opponent', {}).get('depth', '#')
         elif white_depth is None and self.white_engine_config.get('engine','').lower() == 'stockfish': # Or from stockfish.yaml if Stockfish
             white_depth = self.stockfish_handler_data.get('stockfish', {}).get('depth', '#') # Fallback for Stockfish depth
         else:
@@ -292,16 +267,16 @@ class ChessGame:
 
         black_depth = self.black_engine_config.get('depth') # Depth might come from black_engine_config in chess_game_config.yaml
         if black_depth is None and (self.black_engine_config.get('engine','').lower() == 'v7p3r' or self.black_engine_config.get('engine','').lower() == 'v7p3r_nn'): # Or from v7p3r_config.yaml if v7p3r
-            black_depth = self.v7p3r_config_data.get('v7p3r', {}).get('depth', '#')
+            black_depth = self.v7p3r_config.get('v7p3r', {}).get('depth', '#')
         elif black_depth is None and (self.black_engine_config.get('engine','').lower() == 'v7p3r_opponent' or self.black_engine_config.get('engine','').lower() == 'v7p3r_nn_opponent'):
-            black_depth = self.v7p3r_config_data.get('v7p3r_opponent', {}).get('depth', '#')
+            black_depth = self.v7p3r_config.get('v7p3r_opponent', {}).get('depth', '#')
         elif black_depth is None and self.black_engine_config.get('engine','').lower() == 'stockfish': # Or from stockfish.yaml if Stockfish
             black_depth = self.stockfish_handler_data.get('stockfish', {}).get('depth', '#') # Fallback for Stockfish depth
         else:
             black_depth = '#'
 
-        white_engine_name = self.white_engine_config.get('engine', 'Unknown')
-        black_engine_name = self.black_engine_config.get('engine', 'Unknown')
+        white_engine_name = self.white_engine_config.get('engine_name', 'Unknown')
+        black_engine_name = self.black_engine_config.get('engine_name', 'Unknown')
 
         # Use the new engine description for headers
         if self.ai_vs_ai:
@@ -349,21 +324,6 @@ class ChessGame:
         if board.is_seventyfive_moves():
             return True
         return False
-    
-    def strict_draw_prevention(self):
-        """If strict_draw_prevention is enabled, try to select a legal move that avoids an immediate draw
-        (threefold repetition, 50-move, insufficient material, or 75-move rule) and return it. Otherwise, return None."""
-        if not self.game_config_data.get('game_config', {}).get('strict_draw_prevention', False):
-            return None
-        for move in self.board.legal_moves:
-            board_copy = self.board.copy(stack=False)
-            board_copy.push(move)
-            if not (board_copy.can_claim_threefold_repetition() or
-                    board_copy.can_claim_fifty_moves() or
-                    board_copy.is_insufficient_material() or
-                    board_copy.is_seventyfive_moves()):
-                return move
-        return None
 
     def get_board_result(self):
         """Return the result string for the current board state."""
@@ -392,16 +352,8 @@ class ChessGame:
         return "*"
 
     def handle_game_end(self):
-        # Before ending the game due to draw conditions, attempt strict draw prevention if enabled.
+        """Check if the game is over and handle end conditions."""
         if self.board.is_game_over(claim_draw=self._is_draw_condition(self.board)):
-            # If a draw is about to occur but an alternative move exists, play it instead.
-            alt_move = self.strict_draw_prevention()
-            if alt_move is not None:
-                if self.logging_enabled and self.logger:
-                    self.logger.info(f"Strict draw prevention triggered, playing alternative move: {alt_move}")
-                self.push_move(alt_move)
-                return False
-            # Otherwise add the final move (if not already added) and conclude the game.
             # Ensure the result is set in the PGN headers and game node
             result = self.get_board_result()
             self.game.headers["Result"] = result
@@ -496,7 +448,7 @@ class ChessGame:
         # Save a combined config for this specific game, including relevant parts of all loaded configs
         game_specific_config = {
             "game_settings": self.game_config_data,
-            "v7p3r_settings": self.v7p3r_config_data,
+            "v7p3r_settings": self.v7p3r_config,
             "stockfish_settings": self.stockfish_handler_data,
             "white_actual_config": self.white_engine_config, # The specific config used by white AI for this game
             "black_actual_config": self.black_engine_config  # The specific config used by black AI for this game
@@ -545,8 +497,6 @@ class ChessGame:
             "black_engine_name": self.black_eval_engine,
             "white_engine_version": self.white_engine_config.get('engine_version', '1.0'),
             "black_engine_version": self.black_engine_config.get('engine_version', '1.0'),
-            "exclude_white_from_metrics": self.exclude_white_from_metrics,
-            "exclude_black_from_metrics": self.exclude_black_from_metrics
         }
 
         # Save the game result to a file for instant analysis
@@ -614,7 +564,7 @@ class ChessGame:
                 'white_engine_config': self.white_engine_config,
                 'black_engine_config': self.black_engine_config,
                 'game_settings': self.game_config_data,
-                'v7p3r_settings': self.v7p3r_config_data,
+                'v7p3r_settings': self.v7p3r_config,
                 'stockfish_settings': self.stockfish_handler_data
             }
             with open(yaml_path, 'w', encoding='utf-8') as f:
@@ -711,7 +661,7 @@ class ChessGame:
                 self.push_move(ai_move)
                 
                 if self.logging_enabled and self.logger:
-                    self.logger.info(f"AI ({current_player_color}) played: {ai_move} (Eval: {self.current_eval:.2f})")
+                    self.logger.info(f"AI ({'White' if current_player_color == chess.WHITE else 'Black'}) played: {ai_move} (Eval: {self.current_eval:.2f})")
                 self.last_ai_move = ai_move
 
                 if self.rated:
@@ -729,10 +679,9 @@ class ChessGame:
                         'time_taken': self.move_duration,
                         'pv_line': pv_line_info,
                         # Full schema coverage:
-                        'engine_id': hashlib.md5(current_engine_config.get('engine', 'unknown').encode()).hexdigest(),
-                        'engine_name': current_engine_config.get('engine', 'unknown'),
-                        'engine_version': current_engine_config.get('engine_version', current_engine_config.get('version', '1.0')),
-                        'exclude_from_metrics': int(current_engine_config.get('exclude_from_metrics', False))
+                        'engine_id': hashlib.md5(current_engine_config.get('engine_name', 'unknown').encode()).hexdigest(),
+                        'engine_name': current_engine_config.get('engine_name', 'unknown'),
+                        'engine_version': current_engine_config.get('engine_version', current_engine_config.get('engine_version', '1.0')),
                     }
                     self.metrics_store.add_move_metric(**metric)
                     self._move_metrics_batch.append(metric)
