@@ -7,11 +7,14 @@ It provides various search algorithms, evaluation functions, and move ordering
 
 from __future__ import annotations # Added for postponed evaluation of type annotations
 import chess
+from sympy import true
 import yaml
 import random
 import logging
+import sys
 import os
-import threading
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import time
 from typing import Optional, Callable, Dict, Any, Tuple
 from engine_utilities.piece_square_tables import PieceSquareTables
@@ -68,6 +71,7 @@ class v7p3rEvaluationEngine: # Renamed class from EvaluationEngine
         self.history_table = {}
         self.counter_moves = {}
 
+        # Default Piece Values
         self.piece_values = {
             chess.KING: 0.0,
             chess.QUEEN: 9.0,
@@ -79,170 +83,91 @@ class v7p3rEvaluationEngine: # Renamed class from EvaluationEngine
 
         try:
             with open("config/v7p3r_config.yaml") as f:
-                v7p3r_data = yaml.safe_load(f) or {}
-                self.v7p3r_config_data = v7p3r_data.get('v7p3r', {})
-                self.full_v7p3r_config = v7p3r_data  # Keep the full config for scoring calculator
+                self.v7p3r_config = yaml.safe_load(f) or {}
             with open("config/chess_game_config.yaml") as f:
-                game_data = yaml.safe_load(f) or {}
-                self.game_settings_config_data = game_data
+                self.chess_game_config = yaml.safe_load(f) or {}
         except Exception as e:
             v7p3r_engine_logger.error(f"Error loading v7p3r or game settings YAML files: {e}")
-            self.v7p3r_config_data = {}
-            self.full_v7p3r_config = {}
-            self.game_settings_config_data = {}
+            self.v7p3r_config = {}
+            self.chess_game_config = {}
 
-        # Performance settings from v7p3r_config_data, with fallbacks to game_settings_config_data
-        v7p3r_perf = self.v7p3r_config_data.get('performance', {})
-        game_perf = self.game_settings_config_data.get('performance', {})
+        # Game Config
+        self.game_config = self.chess_game_config.get('game_config', {})
+        self.game_type = self.game_config.get('game_type', 'standard') # Default to 'standard' if not set
+        self.game_clock = self.game_config.get('game_clock', 300)
+        self.game_increment = self.game_config.get('increment', 2)
+        self.rated_game = self.game_config.get('rated', False)
+        self.ai_vs_ai = self.game_config.get('ai_vs_ai', False)
+        self.ai_game_count = self.game_config.get('ai_game_count', 1) # Default to 0 if not set
+        self.starting_positions = self.chess_game_config.get('starting_positions', {})
+        self.starting_fen = self.game_config.get('staring_position', 'default')
+        self.strict_draw_prevention = self.game_config.get('strict_draw_prevention', True)
+        self.human_color = self.game_config.get('human_color', 'random')
+        self.human_elo = self.game_config.get('human_elo', 100)
+        if self.game_clock is None or self.game_clock <= 0:
+            self.time_control = {'infinite': True}
+        else:
+            self.time_control = {
+                'limit': self.game_clock,
+                'increment': self.game_increment
+            }
+        # Engine Name
+        if self.current_player == chess.WHITE:
+            self.engine_name = self.chess_game_config.get('white_engine', 'v7p3r') # Default to v7p3r if not set
+        else:
+            self.engine_name = self.chess_game_config.get('black_engine', 'v7p3r_opponent') # Default to v7p3r_opponent if not set
         
-        self.hash_size = v7p3r_perf.get('hash_size', game_perf.get('hash_size', 1024*1024))
+        # Performance Config
+        self.performance_config = self.chess_game_config.get('performance', {})
+        self.max_moves_to_evaluate = self.performance_config.get('max_moves_evaluated', 50)
+        self.transpositions_enabled = self.performance_config.get('use_transposition_table', False)
+        self.async_enabled = self.performance_config.get('async_mode', False)
+        self.thread_limit = self.performance_config.get('thread_limit', 2)
+        self.hash_size = self.performance_config.get('hash_size',  64) # MB limit for hash tables
         self.transposition_table.maxlen = self.hash_size // 100 # Approximate entry size
-        self.threads = v7p3r_perf.get('thread_limit', game_perf.get('thread_limit', 1))
-
-        # Monitoring settings primarily from game_settings_config_data
-        monitoring_settings = self.game_settings_config_data.get('monitoring', {}) if self.game_settings_config_data else {}
-        self.logging_enabled = monitoring_settings.get('enable_logging', True)
-        self.show_thoughts = monitoring_settings.get('show_thinking', True)
         
+        # Monitoring Config
+        self.monitoring_config = self.chess_game_config.get('monitoring', {})
+        self.logging_enabled = self.monitoring_config.get('enable_logging', False)
+        self.evaluation_display_enabled = self.monitoring_config.get('show_evaluation', False)
+        self.show_thoughts = self.monitoring_config.get('show_thinking', False)
         self.logger = v7p3r_engine_logger
         if not self.logging_enabled:
             self.show_thoughts = False
         if self.logging_enabled:
-            self.logger.debug("Logging enabled for v7p3rEvaluationEngine")
-
-        # Initial engine_config resolution
-        self.engine_config = self._ensure_engine_config(engine_config, player)
-        self.configure_for_side(self.board, self.engine_config) 
+            self.logger.debug(f"Logging enabled for {player} v7p3rEvaluationEngine")
         
-        self.pst = PieceSquareTables()
-
-        self.scoring_calculator = v7p3rScoringCalculation(
-            v7p3r_yaml_config=self.full_v7p3r_config, # Pass full v7p3r_config.yaml data including all rulesets
-            engine_config=self.engine_config, # Pass resolved engine_config
-            piece_values=self.piece_values,
-            pst=self.pst
-        )
-        
-        game_rules = self.game_settings_config_data.get('game_config', {})
-        self.strict_draw_prevention = game_rules.get('strict_draw_prevention', False)
-        self.game_phase_awareness = self.engine_config.get('game_phase_awareness', True)
-        self.endgame_factor = 0.0
+        # Engine Config
+        self.configure_for_side(self.board, self.engine_name)
 
         self.reset()
 
-    def _ensure_engine_config(self, engine_config_runtime: Optional[Dict[str, Any]], player: chess.Color) -> Dict[str, Any]:
-        """ Ensures the engine configuration is correctly set up during simulation runs"""
-        # 1. Start with base v7p3r engine settings from v7p3r_config.yaml (per-engine section only)
-        engine_section = 'v7p3r' if player == chess.WHITE else 'v7p3r_opponent'
-        base_engine_config = self.v7p3r_config_data.get(engine_section, {}).copy()
+    def configure_for_side(self, board: chess.Board, engine_name: str):
+        """ Configures the engine for the current side based on the engine name """
+        # Dynamically fetch the config for this engine
+        self.engine_config = self.v7p3r_config.get(engine_name, {})  # Dynamically load configuration based on engine_name
 
-        # 2. Merge/override with player-specific AI config from chess_game_config.yaml
-        player_specific_key = 'white_engine_config' if player == chess.WHITE else 'black_engine_config'
-        player_specific_game_config = self.game_settings_config_data.get(player_specific_key, {}) if self.game_settings_config_data else {}
-
-        def deep_merge(source, destination):
-            for key, value in source.items():
-                if isinstance(value, dict) and isinstance(destination.get(key), dict):
-                    deep_merge(value, destination[key])
-                else:
-                    destination[key] = value
-            return destination
-
-        final_config = deep_merge(player_specific_game_config, base_engine_config)
-
-        # 3. Merge/override with runtime engine_config (highest precedence)
-        if engine_config_runtime and isinstance(engine_config_runtime, dict):
-            final_config = deep_merge(engine_config_runtime, final_config)
-
-        # Set defaults from per-engine config or fallback
-        final_config.setdefault('search_algorithm', base_engine_config.get('search_algorithm', 'random'))
-        final_config.setdefault('depth', base_engine_config.get('depth', 3))
-        final_config.setdefault('ruleset', base_engine_config.get('ruleset', 'default_evaluation'))
-        final_config.setdefault('max_depth', base_engine_config.get('max_depth', 5))
-        final_config.setdefault('scoring_modifier', base_engine_config.get('scoring_modifier', 1.0))
-        final_config.setdefault('pst', base_engine_config.get('pst', True))
-        final_config.setdefault('pst_weight', base_engine_config.get('pst_weight', 1.0))
-        final_config.setdefault('move_ordering', base_engine_config.get('move_ordering', True))
-        final_config.setdefault('quiescence', base_engine_config.get('quiescence', True))
-        final_config.setdefault('time_limit', base_engine_config.get('time_limit', 0))
-        final_config.setdefault('game_phase_awareness', base_engine_config.get('game_phase_awareness', True))
-
-        if self.logging_enabled and self.logger:
-            self.logger.debug(f"Resolved AI config for player {'WHITE' if player == chess.WHITE else 'BLACK'}: {final_config}")
-        return final_config
-
-    def _get_engine_config(self, player_config: str): # This method is largely superseded by _ensure_engine_config but kept for now if direct access is needed.
-        # player_config would be 'white_engine_config' or 'black_engine_config'
-        player_color = chess.WHITE if player_config == 'white_engine_config' else chess.BLACK
-        # Use _ensure_engine_config with None for runtime_config to get the base + player_specific config
-        return self._ensure_engine_config(None, player_color)
-
-    def configure_for_side(self, board: chess.Board, engine_config_resolved: dict):
-        """ Configures the engine for the current side based on the resolved engine configuration """
-        self.engine_config = engine_config_resolved # This is the fully resolved config
-        self.search_algorithm = self.engine_config.get('search_algorithm') # Already defaulted in _ensure_engine_config
-        self.ai_color = 'white' if board.turn == chess.WHITE else 'black'
-        self.depth = self.engine_config.get('depth', 3)
-        self.max_depth = self.engine_config.get('max_depth', 5)
-        self.solutions_enabled = self.engine_config.get('use_opening_book')
-        
-        move_ordering = self.engine_config.get('move_ordering', True)
-        if isinstance(move_ordering, dict):
-            self.move_ordering_enabled = move_ordering.get('enabled', True)
-        else:
-            self.move_ordering_enabled = bool(move_ordering)
-        
-        quiescence = self.engine_config.get('quiescence', True)
-        if isinstance(quiescence, dict):
-            self.quiescence_enabled = quiescence.get('enabled', True)
-        else:
-            self.quiescence_enabled = bool(quiescence)
-            
-        self.move_time_limit = self.engine_config.get('move_time_limit')
-        
-        pst = self.engine_config.get('pst', True)
-        if isinstance(pst, dict):
-            self.pst_enabled = pst.get('enabled', True)
-            self.pst_weight = pst.get('weight', 1.0)
-        else:
-            self.pst_enabled = bool(pst)
-            self.pst_weight = self.engine_config.get('pst_weight', 1.0)
-        self.eval_engine = self.engine_config.get('engine', 'v7p3r')
+        # Set up config values for evaluator and scoring
         self.ruleset = self.engine_config.get('ruleset')
-        self.scoring_modifier = self.engine_config.get('scoring_modifier')
+        self.search_algorithm = self.engine_config.get('search_algorithm', 'random')
+        self.depth = self.engine_config.get('depth', 3)
+        self.max_depth = self.engine_config.get('max_depth', 4)
+        self.solutions_enabled = self.engine_config.get('use_solutions', False)
+        self.pst_enabled = self.engine_config.get('pst', False)
+        self.pst_weight = self.engine_config.get('pst_weight', 1.0)
+        self.move_ordering_enabled = self.engine_config.get('move_ordering', False)
+        self.quiescence_enabled = self.engine_config.get('quiescence', False)
+        self.move_time_limit = self.engine_config.get('time_limit', 0)
+        self.scoring_modifier = self.engine_config.get('scoring_modifier', 1.0)
+        self.game_phase_awareness = self.engine_config.get('game_phase_awareness', False)
+        self.engine_color = 'white' if board.turn else 'black'
 
+        # Initialize a scoring setup for this engine config
         if self.logging_enabled and self.logger:
-            self.logger.debug(f"Configuring v7p3r AI for {'White' if board.turn == chess.WHITE else 'Black'} with resolved config: {self.engine_config}")
-        
-        if self.move_time_limit is None:
-            self.move_time_limit = 0
-
-        if self.move_time_limit > 0:
-            self.time_control = {"movetime": self.move_time_limit}
-        else:
-            time_control_settings = self.game_settings_config_data.get('time_control', {}) if self.game_settings_config_data else {}
-            total_time_s = time_control_settings.get('total_time_s')
-            increment_s = time_control_settings.get('increment_s')
-            if total_time_s is not None and increment_s is not None:
-                 self.time_control = {
-                    "wtime": total_time_s * 1000, "btime": total_time_s * 1000,
-                    "winc": increment_s * 1000, "binc": increment_s * 1000
-                }
-            else:
-                self.time_control = {"infinite": True}
-        
-        if hasattr(self, 'scoring_calculator') and self.scoring_calculator:
-            self.scoring_calculator.engine_config = self.engine_config # Update with the latest resolved config
-            self.scoring_calculator.ruleset_name = self.ruleset
-            # scoring_calculator's __init__ now takes viper_yaml_config, so it has all rulesets.
-            # It will internally select the current_ruleset based on self.ruleset_name.
-            self.scoring_calculator.current_ruleset = self.scoring_calculator.rulesets.get(self.ruleset, {}) # Ensure this is updated
-            self.scoring_calculator.scoring_modifier = self.scoring_modifier
-            self.scoring_calculator.pst_enabled = self.pst_enabled # pst_enabled from resolved config
-            self.scoring_calculator.pst_weight = self.pst_weight   # pst_weight from resolved config
-
+            self.logger.debug(f"Configuring v7p3r AI for {self.engine_color} via: {self.engine_config}")
+        self.scoring_calculator = v7p3rScoringCalculation(self.engine_config, self.v7p3r_config)
         if self.show_thoughts and self.logger:
-            self.logger.debug(f"v7p3r AI configured for {'White' if board.turn == chess.WHITE else 'Black'}: type={self.search_algorithm} depth={self.depth}, ruleset={self.ruleset}")
+            self.logger.debug(f"AI configured for {self.engine_color}: type={self.search_algorithm} depth={self.depth}, ruleset={self.ruleset}")
 
     def close(self):
         self.reset()
@@ -261,7 +186,7 @@ class v7p3rEvaluationEngine: # Renamed class from EvaluationEngine
         self.history_table.clear()
         self.counter_moves.clear()
         if self.show_thoughts and self.logger:
-            self.logger.debug(f"v7p3rEvaluationEngine for {self.ai_color} reset to initial state.")
+            self.logger.debug(f"v7p3rEvaluationEngine for {self.engine_color} reset to initial state.")
         
         self.configure_for_side(self.board, self.engine_config)
 
@@ -321,11 +246,7 @@ class v7p3rEvaluationEngine: # Renamed class from EvaluationEngine
         self.sync_with_game_board(board)
         self.current_player = player
 
-        # Resolve the configuration for this specific search call
-        resolved_search_config = self._ensure_engine_config(engine_config, player) # Pass runtime engine_config and player
-        self.configure_for_side(self.board, resolved_search_config) # Re-configure based on this specific search's config
-
-        current_move_time_limit_ms = self.engine_config.get('move_time_limit')
+        current_move_time_limit_ms = self.move_time_limit
         if current_move_time_limit_ms is None:
             current_move_time_limit_ms = 0
         self.time_manager.start_timer(current_move_time_limit_ms / 1000.0 if current_move_time_limit_ms > 0 else 0)
@@ -404,7 +325,7 @@ class v7p3rEvaluationEngine: # Renamed class from EvaluationEngine
                 elif self.search_algorithm == 'negamax':
                     current_move_score = -self._negamax_search(temp_board, (self.depth - 1) if self.depth is not None else 0, -float('inf'), float('inf'), stop_callback=self.time_manager.should_stop)
                 elif self.search_algorithm == 'negascout':
-                    current_move_score = -self._negascout(temp_board, (self.depth - 1) if self.depth is not None else 0, -float('inf'), float('inf'), stop_callback=self.time_manager.should_stop)
+                    current_move_score = -self._negascout_search(temp_board, (self.depth - 1) if self.depth is not None else 0, -float('inf'), float('inf'), stop_callback=self.time_manager.should_stop)
                 elif self.search_algorithm == 'lookahead':
                     current_move_score = -self._lookahead_search(temp_board, (self.depth - 1) if self.depth is not None else 0, -float('inf'), float('inf'), stop_callback=self.time_manager.should_stop)
                 elif self.search_algorithm == 'simple_search': # simple_search itself handles perspective
@@ -995,7 +916,7 @@ class v7p3rEvaluationEngine: # Renamed class from EvaluationEngine
         # Rely on the root search function to track the actual best_move.
         return best_score
 
-    def _negascout(self, board: chess.Board, depth: int, alpha: float, beta: float, stop_callback: Optional[Callable[[], bool]] = None) -> float:
+    def _negascout_search(self, board: chess.Board, depth: int, alpha: float, beta: float, stop_callback: Optional[Callable[[], bool]] = None) -> float:
         self.nodes_searched += 1
         if stop_callback and stop_callback():
             return self.evaluate_position_from_perspective(board, board.turn)
@@ -1022,14 +943,14 @@ class v7p3rEvaluationEngine: # Renamed class from EvaluationEngine
             board.push(move)
             if first_move:
                 # Recursive call: _negascout now always returns a score (float)
-                score = -self._negascout(board, depth-1, -beta, -alpha, stop_callback)
+                score = -self._negascout_search(board, depth-1, -beta, -alpha, stop_callback)
             else:
                 # Null window search (zero window search)
-                score = -self._negascout(board, depth-1, -alpha-1, -alpha, stop_callback)
+                score = -self._negascout_search(board, depth-1, -alpha-1, -alpha, stop_callback)
                 
                 # If the score is within the (alpha, beta) window, re-search with full window
                 if alpha < score < beta:
-                    score = -self._negascout(board, depth-1, -beta, -score, stop_callback)
+                    score = -self._negascout_search(board, depth-1, -beta, -score, stop_callback)
             
             board.pop()
 
@@ -1058,7 +979,7 @@ class v7p3rEvaluationEngine: # Renamed class from EvaluationEngine
             return chess.Move.null() # No legal moves to search
 
         # Use max_depth from the resolved AI config for this search
-        iterative_max_depth = self.engine_config.get('max_depth', self.game_settings_config_data.get('performance', {}).get('max_depth', 5))
+        iterative_max_depth = self.v7p3r_config.get('max_depth', 5)
 
         # The 'depth' parameter passed to _deep_search can be the initial target depth from engine_config
         # Iterative deepening will go from current_depth up to iterative_max_depth or target 'depth'
@@ -1221,6 +1142,7 @@ if __name__ == "__main__":
         endgame_fen = "8/8/8/8/4k3/4K3/8/8 w - - 0 1"
         endgame_board = chess.Board(endgame_fen)
         engine_eg = v7p3rEvaluationEngine(endgame_board, chess.WHITE)
+        pst = PieceSquareTables()
         engine_eg.game_phase_awareness = True
 
         initial_eval_eg = engine_eg.evaluate_position(endgame_board)
@@ -1229,8 +1151,8 @@ if __name__ == "__main__":
         print(f"Endgame Factor for board: {endgame_factor:.2f}")
         assert endgame_factor > 0.0, "Endgame factor not correctly identified"
         
-        king_white_e4_mg_val = engine_eg.pst.get_piece_value(chess.Piece(chess.KING, chess.WHITE), chess.E4, chess.WHITE, endgame_factor=0.0)
-        king_white_e4_eg_val = engine_eg.pst.get_piece_value(chess.Piece(chess.KING, chess.WHITE), chess.E4, chess.WHITE, endgame_factor=1.0)
+        king_white_e4_mg_val = pst.get_piece_value(chess.Piece(chess.KING, chess.WHITE), chess.E4, chess.WHITE, endgame_factor=0.0)
+        king_white_e4_eg_val = pst.get_piece_value(chess.Piece(chess.KING, chess.WHITE), chess.E4, chess.WHITE, endgame_factor=1.0)
         print(f"King on e4 (MG): {king_white_e4_mg_val}, (EG): {king_white_e4_eg_val}")
         assert king_white_e4_eg_val > king_white_e4_mg_val, "King PST not encouraging centralization in endgame"
 

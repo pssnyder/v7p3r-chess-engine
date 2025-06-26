@@ -7,24 +7,21 @@ It is designed to be used by the v7p3r chess engine.
 """
 
 import chess
-import yaml # Keep for config loading if needed directly, though passed via init now
-import random
 import logging
+import sys
 import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
 import threading # TODO enable parallel score calculations via threading
 from engine_utilities.piece_square_tables import PieceSquareTables # Need this for PST evaluation
-from engine_utilities.time_manager import TimeManager # May not be directly needed here, but kept for context if sub-fns rely on it
-from engine_utilities.opening_book import OpeningBook # Not directly needed here, but kept for context
 
 # At module level, define a single logger for this file
-# Renamed from scoring_logger to v7p3r_scoring_logger for clarity
-v7p3r_scoring_logger = logging.getLogger("v7p3r_scoring_calculation") # Renamed logger
+v7p3r_scoring_logger = logging.getLogger("v7p3r_scoring_calculation")
 v7p3r_scoring_logger.setLevel(logging.DEBUG)
 if not v7p3r_scoring_logger.handlers:
     if not os.path.exists('logging'):
         os.makedirs('logging', exist_ok=True)
     from logging.handlers import RotatingFileHandler
-    log_file_path = "logging/v7p3r_scoring_calculation.log" # New log file for v7p3rScoringCalculation
+    log_file_path = "logging/v7p3r_scoring_calculation.log"
     file_handler = RotatingFileHandler(
         log_file_path,
         maxBytes=10*1024*1024,
@@ -40,39 +37,42 @@ v7p3r_scoring_logger.addHandler(file_handler)
 v7p3r_scoring_logger.propagate = False
 
 class v7p3rScoringCalculation:
-    def __init__(self, v7p3r_yaml_config: dict, engine_config: dict, piece_values: dict, pst: PieceSquareTables):
-        self.v7p3r_config = v7p3r_yaml_config # This is the full v7p3r_config.yaml content
-        self.engine_config = engine_config # This is the resolved AI config for the current player/engine instance
-        self.piece_values = piece_values
-        self.pst = pst
+    def __init__(self, engine_config: dict, v7p3r_config: dict):
+        self.engine_config = engine_config # Only the engine configuration for this AI
+        self.v7p3r_config = v7p3r_config # This is the full v7p3r_config.yaml content
 
         # Initialize logger first
         self.logger = v7p3r_scoring_logger
 
         # Ruleset and scoring modifier are determined by the resolved engine_config
         self.ruleset_name = self.engine_config.get('ruleset', 'default_evaluation')
+        
         # Load all rulesets from v7p3r_yaml_config into self.rulesets
-        self.rulesets = {k: v for k, v in self.v7p3r_config.items() if isinstance(v, dict) and 'evaluation' in k.lower()}
-        self.current_ruleset = self.rulesets.get(self.ruleset_name, {}) # Get the specific ruleset based on name
+        self.rules = self.v7p3r_config.get(self.ruleset_name, {}) # Get the specific ruleset based on name
 
-        # --- NEW: Cache all rule values from the selected ruleset, falling back to default_evaluation ---
+        # Cache all rule values from the selected ruleset, falling back to default_evaluation
         self.default_eval_rules = self.v7p3r_config.get('default_evaluation', {})
         self.all_rule_keys = set(self.default_eval_rules.keys())
-        self.all_rule_keys.update(self.current_ruleset.keys())
+        self.all_rule_keys.update(self.rules.keys())
+        
         # Build a dict of all rule values for this scoring instance
         self.rule_values = {}
         for rule in self.all_rule_keys:
-            if rule in self.current_ruleset:
-                self.rule_values[rule] = self.current_ruleset[rule]
+            if rule in self.rules:
+                self.rule_values[rule] = self.rules[rule]
             elif rule in self.default_eval_rules:
                 self.rule_values[rule] = self.default_eval_rules[rule]
             else:
                 self.rule_values[rule] = 0.0 # fallback default
 
-        if self.engine_config.get('monitoring', {}).get('enable_logging', True):
-            self.logger.debug(f"v7p3rScoringCalculation initialized with ruleset: {self.ruleset_name}")
-            self.logger.debug(f"Current ruleset parameters: {self.current_ruleset}")
-            self.logger.debug(f"All rule values loaded: {self.rule_values}")
+        if v7p3r_scoring_logger:
+            v7p3r_scoring_logger.debug(f"v7p3rScoringCalculation initialized with ruleset: {self.ruleset_name}")
+            v7p3r_scoring_logger.debug(f"Current ruleset parameters: {self.rules}")
+            v7p3r_scoring_logger.debug(f"All rule values loaded: {self.rule_values}")
+
+        # Set up additional scoring tools
+        self.pst = PieceSquareTables() # Load piece-square tables from config
+
 
     def _get_rule_value(self, rule_name: str, default_value: float = 0.0) -> float:
         """Helper to safely get a rule value from the cached rule_values dict."""
@@ -100,27 +100,20 @@ class v7p3rScoringCalculation:
         # Helper for consistent color display in logs
         color_name = "White" if color == chess.WHITE else "Black"
 
-        # Ensure the current ruleset is up-to-date based on engine_config (in case it changed)
-        # This is important if the same ViperScoringCalculation instance is used across different contexts
-        # where engine_config might change (e.g. switching sides or re-configuring mid-game if that's a feature)
-        current_ruleset_name_from_engine_config = self.engine_config.get('ruleset', 'default_evaluation')
-        if self.ruleset_name != current_ruleset_name_from_engine_config:
-            self.ruleset_name = current_ruleset_name_from_engine_config
-            if self.ruleset_name not in self.rulesets:
-                self.logger.warning(f"Ruleset '{self.ruleset_name}' (from updated engine_config) not found. Using empty ruleset.")
-                self.current_ruleset = {}
-            else:
-                self.current_ruleset = self.rulesets.get(self.ruleset_name, {})
-            if self.logger:
-                self.logger.debug(f"Switched to ruleset: '{self.ruleset_name}'. Rules: {self.current_ruleset}")
-        
-        # Update other relevant parameters from engine_config
+       # Set up config values for scoring
+        self.search_algorithm = self.engine_config.get('search_algorithm', 'random')
+        self.depth = self.engine_config.get('depth', 3)
+        self.max_depth = self.engine_config.get('max_depth', 4)
+        self.solutions_enabled = self.engine_config.get('use_solutions', False)
+        self.pst_enabled = self.engine_config.get('pst', False)
+        self.pst_weight = self.engine_config.get('weight', 1.0)
+        self.move_ordering_enabled = self.engine_config.get('move_ordering', False)
+        self.quiescence_enabled = self.engine_config.get('quiescence', False)
+        self.move_time_limit = self.engine_config.get('time_limit', 0)
         self.scoring_modifier = self.engine_config.get('scoring_modifier', 1.0)
-        self.pst_enabled = self.engine_config.get('pst', True)
-        self.pst_weight = self.engine_config.get('pst_weight', 1.0)
-        if self.logger:
-            self.logger.debug(f"Using scoring modifier: {self.scoring_modifier}, PST enabled: {self.pst_enabled}, PST weight: {self.pst_weight}")
-            
+        self.game_phase_awareness = self.engine_config.get('game_phase_awareness', False)
+        self.engine_color = 'white' if board.turn else 'black'
+        
         # Critical scoring components
         checkmate_threats_score = self.scoring_modifier * (self._checkmate_threats(board, color) or 0.0)
         if self.logger:
@@ -341,7 +334,7 @@ class v7p3rScoringCalculation:
     def _material_score(self, board: chess.Board, color: chess.Color) -> float:
         """Simple material count for given color"""
         score = 0.0
-        for piece_type, value in self.piece_values.items():
+        for piece_type, value in self.pst.piece_values.items():
             score += len(board.pieces(piece_type, color)) * value
         # Apply material weight from ruleset
         return score * self._get_rule_value('material_weight', 1.0)
