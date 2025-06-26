@@ -40,7 +40,13 @@ def main():
     try:
         # Train on the PGN files
         logger.info("Starting training...")
-        v7p3r_nn.train(pgn_files=pgn_files, epochs=args.epochs)
+        logger.info(f"Training config: epochs={args.epochs}, PGN files={len(pgn_files)}")
+        for idx, pgn_file in enumerate(pgn_files, 1):
+            logger.info(f"[{idx}/{len(pgn_files)}] Preparing {pgn_file}")
+        try:
+            v7p3r_nn.train(pgn_files=pgn_files, epochs=args.epochs)
+        except Exception as e:
+            logger.error(f"Error during training: {e}")
         logger.info("Training completed")
         
         # Analyze games with Stockfish if requested
@@ -71,6 +77,7 @@ def main():
     
     finally:
         # Close the engine to release resources
+        logger.info("Closing neural network engine...")
         v7p3r_nn.close()
 
 if __name__ == "__main__":

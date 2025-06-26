@@ -208,7 +208,7 @@ class MoveLibrary:
         ''', (fen, evaluation, source))
         
         position_id = cursor.lastrowid
-        self.conn.commit()
+        # Removed self.conn.commit() for batch commit
         
         return position_id
         
@@ -231,7 +231,7 @@ class MoveLibrary:
         VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
         ''', (position_id, move, evaluation, source, confidence))
         
-        self.conn.commit()
+        # Removed self.conn.commit() for batch commit
         
     def get_best_move(self, fen):
         """Get the best move for a position"""
@@ -370,30 +370,26 @@ class v7p3rNeuralNetwork:
         self.model.train()
         for epoch in range(epochs):
             running_loss = 0.0
-            
+            batch_count = 0
+            logger.info(f"Starting epoch {epoch+1}/{epochs}")
             for i, data in enumerate(dataloader):
                 inputs, targets = data
                 inputs = inputs.to(self.device)
                 targets = targets.to(self.device).float().view(-1, 1)
-                
-                # Zero the parameter gradients
                 optimizer.zero_grad()
-                
-                # Forward + backward + optimize
                 outputs = self.model(inputs)
                 loss = criterion(outputs, targets)
                 loss.backward()
                 optimizer.step()
-                
-                # Print statistics
                 running_loss += loss.item()
-                if i % 100 == 99:  # Print every 100 mini-batches
-                    logger.info(f"[{epoch + 1}, {i + 1}] loss: {running_loss / 100:.3f}")
-                    running_loss = 0.0
-            
+                batch_count += 1
+                logger.debug(f"Epoch {epoch+1} Batch {i+1} Loss: {loss.item():.4f}")
+                if i % 10 == 9:
+                    logger.info(f"Epoch {epoch+1} [{i+1}/{len(dataloader)}] avg loss: {running_loss / (i+1):.4f}")
+            avg_loss = running_loss / batch_count if batch_count else 0.0
+            logger.info(f"Epoch {epoch+1} complete. Average loss: {avg_loss:.4f}")
             # Save checkpoint if configured
             self._save_checkpoint(epoch)
-            
         logger.info("Finished training")
         
         # Save the final model
@@ -409,14 +405,22 @@ class v7p3rNeuralNetwork:
             for pgn_file in pgn_files:
                 try:
                     with open(pgn_file, 'r') as f:
+                        file_positions = 0
                         while True:
                             game = chess.pgn.read_game(f)
                             if game is None:
                                 break
-                                
                             positions_from_game, evals_from_game = self._extract_positions_from_game(game)
                             positions.extend(positions_from_game)
                             evaluations.extend(evals_from_game)
+                            file_positions += len(positions_from_game)
+                        if file_positions == 0:
+                            logger.warning(f"No positions found in PGN file {pgn_file}")
+                        else:
+                            logger.info(f"Extracted {file_positions} positions from {pgn_file}")
+                        # Commit all DB changes for this file at once (batch commit)
+                        if hasattr(self, 'move_library') and hasattr(self.move_library, 'conn'):
+                            self.move_library.conn.commit()
                 except Exception as e:
                     logger.error(f"Error reading PGN file {pgn_file}: {e}")
         
