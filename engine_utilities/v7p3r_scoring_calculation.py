@@ -8,6 +8,7 @@ It is designed to be used by the v7p3r chess engine.
 
 import chess
 import logging
+import datetime
 import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
@@ -15,13 +16,17 @@ import threading # TODO enable parallel score calculations via threading
 from engine_utilities.piece_square_tables import PieceSquareTables # Need this for PST evaluation
 
 # At module level, define a single logger for this file
+def get_timestamp():
+    return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 v7p3r_scoring_logger = logging.getLogger("v7p3r_scoring_calculation")
 v7p3r_scoring_logger.setLevel(logging.DEBUG)
 if not v7p3r_scoring_logger.handlers:
     if not os.path.exists('logging'):
         os.makedirs('logging', exist_ok=True)
     from logging.handlers import RotatingFileHandler
-    log_file_path = "logging/v7p3r_scoring_calculation.log"
+    # Use a timestamped log file for each engine run
+    timestamp = get_timestamp()
+    log_file_path = f"logging/v7p3r_scoring_calculation_{timestamp}.log"
     file_handler = RotatingFileHandler(
         log_file_path,
         maxBytes=10*1024*1024,
@@ -50,43 +55,12 @@ class v7p3rScoringCalculation:
         # Load all rulesets from v7p3r_yaml_config into self.rulesets
         self.rules = self.v7p3r_config.get(self.ruleset_name, {}) # Get the specific ruleset based on name
 
-        # Cache all rule values from the selected ruleset, falling back to default_evaluation
-        self.default_eval_rules = self.v7p3r_config.get('default_evaluation', {})
-        self.all_rule_keys = set(self.default_eval_rules.keys())
-        self.all_rule_keys.update(self.rules.keys())
-        
-        # Build a dict of all rule values for this scoring instance
-        self.rule_values = {}
-        for rule in self.all_rule_keys:
-            if rule in self.rules:
-                self.rule_values[rule] = self.rules[rule]
-            elif rule in self.default_eval_rules:
-                self.rule_values[rule] = self.default_eval_rules[rule]
-            else:
-                self.rule_values[rule] = 0.0 # fallback default
-
         if v7p3r_scoring_logger:
             v7p3r_scoring_logger.debug(f"v7p3rScoringCalculation initialized with ruleset: {self.ruleset_name}")
             v7p3r_scoring_logger.debug(f"Current ruleset parameters: {self.rules}")
-            v7p3r_scoring_logger.debug(f"All rule values loaded: {self.rule_values}")
 
         # Set up additional scoring tools
         self.pst = PieceSquareTables() # Load piece-square tables from config
-
-
-    def _get_rule_value(self, rule_name: str, default_value: float = 0.0) -> float:
-        """Helper to safely get a rule value from the cached rule_values dict."""
-        value = self.rule_values.get(rule_name, default_value)
-        if self.logger:
-            if rule_name in self.rule_values:
-                self.logger.debug(f"Rule '{rule_name}' value used: {value} (from ruleset '{self.ruleset_name}' or default_evaluation)")
-            else:
-                self.logger.debug(f"Rule '{rule_name}' not found in ruleset '{self.ruleset_name}' or default_evaluation, using hardcoded default: {default_value}")
-        return value
-
-    def get_rule_value(self, rule_name: str, default_value: float = 0.0) -> float:
-        """Public method to get a rule value from the cached rule_values dict."""
-        return self._get_rule_value(rule_name, default_value)
 
     # Renamed from _calculate_score to calculate_score to be the public API
     def calculate_score(self, board: chess.Board, color: chess.Color, endgame_factor: float = 0.0) -> float:
@@ -189,7 +163,7 @@ class v7p3rScoringCalculation:
         # Piece development and mobility
         piece_activity_score = self.scoring_modifier * (self._piece_activity(board, color) or 0.0)
         if self.logger:
-            self.logger.debug(f"Piece activity score for {color}: {piece_activity_score:.3f} (Ruleset: {self.ruleset_name})")
+            self.logger.debug(f"Piece activity score for {color_name}: {piece_activity_score:.3f} (Ruleset: {self.ruleset_name})")
         score += piece_activity_score
         improved_minor_piece_activity_score = self.scoring_modifier * (self._improved_minor_piece_activity(board, color) or 0.0)
         if self.logger:
@@ -284,10 +258,17 @@ class v7p3rScoringCalculation:
                 return config.get('king_safety_penalty', -100.0)
         return 0.0
 
+    def get_rule_value(self, rule_name: str, default_value: float = 0.0) -> float:
+        """
+        Get a rule value from the current ruleset configuration.
+        This method provides backward compatibility with the main engine.
+        """
+        return self.rules.get(rule_name, default_value)
+
     # ==========================================
     # ========= RULE SCORING FUNCTIONS =========
     # These functions are now methods of ViperScoringCalculation
-    # and access their rule values via self._get_rule_value()
+    # and access their rule values via self.rules.get()
 
     def _checkmate_threats(self, board: chess.Board, color: chess.Color) -> float:
         """
@@ -310,7 +291,7 @@ class v7p3rScoringCalculation:
                     continue
                 board_copy.push(move)
                 if board_copy.is_checkmate():
-                    score += self._get_rule_value('checkmate_bonus', 0)
+                    score += self.rules.get('checkmate_bonus', 0)
                     board_copy.pop()
                     # If a checkmate is found, we can break and return the bonus.
                     # However, a common heuristic might be to give the bonus to the side *delivering* mate.
@@ -328,7 +309,7 @@ class v7p3rScoringCalculation:
     def _draw_scenarios(self, board: chess.Board) -> float:
         score = 0.0
         if board.is_stalemate() or board.is_insufficient_material() or board.is_fivefold_repetition() or board.is_repetition(count=2):
-            score += self._get_rule_value('draw_penalty', -9999999999.0)
+            score += self.rules.get('draw_penalty', -9999999999.0)
         return score
 
     def _material_score(self, board: chess.Board, color: chess.Color) -> float:
@@ -337,7 +318,7 @@ class v7p3rScoringCalculation:
         for piece_type, value in self.pst.piece_values.items():
             score += len(board.pieces(piece_type, color)) * value
         # Apply material weight from ruleset
-        return score * self._get_rule_value('material_weight', 1.0)
+        return score * self.rules.get('material_weight', 1.0)
     
     # This method is correctly called directly from self.pst.evaluate_board_position in calculate_score
 
@@ -354,14 +335,14 @@ class v7p3rScoringCalculation:
                 # Check if the target square is not attacked by enemy pawns
                 if not self._is_attacked_by_pawn(board, target, not color):
                     safe_moves += 1
-            score += safe_moves * self._get_rule_value('knight_activity_bonus', 0.0)
+            score += safe_moves * self.rules.get('knight_activity_bonus', 0.0)
 
         for square in board.pieces(chess.BISHOP, color):
             safe_moves = 0
             for target in board.attacks(square):
                 if not self._is_attacked_by_pawn(board, target, not color):
                     safe_moves += 1
-            score += safe_moves * self._get_rule_value('bishop_activity_bonus', 0.0)
+            score += safe_moves * self.rules.get('bishop_activity_bonus', 0.0)
 
         return score
 
@@ -370,7 +351,7 @@ class v7p3rScoringCalculation:
         # The 'current_player' attribute is from EvaluationEngine, need to pass it or infer.
         # This method is part of scoring specific 'color'. So, if it's 'color's turn.
         if board.turn == color and not board.is_game_over() and board.is_valid():
-            return self._get_rule_value('tempo_bonus', 0.0)
+            return self.rules.get('tempo_bonus', 0.0)
         return 0.0
 
     def _is_attacked_by_pawn(self, board: chess.Board, square: chess.Square, by_color: chess.Color) -> bool:
@@ -390,7 +371,7 @@ class v7p3rScoringCalculation:
             # Check if current player controls (has a piece on) center square
             piece = board.piece_at(square)
             if piece and piece.color == color:
-                score += self._get_rule_value('center_control_bonus', 0.0)
+                score += self.rules.get('center_control_bonus', 0.0)
         return score
 
     def _piece_activity(self, board: chess.Board, color: chess.Color) -> float:
@@ -398,10 +379,10 @@ class v7p3rScoringCalculation:
         score = 0.0
 
         for square in board.pieces(chess.KNIGHT, color):
-            score += len(list(board.attacks(square))) * self._get_rule_value('knight_activity_bonus', 0.0)
+            score += len(list(board.attacks(square))) * self.rules.get('knight_activity_bonus', 0.0)
 
         for square in board.pieces(chess.BISHOP, color):
-            score += len(list(board.attacks(square))) * self._get_rule_value('bishop_activity_bonus', 0.0)
+            score += len(list(board.attacks(square))) * self.rules.get('bishop_activity_bonus', 0.0)
 
         return score
 
@@ -431,7 +412,7 @@ class v7p3rScoringCalculation:
                     shield_square = chess.square(target_file, rank_offset)
                     piece = board.piece_at(shield_square)
                     if piece and piece.piece_type == chess.PAWN and piece.color == color:
-                        score += self._get_rule_value('king_safety_bonus', 0.0)
+                        score += self.rules.get('king_safety_bonus', 0.0)
         
         return score
 
@@ -452,9 +433,9 @@ class v7p3rScoringCalculation:
             
             # This method calculates score from the perspective of 'color'
             if board.turn != color: # If it's *not* 'color's turn, and board is in check, 'color' is in check
-                score += self._get_rule_value('in_check_penalty', 0.0)
+                score += self.rules.get('in_check_penalty', 0.0)
             else: # If it *is* 'color's turn, and board is in check, then 'color' just gave check
-                score += self._get_rule_value('check_bonus', 0.0)
+                score += self.rules.get('check_bonus', 0.0)
         return score
 
     def _undeveloped_pieces(self, board: chess.Board, color: chess.Color) -> float:
@@ -476,7 +457,7 @@ class v7p3rScoringCalculation:
 
         # Apply penalty only if castling rights exist (implies early/middlegame and not yet developed)
         if undeveloped_count > 0 and (board.has_kingside_castling_rights(color) or board.has_queenside_castling_rights(color)):
-            score += undeveloped_count * self._get_rule_value('undeveloped_penalty', 0.0)
+            score += undeveloped_count * self.rules.get('undeveloped_penalty', 0.0)
 
         return score
 
@@ -488,7 +469,7 @@ class v7p3rScoringCalculation:
         for square in chess.SQUARES:
             piece = board.piece_at(square)
             if piece and piece.color == color and piece.piece_type != chess.KING: # Exclude king from general mobility
-                score += len(list(board.attacks(square))) * self._get_rule_value('piece_mobility_bonus', 0.0)
+                score += len(list(board.attacks(square))) * self.rules.get('piece_mobility_bonus', 0.0)
 
         return score
     
@@ -505,7 +486,7 @@ class v7p3rScoringCalculation:
                     # Ensure piece_on_from_square is not None before accessing attributes
                     if piece_on_from_square and piece_on_from_square.piece_type == chess.PAWN and piece_on_from_square.color == color:
                         if board.is_en_passant(move):
-                            score += self._get_rule_value('en_passant_bonus', 0.0)
+                            score += self.rules.get('en_passant_bonus', 0.0)
                             break # Found one en passant, bonus applied
         
         # Promotion opportunities for 'color'
@@ -519,7 +500,7 @@ class v7p3rScoringCalculation:
                 # Check if pawn can advance to promotion rank
                 # This is a simplified check; a full check involves move generation.
                 # For now, just having a pawn on the 7th/2nd is a strong indicator.
-                score += self._get_rule_value('pawn_promotion_bonus', 0.0) 
+                score += self.rules.get('pawn_promotion_bonus', 0.0) 
                 # A more accurate way would be to check board.generate_legal_moves() for promotions for 'color'
                 # but that might be too slow for an eval term. The current approach is a heuristic.
         return score
@@ -533,7 +514,7 @@ class v7p3rScoringCalculation:
                 piece_making_capture = board.piece_at(move.from_square)
                 # Ensure piece_making_capture is not None
                 if piece_making_capture and piece_making_capture.color == color:
-                    score += self._get_rule_value('capture_bonus', 0.0)
+                    score += self.rules.get('capture_bonus', 0.0)
         
         opponent_color = not color
 
@@ -542,11 +523,11 @@ class v7p3rScoringCalculation:
             if piece and piece.color == opponent_color:
                 # Check if it's attacked by 'color' and not defended by 'opponent_color' (i.e., not attacked by opponent_color)
                 if board.is_attacked_by(color, square) and not board.is_attacked_by(opponent_color, square):
-                    score += self._get_rule_value('hanging_piece_bonus', 0.0)
+                    score += self.rules.get('hanging_piece_bonus', 0.0)
             elif piece and piece.color == color:
                 # Penalty for 'color' having pieces attacked by opponent_color and not defended by 'color'
                 if board.is_attacked_by(opponent_color, square) and not board.is_attacked_by(color, square):
-                    score += self._get_rule_value('undefended_piece_penalty', 0.0)
+                    score += self.rules.get('undefended_piece_penalty', 0.0)
         
         return score
 
@@ -559,25 +540,25 @@ class v7p3rScoringCalculation:
         if king_sq: # Ensure king exists
             if color == chess.WHITE:
                 if king_sq == chess.G1: # Kingside castled
-                    score += self._get_rule_value('castling_bonus', 0.0)
+                    score += self.rules.get('castling_bonus', 0.0)
                 elif king_sq == chess.C1: # Queenside castled
-                    score += self._get_rule_value('castling_bonus', 0.0)
+                    score += self.rules.get('castling_bonus', 0.0)
             else: # Black
                 if king_sq == chess.G8: # Kingside castled
-                    score += self._get_rule_value('castling_bonus', 0.0)
+                    score += self.rules.get('castling_bonus', 0.0)
                 elif king_sq == chess.C8: # Queenside castled
-                    score += self._get_rule_value('castling_bonus', 0.0)
+                    score += self.rules.get('castling_bonus', 0.0)
 
         # Penalty if castling rights lost and not yet castled
         initial_king_square = chess.E1 if color == chess.WHITE else chess.E8
         if not board.has_castling_rights(color) and king_sq == initial_king_square:
-            score += self._get_rule_value('castling_protection_penalty', 0.0)
+            score += self.rules.get('castling_protection_penalty', 0.0)
         
         # Bonus if still has kingside or queenside castling rights
         if board.has_kingside_castling_rights(color) and board.has_queenside_castling_rights(color):
-            score += self._get_rule_value('castling_protection_bonus', 0.0)
+            score += self.rules.get('castling_protection_bonus', 0.0)
         elif board.has_kingside_castling_rights(color) or board.has_queenside_castling_rights(color):
-            score += self._get_rule_value('castling_protection_bonus', 0.0) / 2
+            score += self.rules.get('castling_protection_bonus', 0.0) / 2
         
         return score
 
@@ -590,7 +571,7 @@ class v7p3rScoringCalculation:
             if piece and piece.color == color:
                 # If the piece is defended by another friendly piece (i.e., the square it's on is attacked by its own color)
                 if board.is_attacked_by(color, square): 
-                    score += self._get_rule_value('piece_coordination_bonus', 0.0) 
+                    score += self.rules.get('piece_coordination_bonus', 0.0) 
         return score
     
     def _pawn_structure(self, board: chess.Board, color: chess.Color) -> float:
@@ -601,7 +582,7 @@ class v7p3rScoringCalculation:
         for file in range(8):
             pawns_on_file = [s for s in board.pieces(chess.PAWN, color) if chess.square_file(s) == file]
             if len(pawns_on_file) > 1:
-                score += (len(pawns_on_file) - 1) * self._get_rule_value('doubled_pawn_penalty', 0.0)
+                score += (len(pawns_on_file) - 1) * self.rules.get('doubled_pawn_penalty', 0.0)
         
         # Count isolated pawns
         for square in board.pieces(chess.PAWN, color):
@@ -625,13 +606,11 @@ class v7p3rScoringCalculation:
                         break
 
             if is_isolated:
-                score += self._get_rule_value('isolated_pawn_penalty', 0.0)
+                score += self.rules.get('isolated_pawn_penalty', 0.0)
         
         # No general pawn_structure_bonus here, as it's typically derived from good structure
         # (absence of penalties, presence of passed pawns, etc.)
         # If score is positive from penalties, it implies bad structure, so no bonus.
-        # if score > 0: 
-        #     score += self._get_rule_value('pawn_structure_bonus', 0.0)
 
         return score
 
@@ -662,7 +641,7 @@ class v7p3rScoringCalculation:
                     for r in range(8)
                 )
                 if not has_opponent_pawn:  # File is open
-                    score += self._get_rule_value('backward_pawn_penalty', 0.0)
+                    score += self.rules.get('backward_pawn_penalty', 0.0)
 
         return score
 
@@ -680,24 +659,24 @@ class v7p3rScoringCalculation:
         # Compare pawn counts on each wing
         if color == chess.WHITE:
             if white_pawns_kingside > black_pawns_kingside:
-                score += self._get_rule_value('pawn_majority_bonus', 0.0) / 2 # Half bonus for kingside
+                score += self.rules.get('pawn_majority_bonus', 0.0) / 2 # Half bonus for kingside
             if white_pawns_queenside > black_pawns_queenside:
-                score += self._get_rule_value('pawn_majority_bonus', 0.0) / 2 # Half bonus for queenside
+                score += self.rules.get('pawn_majority_bonus', 0.0) / 2 # Half bonus for queenside
             # Optionally add penalty for minority
             # if white_pawns_kingside < black_pawns_kingside:
-            #     score += self._get_rule_value('pawn_minority_penalty', 0.0) / 2
+            #     score += self.rules.get('pawn_minority_penalty', 0.0) / 2
             # if white_pawns_queenside < black_pawns_queenside:
-            #     score += self._get_rule_value('pawn_minority_penalty', 0.0) / 2
+            #     score += self.rules.get('pawn_minority_penalty', 0.0) / 2
         else: # Black
             if black_pawns_kingside > white_pawns_kingside:
-                score += self._get_rule_value('pawn_majority_bonus', 0.0) / 2
+                score += self.rules.get('pawn_majority_bonus', 0.0) / 2
             if black_pawns_queenside > white_pawns_queenside:
-                score += self._get_rule_value('pawn_majority_bonus', 0.0) / 2
+                score += self.rules.get('pawn_majority_bonus', 0.0) / 2
             # Optionally add penalty for minority
             # if black_pawns_kingside < white_pawns_kingside:
-            #     score += self._get_rule_value('pawn_minority_penalty', 0.0) / 2
+            #     score += self.rules.get('pawn_minority_penalty', 0.0) / 2
             # if black_pawns_queenside < white_pawns_queenside:
-            #     score += self._get_rule_value('pawn_minority_penalty', 0.0) / 2
+            #     score += self.rules.get('pawn_minority_penalty', 0.0) / 2
         
         return score
 
@@ -720,7 +699,7 @@ class v7p3rScoringCalculation:
                         is_passed = False
                         break
             if is_passed:
-                score += self._get_rule_value('passed_pawn_bonus', 0.0)
+                score += self.rules.get('passed_pawn_bonus', 0.0)
         return score
 
     def _knight_pair(self, board: chess.Board, color: chess.Color) -> float:
@@ -728,7 +707,7 @@ class v7p3rScoringCalculation:
         score = 0.0
         knights = list(board.pieces(chess.KNIGHT, color))
         if len(knights) >= 2:
-            score += self._get_rule_value('knight_pair_bonus', 0.0) # Bonus for having *a* knight pair
+            score += self.rules.get('knight_pair_bonus', 0.0) # Bonus for having *a* knight pair
             # If the bonus is per knight in a pair, it would be len(knights) * bonus / 2 (or similar)
         return score
 
@@ -737,7 +716,7 @@ class v7p3rScoringCalculation:
         score = 0.0
         bishops = list(board.pieces(chess.BISHOP, color))
         if len(bishops) >= 2:
-            score += self._get_rule_value('bishop_pair_bonus', 0.0)
+            score += self.rules.get('bishop_pair_bonus', 0.0)
         return score
 
     def _bishop_vision(self, board: chess.Board, color: chess.Color) -> float:
@@ -747,7 +726,7 @@ class v7p3rScoringCalculation:
             attacks = board.attacks(sq)
             # Bonus for having more attacked squares (i.e., good vision)
             if len(list(attacks)) > 5: # Bishops generally attack 7-13 squares, adjust threshold as needed
-                score += self._get_rule_value('bishop_vision_bonus', 0.0)
+                score += self.rules.get('bishop_vision_bonus', 0.0)
         return score
 
     def _rook_coordination(self, board: chess.Board, color: chess.Color) -> float:
@@ -759,15 +738,15 @@ class v7p3rScoringCalculation:
             for j in range(i+1, len(rooks)):
                 sq1, sq2 = rooks[i], rooks[j]
                 if chess.square_file(sq1) == chess.square_file(sq2):
-                    score += self._get_rule_value('stacked_rooks_bonus', 0.0)
+                    score += self.rules.get('stacked_rooks_bonus', 0.0)
                 if chess.square_rank(sq1) == chess.square_rank(sq2):
-                    score += self._get_rule_value('coordinated_rooks_bonus', 0.0)
+                    score += self.rules.get('coordinated_rooks_bonus', 0.0)
                 
                 # Rook on 7th rank bonus (critical for attacking pawns)
                 # Check for white on rank 7 (index 6) or black on rank 2 (index 1)
                 if (color == chess.WHITE and (chess.square_rank(sq1) == 6 or chess.square_rank(sq2) == 6)) or \
                    (color == chess.BLACK and (chess.square_rank(sq1) == 1 or chess.square_rank(sq2) == 1)):
-                    score += self._get_rule_value('rook_position_bonus', 0.0)
+                    score += self.rules.get('rook_position_bonus', 0.0)
         return score
 
     def _open_files(self, board: chess.Board, color: chess.Color) -> float:
@@ -791,61 +770,25 @@ class v7p3rScoringCalculation:
             # Bonus for controlling an open or semi-open file
             # An open file has no pawns. A semi-open file has only opponent pawns.
             if is_file_open: # Truly open file
-                score += self._get_rule_value('open_file_bonus', 0.0)
+                score += self.rules.get('open_file_bonus', 0.0)
             elif not is_file_open and not has_own_pawn_on_file and has_opponent_pawn_on_file: # Semi-open file for 'color'
-                score += self._get_rule_value('open_file_bonus', 0.0) / 2 # Half bonus for semi-open (tuneable)
+                score += self.rules.get('open_file_bonus', 0.0) / 2 # Half bonus for semi-open (tuneable)
 
             # Bonus if a rook is on an open or semi-open file
             if any(board.piece_at(chess.square(file, r)) == chess.Piece(chess.ROOK, color) for r in range(8)):
                 if is_file_open or (not is_file_open and not has_own_pawn_on_file): # If open or semi-open
-                    score += self._get_rule_value('file_control_bonus', 0.0)
+                    score += self.rules.get('file_control_bonus', 0.0)
             
             # Exposed king penalty if king is on an open/semi-open file
             king_sq = board.king(color)
             if king_sq is not None and chess.square_file(king_sq) == file:
                 if is_file_open or (not is_file_open and not has_own_pawn_on_file): # If king is on an open/semi-open file
-                    score += self._get_rule_value('exposed_king_penalty', 0.0)
+                    score += self.rules.get('exposed_king_penalty', 0.0)
 
         return score
     
     def _stalemate(self, board: chess.Board) -> float:
         """Check if the position is a stalemate"""
         if board.is_stalemate():
-            return self._get_rule_value('stalemate_penalty', 0.0)
+            return self.rules.get('stalemate_penalty', 0.0)
         return 0.0
-
-    def _calculate_score_with_ruleset(self, board: chess.Board, color: chess.Color, ruleset: dict, endgame_factor: float) -> float:
-        """Calculates score using a specific ruleset dictionary."""
-        # Ensure ruleset is a dictionary
-        if not isinstance(ruleset, dict):
-            self.logger.error(f"Invalid ruleset type: {type(ruleset)}. Expected dict.")
-            return 0.0
-
-        score = 0.0
-
-        # Critical scoring components
-        score += (self._checkmate_threats(board, color) or 0.0)
-        score += (self._king_safety(board, color) or 0.0)
-        score += (self._king_threat(board, color) or 0.0)
-        score += (self._draw_scenarios(board) or 0.0)
-
-        # Material and piece-square table evaluation
-        score += self._material_score(board, color)
-        if self.pst_enabled:
-            # Pass endgame_factor directly to PST evaluation
-            # The PST evaluation itself should be color-aware or return a neutral score
-            # that is then interpreted by the caller (ViperEvaluationEngine.evaluate_position)
-            # For now, assuming pst.evaluate_board_position gives a score from White's perspective.
-            # If calculate_score is for a specific color, PST score might need adjustment if it's neutral.
-            # Let's assume pst.evaluate_board_position is neutral and needs to be perspectivized if color is BLACK.
-            pst_score = self.pst.evaluate_board_position(board, endgame_factor) # This is likely from White's perspective
-            if color == chess.BLACK:
-                pst_score = -pst_score # Adjust if PST is always White-centric
-            # Apply endgame factor to PST scores if game_phase_awareness is on
-            if self.engine_config.get('game_phase_awareness', True):
-                pst_score *= (1.0 - endgame_factor) # PSTs are more important in opening/middlegame
-            score += pst_score * self.pst_weight
-
-        if self.logger.isEnabledFor(logging.DEBUG):
-            self.logger.debug(f"Score for {chess.COLOR_NAMES[color]} using ruleset '{self.ruleset_name}' (Endgame: {endgame_factor:.2f}): {score:.3f} | FEN: {board.fen()}")
-        return score * self.scoring_modifier
