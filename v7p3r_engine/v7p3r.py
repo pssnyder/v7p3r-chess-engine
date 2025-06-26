@@ -81,12 +81,14 @@ class v7p3rEvaluationEngine: # Renamed class from EvaluationEngine
             with open("config/v7p3r_config.yaml") as f:
                 v7p3r_data = yaml.safe_load(f) or {}
                 self.v7p3r_config_data = v7p3r_data.get('v7p3r', {})
+                self.full_v7p3r_config = v7p3r_data  # Keep the full config for scoring calculator
             with open("config/chess_game_config.yaml") as f:
                 game_data = yaml.safe_load(f) or {}
                 self.game_settings_config_data = game_data
         except Exception as e:
             v7p3r_engine_logger.error(f"Error loading v7p3r or game settings YAML files: {e}")
             self.v7p3r_config_data = {}
+            self.full_v7p3r_config = {}
             self.game_settings_config_data = {}
 
         # Performance settings from v7p3r_config_data, with fallbacks to game_settings_config_data
@@ -115,7 +117,7 @@ class v7p3rEvaluationEngine: # Renamed class from EvaluationEngine
         self.pst = PieceSquareTables()
 
         self.scoring_calculator = v7p3rScoringCalculation(
-            v7p3r_yaml_config=self.v7p3r_config_data, # Pass full v7p3r_config.yaml data
+            v7p3r_yaml_config=self.full_v7p3r_config, # Pass full v7p3r_config.yaml data including all rulesets
             engine_config=self.engine_config, # Pass resolved engine_config
             piece_values=self.piece_values,
             pst=self.pst
@@ -180,14 +182,31 @@ class v7p3rEvaluationEngine: # Renamed class from EvaluationEngine
         self.engine_config = engine_config_resolved # This is the fully resolved config
         self.search_algorithm = self.engine_config.get('search_algorithm') # Already defaulted in _ensure_engine_config
         self.ai_color = 'white' if board.turn == chess.WHITE else 'black'
-        self.depth = self.engine_config.get('depth')
-        self.max_depth = self.engine_config.get('max_depth')
+        self.depth = self.engine_config.get('depth', 3)
+        self.max_depth = self.engine_config.get('max_depth', 5)
         self.solutions_enabled = self.engine_config.get('use_opening_book')
-        self.move_ordering_enabled = self.engine_config.get('move_ordering', {}).get('enabled')
-        self.quiescence_enabled = self.engine_config.get('quiescence', {}).get('enabled')
+        
+        move_ordering = self.engine_config.get('move_ordering', True)
+        if isinstance(move_ordering, dict):
+            self.move_ordering_enabled = move_ordering.get('enabled', True)
+        else:
+            self.move_ordering_enabled = bool(move_ordering)
+        
+        quiescence = self.engine_config.get('quiescence', True)
+        if isinstance(quiescence, dict):
+            self.quiescence_enabled = quiescence.get('enabled', True)
+        else:
+            self.quiescence_enabled = bool(quiescence)
+            
         self.move_time_limit = self.engine_config.get('move_time_limit')
-        self.pst_enabled = self.engine_config.get('pst', {}).get('enabled')
-        self.pst_weight = self.engine_config.get('pst', {}).get('weight')
+        
+        pst = self.engine_config.get('pst', True)
+        if isinstance(pst, dict):
+            self.pst_enabled = pst.get('enabled', True)
+            self.pst_weight = pst.get('weight', 1.0)
+        else:
+            self.pst_enabled = bool(pst)
+            self.pst_weight = self.engine_config.get('pst_weight', 1.0)
         self.eval_engine = self.engine_config.get('engine', 'v7p3r')
         self.ruleset = self.engine_config.get('ruleset')
         self.scoring_modifier = self.engine_config.get('scoring_modifier')
@@ -452,7 +471,8 @@ class v7p3rEvaluationEngine: # Renamed class from EvaluationEngine
         
         search_duration = time.perf_counter() - search_start_time
         if self.logging_enabled and self.logger:
-            self.logger.debug(f"Search for {self.current_player} took {search_duration:.4f} seconds and searched {self.nodes_searched} nodes.")
+            player_name = "White" if self.current_player == chess.WHITE else "Black"
+            self.logger.debug(f"Search for {player_name} took {search_duration:.4f} seconds and searched {self.nodes_searched} nodes.")
 
         return best_move
 
@@ -488,7 +508,8 @@ class v7p3rEvaluationEngine: # Renamed class from EvaluationEngine
         perspective_evaluation_board = board.copy()
         if not isinstance(player, chess.Color) or not perspective_evaluation_board.is_valid():
             if self.logger:
-                self.logger.error(f"Invalid input for evaluation from perspective. Player: {player}, FEN: {perspective_evaluation_board.fen() if hasattr(perspective_evaluation_board, 'fen') else 'N/A'}")
+                player_name = "White" if player == chess.WHITE else "Black" if isinstance(player, chess.Color) else str(player)
+                self.logger.error(f"Invalid input for evaluation from perspective. Player: {player_name}, FEN: {perspective_evaluation_board.fen() if hasattr(perspective_evaluation_board, 'fen') else 'N/A'}")
             return 0.0
         
         endgame_factor = self._get_game_phase_factor(perspective_evaluation_board)
@@ -507,7 +528,8 @@ class v7p3rEvaluationEngine: # Renamed class from EvaluationEngine
         score = (white_score - black_score) if player == chess.WHITE else (black_score - white_score)
         
         if self.logging_enabled and self.logger:
-            self.logger.debug(f"Position evaluation from {player} perspective (delegated): {score:.3f} | FEN: {perspective_evaluation_board.fen()} | Endgame Factor: {endgame_factor:.2f}")
+            player_name = "White" if player == chess.WHITE else "Black"
+            self.logger.debug(f"Position evaluation from {player_name} perspective (delegated): {score:.3f} | FEN: {perspective_evaluation_board.fen()} | Endgame Factor: {endgame_factor:.2f}")
         return score
 
     def evaluate_move(self, board: chess.Board, move: chess.Move = chess.Move.null()) -> float:
@@ -543,8 +565,8 @@ class v7p3rEvaluationEngine: # Renamed class from EvaluationEngine
         move_scores = []
         
         if hash_move and hash_move in moves:
-            # Use a very high bonus for hash move, potentially from config if defined
-            hash_move_bonus = self.v7p3r_config_data.get('move_ordering', {}).get('hash_move_bonus', 2000000.0)
+            # Get hash_move_bonus from the current ruleset
+            hash_move_bonus = self.scoring_calculator.get_rule_value('hash_move_bonus', 5000.0)
             move_scores.append((hash_move, hash_move_bonus))
             moves = [m for m in moves if m != hash_move]
 
@@ -576,47 +598,38 @@ class v7p3rEvaluationEngine: # Renamed class from EvaluationEngine
     def _order_move_score(self, board: chess.Board, move: chess.Move, depth: int = 0) -> float:
         """Calculate a score for a move for ordering purposes."""
         score = 0.0
-        # Access move ordering bonuses from the resolved self.engine_config, which merges v7p3r_config_data
-        move_ordering_cfg = self.engine_config.get('move_ordering', {})
 
         temp_board = board.copy()
         temp_board.push(move)
         if temp_board.is_checkmate():
             temp_board.pop()
-            # Checkmate bonus from 'evaluation' part of v7p3r_config_data, or a specific move_ordering config
-            eval_cfg = self.engine_config.get('evaluation', {}) # 'evaluation' might be a sub-key in v7p3r_config.yaml
-            return move_ordering_cfg.get('checkmate_move_bonus', eval_cfg.get('checkmate_move_bonus', 1000000.0))
+            # Get checkmate move bonus from the current ruleset
+            return self.scoring_calculator.get_rule_value('checkmate_move_bonus', 1000000.0)
         
         if temp_board.is_check(): # Check after move is made
-            score += move_ordering_cfg.get('check_move_bonus', 10000.0)
+            score += self.scoring_calculator.get_rule_value('check_move_bonus', 10000.0)
         temp_board.pop() # Pop before is_capture check on original board state
 
         if board.is_capture(move):
-            score += move_ordering_cfg.get('capture_bonus', 1000000.0)
+            score += self.scoring_calculator.get_rule_value('capture_move_bonus', 4000.0)
             victim_type = board.piece_type_at(move.to_square)
             aggressor_type = board.piece_type_at(move.from_square)
             if victim_type and aggressor_type:
                 score += (self.piece_values.get(victim_type, 0) * 10) - self.piece_values.get(aggressor_type, 0)
 
         if depth < len(self.killer_moves) and move in self.killer_moves[depth]:
-            score += move_ordering_cfg.get('killer_move_bonus', 900000.0)
+            score += self.scoring_calculator.get_rule_value('killer_move_bonus', 2000.0)
 
         # Countermove heuristic (if applicable)
         # if board.move_stack and self.counter_moves.get(board.move_stack[-1], None) == move:
-        # score += move_ordering_cfg.get('counter_move_bonus', 800000.0)
+        # score += self.scoring_calculator.get_rule_value('counter_move_bonus', 1000.0)
 
         score += self.history_table.get((board.turn, move.from_square, move.to_square), 0)
         
         if move.promotion:
-            score += move_ordering_cfg.get('promotion_bonus', 700000.0)
+            score += self.scoring_calculator.get_rule_value('promotion_move_bonus', 3000.0)
             if move.promotion == chess.QUEEN:
                 score += self.piece_values.get(chess.QUEEN, 9.0) * 100 # Ensure piece_values is used
-
-        # Redundant check for board.is_check() as it was done above.
-        # board.push(move)
-        # if board.is_check():
-        # score += move_ordering_cfg.get('check_bonus', 50000.0) # This was a different key, consolidate
-        # board.pop()
 
         return score
     
@@ -642,8 +655,8 @@ class v7p3rEvaluationEngine: # Renamed class from EvaluationEngine
             beta = min(beta, stand_pat_score)
 
         # Consider only captures and promotions (and maybe checks)
-        # Max quiescence depth from resolved config
-        max_q_depth = self.engine_config.get('quiescence', {}).get('max_depth', 5)
+        # Use a fixed quiescence max depth (quiescence is a boolean in config, not a dict)
+        max_q_depth = 5  # Fixed reasonable quiescence depth
         if current_ply >= self.depth + max_q_depth: # self.depth is the main search depth
              return stand_pat_score
 
@@ -765,7 +778,8 @@ class v7p3rEvaluationEngine: # Renamed class from EvaluationEngine
         legal_moves = list(board.legal_moves)
         if not legal_moves:
             if self.show_thoughts and self.logger:
-                self.logger.debug(f"No legal moves available for {player} | FEN: {board.fen()}")
+                player_name = "White" if player == chess.WHITE else "Black"
+                self.logger.debug(f"No legal moves available for {player_name} | FEN: {board.fen()}")
             return chess.Move.null() # Return null move if no legal moves
         move = random.choice(legal_moves)
         if self.show_thoughts and self.logger:
@@ -1118,7 +1132,8 @@ class v7p3rEvaluationEngine: # Renamed class from EvaluationEngine
                 self.update_transposition_table(board, iterative_depth, best_move_root, best_score_root)
 
             # If checkmate is found, stop early
-            if abs(best_score_root) > self.engine_config.get('evaluation', {}).get('checkmate_bonus', 1000000.0) / 2: # Checkmate score is very high
+            checkmate_bonus = self.scoring_calculator.get_rule_value('checkmate_bonus', 1000000.0)
+            if abs(best_score_root) > checkmate_bonus / 2: # Checkmate score is very high
                 if self.logging_enabled and self.logger:
                     self.logger.info(f"Deepsearch found a potential checkmate at depth {iterative_depth}. Stopping early.")
                 break
