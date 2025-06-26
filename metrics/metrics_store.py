@@ -131,10 +131,7 @@ class MetricsStore:
         connection = self._get_connection()
         with connection:
             cursor = connection.cursor()
-            # Drop old tables if needed (for full rebuild)
-            cursor.execute('DROP TABLE IF EXISTS move_metrics')
-            cursor.execute('DROP TABLE IF EXISTS game_results')
-            cursor.execute('DROP TABLE IF EXISTS config_settings')
+            # Removed DROP TABLE statements to preserve existing data
             # Create new game_results table
             cursor.execute('''
             CREATE TABLE IF NOT EXISTS game_results (
@@ -171,11 +168,11 @@ class MetricsStore:
                 nodes_searched INTEGER,
                 time_taken REAL,
                 pv_line TEXT,
-                created_at TEXT,
                 engine_id TEXT,
                 engine_name TEXT,
                 engine_version TEXT,
-                exclude_from_metrics INTEGER
+                exclude_from_metrics INTEGER,
+                created_at TEXT
             )''')            # Create new config_settings table
             cursor.execute('''
             CREATE TABLE IF NOT EXISTS config_settings (
@@ -187,10 +184,6 @@ class MetricsStore:
                 engine_id TEXT,
                 engine_name TEXT,
                 engine_version TEXT,
-                white_search_algorithm TEXT,
-                black_search_algorithm TEXT,
-                white_depth INTEGER,
-                black_depth INTEGER,
                 created_at TEXT
             )''')
             connection.commit()            # Add missing columns to game_results table for direct config access
