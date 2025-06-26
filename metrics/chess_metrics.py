@@ -14,18 +14,36 @@ from metrics_backup import backup_metrics_db
 import yaml
 import atexit
 from datetime import datetime # Import datetime for parsing timestamps
+import sqlite3
+
+ANALYTICS_DB_PATH = "metrics/chess_analytics.db"
+RAW_DB_PATH = "metrics/chess_metrics.db"
 
 # Initialize the metrics store globally
-metrics_store = MetricsStore()
+metrics_store = MetricsStore(db_path=ANALYTICS_DB_PATH)
 
-# Load AI types from chess_game_config.yaml (for dropdowns)
+# Load engine search algorithms and config from v7p3r_config.yaml
+try:
+    with open("config/v7p3r_config.yaml", "r") as v7p3r_config_file:
+        v7p3r_config_data = yaml.safe_load(v7p3r_config_file)
+        search_algorithms = v7p3r_config_data.get("search_algorithms", [])
+        v7p3r_engine_config = v7p3r_config_data.get("v7p3r", {})
+except Exception as e:
+    print(f"Error loading v7p3r_config.yaml for engine config: {e}")
+    search_algorithms = []
+    v7p3r_engine_config = {}
+
+# Load only game settings and engine names from chess_game_config.yaml
 try:
     with open("config/chess_game_config.yaml", "r") as config_file:
-        config_data = yaml.safe_load(config_file)
-        search_algorithms = config_data.get("search_algorithms", [])
+        chess_game_config_data = yaml.safe_load(config_file)
+        white_engine_name = chess_game_config_data.get("white_engine_config", {}).get("engine", None)
+        black_engine_name = chess_game_config_data.get("black_engine_config", {}).get("engine", None)
+        # You can also load other game-level settings if needed
 except Exception as e:
-    print(f"Error loading chess_game_config.yaml for Search Algorithm types: {e}")
-    search_algorithms = []
+    print(f"Error loading chess_game_config.yaml for game settings: {e}")
+    white_engine_name = None
+    black_engine_name = None
 
 # --- DARK MODE COLORS ---
 DARK_BG = "#18191A"
@@ -70,6 +88,51 @@ def initialize_metrics_dashboard():
 
 # Call initialization at module load
 initialize_metrics_dashboard()
+
+# ETL: Incrementally copy new data from chess_metrics.db to chess_analytics.db, keeping old analytics data
+
+def etl_to_analytics_db():
+    raw_conn = sqlite3.connect(RAW_DB_PATH)
+    analytics_conn = sqlite3.connect(ANALYTICS_DB_PATH)
+    raw_cur = raw_conn.cursor()
+    analytics_cur = analytics_conn.cursor()
+
+    # Ensure analytics tables exist with correct schema (copy structure if empty)
+    analytics_cur.execute('''CREATE TABLE IF NOT EXISTS game_results AS SELECT * FROM game_results WHERE 0''')
+    analytics_cur.execute('''CREATE TABLE IF NOT EXISTS move_metrics AS SELECT * FROM move_metrics WHERE 0''')
+
+    # --- Incremental for game_results ---
+    # Get all game_ids already in analytics
+    analytics_cur.execute('SELECT game_id FROM game_results')
+    existing_game_ids = set(row[0] for row in analytics_cur.fetchall())
+    # Get only new game_results from raw
+    raw_cur.execute('SELECT * FROM game_results')
+    raw_games = raw_cur.fetchall()
+    raw_games_cols = [desc[0] for desc in raw_cur.description]
+    new_games = [row for row in raw_games if row[raw_games_cols.index('game_id')] not in existing_game_ids]
+    if new_games:
+        placeholders = ','.join(['?'] * len(raw_games_cols))
+        analytics_cur.executemany(f'INSERT INTO game_results ({','.join(raw_games_cols)}) VALUES ({placeholders})', new_games)
+
+    # --- Incremental for move_metrics ---
+    # Get all (game_id, move_number, player_color) already in analytics
+    analytics_cur.execute('SELECT game_id, move_number, player_color FROM move_metrics')
+    existing_moves = set((row[0], row[1], row[2]) for row in analytics_cur.fetchall())
+    # Get only new move_metrics from raw
+    raw_cur.execute('SELECT * FROM move_metrics')
+    raw_moves = raw_cur.fetchall()
+    raw_moves_cols = [desc[0] for desc in raw_cur.description]
+    new_moves = [row for row in raw_moves if (row[raw_moves_cols.index('game_id')], row[raw_moves_cols.index('move_number')], row[raw_moves_cols.index('player_color')]) not in existing_moves]
+    if new_moves:
+        placeholders = ','.join(['?'] * len(raw_moves_cols))
+        analytics_cur.executemany(f'INSERT INTO move_metrics ({','.join(raw_moves_cols)}) VALUES ({placeholders})', new_moves)
+
+    analytics_conn.commit()
+    raw_conn.close()
+    analytics_conn.close()
+
+# Run ETL at startup
+etl_to_analytics_db()
 
 # Dash app
 app = dash.Dash(__name__)
@@ -160,8 +223,9 @@ def update_ab_testing_section(_, selected_metric):
         )
         fig_ab_test.add_annotation(text="Please select a metric from the dropdown.", xref="paper", yref="paper", showarrow=False, font=dict(size=16, color=DARK_TEXT))
         move_metrics_details_components.append(html.P("Please select a metric from the dropdown to visualize V7P3R's performance trend.", style={"color": DARK_TEXT}))
-        return fig_ab_test, move_metrics_details_components    # Get all moves made by v7p3r (filter by engine name, not search algorithm)
-    v7p3r_search_algorithms = config_data.get("search_algorithms", [])
+        return fig_ab_test, move_metrics_details_components    
+
+    v7p3r_search_algorithms = search_algorithms
     
     all_v7p3r_moves_raw = metrics_store.get_filtered_move_metrics(
         white_engine_names=['v7p3r'],  # Use engine name from config
