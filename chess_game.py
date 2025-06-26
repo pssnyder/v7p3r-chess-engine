@@ -40,7 +40,7 @@ def get_log_file_path():
     log_dir = "logging"
     if not os.path.exists(log_dir):
         os.makedirs(log_dir, exist_ok=True)
-    return os.path.join(log_dir, f"chess_game.log")
+    return os.path.join(log_dir, f"chess_game_{timestamp}.log")
 
 chess_game_logger = logging.getLogger("chess_game")
 chess_game_logger.setLevel(logging.DEBUG)
@@ -222,8 +222,6 @@ class ChessGame:
         debug_stockfish = self.stockfish_handler_data.get('stockfish_handler', {}).get('debug_stockfish', False)
 
         # v7p3r engine general settings from v7p3r_config.yaml
-        v7p3r_ruleset = self.v7p3r_config_data.get('v7p3r', {}).get('ruleset', 'default_evaluation')
-        v7p3r_depth = self.v7p3r_config_data.get('v7p3r', {}).get('depth', 3)        # White Engine
         if self.white_engine_config.get('engine', '').lower() == 'v7p3r':
             # Pass relevant parts of v7p3r_config_data and game_config_data (white_engine_config)
             v7p3r_engine_config = {**self.v7p3r_config_data.get('v7p3r', {}), **self.white_engine_config}
@@ -953,33 +951,12 @@ if __name__ == "__main__":
             # Load chess game configuration
             try:
                 with open('config/chess_game_config.yaml', 'r') as f:
-                    chess_config = yaml.safe_load(f)
-                self.game_config = chess_config
+                    self.game_config = yaml.safe_load(f)
             except FileNotFoundError:
-                print("Warning: chess_game_config.yaml not found, using default settings")
-                self.game_config = {
-                    'monitoring': {
-                        'enable_logging': True,
-                        'show_thinking': True
-                    },
-                    'game_config': {
-                        'human_color': 'random',
-                        'starting_position': 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
-                        'ai_game_count': 1,
-                        'ai_vs_ai': True,
-                        'rated': True
-                    },
-                    'white_engine_config': {
-                        'engine': 'v7p3r',
-                        'depth': 4,
-                        'exclude_from_metrics': False
-                    },
-                    'black_engine_config': {
-                        'engine': 'stockfish',
-                        'depth': 3,
-                        'exclude_from_metrics': True
-                    }
-                }
+                print("Warning: chess_game_config.yaml not found!")
+                # stop execution
+                raise FileNotFoundError("chess_game_config.yaml not found, cannot start game.")
+                
             
             # Load v7p3r configuration
             try:
@@ -987,29 +964,20 @@ if __name__ == "__main__":
                     self.v7p3r_config = yaml.safe_load(f)
             except FileNotFoundError:
                 print("Warning: v7p3r_config.yaml not found, using default settings")
-                self.v7p3r_config = {
-                    'v7p3r': {
-                        'ruleset': 'default_evaluation',
-                        'depth': 3
-                    }
-                }
+                # stop execution
+                raise FileNotFoundError("v7p3r_config.yaml not found, cannot start game.")
             
             # Load Stockfish configuration
             try:
                 with open('config/stockfish_config.yaml', 'r') as f:
-                    self.stockfish_handler = yaml.safe_load(f)
+                    self.stockfish_config = yaml.safe_load(f)
             except FileNotFoundError:
                 print("Warning: stockfish_config.yaml not found, using default settings")
-                self.stockfish_handler = {
-                    'stockfish_handler': {
-                        'path': None,
-                        'elo_rating': None,
-                        'skill_level': None,
-                        'debug_stockfish': False
-                    }
-                }
+                # stop execution
+                raise FileNotFoundError("stockfish_config.yaml not found, cannot start game.")
 
     config = ChessGameConfig()
     game = ChessGame(config)
+    print(config)
     game.run()
     game.metrics_store.close()

@@ -12,7 +12,15 @@ class PieceSquareTables:
     def __init__(self):
         # Initialize piece-square tables
         self.tables = self._create_tables()
-        
+        # Default Piece Values
+        self.piece_values = {
+            chess.KING: 0.0,
+            chess.QUEEN: 9.0,
+            chess.ROOK: 5.0,
+            chess.BISHOP: 3.25,
+            chess.KNIGHT: 3.0,
+            chess.PAWN: 1.0
+        }
     def _create_tables(self):
         """Create all piece-square tables"""
         

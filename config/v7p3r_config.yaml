@@ -4,8 +4,6 @@
 # These are the options for the v7p3r chess engine, which is a custom chess engine designed for analytical research and development.
 v7p3r:
   ruleset: default_evaluation         # Name of the evaluation rule set to use, see below for available options
-  scoring_method: calculate_score    # Overrides the scoring method, v7p3r engine defaults to the inbuilt _v7p3r_scoring_calculation() function
-  scoring_path: engine_utilities/v7p3r_scoring_calculation  # Import path to the scoring function, used for custom scoring methods, 
   search_algorithm: deepsearch        # Move search type for White (see search_algorithms for options)
   depth: 5                            # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
   max_depth: 8                        # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
@@ -20,8 +18,6 @@ v7p3r:
   
 v7p3r_opponent:
   ruleset: simple_evaluation    # Name of the evaluation rule set to use, see below for available options
-  scoring_method: calculate_score    # Overrides the scoring method, v7p3r engine defaults to the inbuilt _v7p3r_scoring_calculation() function
-  scoring_path: engine_utilities/v7p3r_scoring_calculation  # Import path to the scoring function, used for custom scoring methods,
   search_algorithm: random         # Move search type for White (see search_algorithms above for options)
   depth: 1                            # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
   max_depth: 1                        # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
