@@ -46,6 +46,9 @@ class v7p3rScoringCalculation:
         self.piece_values = piece_values
         self.pst = pst
 
+        # Initialize logger first
+        self.logger = v7p3r_scoring_logger
+
         # Ruleset and scoring modifier are determined by the resolved engine_config
         self.ruleset_name = self.engine_config.get('ruleset', 'default_evaluation')
         # Load all rulesets from v7p3r_yaml_config into self.rulesets
@@ -66,7 +69,6 @@ class v7p3rScoringCalculation:
             else:
                 self.rule_values[rule] = 0.0 # fallback default
 
-        self.logger = v7p3r_scoring_logger
         if self.engine_config.get('monitoring', {}).get('enable_logging', True):
             self.logger.debug(f"v7p3rScoringCalculation initialized with ruleset: {self.ruleset_name}")
             self.logger.debug(f"Current ruleset parameters: {self.current_ruleset}")
@@ -82,6 +84,10 @@ class v7p3rScoringCalculation:
                 self.logger.debug(f"Rule '{rule_name}' not found in ruleset '{self.ruleset_name}' or default_evaluation, using hardcoded default: {default_value}")
         return value
 
+    def get_rule_value(self, rule_name: str, default_value: float = 0.0) -> float:
+        """Public method to get a rule value from the cached rule_values dict."""
+        return self._get_rule_value(rule_name, default_value)
+
     # Renamed from _calculate_score to calculate_score to be the public API
     def calculate_score(self, board: chess.Board, color: chess.Color, endgame_factor: float = 0.0) -> float:
         """
@@ -90,6 +96,9 @@ class v7p3rScoringCalculation:
         This is the main public method for this class.
         """
         score = 0.0
+        
+        # Helper for consistent color display in logs
+        color_name = "White" if color == chess.WHITE else "Black"
 
         # Ensure the current ruleset is up-to-date based on engine_config (in case it changed)
         # This is important if the same ViperScoringCalculation instance is used across different contexts
@@ -107,27 +116,27 @@ class v7p3rScoringCalculation:
         
         # Update other relevant parameters from engine_config
         self.scoring_modifier = self.engine_config.get('scoring_modifier', 1.0)
-        self.pst_enabled = self.engine_config.get('pst', {}).get('enabled', True)
-        self.pst_weight = self.engine_config.get('pst', {}).get('weight', 1.0)
+        self.pst_enabled = self.engine_config.get('pst', True)
+        self.pst_weight = self.engine_config.get('pst_weight', 1.0)
         if self.logger:
             self.logger.debug(f"Using scoring modifier: {self.scoring_modifier}, PST enabled: {self.pst_enabled}, PST weight: {self.pst_weight}")
             
         # Critical scoring components
         checkmate_threats_score = self.scoring_modifier * (self._checkmate_threats(board, color) or 0.0)
         if self.logger:
-            self.logger.debug(f"Checkmate threats score for {color}: {checkmate_threats_score:.3f} (Ruleset: {self.ruleset_name})")
+            self.logger.debug(f"Checkmate threats score for {color_name}: {checkmate_threats_score:.3f} (Ruleset: {self.ruleset_name})")
         score += checkmate_threats_score
         king_safety_score = self.scoring_modifier * (self._king_safety(board, color) or 0.0)
         if self.logger:
-            self.logger.debug(f"King safety score for {color}: {king_safety_score:.3f} (Ruleset: {self.ruleset_name})")
+            self.logger.debug(f"King safety score for {color_name}: {king_safety_score:.3f} (Ruleset: {self.ruleset_name})")
         score += king_safety_score
         king_threat_score = self.scoring_modifier * (self._king_threat(board, color) or 0.0)
         if self.logger:
-            self.logger.debug(f"King threat score for {color}: {king_threat_score:.3f} (Ruleset: {self.ruleset_name})")
+            self.logger.debug(f"King threat score for {color_name}: {king_threat_score:.3f} (Ruleset: {self.ruleset_name})")
         score += king_threat_score
         draw_scenarios_score = self.scoring_modifier * (self._draw_scenarios(board) or 0.0)
         if self.logger:
-            self.logger.debug(f"Draw scenarios score for {color}: {draw_scenarios_score:.3f} (Ruleset: {self.ruleset_name})")
+            self.logger.debug(f"Draw scenarios score for {color_name}: {draw_scenarios_score:.3f} (Ruleset: {self.ruleset_name})")
         score += draw_scenarios_score
         
         # Material and piece-square table evaluation
@@ -141,47 +150,47 @@ class v7p3rScoringCalculation:
         # Piece coordination and control
         piece_coordination_score = self.scoring_modifier * (self._piece_coordination(board, color) or 0.0)
         if self.logger:
-            self.logger.debug(f"Piece coordination score for {color}: {piece_coordination_score:.3f} (Ruleset: {self.ruleset_name})")
+            self.logger.debug(f"Piece coordination score for {color_name}: {piece_coordination_score:.3f} (Ruleset: {self.ruleset_name})")
         score += piece_coordination_score
         center_control_score = self.scoring_modifier * (self._center_control(board, color) or 0.0)
         if self.logger:
-            self.logger.debug(f"Center control score for {color}: {center_control_score:.3f} (Ruleset: {self.ruleset_name})")
+            self.logger.debug(f"Center control score for {color_name}: {center_control_score:.3f} (Ruleset: {self.ruleset_name})")
         score += center_control_score
         pawn_structure_score = self.scoring_modifier * (self._pawn_structure(board, color) or 0.0)
         if self.logger:
-            self.logger.debug(f"Pawn structure score for {color}: {pawn_structure_score:.3f} (Ruleset: {self.ruleset_name})")
+            self.logger.debug(f"Pawn structure score for {color_name}: {pawn_structure_score:.3f} (Ruleset: {self.ruleset_name})")
         score += pawn_structure_score
         pawn_weaknesses_score = self.scoring_modifier * (self._pawn_weaknesses(board, color) or 0.0)
         if self.logger:
-            self.logger.debug(f"Pawn weaknesses score for {color}: {pawn_weaknesses_score:.3f} (Ruleset: {self.ruleset_name})")
+            self.logger.debug(f"Pawn weaknesses score for {color_name}: {pawn_weaknesses_score:.3f} (Ruleset: {self.ruleset_name})")
         score += pawn_weaknesses_score
         passed_pawns_score = self.scoring_modifier * (self._passed_pawns(board, color) or 0.0)
         if self.logger:
-            self.logger.debug(f"Passed pawns score for {color}: {passed_pawns_score:.3f} (Ruleset: {self.ruleset_name})")
+            self.logger.debug(f"Passed pawns score for {color_name}: {passed_pawns_score:.3f} (Ruleset: {self.ruleset_name})")
         score += passed_pawns_score
         pawn_majority_score = self.scoring_modifier * (self._pawn_majority(board, color) or 0.0)
         if self.logger:
-            self.logger.debug(f"Pawn majority score for {color}: {pawn_majority_score:.3f} (Ruleset: {self.ruleset_name})")
+            self.logger.debug(f"Pawn majority score for {color_name}: {pawn_majority_score:.3f} (Ruleset: {self.ruleset_name})")
         score += pawn_majority_score
         bishop_pair_score = self.scoring_modifier * (self._bishop_pair(board, color) or 0.0)
         if self.logger:
-            self.logger.debug(f"Bishop pair score for {color}: {bishop_pair_score:.3f} (Ruleset: {self.ruleset_name})")
+            self.logger.debug(f"Bishop pair score for {color_name}: {bishop_pair_score:.3f} (Ruleset: {self.ruleset_name})")
         score += bishop_pair_score
         knight_pair_score = self.scoring_modifier * (self._knight_pair(board, color) or 0.0)
         if self.logger:
-            self.logger.debug(f"Knight pair score for {color}: {knight_pair_score:.3f} (Ruleset: {self.ruleset_name})")
+            self.logger.debug(f"Knight pair score for {color_name}: {knight_pair_score:.3f} (Ruleset: {self.ruleset_name})")
         score += knight_pair_score
         bishop_vision_score = self.scoring_modifier * (self._bishop_vision(board, color) or 0.0)
         if self.logger:
-            self.logger.debug(f"Bishop vision score for {color}: {bishop_vision_score:.3f} (Ruleset: {self.ruleset_name})")
+            self.logger.debug(f"Bishop vision score for {color_name}: {bishop_vision_score:.3f} (Ruleset: {self.ruleset_name})")
         score += bishop_vision_score
         rook_coordination_score = self.scoring_modifier * (self._rook_coordination(board, color) or 0.0)
         if self.logger:
-            self.logger.debug(f"Rook coordination score for {color}: {rook_coordination_score:.3f} (Ruleset: {self.ruleset_name})")
+            self.logger.debug(f"Rook coordination score for {color_name}: {rook_coordination_score:.3f} (Ruleset: {self.ruleset_name})")
         score += rook_coordination_score
         castling_evaluation_score = self.scoring_modifier * (self._castling_evaluation(board, color) or 0.0)
         if self.logger:
-            self.logger.debug(f"Castling evaluation score for {color}: {castling_evaluation_score:.3f} (Ruleset: {self.ruleset_name})")
+            self.logger.debug(f"Castling evaluation score for {color_name}: {castling_evaluation_score:.3f} (Ruleset: {self.ruleset_name})")
         score += castling_evaluation_score
         
         # Piece development and mobility
@@ -191,37 +200,37 @@ class v7p3rScoringCalculation:
         score += piece_activity_score
         improved_minor_piece_activity_score = self.scoring_modifier * (self._improved_minor_piece_activity(board, color) or 0.0)
         if self.logger:
-            self.logger.debug(f"Improved minor piece activity score for {color}: {improved_minor_piece_activity_score:.3f} (Ruleset: {self.ruleset_name})")
+            self.logger.debug(f"Improved minor piece activity score for {color_name}: {improved_minor_piece_activity_score:.3f} (Ruleset: {self.ruleset_name})")
         score += improved_minor_piece_activity_score
         mobility_score = self.scoring_modifier * (self._mobility_score(board, color) or 0.0)
         if self.logger:
-            self.logger.debug(f"Mobility score for {color}: {mobility_score:.3f} (Ruleset: {self.ruleset_name})")
+            self.logger.debug(f"Mobility score for {color_name}: {mobility_score:.3f} (Ruleset: {self.ruleset_name})")
         score += mobility_score
         undeveloped_pieces_score = self.scoring_modifier * (self._undeveloped_pieces(board, color) or 0.0)
         if self.logger:
-            self.logger.debug(f"Undeveloped pieces score for {color}: {undeveloped_pieces_score:.3f} (Ruleset: {self.ruleset_name})")
+            self.logger.debug(f"Undeveloped pieces score for {color_name}: {undeveloped_pieces_score:.3f} (Ruleset: {self.ruleset_name})")
         score += undeveloped_pieces_score
         
         # Tactical and strategic considerations
         tactical_evaluation_score = self.scoring_modifier * (self._tactical_evaluation(board, color) or 0.0)
         if self.logger:
-            self.logger.debug(f"Tactical evaluation score for {color}: {self._tactical_evaluation(board, color):.3f} (Ruleset: {self.ruleset_name})")
+            self.logger.debug(f"Tactical evaluation score for {color_name}: {self._tactical_evaluation(board, color):.3f} (Ruleset: {self.ruleset_name})")
         score += tactical_evaluation_score
         tempo_bonus_score = self.scoring_modifier * (self._tempo_bonus(board, color) or 0.0)
         if self.logger:
-            self.logger.debug(f"Tempo bonus score for {color}: {self._tempo_bonus(board, color):.3f} (Ruleset: {self.ruleset_name})")
+            self.logger.debug(f"Tempo bonus score for {color_name}: {self._tempo_bonus(board, color):.3f} (Ruleset: {self.ruleset_name})")
         score += tempo_bonus_score
         special_moves_score = self.scoring_modifier * (self._special_moves(board, color) or 0.0) # Pass color
         if self.logger:
-            self.logger.debug(f"Special moves score for {color}: {special_moves_score:.3f} (Ruleset: {self.ruleset_name})")
+            self.logger.debug(f"Special moves score for {color_name}: {special_moves_score:.3f} (Ruleset: {self.ruleset_name})")
         score += special_moves_score
         open_files_score = self.scoring_modifier * (self._open_files(board, color) or 0.0)
         if self.logger:
-            self.logger.debug(f"Open files score for {color}: {open_files_score:.3f} (Ruleset: {self.ruleset_name})")
+            self.logger.debug(f"Open files score for {color_name}: {open_files_score:.3f} (Ruleset: {self.ruleset_name})")
         score += open_files_score
         stalemate_score = self.scoring_modifier * (self._stalemate(board) or 0.0)
         if self.logger:
-            self.logger.debug(f"Stalemate score for {color}: {stalemate_score:.3f} (Ruleset: {self.ruleset_name})")
+            self.logger.debug(f"Stalemate score for {color_name}: {stalemate_score:.3f} (Ruleset: {self.ruleset_name})")
         score += stalemate_score
 
         # New evaluation functions integration
@@ -230,7 +239,7 @@ class v7p3rScoringCalculation:
         # score += self.king_endangerment(move, board, color, config)
 
         if self.logger:
-            self.logger.debug(f"Final score for {color}: {score:.3f} (Ruleset: {self.ruleset_name}, Modifier: {self.scoring_modifier}) | FEN: {board.fen()}")
+            self.logger.debug(f"Final score for {color_name}: {score:.3f} (Ruleset: {self.ruleset_name}, Modifier: {self.scoring_modifier}) | FEN: {board.fen()}")
 
         return score
 
