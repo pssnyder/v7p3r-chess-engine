@@ -130,62 +130,40 @@ class v7p3rEvaluationEngine: # Renamed class from EvaluationEngine
 
     def _ensure_engine_config(self, engine_config_runtime: Optional[Dict[str, Any]], player: chess.Color) -> Dict[str, Any]:
         """ Ensures the engine configuration is correctly set up during simulation runs"""
-        # 1. Start with base v7p3r engine settings from v7p3r_config.yaml
-        final_config = self.v7p3r_config_data.copy()
+        # 1. Start with base v7p3r engine settings from v7p3r_config.yaml (per-engine section only)
+        engine_section = 'v7p3r' if player == chess.WHITE else 'v7p3r_opponent'
+        base_engine_config = self.v7p3r_config_data.get(engine_section, {}).copy()
 
         # 2. Merge/override with player-specific AI config from chess_game_config.yaml
         player_specific_key = 'white_engine_config' if player == chess.WHITE else 'black_engine_config'
         player_specific_game_config = self.game_settings_config_data.get(player_specific_key, {}) if self.game_settings_config_data else {}
-        
-        # Deep merge player_specific_game_config into final_config
-        # This ensures nested dictionaries are merged, not just overwritten at the top level.
-        # A simple helper for deep merging:
+
         def deep_merge(source, destination):
             for key, value in source.items():
-                if isinstance(value, dict):
-                    # get node or create one
-                    node = destination.setdefault(key, {})
-                    deep_merge(value, node)
+                if isinstance(value, dict) and isinstance(destination.get(key), dict):
+                    deep_merge(value, destination[key])
                 else:
                     destination[key] = value
             return destination
 
-        final_config = deep_merge(player_specific_game_config, final_config)
+        final_config = deep_merge(player_specific_game_config, base_engine_config)
 
         # 3. Merge/override with runtime engine_config (highest precedence)
         if engine_config_runtime and isinstance(engine_config_runtime, dict):
             final_config = deep_merge(engine_config_runtime, final_config)
 
-        # Ensure critical keys have defaults if not set anywhere
-        # Default search_algorithm from v7p3r_config.yaml if search_algorithm not specified
-        final_config.setdefault('search_algorithm', self.v7p3r_config_data.get('search_algorithm', 'random'))
-        # Default depth: v7p3r_config.yaml -> chess_game_config.yaml (performance) -> fallback
-        final_config.setdefault('depth', self.v7p3r_config_data.get('depth', self.game_settings_config_data.get('performance', {}).get('max_depth', 3) if self.game_settings_config_data else 3))
-        # Default ruleset from v7p3r_config.yaml
-        final_config.setdefault('ruleset', self.v7p3r_config_data.get('ruleset', 'default_evaluation'))
-        # Default max_depth: chess_game_config.yaml (performance) -> fallback
-        final_config.setdefault('max_depth', self.game_settings_config_data.get('performance', {}).get('max_depth', 5) if self.game_settings_config_data else 5)
-        # Default scoring_modifier from v7p3r_config.yaml
-        final_config.setdefault('scoring_modifier', self.v7p3r_config_data.get('scoring_modifier', 1.0))
-        
-        # Ensure nested structures like 'pst', 'move_ordering', 'quiescence' have defaults if not present
-        if not isinstance(final_config.get('pst'), dict):
-            final_config['pst'] = {}
-        final_config['pst'].setdefault('enabled', True)
-        final_config.setdefault('pst', {}).setdefault('weight', 1.0)
-        if not isinstance(final_config.get('move_ordering'), dict):
-            final_config['move_ordering'] = {}
-        final_config['move_ordering'].setdefault('enabled', True)
-        if not isinstance(final_config.get('quiescence'), dict):
-            final_config['quiescence'] = {}
-        final_config['quiescence'].setdefault('enabled', True)
-        final_config['quiescence'].setdefault('max_depth', 5)
-        final_config.setdefault('use_opening_book', self.v7p3r_config_data.get('use_opening_book', True))
-
-        # Performance related defaults that might be in chess_game_config.yaml
-        final_config.setdefault('move_time_limit', self.game_settings_config_data.get('performance', {}).get('default_move_time_ms', 0) if self.game_settings_config_data else 0)
-        final_config.setdefault('max_moves_evaluated', self.game_settings_config_data.get('performance', {}).get('max_moves_evaluated', None) if self.game_settings_config_data else None)
-
+        # Set defaults from per-engine config or fallback
+        final_config.setdefault('search_algorithm', base_engine_config.get('search_algorithm', 'random'))
+        final_config.setdefault('depth', base_engine_config.get('depth', 3))
+        final_config.setdefault('ruleset', base_engine_config.get('ruleset', 'default_evaluation'))
+        final_config.setdefault('max_depth', base_engine_config.get('max_depth', 5))
+        final_config.setdefault('scoring_modifier', base_engine_config.get('scoring_modifier', 1.0))
+        final_config.setdefault('pst', base_engine_config.get('pst', True))
+        final_config.setdefault('pst_weight', base_engine_config.get('pst_weight', 1.0))
+        final_config.setdefault('move_ordering', base_engine_config.get('move_ordering', True))
+        final_config.setdefault('quiescence', base_engine_config.get('quiescence', True))
+        final_config.setdefault('time_limit', base_engine_config.get('time_limit', 0))
+        final_config.setdefault('game_phase_awareness', base_engine_config.get('game_phase_awareness', True))
 
         if self.logging_enabled and self.logger:
             self.logger.debug(f"Resolved AI config for player {'WHITE' if player == chess.WHITE else 'BLACK'}: {final_config}")
