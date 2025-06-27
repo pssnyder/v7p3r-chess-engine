@@ -2,7 +2,9 @@
 
 import chess
 
-class PieceSquareTables:
+from v7p3r_engine import v7p3r_eval
+
+class v7p3rPST:
     """
     Piece-Square Tables for chess position evaluation.
     These tables assign values to pieces based on their square location.
@@ -197,7 +199,7 @@ def add_piece_square_evaluation(evaluation_engine_instance):
     Add piece-square table evaluation to your existing EvaluationEngine class.
     Call this function in your EvaluationEngine.__init__() method.
     """
-    evaluation_engine_instance.pst = PieceSquareTables()
+    evaluation_engine_instance.pst = v7p3rPST()
     
     # Add new evaluation method
     # The original _piece_square_evaluation passed board. This update accounts for it.
@@ -214,7 +216,7 @@ def add_piece_square_evaluation(evaluation_engine_instance):
 # Example usage and testing
 if __name__ == "__main__":
     # Test the piece-square tables
-    pst = PieceSquareTables()
+    pst = v7p3rPST()
     board = chess.Board()
     
     print("Initial position PST evaluation:", pst.evaluate_board_position(board))

@@ -1,10 +1,10 @@
-# opening_book.py
-# Simple opening book for better opening play
+# v7p3r_engine/v7p3r_book.py
+# Simple game phase book for faster play
 
 import chess
 import random
 
-class OpeningBook:
+class v7p3rBook:
     def __init__(self):
         # Initialize the opening book
         self.book = {}
@@ -18,42 +18,67 @@ class OpeningBook:
         # Starting position
         start_pos = chess.Board().fen()
         self.book[start_pos] = [
-            (chess.Move.from_uci("e2e4"), 40),  # King's Pawn
-            (chess.Move.from_uci("d2d4"), 40),  # Queen's Pawn
-            (chess.Move.from_uci("c2c4"), 20),  # English Opening
-            (chess.Move.from_uci("g1f3"), 15),  # Reti Opening
+            (chess.Move.from_uci("e2e4"), 50),  # King's Pawn
+            (chess.Move.from_uci("d2d4"), 20),  # Queen's Pawn
+            (chess.Move.from_uci("g1f3"), 10),   # Reti Opening
+            (chess.Move.from_uci("b1c3"), 10),   # Van Geet Opening
+            (chess.Move.from_uci("c2c4"), 5),   # English Opening
+            (chess.Move.from_uci("d2d3"), 2),   # Mieses Opening
+            (chess.Move.from_uci("c2c3"), 2),   # Saragossa Opening
+            (chess.Move.from_uci("b2b3"), 1),   # Nimzowitsch-Larsen Attack
+            (chess.Move.from_uci("g2g3"), 1),   # King's Fianchetto
+            (chess.Move.from_uci("f2f4"), -1),   # Bird's Opening
+            (chess.Move.from_uci("e2e3"), -1),   # Van't Kruijs Opening
+            (chess.Move.from_uci("g2g4"), -1),   # Grob Opening
+            (chess.Move.from_uci("f2f3"), -1),   # Barnes Opening
+            (chess.Move.from_uci("h2h3"), -1),   # Clemenz Opening
+            (chess.Move.from_uci("a2a3"), -1),   # Anderssen Opening
+            (chess.Move.from_uci("b2b4"), -1),   # Polish Opening
+            (chess.Move.from_uci("a2a4"), -1),   # Ware Opening
+            (chess.Move.from_uci("h2h4"), -1),   # Kadas Opening
         ]
 
         # After 1.e4
         e4_pos = chess.Board()
         e4_pos.push(chess.Move.from_uci("e2e4"))
         self.book[e4_pos.fen()] = [
-            (chess.Move.from_uci("e7e5"), 40),   # Open Game
-            (chess.Move.from_uci("c7c5"), 30),   # Sicilian Defense
+            (chess.Move.from_uci("e7e5"), 10),   # Open Game
+            (chess.Move.from_uci("c7c5"), 20),   # Sicilian Defense
             (chess.Move.from_uci("e7e6"), 20),   # French Defense
-            (chess.Move.from_uci("c7c6"), 10),   # Caro-Kann Defense
+            (chess.Move.from_uci("c7c6"), 40),   # Caro-Kann Defense
+            (chess.Move.from_uci("d7d5"), 10),   # Scandinavian Defense
+            (chess.Move.from_uci("g8f6"), 30),   # Alekhine's Defense
+            (chess.Move.from_uci("d7d6"), 10),   # Pirc Defense
+            (chess.Move.from_uci("g7g6"), 10),   # King's Indian Defense
+            (chess.Move.from_uci("f7f5"), 10),   # Dutch Defense
+            (chess.Move.from_uci("b7b6"), 5),    # Nimzowitsch-Larsen Attack
+            (chess.Move.from_uci("e7e5"), 10),   # King's Gambit
+            (chess.Move.from_uci("f7f6"), 5),    # Philidor Defense
         ]
 
         # After 1.d4
         d4_pos = chess.Board()
         d4_pos.push(chess.Move.from_uci("d2d4"))
         self.book[d4_pos.fen()] = [
-            (chess.Move.from_uci("d7d5"), 40),   # Closed Game
+            (chess.Move.from_uci("d7d5"), 10),   # Closed Game
             (chess.Move.from_uci("g8f6"), 30),   # Indian Defense
             (chess.Move.from_uci("f7f5"), 15),   # Dutch Defense
             (chess.Move.from_uci("e7e6"), 15),   # French-like setup
         ]
 
-        # Add more common opening responses...
 
         # After 1.e4 e5
         open_game = chess.Board()
         open_game.push(chess.Move.from_uci("e2e4"))
         open_game.push(chess.Move.from_uci("e7e5"))
         self.book[open_game.fen()] = [
-            (chess.Move.from_uci("g1f3"), 60),   # King's Knight
+            (chess.Move.from_uci("g1f3"), 20),   # King's Knight
             (chess.Move.from_uci("f2f4"), 20),   # King's Gambit
-            (chess.Move.from_uci("f1c4"), 20),   # Italian-like
+            (chess.Move.from_uci("f1c4"), 50),   # Italian-like
+            (chess.Move.from_uci("d2d4"), 10),   # Scotch Game
+            (chess.Move.from_uci("b1c3"), 10),   # Four Knights Game
+            (chess.Move.from_uci("d2d3"), 5),    # Italian Gambit
+            (chess.Move.from_uci("e1e2"), -1),   # Bongcloud Opening
         ]
 
         # After 1.e4 e5 2.Nf3
@@ -62,8 +87,8 @@ class OpeningBook:
         ruy_lopez_pos.push(chess.Move.from_uci("e7e5"))
         ruy_lopez_pos.push(chess.Move.from_uci("g1f3"))
         self.book[ruy_lopez_pos.fen()] = [
-            (chess.Move.from_uci("b8c6"), 80),   # Knight defense
-            (chess.Move.from_uci("d7d6"), 20),   # Philidor Defense
+            (chess.Move.from_uci("b8c6"), 20),   # Knight defense
+            (chess.Move.from_uci("d7d6"), 80),   # Philidor Defense
         ]
 
         # After 1.e4 e5 2.Nf3 Nc6

@@ -7,7 +7,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-from v7p3r_engine.v7p3r import v7p3rEvaluationEngine
+from v7p3r_engine.v7p3r_eval import v7p3rEval
 
 def get_sorted_legal_moves(board, engine, player):
     """
@@ -42,8 +42,8 @@ def find_best_move(FEN, depth=3, engine_type='deepsearch'):
         player = board.turn
         
         # Initialize the engine with the specified settings
-        engine = v7p3rEvaluationEngine()
-        engine.engine_type = engine_type
+        engine = v7p3rEval()
+        engine.engine_name = engine_type
         engine.depth = depth
         
         # Search for the best move

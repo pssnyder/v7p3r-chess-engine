@@ -16,7 +16,7 @@ import concurrent.futures
 import os
 import multiprocessing
 from typing import Dict, Any, List
-from v7p3r_engine.v7p3r import v7p3rEvaluationEngine
+from v7p3r_engine.v7p3r_eval import v7p3rEval
 
 # --- Config Section Names to Export ---
 V7P3R_CONFIG_SECTION = "v7p3r"
@@ -130,15 +130,15 @@ class V7P3RGeneticAlgorithm:
         """
         import chess
         board = chess.Board()
-        engine1 = v7p3rEvaluationEngine(board=board.copy(), player=True, engine_config=config1)
-        engine2 = v7p3rEvaluationEngine(board=board.copy(), player=False, engine_config=config2)
+        engine1 = v7p3rEval(board=board.copy(), player=True)
+        engine2 = v7p3rEval(board=board.copy(), player=False)
         move_count = 0
         max_moves = 200  # Prevent infinite games
         while not board.is_game_over() and move_count < max_moves:
             if board.turn == chess.WHITE:
-                move = engine1.search(board, chess.WHITE, engine_config=config1)
+                move = engine1.search(board, chess.WHITE)
             else:
-                move = engine2.search(board, chess.BLACK, engine_config=config2)
+                move = engine2.search(board, chess.BLACK)
             if move is None or move == chess.Move.null():
                 break  # No legal moves
             board.push(move)

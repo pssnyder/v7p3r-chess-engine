@@ -1,4 +1,4 @@
-# time_manager.py
+# v7p3r_engine/v7p3r_time.py
 """
 Time Management System for Chess Engine
 Handles time allocation for moves in different time controls
@@ -9,7 +9,7 @@ UNTESTED CODE
 import time
 from typing import Optional, Dict, Any
 
-class TimeManager:
+class v7p3rTime:
     def __init__(self):
         self.start_time = None
         self.allocated_time = None
@@ -221,7 +221,7 @@ if __name__ == "__main__":
     import chess
 
     # Test time manager
-    tm = TimeManager()
+    tm = v7p3rTime()
     board = chess.Board()
 
     # Test different time controls
