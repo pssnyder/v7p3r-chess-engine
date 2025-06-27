@@ -530,7 +530,7 @@ class MetricsStore:
         with connection:
             cursor = connection.cursor()
             try:
-                print(f"[DEBUG] Writing game result to DB: game_id={game_id}, timestamp={timestamp}, winner={winner}")
+                print(f"Game Ended | Writing game result to DB: game_id={game_id}, timestamp={timestamp}, winner={winner}")
                 self._execute_with_retry(cursor, '''
                 INSERT OR IGNORE INTO game_results
                 (game_id, timestamp, winner, game_pgn, white_player, black_player, game_length,
@@ -543,9 +543,9 @@ class MetricsStore:
                     white_engine_version, black_engine_version, exclude_white_from_metrics, exclude_black_from_metrics
                 ))
                 connection.commit()
-                print(f"[DEBUG] Game result committed to DB: game_id={game_id}")
+                print(f"Success | Game result committed to DB: game_id={game_id}")
             except sqlite3.Error as e:
-                print(f"Error adding game result for game {game_id}: {e}")
+                print(f"Error | Could not add game {game_id}: {e}")
 
 
     def add_move_metric(self, game_id: str, move_number: int, player_color: str,

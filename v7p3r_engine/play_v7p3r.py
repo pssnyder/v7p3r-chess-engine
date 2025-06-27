@@ -19,6 +19,7 @@ import hashlib
 MAX_FPS = 60
 from v7p3r import v7p3rEngine # Corrected import for v7p3rEngine
 from metrics.metrics_store import MetricsStore # Import MetricsStore
+from v7p3r_engine.stockfish_handler import StockfishHandler
 
 # At module level, define a single logger for this file
 def get_timestamp():
@@ -71,9 +72,11 @@ class ChessGame:
         self.game_count = config.get("game_count", 1)
         self.white_player = config.get("white_player", "v7p3r")
         self.black_player = config.get("black_player", "stockfish")
+        self.stockfish_config = config.get("stockfish_config", {})
 
         # Initialize Engine and Scoring
         self.engine = v7p3rEngine()
+        self.stockfish = StockfishHandler(self.stockfish_config)
 
         # Initialize MetricsStore
         self.metrics_store = MetricsStore()
@@ -338,20 +341,34 @@ class ChessGame:
         self.move_end_time = 0
         self.move_duration = 0
         if self.logger:
-            self.logger.info(f"Processing move for {'White' if current_player_color == chess.WHITE else 'Black'} using {self.engine.name} engine.")
+            self.logger.info(f"Processing move for {self.white_player if current_player_color == chess.WHITE else self.black_player} using {self.engine.name} engine.")
 
-        print(f"{'White' if current_player_color == chess.WHITE else 'Black'} is thinking...")
+        print(f"{self.white_player if current_player_color == chess.WHITE else self.black_player} is thinking...")
 
         try:
-            engine_move = self.engine.search_engine.search(self.board, current_player_color)
-            
+            # Send the move request to the appropriate engine or human interface
+            if (self.white_player.lower() == 'human' and self.board.turn) or (self.black_player.lower() == 'human' and not self.board.turn):
+                # Handle human player input (not implemented here, placeholder)
+                if self.logger:
+                    self.logger.info("Waiting for human player input...")
+                return
+            elif (self.white_player.lower() == 'v7p3r' and self.board.turn) or (self.black_player.lower() == 'v7p3r' and not self.board.turn):
+                # Use the v7p3r engine for the current player
+                engine_move = self.engine.search_engine.search(self.board, current_player_color)
+            elif (self.white_player.lower() == 'stockfish' and self.board.turn) or (self.black_player.lower() == 'stockfish' and not self.board.turn):
+                # Use the Stockfish engine for the current player
+                if self.logger:
+                    self.logger.info("Using Stockfish engine for move processing.")
+                
+                stockfish_handler = StockfishHandler(self.stockfish_config)
+                engine_move = stockfish_handler.search(self.board, current_player_color, self.stockfish_config)
             if isinstance(engine_move, chess.Move) and self.board.is_legal(engine_move):
                 fen_before_move = self.board.fen()
                 move_number = self.board.fullmove_number
                 self.push_move(engine_move)
                 
                 if self.logger:
-                    self.logger.info(f"{'White' if current_player_color == chess.WHITE else 'Black'} played: {engine_move} (Eval: {self.current_eval:.2f})")
+                    self.logger.info(f"{self.white_player if current_player_color == chess.WHITE else self.black_player} played: {engine_move} (Eval: {self.current_eval:.2f})")
                 self.last_engine_move = engine_move
                 self.move_end_time = time.time()  # End timing the move
                 self.move_duration = self.move_end_time - self.move_start_time
@@ -391,7 +408,7 @@ class ChessGame:
                 move_number = self.board.fullmove_number
                 self.push_move(fallback_move)
                 if self.logger:
-                    self.logger.info(f"Engine ({current_player_color}) played emergency fallback move: {fallback_move} (Eval: {self.current_eval:.2f})")
+                    self.logger.info(f"Engine ({self.white_player if current_player_color == chess.WHITE else self.black_player}) played emergency fallback move: {fallback_move} (Eval: {self.current_eval:.2f})")
                 self.last_engine_move = fallback_move
                 self.metrics_store.add_move_metric(
                     game_id=self.current_game_db_id,
@@ -410,9 +427,9 @@ class ChessGame:
                 if self.logger:
                     self.logger.warning(f"No legal moves for emergency fallback. Game might be over or stalled. | FEN: {self.board.fen()}")
 
-        print(f"{'White' if current_player_color == chess.WHITE else 'Black'} plays: {engine_move} (Eval: {self.current_eval:.2f})")
+        print(f"{self.white_player if current_player_color == chess.WHITE else self.black_player} plays: {engine_move} (Eval: {self.current_eval:.2f})")
         if self.logger:
-            self.logger.info(f"Engine ({current_player_color}) played: {engine_move} (Eval: {self.current_eval:.2f}) | Time: {self.move_duration:.4f}s | Nodes: {self.engine.search_engine.nodes_searched}")
+            self.logger.info(f"Engine ({self.white_player if current_player_color == chess.WHITE else self.black_player}) played: {engine_move} (Eval: {self.current_eval:.2f}) | Time: {self.move_duration:.4f}s | Nodes: {self.engine.search_engine.nodes_searched}")
 
     def push_move(self, move):
         """ Test and push a move to the board and game node """
@@ -518,7 +535,16 @@ if __name__ == "__main__":
         "white_player": "v7p3r",
         "black_player": "stockfish",
         "game_count": 1,
-
+        "stockfish_config": {
+            "stockfish_path": "engine_utilities/external_engines/stockfish/stockfish-windows-x86-64-avx2.exe",
+            "elo_rating": 500,
+            "skill_level": 1,
+            "debug_mode": False,
+            "depth": 2,
+            "max_depth": 4,
+            "movetime": None,
+            "nodes": None
+        },
     }
     game = ChessGame(config)
     game.run()
