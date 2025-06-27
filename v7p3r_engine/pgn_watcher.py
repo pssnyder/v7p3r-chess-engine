@@ -1,4 +1,8 @@
 # pgn_watcher.py
+""" PGN Watcher for Active Games 
+This script monitors the active_game.pgn in the logging directory for changes and updates the chess board display accordingly.
+This is an asyncronous standalone renderer intended to provide visual feedback for games in progress without impacting engine performance.
+Due to the asyncronous nature, automated games may not display all moves in real time. """
 
 import os
 import time
