@@ -41,18 +41,18 @@ v7p3r_scoring_logger.addHandler(file_handler)
 v7p3r_scoring_logger.propagate = False
 
 class v7p3rScore:
-    def __init__(self, engine_config: dict, v7p3r_config: dict):
-        self.engine_config = engine_config # Only the engine configuration for this AI
+    def __init__(self, v7p3r_config: dict):
+        """ Initialize the scoring calculation engine with configuration settings.  """
         self.v7p3r_config = v7p3r_config # This is the full v7p3r_config.yaml content
 
         # Initialize logger first
         self.logger = v7p3r_scoring_logger
 
-        self.print_scoring = self.engine_config.get('print_scoring', False)
+        self.print_scoring = self.v7p3r_config.get('print_scoring', False)
 
-        # Ruleset and scoring modifier are determined by the resolved engine_config
-        self.ruleset_name = self.engine_config.get('ruleset', 'default_evaluation')
-        
+        # Ruleset and scoring modifier are determined by the resolved v7p3r_config
+        self.ruleset_name = self.v7p3r_config.get('engine_ruleset', 'default_evaluation')
+
         # Load all rulesets from v7p3r_yaml_config into self.rulesets
         self.rules = self.v7p3r_config.get(self.ruleset_name, {}) # Get the specific ruleset based on name
 
@@ -74,42 +74,21 @@ class v7p3rScore:
                 player_name = "White" if player == chess.WHITE else "Black" if isinstance(player, chess.Color) else str(player)
                 self.logger.error(f"Invalid input for evaluation from perspective. Player: {player_name}, FEN: {perspective_evaluation_board.fen() if hasattr(perspective_evaluation_board, 'fen') else 'N/A'}")
             return 0.0
-        
-        endgame_factor = self._get_game_phase_factor(perspective_evaluation_board)
 
         white_score = self.calculate_score(
             board=perspective_evaluation_board,
             color=chess.WHITE,
-            endgame_factor=endgame_factor
         )
         black_score = self.calculate_score(
             board=perspective_evaluation_board,
             color=chess.BLACK,
-            endgame_factor=endgame_factor
         )
         
         score = (white_score - black_score) if player == chess.WHITE else (black_score - white_score)
         
-        if self.logging_enabled and self.logger:
+        if self.logger:
             player_name = "White" if player == chess.WHITE else "Black"
-            self.logger.debug(f"Position evaluation from {player_name} perspective (delegated): {score:.3f} | FEN: {perspective_evaluation_board.fen()} | Endgame Factor: {endgame_factor:.2f}")
-        return score
-
-    def evaluate_move(self, board: chess.Board, move: chess.Move = chess.Move.null()) -> float:
-        """Quick evaluation of individual move on overall eval"""
-        score = 0.0
-        move_evaluation_board = board.copy()
-        if not move_evaluation_board.is_legal(move):
-            if self.logging_enabled and self.logger:
-                self.logger.error(f"Attempted evaluation of an illegal move: {move} | FEN: {board.fen()}")
-            return -9999999999
-        
-        move_evaluation_board.push(move)
-        score = self.evaluate_position_from_perspective(move_evaluation_board, self.current_player)
-        
-        if self.show_thoughts and self.logger:
-            self.logger.debug("Exploring the move: %s | Evaluation: %.3f | FEN: %s", move, score, board.fen())
-        move_evaluation_board.pop()
+            self.logger.debug(f"Position evaluation from {player_name} perspective (delegated): {score:.3f} | FEN: {perspective_evaluation_board.fen()}")
         return score
     
     def calculate_score(self, board: chess.Board, color: chess.Color, endgame_factor: float = 0.0) -> float:
@@ -124,17 +103,17 @@ class v7p3rScore:
         color_name = "White" if color == chess.WHITE else "Black"
 
        # Set up config values for scoring
-        self.search_algorithm = self.engine_config.get('search_algorithm', 'random')
-        self.depth = self.engine_config.get('depth', 3)
-        self.max_depth = self.engine_config.get('max_depth', 4)
-        self.solutions_enabled = self.engine_config.get('use_solutions', False)
-        self.pst_enabled = self.engine_config.get('pst', False)
-        self.pst_weight = self.engine_config.get('weight', 1.0)
-        self.move_ordering_enabled = self.engine_config.get('move_ordering', False)
-        self.quiescence_enabled = self.engine_config.get('quiescence', False)
-        self.move_time_limit = self.engine_config.get('time_limit', 0)
-        self.scoring_modifier = self.engine_config.get('scoring_modifier', 1.0)
-        self.game_phase_awareness = self.engine_config.get('game_phase_awareness', False)
+        self.search_algorithm = self.v7p3r_config.get('search_algorithm', 'random')
+        self.depth = self.v7p3r_config.get('depth', 3)
+        self.max_depth = self.v7p3r_config.get('max_depth', 4)
+        self.solutions_enabled = self.v7p3r_config.get('use_solutions', False)
+        self.pst_enabled = self.v7p3r_config.get('pst', False)
+        self.pst_weight = self.v7p3r_config.get('weight', 1.0)
+        self.move_ordering_enabled = self.v7p3r_config.get('move_ordering', False)
+        self.quiescence_enabled = self.v7p3r_config.get('quiescence', False)
+        self.move_time_limit = self.v7p3r_config.get('time_limit', 0)
+        self.scoring_modifier = self.v7p3r_config.get('scoring_modifier', 1.0)
+        self.game_phase_awareness = self.v7p3r_config.get('game_phase_awareness', False)
         self.engine_color = 'white' if board.turn else 'black'
         
         # Critical scoring components

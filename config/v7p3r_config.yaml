@@ -4,16 +4,11 @@
 # These are the options for the v7p3r chess engine, which is a custom chess engine designed for analytical research and development.
 engine_name: v7p3r
 engine_version: 0.8.0
+engine_ruleset: default_evaluation         # Name of the evaluation rule set to use, see below for available options
+engine_search_algorithm: minimax           # Move search type for White (see search_algorithms for options)
+engine_depth: 5                            # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
+engine_max_depth: 8                        # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
 
-# v7p3r Engine Settings
-v7p3r:
-  ruleset: default_evaluation         # Name of the evaluation rule set to use, see below for available options
-  search_algorithm: minimax           # Move search type for White (see search_algorithms for options)
-  depth: 5                            # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
-  max_depth: 8                        # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
-  pst_weight: 1.5                     # Weight modifier for piece-square table evaluation
-  scoring_modifier: 1.0               # Overall scoring modifier (all scores multipied by this value)
-  
 # Monitoring settings
 monitoring:
   enable_logging: true                # Turn logging on or off, auto-disables thoughts if false
@@ -21,15 +16,7 @@ monitoring:
   show_thinking: true                 # Show what the AI is thinking during the game (TODO: add thinking time to the log for each color)
   print_scoring: true                 # Print the scoring of each move
 
-# Engine Search Types (search algorithms used by v7p3r)
-search_algorithms: [
-  'deepsearch',                    # Dynamic deep search via negamax with time control and iterative deepening
-  'lookahead',                     # Lookahead search with simple max value comparison
-  'minimax',                       # Minimax search with alpha-beta pruning
-  'negamax',                       # Negamax search with alpha-beta pruning
-  'simple_search',                 # Simple 1 ply search
-  'random',                        # Random move selection
-]
+
 
 # v7p3r Engine Starting Positions
 starting_positions:
