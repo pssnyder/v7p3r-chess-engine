@@ -16,7 +16,7 @@ import concurrent.futures
 import os
 import multiprocessing
 from typing import Dict, Any, List
-from v7p3r_engine.v7p3r_engine import v7p3rEngine
+from v7p3r_engine.v7p3r import v7p3rEngine
 
 # --- Config Section Names to Export ---
 V7P3R_CONFIG_SECTION = "v7p3r"

@@ -6,57 +6,24 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
 import chess
 import random
 import logging
-import datetime
-from v7p3r_score import v7p3rScore
-from v7p3r_ordering import v7p3rOrdering
-from v7p3r_time import v7p3rTime
-from v7p3r_book import v7p3rBook
-
-# =====================================
-# ========== LOGGING SETUP ============
-v7p3r_engine_logger = logging.getLogger("v7p3r_search_logger")
-v7p3r_engine_logger.setLevel(logging.DEBUG)
-if not v7p3r_engine_logger.handlers:
-    if not os.path.exists('logging'):
-        os.makedirs('logging', exist_ok=True)
-    from logging.handlers import RotatingFileHandler
-    # Use a timestamped log file for each engine run
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    log_file_path = f"logging/v7p3r_search_{timestamp}.log"
-    file_handler = RotatingFileHandler(
-        log_file_path,
-        maxBytes=10*1024*1024,
-        backupCount=3,
-        delay=True
-    )
-    formatter = logging.Formatter(
-        '%(asctime)s | %(funcName)-15s | %(message)s',
-        datefmt='%H:%M:%S'
-    )
-    file_handler.setFormatter(formatter)
-    v7p3r_engine_logger.addHandler(file_handler)
-    v7p3r_engine_logger.propagate = False
 
 # =======================================
 # ======= MAIN SEARCH CLASS ========
 class v7p3rSearch:
-    def __init__(self, board: chess.Board, engine_config: dict):
-        # Set Board
-        self.board = board.copy()
-        
+    def __init__(self, engine_config: dict, scoring_calculator, move_organizer, time_manager, opening_book, logger: logging.Logger):
         # Configuration
         self.engine_config = engine_config
         self.engine_search_algorithm = engine_config.get('engine_search_algorithm', 'simple_search')  # Default to simple_search if not set
         self.depth = engine_config.get('depth', 2)  # Placeholder for engine reference
         self.max_depth = engine_config.get('max_depth', 5)  # Max depth of search for AI, default to 8 if not set
-        self.logger = engine_config.get('engine_logger', "v7p3r_search_logger")
+        self.logger = logger if logger else logging.getLogger("v7p3r_engine_logger")
         
         # Required Search Modules
-        self.scoring_calculator = v7p3rScore(engine_config)
-        self.move_organizer = v7p3rOrdering()
-        self.time_manager = v7p3rTime()
-        self.opening_book = v7p3rBook()
-        
+        self.scoring_calculator = scoring_calculator
+        self.move_organizer = move_organizer
+        self.time_manager = time_manager
+        self.opening_book = opening_book
+
         # Engine Search Types (search algorithms used by v7p3r)
         self.search_algorithms = [
             'deepsearch',                    # Dynamic deep search via negamax with time control and iterative deepening
@@ -71,6 +38,7 @@ class v7p3rSearch:
         """Perform a search for the best move for the given player."""
         self.current_player = player
         self.board = board.copy()
+        self.nodes_searched = 0  # Reset nodes searched for this search
 
         book_move = self.opening_book.get_book_move(board.copy())
         if book_move and self.board.is_legal(book_move):
@@ -169,6 +137,7 @@ class v7p3rSearch:
             temp_board = board.copy()
             temp_board.push(move)
             score = self.scoring_calculator.evaluate_position(temp_board)
+            self.nodes_searched += 1  # Increment nodes searched
             if self.logger:
                 self.logger.debug(f"Simple search evaluating move: {move} | Score: {score:.3f} | Best score: {best_score:.3f} | FEN: {temp_board.fen()}")
             if temp_board.turn == chess.WHITE: # If white's turn, maximize score
@@ -193,6 +162,7 @@ class v7p3rSearch:
             temp_board.push(move)
             # Recursive call: _lookahead_search only returns score (float)
             score = -self._lookahead_search(temp_board, depth - 1, -beta, -alpha)
+            self.nodes_searched += 1  # Increment nodes searched
             if score > best_score:
                 best_score = score
             alpha = max(alpha, best_score)
@@ -210,6 +180,7 @@ class v7p3rSearch:
             temp_board = board.copy()
             temp_board.push(move)
             score = self._minimax_search(temp_board, depth-1, alpha, beta, not maximizing_player)
+            self.nodes_searched += 1  # Increment nodes searched
             if maximizing_player:
                 if score > best_score:
                     best_score = score
@@ -237,6 +208,7 @@ class v7p3rSearch:
             temp_board.push(move)
             # Recursive call: _negamax_search now always returns a score (float)
             score = -self._negamax_search(temp_board, depth-1, -beta, -alpha)
+            self.nodes_searched += 1  # Increment nodes searched
             if score > best_score:
                 best_score = score
             alpha = max(alpha, score)
@@ -281,6 +253,7 @@ class v7p3rSearch:
                 
                 # Recursive call to negamax (or negascout, or minimax)
                 current_move_score = -self._negamax_search(temp_board, iterative_depth - 1, -beta, -alpha)
+                self.nodes_searched += 1  # Increment nodes searched for this move
                 if current_move_score > local_best_score_at_depth:
                     local_best_score_at_depth = current_move_score
                     local_best_move_at_depth = move
@@ -339,7 +312,8 @@ class v7p3rSearch:
         for move in capture_moves: # Potentially use ordered_q_moves
             temp_board.push(move)
             score = self._quiescence_search(temp_board, alpha, beta, not maximizing_player, current_ply + 1)
-
+            temp_board.pop()  # Undo the move
+            self.nodes_searched += 1  # Increment nodes searched
             if maximizing_player:
                 alpha = max(alpha, score)
                 if alpha >= beta:
@@ -348,15 +322,4 @@ class v7p3rSearch:
                 beta = min(beta, score)
                 if alpha >= beta:
                     break
-        
         return alpha if maximizing_player else beta
-    
-    # Helper Functions
-    def _is_draw_condition(self, board):
-        if board.can_claim_threefold_repetition():
-            return True
-        if board.can_claim_fifty_moves():
-            return True
-        if board.is_seventyfive_moves():
-            return True
-        return False

@@ -10,7 +10,7 @@ import chess.pgn
 import time
 import yaml
 from v7p3r_nn_engine.v7p3r_nn import v7p3rNeuralNetwork
-from v7p3r_engine.v7p3r_engine import v7p3rEngine
+from v7p3r_engine.v7p3r import v7p3rEngine
 from engine_utilities.stockfish_handler import StockfishHandler
 
 # Configure logging

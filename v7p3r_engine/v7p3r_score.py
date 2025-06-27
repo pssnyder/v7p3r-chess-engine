@@ -11,24 +11,19 @@ import yaml
 import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
-from v7p3r_engine.v7p3r_pst import v7p3rPST # Need this for PST evaluation
+import logging
 
 class v7p3rScore:
-    def __init__(self, engine_config: dict):
+    def __init__(self, engine_config: dict, pst, logger: logging.Logger):
         """ Initialize the scoring calculation engine with configuration settings.  """
 
         # Scoring Config
-        self.logger = engine_config.get('logger', 'v7p3r_scoring_logger')
+        self.logger = logger if logger else logging.getLogger("v7p3r_engine_logger")
         self.print_scoring = True
         self.ruleset_name = engine_config.get('engine_ruleset', 'default_evaluation')
-
-        if self.logger:
-            self.logger.debug(f"v7p3rScoringCalculation initialized with ruleset: {self.ruleset_name}")
-            self.logger.debug(f"Current ruleset parameters: {self.rules}")
-
         # Required Scoring Modules
-        self.pst = v7p3rPST()
-        
+        self.pst = pst
+
         # Ruleset Loading
         self.rulesets = {}
         self.rules = {}
@@ -38,6 +33,10 @@ class v7p3rScore:
                 self.rules = self.rulesets.get(self.ruleset_name, {})
         except Exception as e:
             self.logger.error(f"Error loading rulesets file: {e}")
+
+        if self.logger:
+            self.logger.debug(f"v7p3rScoringCalculation initialized with ruleset: {self.ruleset_name}")
+            self.logger.debug(f"Current ruleset parameters: {self.ruleset_name}")
 
     # =================================
     # ===== EVALUATION FUNCTIONS ======
@@ -836,13 +835,14 @@ class v7p3rScore:
         """
         Awards a large bonus for capturing the opponent's queen with a lesser-valued piece.
         """
-        move = board.pop() # Get the last move played
-        if board.is_capture(move):
-            captured_piece = board.piece_at(move.to_square)
-            if captured_piece and captured_piece.piece_type == chess.QUEEN:
-                mover_piece = board.piece_at(move.from_square)
-                if mover_piece and mover_piece.piece_type != chess.QUEEN:
-                    return self.rules.get('queen_capture_bonus', 1000.0)
+        if board.move_stack:
+            move = board.pop() # Get the last move played
+            if board.is_capture(move):
+                captured_piece = board.piece_at(move.to_square)
+                if captured_piece and captured_piece.piece_type == chess.QUEEN:
+                    mover_piece = board.piece_at(move.from_square)
+                    if mover_piece and mover_piece.piece_type != chess.QUEEN:
+                        return self.rules.get('queen_capture_bonus', 1000.0)
         return 0.0
 
     def _king_endangerment(self, board: chess.Board):
@@ -850,13 +850,14 @@ class v7p3rScore:
         Penalizes non-castling king moves outside the endgame.
         Uses self.game_phase (should be set by calculate_game_phase).
         """
-        move = board.pop() # Get the last move played
-        mover_piece = board.piece_at(move.from_square)
-        if mover_piece and mover_piece.piece_type == chess.KING:
-            # Ignore castling
-            if board.is_castling(move):
-                return 0.0
-            # Penalize king moves in opening/middlegame
-            if getattr(self, 'game_phase', None) != 'endgame':
-                return self.rules.get('king_safety_penalty', -100.0)
+        if board.move_stack:
+            move = board.pop() # Get the last move played
+            mover_piece = board.piece_at(move.from_square)
+            if mover_piece and mover_piece.piece_type == chess.KING:
+                # Ignore castling
+                if board.is_castling(move):
+                    return 0.0
+                # Penalize king moves in opening/middlegame
+                if getattr(self, 'game_phase', None) != 'endgame':
+                    return self.rules.get('king_safety_penalty', -100.0)
         return 0.0
