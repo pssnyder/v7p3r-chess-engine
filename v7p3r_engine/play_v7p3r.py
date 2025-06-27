@@ -18,8 +18,6 @@ import hashlib
 # Define the maximum frames per second for the game loop
 MAX_FPS = 60
 from v7p3r import v7p3rEngine # Corrected import for v7p3rEngine
-from v7p3r_search import v7p3rSearch # Import v7p3rSearch for move searching
-from v7p3r_score import v7p3rScore # Import v7p3rScore for evaluation
 from metrics.metrics_store import MetricsStore # Import MetricsStore
 
 # At module level, define a single logger for this file
@@ -357,7 +355,7 @@ class ChessGame:
                 self.last_engine_move = engine_move
                 self.move_end_time = time.time()  # End timing the move
                 self.move_duration = self.move_end_time - self.move_start_time
-
+                self.pv_line = ""
                 # Ensure all move metric fields are present
                 metric = {
                     'game_id': self.current_game_db_id,
@@ -373,6 +371,7 @@ class ChessGame:
                     'engine_version': self.engine.version,
                     'nodes_searched': self.engine.search_engine.nodes_searched,
                     'time_taken': self.move_duration,
+                    'pv_line': self.pv_line
                 }
                 self.metrics_store.add_move_metric(**metric)
                 self._move_metrics_batch.append(metric)
