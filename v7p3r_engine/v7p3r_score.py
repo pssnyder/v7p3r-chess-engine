@@ -1,4 +1,4 @@
-# v7p3r_scoring_calculation.py
+# v7p3r_score.py
 
 """ v7p3r Scoring Calculation Module
 This module is responsible for calculating the score of a chess position based on various factors,
@@ -11,8 +11,6 @@ import logging
 import datetime
 import sys
 import os
-
-from cycler import V
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
 from v7p3r_engine.v7p3r_pst import v7p3rPST # Need this for PST evaluation
 
@@ -65,7 +63,55 @@ class v7p3rScore:
         # Set up additional scoring tools
         self.pst = v7p3rPST() # Load piece-square tables from config
 
-    # Renamed from _calculate_score to calculate_score to be the public API
+    # =================================
+    # ===== EVALUATION FUNCTIONS ======
+
+    def evaluate_position_from_perspective(self, board: chess.Board, player: chess.Color) -> float:
+        """Calculate position evaluation from specified player's perspective by delegating to scoring_calculator."""
+        perspective_evaluation_board = board.copy()
+        if not isinstance(player, chess.Color) or not perspective_evaluation_board.is_valid():
+            if self.logger:
+                player_name = "White" if player == chess.WHITE else "Black" if isinstance(player, chess.Color) else str(player)
+                self.logger.error(f"Invalid input for evaluation from perspective. Player: {player_name}, FEN: {perspective_evaluation_board.fen() if hasattr(perspective_evaluation_board, 'fen') else 'N/A'}")
+            return 0.0
+        
+        endgame_factor = self._get_game_phase_factor(perspective_evaluation_board)
+
+        white_score = self.calculate_score(
+            board=perspective_evaluation_board,
+            color=chess.WHITE,
+            endgame_factor=endgame_factor
+        )
+        black_score = self.calculate_score(
+            board=perspective_evaluation_board,
+            color=chess.BLACK,
+            endgame_factor=endgame_factor
+        )
+        
+        score = (white_score - black_score) if player == chess.WHITE else (black_score - white_score)
+        
+        if self.logging_enabled and self.logger:
+            player_name = "White" if player == chess.WHITE else "Black"
+            self.logger.debug(f"Position evaluation from {player_name} perspective (delegated): {score:.3f} | FEN: {perspective_evaluation_board.fen()} | Endgame Factor: {endgame_factor:.2f}")
+        return score
+
+    def evaluate_move(self, board: chess.Board, move: chess.Move = chess.Move.null()) -> float:
+        """Quick evaluation of individual move on overall eval"""
+        score = 0.0
+        move_evaluation_board = board.copy()
+        if not move_evaluation_board.is_legal(move):
+            if self.logging_enabled and self.logger:
+                self.logger.error(f"Attempted evaluation of an illegal move: {move} | FEN: {board.fen()}")
+            return -9999999999
+        
+        move_evaluation_board.push(move)
+        score = self.evaluate_position_from_perspective(move_evaluation_board, self.current_player)
+        
+        if self.show_thoughts and self.logger:
+            self.logger.debug("Exploring the move: %s | Evaluation: %.3f | FEN: %s", move, score, board.fen())
+        move_evaluation_board.pop()
+        return score
+    
     def calculate_score(self, board: chess.Board, color: chess.Color, endgame_factor: float = 0.0) -> float:
         """
         Calculates the position evaluation score for a given board and color,

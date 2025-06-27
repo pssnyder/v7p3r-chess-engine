@@ -737,7 +737,7 @@ class v7p3rNeuralNetwork:
     def reset(self, board: Optional[chess.Board] = None):
         """
         Reset the engine state for a new board position.
-        Compatible with the v7p3rEvaluationEngine interface.
+        Compatible with the v7p3rEngine interface.
         
         Args:
             board: chess.Board object with the new position
@@ -748,7 +748,7 @@ class v7p3rNeuralNetwork:
     def evaluate_position_from_perspective(self, board, perspective):
         """
         Evaluate a chess position from a specific perspective.
-        Compatible with the v7p3rEvaluationEngine interface.
+        Compatible with the v7p3rEngine interface.
         
         Args:
             board: chess.Board object
@@ -769,7 +769,7 @@ class v7p3rNeuralNetwork:
     def search(self, board, player_color, engine_config=None):
         """
         Search for the best move in the current position.
-        This method is compatible with the v7p3rEvaluationEngine interface
+        This method is compatible with the v7p3rEngine interface
         expected by chess_game.py.
         
         Args:

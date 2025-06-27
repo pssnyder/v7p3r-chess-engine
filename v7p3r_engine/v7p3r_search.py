@@ -41,12 +41,12 @@ if not v7p3r_engine_logger.handlers:
 # =======================================
 # ======= MAIN SEARCH CLASS ========
 class v7p3rSearch:
-    def __init__(self, board: chess.Board, current_player: chess.Color, v7p3r_config: dict, chess_game_config: dict):
+    def __init__(self, v7p3r_config: dict):
         self.v7p3r_config = v7p3r_config
         self.time_manager = v7p3rTime()
-        self.scoring_calculator = v7p3rScore(v7p3r_config, chess_game_config)
+        self.scoring_calculator = v7p3rScore(v7p3r_config)
         self.logger = v7p3r_engine_logger
-        self.show_thoughts = chess_game_config.get('monitoring', {}).get('show_thinking', False)
+        self.show_thoughts = v7p3r_config.get('monitoring', {}).get('show_thinking', False)
 
     def _random_search(self, board: chess.Board, player: chess.Color) -> chess.Move:
         """Select a random legal move from the board."""
