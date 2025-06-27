@@ -156,16 +156,6 @@ class ChessNN(nn.Module):
         return x * 10.0
 
 class MoveLibrary:
-<<<<<<< HEAD
-    """Local storage for chess positions, evaluations, and best moves"""
-    
-    def __init__(self, db_path="v7p3r_nn_engine/move_library.db"):
-        """Initialize the move library with a local SQLite database"""
-        os.makedirs(os.path.dirname(db_path), exist_ok=True)
-        self.conn = sqlite3.connect(db_path)
-        self._create_tables()
-        
-=======
     """A class to manage a library of chess moves and positions in an SQLite database."""
     def __init__(self, db_path="v7p3r_move_library.db"):
         """Initialize the MoveLibrary and create the database and tables if they don't exist."""
@@ -176,7 +166,6 @@ class MoveLibrary:
         self.conn.row_factory = sqlite3.Row
         self._create_tables()
 
->>>>>>> 07a8bd8b88a40e25c3039c45e202a1c15bd0bce9
     def _create_tables(self):
         """Create the necessary tables if they don't exist"""
         cursor = self.conn.cursor()
@@ -219,7 +208,7 @@ class MoveLibrary:
         ''', (fen, evaluation, source))
         
         position_id = cursor.lastrowid
-        self.conn.commit()
+        # Removed self.conn.commit() for batch commit
         
         return position_id
         
@@ -242,7 +231,7 @@ class MoveLibrary:
         VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
         ''', (position_id, move, evaluation, source, confidence))
         
-        self.conn.commit()
+        # Removed self.conn.commit() for batch commit
         
     def get_best_move(self, fen):
         """Get the best move for a position"""
@@ -288,11 +277,7 @@ class MoveLibrary:
         return row[0] if row else None
         
     def close(self):
-<<<<<<< HEAD
-        """Close the database connection"""
-=======
         """Close the database connection."""
->>>>>>> 07a8bd8b88a40e25c3039c45e202a1c15bd0bce9
         if self.conn:
             self.conn.close()
 
@@ -385,30 +370,26 @@ class v7p3rNeuralNetwork:
         self.model.train()
         for epoch in range(epochs):
             running_loss = 0.0
-            
+            batch_count = 0
+            logger.info(f"Starting epoch {epoch+1}/{epochs}")
             for i, data in enumerate(dataloader):
                 inputs, targets = data
                 inputs = inputs.to(self.device)
                 targets = targets.to(self.device).float().view(-1, 1)
-                
-                # Zero the parameter gradients
                 optimizer.zero_grad()
-                
-                # Forward + backward + optimize
                 outputs = self.model(inputs)
                 loss = criterion(outputs, targets)
                 loss.backward()
                 optimizer.step()
-                
-                # Print statistics
                 running_loss += loss.item()
-                if i % 100 == 99:  # Print every 100 mini-batches
-                    logger.info(f"[{epoch + 1}, {i + 1}] loss: {running_loss / 100:.3f}")
-                    running_loss = 0.0
-            
+                batch_count += 1
+                logger.debug(f"Epoch {epoch+1} Batch {i+1} Loss: {loss.item():.4f}")
+                if i % 10 == 9:
+                    logger.info(f"Epoch {epoch+1} [{i+1}/{len(dataloader)}] avg loss: {running_loss / (i+1):.4f}")
+            avg_loss = running_loss / batch_count if batch_count else 0.0
+            logger.info(f"Epoch {epoch+1} complete. Average loss: {avg_loss:.4f}")
             # Save checkpoint if configured
             self._save_checkpoint(epoch)
-            
         logger.info("Finished training")
         
         # Save the final model
@@ -424,14 +405,22 @@ class v7p3rNeuralNetwork:
             for pgn_file in pgn_files:
                 try:
                     with open(pgn_file, 'r') as f:
+                        file_positions = 0
                         while True:
                             game = chess.pgn.read_game(f)
                             if game is None:
                                 break
-                                
                             positions_from_game, evals_from_game = self._extract_positions_from_game(game)
                             positions.extend(positions_from_game)
                             evaluations.extend(evals_from_game)
+                            file_positions += len(positions_from_game)
+                        if file_positions == 0:
+                            logger.warning(f"No positions found in PGN file {pgn_file}")
+                        else:
+                            logger.info(f"Extracted {file_positions} positions from {pgn_file}")
+                        # Commit all DB changes for this file at once (batch commit)
+                        if hasattr(self, 'move_library') and hasattr(self.move_library, 'conn'):
+                            self.move_library.conn.commit()
                 except Exception as e:
                     logger.error(f"Error reading PGN file {pgn_file}: {e}")
         
@@ -748,7 +737,7 @@ class v7p3rNeuralNetwork:
     def reset(self, board: Optional[chess.Board] = None):
         """
         Reset the engine state for a new board position.
-        Compatible with the v7p3rEvaluationEngine interface.
+        Compatible with the v7p3rEngine interface.
         
         Args:
             board: chess.Board object with the new position
@@ -759,7 +748,7 @@ class v7p3rNeuralNetwork:
     def evaluate_position_from_perspective(self, board, perspective):
         """
         Evaluate a chess position from a specific perspective.
-        Compatible with the v7p3rEvaluationEngine interface.
+        Compatible with the v7p3rEngine interface.
         
         Args:
             board: chess.Board object
@@ -780,7 +769,7 @@ class v7p3rNeuralNetwork:
     def search(self, board, player_color, engine_config=None):
         """
         Search for the best move in the current position.
-        This method is compatible with the v7p3rEvaluationEngine interface
+        This method is compatible with the v7p3rEngine interface
         expected by chess_game.py.
         
         Args:
