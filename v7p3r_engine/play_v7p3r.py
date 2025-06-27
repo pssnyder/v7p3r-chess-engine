@@ -366,9 +366,6 @@ class ChessGame:
                 fen_before_move = self.board.fen()
                 move_number = self.board.fullmove_number
                 self.push_move(engine_move)
-                
-                if self.logger:
-                    self.logger.info(f"{self.white_player if current_player_color == chess.WHITE else self.black_player} played: {engine_move} (Eval: {self.current_eval:.2f})")
                 self.last_engine_move = engine_move
                 self.move_end_time = time.time()  # End timing the move
                 self.move_duration = self.move_end_time - self.move_start_time
@@ -408,7 +405,7 @@ class ChessGame:
                 move_number = self.board.fullmove_number
                 self.push_move(fallback_move)
                 if self.logger:
-                    self.logger.info(f"Engine ({self.white_player if current_player_color == chess.WHITE else self.black_player}) played emergency fallback move: {fallback_move} (Eval: {self.current_eval:.2f})")
+                    self.logger.info(f"{self.white_player if current_player_color == chess.WHITE else self.black_player} played emergency fallback move: {fallback_move} (Eval: {self.current_eval:.2f})")
                 self.last_engine_move = fallback_move
                 self.metrics_store.add_move_metric(
                     game_id=self.current_game_db_id,
@@ -427,9 +424,9 @@ class ChessGame:
                 if self.logger:
                     self.logger.warning(f"No legal moves for emergency fallback. Game might be over or stalled. | FEN: {self.board.fen()}")
 
-        print(f"{self.white_player if current_player_color == chess.WHITE else self.black_player} plays: {engine_move} (Eval: {self.current_eval:.2f})")
+        print(f"{self.white_player if current_player_color == chess.WHITE else self.black_player} played: {engine_move} (Eval: {self.current_eval:.2f})")
         if self.logger:
-            self.logger.info(f"Engine ({self.white_player if current_player_color == chess.WHITE else self.black_player}) played: {engine_move} (Eval: {self.current_eval:.2f}) | Time: {self.move_duration:.4f}s | Nodes: {self.engine.search_engine.nodes_searched}")
+            self.logger.info(f"{self.white_player if current_player_color == chess.WHITE else self.black_player} played: {engine_move} (Eval: {self.current_eval:.2f}) | Time: {self.move_duration:.4f}s | Nodes: {self.engine.search_engine.nodes_searched}")
 
     def push_move(self, move):
         """ Test and push a move to the board and game node """
@@ -535,15 +532,30 @@ if __name__ == "__main__":
         "white_player": "v7p3r",
         "black_player": "stockfish",
         "game_count": 1,
+        "engine_config": {
+                "name": "v7p3r",                     # Name of the engine, used for identification and logging
+                "version": "1.0.0",                  # Version of the engine, used for identification and logging
+                "color": "white",                    # Color of the engine, either 'white' or 'black'
+                "ruleset": "default_evaluation",     # Name of the evaluation rule set to use, see below for available options
+                "search_algorithm": "minimax",       # Move search type for White (see search_algorithms for options)
+                "depth": 5,                          # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
+                "max_depth": 8,                      # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
+                "monitoring_enabled": True,          # Enable or disable monitoring features
+                "verbose_output": True,             # Enable or disable verbose output for debugging
+                "logger": "v7p3r_engine_logger",     # Logger name for the engine, used for logging engine-specific events
+                "max_game_count": 1,                 # Number of games to play in AI vs AI mode
+                "starting_position": "default",      # Default starting position name (or FEN string)
+                "white_player": "v7p3r",             # Name of the engine being used (e.g., 'v7p3r', 'stockfish'), this value is a direct reference to the engine configuration values in their respective config files
+                "black_player": "stockfish",         # sets this colors engine configuration name, same as above, important note that if the engines are set the same then only whites metrics will be collected to prevent negation in win loss metrics
+        },
         "stockfish_config": {
             "stockfish_path": "engine_utilities/external_engines/stockfish/stockfish-windows-x86-64-avx2.exe",
-            "elo_rating": 500,
+            "elo_rating": 100,
             "skill_level": 1,
             "debug_mode": False,
             "depth": 2,
-            "max_depth": 4,
-            "movetime": None,
-            "nodes": None
+            "max_depth": 3,
+            "movetime": 500,
         },
     }
     game = ChessGame(config)

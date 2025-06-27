@@ -28,15 +28,15 @@ class v7p3rScore:
         self.rulesets = {}
         self.rules = {}
         try:
-            with open("rulesets.yaml") as f:
+            with open("v7p3r_engine/rulesets.yaml") as f:
                 self.rulesets = yaml.safe_load(f) or {}
-                self.rules = self.rulesets.get(self.ruleset_name, {})
+                self.rules = self.rulesets.get(f"{self.ruleset_name}", {})
         except Exception as e:
             self.logger.error(f"Error loading rulesets file: {e}")
 
         if self.logger:
             self.logger.debug(f"v7p3rScoringCalculation initialized with ruleset: {self.ruleset_name}")
-            self.logger.debug(f"Current ruleset parameters: {self.ruleset_name}")
+            self.logger.debug(f"Current ruleset parameters: {self.rules}")
 
     # =================================
     # ===== EVALUATION FUNCTIONS ======
@@ -861,3 +861,27 @@ class v7p3rScore:
                 if getattr(self, 'game_phase', None) != 'endgame':
                     return self.rules.get('king_safety_penalty', -100.0)
         return 0.0
+    
+
+# Testing
+if __name__ == "__main__":
+    # Print the current default config values and run a test scoring calculation
+    
+    # Initialize required arguments
+    engine_config = {
+        'verbose_output': True,
+        'engine_ruleset': 'default_evaluation'
+    }
+    from v7p3r_pst import v7p3rPST
+    pst = v7p3rPST()  # Replace with an actual piece-square table object
+    logger = logging.getLogger("v7p3r_engine_logger")
+    
+    scoring_calculator = v7p3rScore(engine_config=engine_config, pst=pst, logger=logger)
+    print("Current default config values:")
+    for key, value in scoring_calculator.rules.items():
+        print(f"  {key}: {value}")
+    
+    # Run a test scoring calculation
+    board = chess.Board()
+    score = scoring_calculator.calculate_score(board=board, color=chess.WHITE)
+    print(f"Test scoring calculation result: {score}")

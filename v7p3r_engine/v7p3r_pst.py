@@ -18,7 +18,18 @@ class v7p3rPST:
         }
     def _create_tables(self):
         """Create all piece-square tables"""
-        
+        # Generic table - encourages center control
+        self.PST_TABLE = [
+            [  0,  0,  0,  0,  0,  0,  0,  0],  # 8th rank (promotion)
+            [ -5, 10, 10, 10, 10, 10, 10, -5],  # 7th rank 
+            [ -5, 10, 20, 20, 20, 20, 10, -5],  # 6th rank
+            [ -5, 10, 20, 30, 30, 20, 10, -5],  # 5th rank
+            [ -5, 10, 20, 30, 30, 20, 10, -5],  # 4th rank
+            [ -5, 10, 20, 20, 20, 20, 10, -5],  # 3rd rank
+            [ -5, 10, 10, 10, 10, 10, 10, -5],  # 2nd rank
+            [  0,  0,  0,  0,  0,  0,  0,  0]   # 1st rank
+        ]
+
         # Pawn table - encourages advancement and center control
         self.PAWN_TABLE = [
             [  0,  0,  0,  0,  0,  0,  0,  0],  # 8th rank (promotion)
