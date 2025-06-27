@@ -1,25 +1,29 @@
 # v7p3r_engine/search_algorithms.py
-
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
 import chess
 import random
+import logging
+import datetime
 from typing import Callable, Optional
-from v7p3r_engine.time_manager import TimeManager
-from v7p3r_engine.scoring_calculator import ScoringCalculator
+from v7p3r_engine.v7p3r_time import v7p3rTime
+from v7p3r_engine.v7p3r_score import v7p3rScore
+from v7p3r_engine.v7p3r_ordering import v7p3rOrdering
+from v7p3r_engine.v7p3r_pst import v7p3rPST
 
 
 # =====================================
 # ========== LOGGING SETUP ============
-def get_timestamp():
-    return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-v7p3r_engine_logger = logging.getLogger("v7p3r_evaluation_engine")
+v7p3r_engine_logger = logging.getLogger("v7p3r_search_logger")
 v7p3r_engine_logger.setLevel(logging.DEBUG)
 if not v7p3r_engine_logger.handlers:
     if not os.path.exists('logging'):
         os.makedirs('logging', exist_ok=True)
     from logging.handlers import RotatingFileHandler
     # Use a timestamped log file for each engine run
-    timestamp = get_timestamp()
-    log_file_path = f"logging/v7p3r_evaluation_engine_{timestamp}.log"
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_file_path = f"logging/v7p3r_search_{timestamp}.log"
     file_handler = RotatingFileHandler(
         log_file_path,
         maxBytes=10*1024*1024,
@@ -37,12 +41,12 @@ if not v7p3r_engine_logger.handlers:
 # =======================================
 # ======= MAIN SEARCH CLASS ========
 class v7p3rSearch:
-    def __init__(self, v7p3r_config: dict, time_manager: TimeManager, scoring_calculator: ScoringCalculator, logger=None, show_thoughts=False):
+    def __init__(self, board: chess.Board, current_player: chess.Color, v7p3r_config: dict, chess_game_config: dict):
         self.v7p3r_config = v7p3r_config
-        self.time_manager = time_manager
-        self.scoring_calculator = scoring_calculator
-        self.logger = logger
-        self.show_thoughts = show_thoughts
+        self.time_manager = v7p3rTime()
+        self.scoring_calculator = v7p3rScore(v7p3r_config, chess_game_config)
+        self.logger = v7p3r_engine_logger
+        self.show_thoughts = chess_game_config.get('monitoring', {}).get('show_thinking', False)
 
     def _random_search(self, board: chess.Board, player: chess.Color) -> chess.Move:
         """Select a random legal move from the board."""
@@ -71,7 +75,7 @@ class v7p3rSearch:
             self.nodes_searched += 1 # Increment nodes searched
             temp_board = simple_search_board.copy()
             temp_board.push(move)
-            score = self.evaluate_position_from_perspective(temp_board, simple_search_board.turn)
+            score = self.evaluator.evaluate_position_from_perspective(temp_board, simple_search_board.turn)
             if self.show_thoughts and self.logger:
                 self.logger.debug(f"Simple search evaluating move: {move} | Score: {score:.3f} | Best score: {best_score:.3f} | FEN: {temp_board.fen()}")
             if simple_search_board.turn == chess.WHITE: # If white's turn, maximize score

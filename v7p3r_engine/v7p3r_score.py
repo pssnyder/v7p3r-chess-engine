@@ -11,9 +11,10 @@ import logging
 import datetime
 import sys
 import os
+
+from cycler import V
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
-import threading # TODO enable parallel score calculations via threading
-from v7p3r_engine.piece_square_tables import PieceSquareTables # Need this for PST evaluation
+from v7p3r_engine.v7p3r_pst import v7p3rPST # Need this for PST evaluation
 
 # At module level, define a single logger for this file
 def get_timestamp():
@@ -62,7 +63,7 @@ class v7p3rScore:
             v7p3r_scoring_logger.debug(f"Current ruleset parameters: {self.rules}")
 
         # Set up additional scoring tools
-        self.pst = PieceSquareTables() # Load piece-square tables from config
+        self.pst = v7p3rPST() # Load piece-square tables from config
 
     # Renamed from _calculate_score to calculate_score to be the public API
     def calculate_score(self, board: chess.Board, color: chess.Color, endgame_factor: float = 0.0) -> float:

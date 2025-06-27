@@ -22,8 +22,8 @@ import chess
 import chess.pgn
 import numpy as np
 from torch.distributions import Categorical
-from engine_utilities.v7p3r_scoring_calculation import v7p3rScoringCalculation
-from engine_utilities.piece_square_tables import PieceSquareTables
+from v7p3r_engine.v7p3r_score import v7p3rScore
+from v7p3r_engine.v7p3r_pst import v7p3rPST
 
 class PolicyNetwork(nn.Module):
     def __init__(self, input_dim, hidden_dim, output_dim):
@@ -54,16 +54,7 @@ class V7P3RRLAgent:
         self.rewards = []
         # Setup for scoring calculation
         self.engine_config = self.config.get('v7p3r', self.config)  # fallback to config if not nested
-        self.piece_values = {
-            chess.KING: 0,
-            chess.QUEEN: 9,
-            chess.ROOK: 5,
-            chess.BISHOP: 3.25,
-            chess.KNIGHT: 3,
-            chess.PAWN: 1
-        }
-        self.pst = PieceSquareTables()
-        self.scorer = v7p3rScoringCalculation(self.v7p3r_config, self.engine_config, self.piece_values, self.pst)
+        self.scorer = v7p3rScore(self.engine_config, self.v7p3r_config)
 
     def _load_config(self, config_path):
         if os.path.exists(config_path):

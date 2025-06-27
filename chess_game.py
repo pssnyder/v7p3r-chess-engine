@@ -17,7 +17,7 @@ import hashlib
 
 # Define the maximum frames per second for the game loop
 MAX_FPS = 60
-from v7p3r_engine.v7p3r import v7p3rEvaluationEngine # Corrected import for v7p3rEvaluationEngine
+from v7p3r_engine.v7p3r_eval import v7p3rEval # Corrected import for v7p3rEval
 from v7p3r_nn_engine.v7p3r_nn import v7p3rNeuralNetwork # Import Neural Network engine
 from engine_utilities.stockfish_handler import StockfishHandler # Corrected import path and name
 from metrics.metrics_store import MetricsStore # Import MetricsStore
@@ -221,7 +221,7 @@ class ChessGame:
         if self.white_engine_config.get('engine', '').lower() == 'v7p3r':
             # Pass relevant parts of v7p3r_config and game_config_data (white_engine_config)
             v7p3r_engine_config = {**self.v7p3r_config.get('v7p3r', {}), **self.white_engine_config}
-            self.white_engine = v7p3rEvaluationEngine(self.board, chess.WHITE, engine_config=v7p3r_engine_config)
+            self.white_engine = v7p3rEval(self.board, chess.WHITE)
         elif self.white_engine_config.get('engine', '').lower() == 'v7p3r_nn':
             # Initialize Neural Network engine
             self.white_engine = v7p3rNeuralNetwork(config_path="config/v7p3r_nn_config.yaml")
@@ -229,7 +229,7 @@ class ChessGame:
         elif self.white_engine_config.get('engine', '').lower() == 'stockfish':
             if not stockfish_path or not os.path.exists(stockfish_path):
                 self.logger.error(f"Stockfish executable not found at: {stockfish_path}. White AI defaulting to v7p3r.")
-                self.white_engine = v7p3rEvaluationEngine(self.board, chess.WHITE, engine_config=self.white_engine_config)
+                self.white_engine = v7p3rEval(self.board, chess.WHITE)
                 self.white_engine_config['engine'] = 'v7p3r' # Force engine name change
                 self.white_engine_config['search_algorithm'] = 'random' # Force type change as Stockfish type invalid
             else:
@@ -241,12 +241,12 @@ class ChessGame:
                 )
         else: # Default to v7p3r if unknown engine
             self.logger.warning(f"Unknown engine for White AI: {self.white_engine_config['engine']}. Defaulting to v7p3r.")
-            self.white_engine = v7p3rEvaluationEngine(self.board, chess.WHITE, engine_config=self.white_engine_config)
+            self.white_engine = v7p3rEval(self.board, chess.WHITE)
             self.white_engine_config['engine'] = 'v7p3r'        # Black Engine
         if self.black_engine_config.get('engine', '').lower() == 'v7p3r':
             # Pass relevant parts of v7p3r_config and game_config_data (black_engine_config)
             v7p3r_engine_config = {**self.v7p3r_config.get('v7p3r', {}), **self.black_engine_config}
-            self.black_engine = v7p3rEvaluationEngine(self.board, chess.BLACK, engine_config=v7p3r_engine_config)
+            self.black_engine = v7p3rEval(self.board, chess.BLACK)
 
         # Reset and configure engines for the new game board
         self.white_engine.reset()
@@ -632,7 +632,7 @@ class ChessGame:
         move_start_time = time.perf_counter()
         
         nodes_before_search = 0
-        if isinstance(current_ai_engine, v7p3rEvaluationEngine): # Changed from EvaluationEngine
+        if isinstance(current_ai_engine, v7p3rEval): # Changed from EvaluationEngine
             nodes_before_search = current_ai_engine.nodes_searched
 
         try:
@@ -643,8 +643,8 @@ class ChessGame:
             
             nodes_this_move = 0
             pv_line_info = ""
-            
-            if isinstance(current_ai_engine, v7p3rEvaluationEngine): # Changed from EvaluationEngine
+
+            if isinstance(current_ai_engine, v7p3rEval): # Changed from EvaluationEngine
                 nodes_after_search = current_ai_engine.nodes_searched
                 nodes_this_move = nodes_after_search - nodes_before_search
             elif isinstance(current_ai_engine, StockfishHandler):
