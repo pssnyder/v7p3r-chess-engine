@@ -1,8 +1,6 @@
-# engine_utilities/piece_square_tables.py
+# v7p3r_engine/v7p3r_pst.py
 
 import chess
-
-from v7p3r_engine import v7p3r_engine
 
 class v7p3rPST:
     """
