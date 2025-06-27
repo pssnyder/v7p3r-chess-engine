@@ -5,7 +5,9 @@ import threading
 import queue
 import chess
 import time
+import sys
 import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
 import logging
 from typing import Optional, Dict, Any, Callable # Added Callable import
 
@@ -33,18 +35,18 @@ if not stockfish_handler_logger.handlers:
 
 
 class StockfishHandler:
-    def __init__(self, stockfish_path: str, elo_rating: Optional[int] = None, skill_level: Optional[int] = None, debug_mode: bool = False):
-        self.stockfish_path = stockfish_path
-        self.elo_rating = elo_rating
-        self.skill_level = skill_level
+    def __init__(self, stockfish_config):
+        self.stockfish_path = stockfish_config.get('stockfish_path')
+        self.elo_rating = stockfish_config.get('elo_rating')
+        self.skill_level = stockfish_config.get('skill_level')
         self.process = None # Initialize as None
         self.stdout_queue = queue.Queue()
         self.stdout_thread = None
-        self.debug_mode = debug_mode
+        self.debug_mode = stockfish_config.get('debug_mode', False)
         self.logger = stockfish_handler_logger
 
         if self.debug_mode:
-            self.logger.debug(f"Initializing StockfishHandler from {stockfish_path}")
+            self.logger.debug(f"Initializing StockfishHandler from {self.stockfish_path}")
         else:
             self.logger.disabled = True
 
@@ -402,84 +404,3 @@ class StockfishHandler:
                     self.logger.info("StockfishHandler successfully restarted and reset.")
             except Exception as e:
                 self.logger.error(f"Failed to reset and restart StockfishHandler: {e}")
-
-
-# Example Usage (for testing this module independently)
-if __name__ == "__main__":
-    test_logger = logging.getLogger("test_stockfish_handler")
-    test_logger.setLevel(logging.DEBUG)
-    if not test_logger.handlers:
-        ch = logging.StreamHandler()
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        ch.setFormatter(formatter)
-        test_logger.addHandler(ch)
-
-    # IMPORTANT: Updated path for the Stockfish executable
-    # Use raw string or forward slashes for paths to avoid issues with backslashes
-    stockfish_executable_path = r"engine_utilities\external_engines\stockfish\stockfish-windows-x86-64-avx2.exe"
-    
-    if not os.path.exists(stockfish_executable_path):
-        print(f"Error: Stockfish executable not found at '{stockfish_executable_path}'. Please update 'stockfish_executable_path' in this script.")
-        exit()
-
-    handler = None
-    try:
-        print("\n--- Test 1: Basic Initialization and Evaluation ---")
-        handler = StockfishHandler(stockfish_executable_path, debug_mode=True)
-        board = chess.Board()
-        eval_score = handler.evaluate_position(board)
-        print(f"Initial board evaluation: {eval_score:.2f}")
-        assert isinstance(eval_score, float), "Evaluation should be a float"
-        
-        print("\n--- Test 2: Search for a move (movetime 1000ms) ---")
-        engine_config_test = {'time_limit': 1000, 'depth': 0}
-        best_move = handler.search(board.copy(), chess.WHITE, engine_config=engine_config_test)
-        print(f"Best move found: {best_move}")
-        assert isinstance(best_move, chess.Move), "Search should return a chess.Move"
-        
-        print("\n--- Test 3: Set ELO (1500) and Skill Level (5) ---")
-        handler_elo = StockfishHandler(stockfish_executable_path, elo_rating=1500, skill_level=5, debug_mode=True)
-        board.reset()
-        board.push_uci("e2e4")
-        board.push_uci("e7e5")
-        engine_config_elo = {'time_limit': 500, 'depth': 0}
-        move_elo = handler_elo.search(board.copy(), chess.BLACK, engine_config=engine_config_elo)
-        print(f"Move from ELO 1500 engine: {move_elo}")
-        handler_elo.quit()
-
-        print("\n--- Test 4: Get last search info ---")
-        info = handler.get_last_search_info()
-        print(f"Last search info: {info}")
-        assert 'score' in info and 'nodes' in info and 'pv' in info, "Missing info from last search"
-
-        print("\n--- Test 5: Resetting Handler ---")
-        board_reset_test = chess.Board("8/8/8/8/8/8/8/R3K2R w KQkq - 0 1")
-        handler.reset(board_reset_test)
-        reset_eval = handler.evaluate_position(board_reset_test)
-        print(f"Evaluation after reset: {reset_eval:.2f}")
-
-        print("\n--- Test 6: Process Crashed Scenario ---")
-        if handler.process: # If still running from previous tests
-            print("Killing Stockfish process to simulate crash...")
-            handler.process.kill() # Simulate a crash
-            handler.process = None # Manually set to None to simulate poll() behavior
-            time.sleep(1) # Give it a moment to truly terminate
-        
-        board_crashed_test = chess.Board()
-        print(f"Attempting search with crashed engine...")
-        crashed_move = handler.search(board_crashed_test, chess.WHITE, {'time_limit': 100})
-        print(f"Move after crash: {crashed_move}")
-        assert crashed_move == chess.Move.null(), "Crashed engine should return null move"
-
-        print(f"Attempting reset/restart with crashed engine...")
-        handler.reset(board_crashed_test) # This should try to restart the engine
-        restart_eval = handler.evaluate_position(board_crashed_test)
-        print(f"Evaluation after restart attempt: {restart_eval:.2f}")
-        assert handler.process is not None, "Engine should have attempted to restart successfully."
-        
-    except Exception as e:
-        print(f"An error occurred during testing: {e}")
-    finally:
-        if handler:
-            handler.quit()
-        print("\n--- StockfishHandler Tests Complete ---")

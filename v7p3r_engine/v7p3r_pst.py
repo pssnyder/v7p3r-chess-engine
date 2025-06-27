@@ -3,12 +3,7 @@
 import chess
 
 class v7p3rPST:
-    """
-    Piece-Square Tables for chess position evaluation.
-    These tables assign values to pieces based on their square location.
-    Values are in centipawns (1/100th of a pawn).
-    """
-    
+    """ Piece-Square Tables for chess position evaluation. """
     def __init__(self):
         # Initialize piece-square tables
         self.tables = self._create_tables()

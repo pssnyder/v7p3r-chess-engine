@@ -10,7 +10,7 @@ import yaml
 import logging
 import sys
 import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
 import datetime
 from v7p3r_search import v7p3rSearch
 from v7p3r_score import v7p3rScore
