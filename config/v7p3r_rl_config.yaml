@@ -8,4 +8,5 @@ gamma: 0.99
 input_dim: 773
 output_dim: 4672
 max_moves: 200
+
 # Add more RL-specific settings as needed
