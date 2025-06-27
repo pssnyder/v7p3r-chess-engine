@@ -11,13 +11,7 @@ import logging
 import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-import time
 import datetime
-from v7p3r_pst import v7p3rPST
-from v7p3r_time import v7p3rTime
-from v7p3r_book import v7p3rBook
-from v7p3r_score import v7p3rScore
 from v7p3r_search import v7p3rSearch
 
 # =====================================
@@ -50,27 +44,41 @@ if not v7p3r_engine_logger.handlers:
 # =====================================
 # ========== ENGINE CLASS =============
 class v7p3rEngine:
-    def __init__(self, board: chess.Board = chess.Board(), player: chess.Color = chess.WHITE):
-         # Load Configuration Files
+    def __init__(self, board: chess.Board = chess.Board()):
+        self.logger = v7p3r_engine_logger
+        # Load Configuration Files
         try:
             with open("config/v7p3r_config.yaml") as f:
                 self.v7p3r_config = yaml.safe_load(f) or {}
         except Exception as e:
-            v7p3r_engine_logger.error(f"Error loading v7p3r YAML file: {e}")
+            self.logger.error(f"Error loading v7p3r YAML file: {e}")
             self.engine_config = {}
-        
-        self.board = board
-        self.current_player = player
-        self.time_manager = v7p3rTime()
-        self.opening_book = v7p3rBook()
-        self.pst = v7p3rPST()
-        self.scoring_calculator = v7p3rScore(self.engine_config)
-        self.search_engine = v7p3rSearch(self.engine_config)
+
+        # Overrides
         self.time_control = {'infinite': True}  # Default to infinite time control
 
-        self.nodes_searched = 0
+        # Engine Configuration
+        self.engine_name = "v7p3r"
+        self.engine_version = "1.0.0"
+        self.engine_config = {
+            "engine_color": "white",
+            "engine_ruleset": "default_evaluation",         # Name of the evaluation rule set to use, see below for available options
+            "engine_search_algorithm": "minimax",           # Move search type for White (see search_algorithms for options)
+            "engine_depth": 5,                            # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
+            "engine_max_depth": 8,                        # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
+            "monitoring_enabled": True,                   # Enable or disable monitoring features
+            "engine_logger": "v7p3r_engine_logger",
+            "max_game_count": 1,               # Number of games to play in AI vs AI mode
+            "starting_position": "default",   # Default starting position name (or FEN string)
+            "white_player": "v7p3r",          # Name of the engine being used (e.g., 'v7p3r', 'stockfish'), this value is a direct reference to the engine configuration values in their respective config files
+            "black_player": "stockfish"      # sets this colors engine configuration name, same as above, important note that if the engines are set the same then only whites metrics will be collected to prevent negation in win loss metrics
 
-        # Default Piece Values
+        }
+
+        # Required Engine Modules
+        self.search_engine = v7p3rSearch(board, self.engine_config)
+
+        # Hard-coded base piece values
         self.piece_values = {
             chess.KING: 0.0,
             chess.QUEEN: 9.0,
@@ -78,51 +86,17 @@ class v7p3rEngine:
             chess.BISHOP: 3.25,
             chess.KNIGHT: 3.0,
             chess.PAWN: 1.0
-        }
+        }      
 
-        # Engine Details
-        self.engine_name = self.v7p3r_config.get('engine_name', 'v7p3r')
-        self.engine_version = self.v7p3r_config.get('engine_version', '1.0.0')
-        self.engine_color = 'white' if board.turn else 'black'
-
-        # Monitoring Config
-        self.monitoring_config = self.chess_game_config.get('monitoring', {})
-        if self.monitoring_config is not None:
-            self.logging_enabled = self.monitoring_config.get('enable_logging', False)
-            self.evaluation_display_enabled = self.monitoring_config.get('show_evaluation', False)
-            self.show_thoughts = self.monitoring_config.get('show_thinking', False)
-            self.logger = v7p3r_engine_logger
-            if not self.logging_enabled:
-                self.show_thoughts = False
-            if self.logging_enabled:
-                self.logger.debug(f"Logging enabled for {player} v7p3rEngine")
+        # Initialize Board
+        if board is None or not isinstance(board, chess.Board):
+            self.board = chess.Board()
         else:
-            self.logging_enabled = False
-            self.evaluation_display_enabled = False
-            self.show_thoughts = False
-            self.logger = None
-
-        # Dynamically fetch the config for this engine
-        self.engine_config = self.v7p3r_config.get(self.engine_name, {})  # Dynamically load configuration based on engine_name
-        if self.engine_config is not None:
-            # Set up config values for evaluator and scoring
-            self.ruleset = self.engine_config.get('ruleset')
-            self.search_algorithm = self.engine_config.get('search_algorithm', 'random')
-            self.depth = self.engine_config.get('depth', 3)
-            self.max_depth = self.engine_config.get('max_depth', 4)
-            self.pst_weight = self.engine_config.get('pst_weight', 1.0)
-            self.scoring_modifier = self.engine_config.get('scoring_modifier', 1.0)
-
-        # Initialize a scoring setup for this engine config
-        if self.logging_enabled and self.logger:
-            self.logger.debug(f"Configuring v7p3r AI for {self.engine_color} via: {self.engine_config}")
-        self.scoring_calculator = v7p3rScore(self.v7p3r_config)
-        if self.show_thoughts and self.logger:
-            self.logger.debug(f"AI configured for {self.engine_color}: type={self.search_algorithm} depth={self.depth}, ruleset={self.ruleset}")
+            self.board = board.copy()
 
     def close(self):
         self.reset()
-        if self.show_thoughts and self.logger:
+        if self.logger:
             self.logger.debug("v7p3rEngine closed and resources cleaned up.")
 
     def reset(self):
@@ -132,14 +106,5 @@ class v7p3rEngine:
             board = self.board
         self.current_player = chess.WHITE if board.turn else chess.BLACK
         self.nodes_searched = 0
-        if self.show_thoughts and self.logger:
-            self.logger.debug(f"v7p3rEngine for {self.engine_color} reset to initial state.")
-
-    def _is_draw_condition(self, board):
-        if board.can_claim_threefold_repetition():
-            return True
-        if board.can_claim_fifty_moves():
-            return True
-        if board.is_seventyfive_moves():
-            return True
-        return False
+        if self.logger:
+            self.logger.debug(f"v7p3rEngine for {self.engine_config.get('engine_color')} reset to initial state.")
