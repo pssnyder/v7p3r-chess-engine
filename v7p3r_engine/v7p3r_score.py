@@ -13,7 +13,7 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
 import threading # TODO enable parallel score calculations via threading
-from engine_utilities.piece_square_tables import PieceSquareTables # Need this for PST evaluation
+from v7p3r_engine.piece_square_tables import PieceSquareTables # Need this for PST evaluation
 
 # At module level, define a single logger for this file
 def get_timestamp():
@@ -41,7 +41,7 @@ if not v7p3r_scoring_logger.handlers:
 v7p3r_scoring_logger.addHandler(file_handler)
 v7p3r_scoring_logger.propagate = False
 
-class v7p3rScoringCalculation:
+class v7p3rScore:
     def __init__(self, engine_config: dict, v7p3r_config: dict):
         self.engine_config = engine_config # Only the engine configuration for this AI
         self.v7p3r_config = v7p3r_config # This is the full v7p3r_config.yaml content
@@ -315,13 +315,6 @@ class v7p3rScoringCalculation:
             phase = 'middlegame'
         self.game_phase = phase
         return phase
-
-    def get_rule_value(self, rule_name: str, default_value: float = 0.0) -> float:
-        """
-        Get a rule value from the current ruleset configuration.
-        This method provides backward compatibility with the main engine.
-        """
-        return self.rules.get(rule_name, default_value)
 
     # ==========================================
     # ========= RULE SCORING FUNCTIONS =========
