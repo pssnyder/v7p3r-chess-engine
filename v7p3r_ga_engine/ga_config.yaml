@@ -1,0 +1,6 @@
+# Example GA configuration for v7p3r ruleset tuning
+population_size: 20
+generations: 30
+mutation_rate: 0.2
+crossover_rate: 0.5
+positions_source: "training_data/csv_data_puzzles"
