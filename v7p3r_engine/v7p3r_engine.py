@@ -1,13 +1,12 @@
-# v7p3r_engine/v7p3r.py
+# v7p3r_engine/v7p3r_engine.py
 
-""" v7p3r Evaluation Engine
-This module implements the evaluation engine for the v7p3r chess AI.
-It provides various search algorithms, evaluation functions, and move ordering
+""" v7p3r Engine
+This module implements the core engine for the v7p3r chess AI.
+It provides handler functionality for search algorithms, evaluation functions, and move ordering
 """
 
 import chess
 import yaml
-import random
 import logging
 import sys
 import os
@@ -15,10 +14,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 import time
 import datetime
-from typing import Optional, Callable
 from v7p3r_pst import v7p3rPST
 from v7p3r_time import v7p3rTime
-from v7p3r_engine.v7p3r_book import v7p3rBook
+from v7p3r_book import v7p3rBook
 from v7p3r_score import v7p3rScore
 from v7p3r_search import v7p3rSearch
 
@@ -51,14 +49,12 @@ if not v7p3r_engine_logger.handlers:
 
 # =====================================
 # ========== ENGINE CLASS =============
-class v7p3rEval:
+class v7p3rEngine:
     def __init__(self, board: chess.Board = chess.Board(), player: chess.Color = chess.WHITE):
          # Load Configuration Files
         try:
             with open("config/v7p3r_config.yaml") as f:
                 self.v7p3r_config = yaml.safe_load(f) or {}
-            with open("config/chess_game_config.yaml") as f:
-                self.chess_game_config = yaml.safe_load(f) or {}
         except Exception as e:
             v7p3r_engine_logger.error(f"Error loading v7p3r or game settings YAML files: {e}")
             self.v7p3r_config = {}
@@ -69,8 +65,8 @@ class v7p3rEval:
         self.time_manager = v7p3rTime()
         self.opening_book = v7p3rBook()
         self.pst = v7p3rPST()
-        self.scoring_calculator = v7p3rScore(self.v7p3r_config, self.chess_game_config)
-        self.search_engine = v7p3rSearch(self.board, self.current_player, self.v7p3r_config, self.chess_game_config)
+        self.scoring_calculator = v7p3rScore(self.v7p3r_config.get('v7p3r', {}), self.v7p3r_config)
+        self.search_engine = v7p3rSearch(self.v7p3r_config)
         self.time_control = {'infinite': True}  # Default to infinite time control
 
         self.nodes_searched = 0
@@ -103,7 +99,7 @@ class v7p3rEval:
             if not self.logging_enabled:
                 self.show_thoughts = False
             if self.logging_enabled:
-                self.logger.debug(f"Logging enabled for {player} v7p3rEvaluationEngine")
+                self.logger.debug(f"Logging enabled for {player} v7p3rEngine")
         else:
             self.logging_enabled = False
             self.evaluation_display_enabled = False
@@ -131,7 +127,7 @@ class v7p3rEval:
     def close(self):
         self.reset()
         if self.show_thoughts and self.logger:
-            self.logger.debug("v7p3rEvaluationEngine closed and resources cleaned up.")
+            self.logger.debug("v7p3rEngine closed and resources cleaned up.")
 
     def reset(self):
         if self.board is None:
@@ -144,7 +140,7 @@ class v7p3rEval:
         self.history_table.clear()
         self.counter_moves.clear()
         if self.show_thoughts and self.logger:
-            self.logger.debug(f"v7p3rEvaluationEngine for {self.engine_color} reset to initial state.")
+            self.logger.debug(f"v7p3rEngine for {self.engine_color} reset to initial state.")
 
     def _is_draw_condition(self, board):
         if board.can_claim_threefold_repetition():
@@ -174,71 +170,3 @@ class v7p3rEval:
             return 1.0
         
         return 0.0
-
-    # =================================
-    # ===== EVALUATION FUNCTIONS ======
-
-    def evaluate_position_from_perspective(self, board: chess.Board, player: chess.Color) -> float:
-        """Calculate position evaluation from specified player's perspective by delegating to scoring_calculator."""
-        perspective_evaluation_board = board.copy()
-        if not isinstance(player, chess.Color) or not perspective_evaluation_board.is_valid():
-            if self.logger:
-                player_name = "White" if player == chess.WHITE else "Black" if isinstance(player, chess.Color) else str(player)
-                self.logger.error(f"Invalid input for evaluation from perspective. Player: {player_name}, FEN: {perspective_evaluation_board.fen() if hasattr(perspective_evaluation_board, 'fen') else 'N/A'}")
-            return 0.0
-        
-        endgame_factor = self._get_game_phase_factor(perspective_evaluation_board)
-
-        white_score = self.scoring_calculator.calculate_score(
-            board=perspective_evaluation_board,
-            color=chess.WHITE,
-            endgame_factor=endgame_factor
-        )
-        black_score = self.scoring_calculator.calculate_score(
-            board=perspective_evaluation_board,
-            color=chess.BLACK,
-            endgame_factor=endgame_factor
-        )
-        
-        score = (white_score - black_score) if player == chess.WHITE else (black_score - white_score)
-        
-        if self.logging_enabled and self.logger:
-            player_name = "White" if player == chess.WHITE else "Black"
-            self.logger.debug(f"Position evaluation from {player_name} perspective (delegated): {score:.3f} | FEN: {perspective_evaluation_board.fen()} | Endgame Factor: {endgame_factor:.2f}")
-        return score
-
-    def evaluate_move(self, board: chess.Board, move: chess.Move = chess.Move.null()) -> float:
-        """Quick evaluation of individual move on overall eval"""
-        score = 0.0
-        move_evaluation_board = board.copy()
-        if not move_evaluation_board.is_legal(move):
-            if self.logging_enabled and self.logger:
-                self.logger.error(f"Attempted evaluation of an illegal move: {move} | FEN: {board.fen()}")
-            return -9999999999
-        
-        move_evaluation_board.push(move)
-        score = self.evaluate_position_from_perspective(move_evaluation_board, self.current_player)
-        
-        if self.show_thoughts and self.logger:
-            self.logger.debug("Exploring the move: %s | Evaluation: %.3f | FEN: %s", move, score, board.fen())
-        move_evaluation_board.pop()
-        return score
-
-# Example usage and Testing:
-def main():
-    # Example usage of the v7p3rEvaluationEngine
-    engine = v7p3rEvaluationEngine()
-    board = chess.Board()
-    starting_positions = engine.v7p3r_config.get('starting_positions', {})
-    player = chess.WHITE if board.turn else chess.BLACK
-    move = engine.search(board, player)
-    print(f"Best move for {('White' if player == chess.WHITE else 'Black')}: {move}")
-    for position in starting_positions:
-        print(f"Testing position: {position}")
-        board.reset()  # Reset the board to the starting position
-        board.set_fen(starting_positions[position])
-        player = chess.WHITE if board.turn else chess.BLACK
-        move = engine.search(board, player)
-        print(f"Best move for {('White' if player == chess.WHITE else 'Black')} in position '{position}': {move}")
-if __name__ == "__main__":
-    main()

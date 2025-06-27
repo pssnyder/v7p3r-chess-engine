@@ -2,7 +2,7 @@
 
 import chess
 
-from v7p3r_engine import v7p3r_eval
+from v7p3r_engine import v7p3r_engine
 
 class v7p3rPST:
     """

@@ -10,7 +10,7 @@ import chess.pgn
 import time
 import yaml
 from v7p3r_nn_engine.v7p3r_nn import v7p3rNeuralNetwork
-from v7p3r_engine.v7p3r_eval import v7p3rEval
+from v7p3r_engine.v7p3r_engine import v7p3rEngine
 from engine_utilities.stockfish_handler import StockfishHandler
 
 # Configure logging
@@ -154,7 +154,7 @@ def main():
             v7p3r_config = {}
         
         # Initialize v7p3r engine
-        opponent_engine = v7p3rEval(chess.Board(), chess.BLACK)
+        opponent_engine = v7p3rEngine(chess.Board(), chess.BLACK)
         opponent_name = "v7p3r"
     
     elif args.opponent == "stockfish":
