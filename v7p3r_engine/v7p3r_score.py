@@ -19,7 +19,7 @@ class v7p3rScore:
 
         # Scoring Config
         self.logger = logger if logger else logging.getLogger("v7p3r_engine_logger")
-        self.print_scoring = True
+        self.print_scoring = engine_config.get('verbose_output', False)
         self.ruleset_name = engine_config.get('engine_ruleset', 'default_evaluation')
         # Required Scoring Modules
         self.pst = pst

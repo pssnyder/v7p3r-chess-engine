@@ -81,13 +81,14 @@ class v7p3rEngine:
             "search_algorithm": "minimax",       # Move search type for White (see search_algorithms for options)
             "depth": 5,                          # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
             "max_depth": 8,                      # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
-            "monitoring_enabled": True,                 # Enable or disable monitoring features
+            "monitoring_enabled": True,          # Enable or disable monitoring features
+            "verbose_output": False,             # Enable or disable verbose output for debugging
             "logger": "v7p3r_engine_logger",     # Logger name for the engine, used for logging engine-specific events
-            "max_game_count": 1,                        # Number of games to play in AI vs AI mode
-            "starting_position": "default",             # Default starting position name (or FEN string)
-            "white_player": "v7p3r",                    # Name of the engine being used (e.g., 'v7p3r', 'stockfish'), this value is a direct reference to the engine configuration values in their respective config files
-            "black_player": "stockfish",                # sets this colors engine configuration name, same as above, important note that if the engines are set the same then only whites metrics will be collected to prevent negation in win loss metrics
-            "piece_values": self.piece_values           # Hard-coded base piece values
+            "max_game_count": 1,                 # Number of games to play in AI vs AI mode
+            "starting_position": "default",      # Default starting position name (or FEN string)
+            "white_player": "v7p3r",             # Name of the engine being used (e.g., 'v7p3r', 'stockfish'), this value is a direct reference to the engine configuration values in their respective config files
+            "black_player": "stockfish",         # sets this colors engine configuration name, same as above, important note that if the engines are set the same then only whites metrics will be collected to prevent negation in win loss metrics
+            "piece_values": self.piece_values    # Hard-coded base piece values
         }
 
         # Load engine config and default values
