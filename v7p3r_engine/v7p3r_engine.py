@@ -56,23 +56,19 @@ class v7p3rEngine:
             with open("config/v7p3r_config.yaml") as f:
                 self.v7p3r_config = yaml.safe_load(f) or {}
         except Exception as e:
-            v7p3r_engine_logger.error(f"Error loading v7p3r or game settings YAML files: {e}")
-            self.v7p3r_config = {}
-            self.chess_game_config = {}
+            v7p3r_engine_logger.error(f"Error loading v7p3r YAML file: {e}")
+            self.engine_config = {}
         
         self.board = board
         self.current_player = player
         self.time_manager = v7p3rTime()
         self.opening_book = v7p3rBook()
         self.pst = v7p3rPST()
-        self.scoring_calculator = v7p3rScore(self.v7p3r_config.get('v7p3r', {}), self.v7p3r_config)
-        self.search_engine = v7p3rSearch(self.v7p3r_config)
+        self.scoring_calculator = v7p3rScore(self.engine_config)
+        self.search_engine = v7p3rSearch(self.engine_config)
         self.time_control = {'infinite': True}  # Default to infinite time control
 
         self.nodes_searched = 0
-        self.killer_moves = [[None, None] for _ in range(50)] 
-        self.history_table = {}
-        self.counter_moves = {}
 
         # Default Piece Values
         self.piece_values = {
@@ -120,7 +116,7 @@ class v7p3rEngine:
         # Initialize a scoring setup for this engine config
         if self.logging_enabled and self.logger:
             self.logger.debug(f"Configuring v7p3r AI for {self.engine_color} via: {self.engine_config}")
-        self.scoring_calculator = v7p3rScore(self.engine_config, self.v7p3r_config)
+        self.scoring_calculator = v7p3rScore(self.v7p3r_config)
         if self.show_thoughts and self.logger:
             self.logger.debug(f"AI configured for {self.engine_color}: type={self.search_algorithm} depth={self.depth}, ruleset={self.ruleset}")
 
@@ -136,9 +132,6 @@ class v7p3rEngine:
             board = self.board
         self.current_player = chess.WHITE if board.turn else chess.BLACK
         self.nodes_searched = 0
-        self.killer_moves = [[None, None] for _ in range(50)]
-        self.history_table.clear()
-        self.counter_moves.clear()
         if self.show_thoughts and self.logger:
             self.logger.debug(f"v7p3rEngine for {self.engine_color} reset to initial state.")
 
@@ -150,23 +143,3 @@ class v7p3rEngine:
         if board.is_seventyfive_moves():
             return True
         return False
-
-    def _get_game_phase_factor(self, board: chess.Board) -> float:        
-        total_material = 0
-        for piece_type, value in self.piece_values.items():
-            if piece_type != chess.KING:
-                total_material += len(board.pieces(piece_type, chess.WHITE)) * value
-                total_material += len(board.pieces(piece_type, chess.BLACK)) * value
-
-        QUEEN_ROOK_MATERIAL = self.piece_values[chess.QUEEN] + self.piece_values[chess.ROOK]
-        TWO_ROOK_MATERIAL = self.piece_values[chess.ROOK] * 2
-        KNIGHT_BISHOP_MATERIAL = self.piece_values[chess.KNIGHT] + self.piece_values[chess.BISHOP]
-
-        if total_material >= (QUEEN_ROOK_MATERIAL * 2) + (KNIGHT_BISHOP_MATERIAL * 2):
-            return 0.0
-        if total_material < (TWO_ROOK_MATERIAL + KNIGHT_BISHOP_MATERIAL * 2) and total_material > (KNIGHT_BISHOP_MATERIAL * 2):
-            return 0.5
-        if total_material <= (KNIGHT_BISHOP_MATERIAL * 2):
-            return 1.0
-        
-        return 0.0
