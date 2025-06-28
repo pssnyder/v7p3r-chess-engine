@@ -303,25 +303,28 @@ class v7p3rScore:
         elif material < 25 and (not board.has_castling_rights(chess.WHITE) or not board.has_castling_rights(chess.BLACK)):
             # Middlegame Phase
             phase = "middlegame"
-            # Heuristic: if less than 24 pieces are on the board and one player has castled
+            # Heuristic: if less than 25 pieces are on the board and one player has castled
             endgame_factor = 0.5
             if material < 20 and not board.has_castling_rights(chess.WHITE) and not board.has_castling_rights(chess.BLACK):
-                # Heuristic: if less than 20 pieces are on the board and 
+                # Heuristic: if less than 20 pieces are on the board and both sides have still not castled, unstable position, collapse of opening preparation
                 endgame_factor = 0.75
         elif material <= 32 and (board.has_castling_rights(chess.WHITE) and board.has_castling_rights(chess.BLACK)):
             # Opening Phase
             phase = 'opening'
-            if material == 32:
-                # Heuristic: all material remains on the board, fully stable/closed position
-                endgame_factor = 0.0
-            elif material < 32:    
-                endgame_factor = 0.1
-            elif material <= 28 and (board.has_castling_rights(chess.WHITE) and board.has_castling_rights(chess.BLACK)):
-                # Progressing into opening position remains closed and stable
-                endgame_factor = 0.2
-            elif material <= 20 and (board.has_castling_rights(chess.WHITE) or board.has_castling_rights(chess.BLACK)):
-                # Traisitioning into 
+            if material < 24 and ((board.has_castling_rights(chess.WHITE) and not board.has_castling_rights(chess.BLACK)) or (not board.has_castling_rights(chess.WHITE) and board.has_castling_rights(chess.BLACK))):
+                # Heuristic: multiple pieces exchanged, one side has castled, position is destabilizing
                 endgame_factor = 0.5
+            elif material <= 28 and (board.has_castling_rights(chess.WHITE) and board.has_castling_rights(chess.BLACK)):
+                # Heuristic: piece exchanges but both sides remain un-castled
+                endgame_factor = 0.35
+            elif material < 32:
+                # Heuristic: at least one exchange, game just beginning
+                endgame_factor = 0.25
+            elif material == 32:
+                # Heuristic: all material remains on the board, fully stable/closed position
+                endgame_factor = 0.1
+            else:
+                endgame_factor = 0.0
             
         self.game_phase = phase
         self.game_factor = endgame_factor
