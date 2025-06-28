@@ -1,6 +1,30 @@
-# Example GA configuration for v7p3r ruleset tuning
-population_size: 20
-generations: 30
-mutation_rate: 0.2
-crossover_rate: 0.5
-positions_source: "training_data/csv_data_puzzles"
+# Enhanced GA configuration for v7p3r ruleset tuning with CUDA acceleration
+population_size: 15
+generations: 10
+mutation_rate: 0.1
+crossover_rate: 0.8
+elitism_rate: 0.05
+adaptive_mutation: true
+positions_source: "random"
+positions_count: 50
+max_stagnation: 8
+
+# CUDA and Performance Settings
+use_cuda: true
+cuda_batch_size: 64
+use_neural_evaluator: false  # Set to true if you have a trained NN model
+neural_model_path: null  # Path to trained neural network model
+
+# Position Evaluation Cache
+enable_cache: true
+max_cache_size: 10000
+
+stockfish_config: {
+  stockfish_path: "engine_utilities/external_engines/stockfish/stockfish-windows-x86-64-avx2.exe",
+  elo_rating: 100,
+  skill_level: 1,
+  debug_mode: False,
+  depth: 3,
+  max_depth: 4,
+  movetime: 200,  # Reduced for faster evaluation
+}

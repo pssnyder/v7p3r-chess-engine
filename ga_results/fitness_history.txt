@@ -1,0 +1,1 @@
+# Generation, Best_Fitness, Avg_Fitness, Std_Fitness
