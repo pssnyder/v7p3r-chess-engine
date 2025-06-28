@@ -288,19 +288,43 @@ class v7p3rScore:
         Uses material and castling rights as heuristics.
         Sets self.game_phase for use in other scoring functions.
         """
+        phase = 'opening'
+        endgame_factor = 0.0
         # Count total material (excluding kings)
         material = sum([
             len(board.pieces(piece_type, chess.WHITE)) + len(board.pieces(piece_type, chess.BLACK))
             for piece_type in [chess.PAWN, chess.KNIGHT, chess.BISHOP, chess.ROOK, chess.QUEEN]
         ])
         # Heuristic: opening if all queens/rooks/bishops/knights are present, endgame if queens are gone or little material
-        if material >= 28:
+        if material <= 10:
+            # Endgame Phase
+            phase = "endgame"
+            endgame_factor = 1.0
+        elif material < 25 and (not board.has_castling_rights(chess.WHITE) or not board.has_castling_rights(chess.BLACK)):
+            # Middlegame Phase
+            phase = "middlegame"
+            # Heuristic: if less than 24 pieces are on the board and one player has castled
+            endgame_factor = 0.5
+            if material < 20 and not board.has_castling_rights(chess.WHITE) and not board.has_castling_rights(chess.BLACK):
+                # Heuristic: if less than 20 pieces are on the board and 
+                endgame_factor = 0.75
+        elif material <= 32 and (board.has_castling_rights(chess.WHITE) and board.has_castling_rights(chess.BLACK)):
+            # Opening Phase
             phase = 'opening'
-        elif material <= 12 or (not board.pieces(chess.QUEEN, chess.WHITE) and not board.pieces(chess.QUEEN, chess.BLACK)):
-            phase = 'endgame'
-        else:
-            phase = 'middlegame'
+            if material == 32:
+                # Heuristic: all material remains on the board, fully stable/closed position
+                endgame_factor = 0.0
+            elif material < 32:    
+                endgame_factor = 0.1
+            elif material <= 28 and (board.has_castling_rights(chess.WHITE) and board.has_castling_rights(chess.BLACK)):
+                # Progressing into opening position remains closed and stable
+                endgame_factor = 0.2
+            elif material <= 20 and (board.has_castling_rights(chess.WHITE) or board.has_castling_rights(chess.BLACK)):
+                # Traisitioning into 
+                endgame_factor = 0.5
+            
         self.game_phase = phase
+        self.game_factor = endgame_factor
         return phase
 
     # ==========================================

@@ -89,8 +89,10 @@ class ChessGame:
         # Enable logging
         self.logger = chess_game_logger
         
-        # Initialize Engine and Scoring
-        self.engine = v7p3rEngine()
+        # Initialize Engines
+        self.engine_config = config.get("engine_config", {})
+        self.engine = v7p3rEngine(self.engine_config)
+        self.stockfish_config = config.get("stockfish_config", {})
         self.stockfish = StockfishHandler(self.stockfish_config)
         
         # Initialize new engines based on availability and configuration
@@ -103,7 +105,14 @@ class ChessGame:
         self.game_count = self.engine.engine_config.get("game_count", 1)
         self.white_player = self.engine.engine_config.get("white_player", "v7p3r")
         self.black_player = self.engine.engine_config.get("black_player", "stockfish")
-        self.stockfish_config = config.get("stockfish_config", {})
+
+        # Set game_config object
+        self.game_config = {
+            "game_count": self.game_count,
+            "white_player": self.white_player,
+            "black_player": self.black_player,
+            "starting_position": config.get("starting_position", "default"),
+        }
 
         # Initialize RL engine if available
         if RL_ENGINE_AVAILABLE:
@@ -726,13 +735,13 @@ if __name__ == "__main__":
             "version": "1.0.0",                  # Version of the engine, used for identification and logging
             "color": "white",                    # Color of the engine, either 'white' or 'black'
             "ruleset": "default_evaluation",     # Name of the evaluation rule set to use, see below for available options
-            "search_algorithm": "lookahead",       # Move search type for White (see search_algorithms for options)
-            "depth": 5,                          # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
-            "max_depth": 8,                      # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
+            "search_algorithm": "negamax",       # Move search type for White (see search_algorithms for options)
+            "depth": 6,                          # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
+            "max_depth": 10,                     # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
             "monitoring_enabled": True,          # Enable or disable monitoring features
-            "verbose_output": True,             # Enable or disable verbose output for debugging
+            "verbose_output": False,             # Enable or disable verbose output for debugging
             "logger": "v7p3r_engine_logger",     # Logger name for the engine, used for logging engine-specific events
-            "game_count": 1,                 # Number of games to play
+            "game_count": 1,                     # Number of games to play
             "starting_position": "default",      # Default starting position name (or FEN string)
             "white_player": "v7p3r",             # Name of the engine being used (e.g., 'v7p3r', 'stockfish'), this value is a direct reference to the engine configuration values in their respective config files
             "black_player": "stockfish",         # sets this colors engine configuration name, same as above, important note that if the engines are set the same then only whites metrics will be collected to prevent negation in win loss metrics

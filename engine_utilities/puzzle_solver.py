@@ -1,138 +1,302 @@
 # engine_utilities/puzzle_solver.py
 """
-Puzzle Solver Implementation Details - For Copilot...
-Overview
-Develop a robust performance benchmarking suite within a new engine_benchmark.py located in the engine_utilities directory. This suite will evaluate the v7p3r chess engine's performance across various configurations by running the adaptive ELO finder (to determine the engines game playing ELO vs stockfish) then adds a new ability and method for solving puzzles from the project's puzzle library. The end result of this puzzle solving will be estimating the engine's current puzzle solving ELO rating vs its Stockfish equivalency ELO rating, and an additional goal of supporting detailed ELO data tracking for future analysis.
-
-Learning Capability
-Additionally during any puzzle solving the engine should add puzzle solutions along with poor moves to its persistent transposition libraries that it can use during games, this is equivalent to a human studying and remembering positions they encountered during puzzle solving and how to solve them, if the engine is correct when solving a puzzle it can remember the move, weighted with a positive evaluation score to make it more likely to be chosen during a game scenario. However, if the engine is wrong during puzzle solving, the puzzle solver should not provide the correct answer, instead the engine will need to store these non-best moves in a persistent "anti_transposition_move" table that informs the engine what moves are not the best move, and thusly anti-transpositions should be weighted with a negative evaluation score to make them less likely to be chosen.
-
-Transposition Table Coupling and Cohesion
-The use of these transposition tables is linked to the in-game-memory transposition table, however that table being built per game is only a temp table for quicker access, and should be leveraged first over the permanently stored move and anti-move transposition tables, especially in timed games. The temp in-game transposition table, if enabled, will only be available during game, if enabled, moves will be added to it, along with the permanent transposition table (the permanent table only getting periodic updates to save on processing and increase performance, such as only updating once a certain number of additional moves, (maybe 25-50?) have been added to the in-game transposition table). The usage of the permanent transposition_move and anti_transposition_move tables should be configurable options in the engines config, next to the existing transposition table enablement option (the existing setting being whether or not to enable the addition of new transposition moves to the engines move library in temp and permanent transposition tables, the other transposition_move config setting being whether or not to enable usage of the permanent transposition_move library, and the final anti_transposition_move config setting being whether or not to enable the anti_transposition_move library during move selection). The transposition_move library, if enabled, and the anti_transposition_move library, if enabled, will be used during games, during puzzle solving, and during any other activity challenging the engine in order to positively multiply the evaluation score and increase the likelihood the engine plays a best move if we already know it, or inversely to provide an additional negative score value to the current evaluation score of a move if we already know it's not the best move (it may not be bad but its not the best so we can keep searching for a better one), these transposition_move and anti_transposition_move enablement settings will not enable or disable any modifications to those tables, that can only happen if the temporary use_transposition_table setting is enabled which will enable the modifier functions which can go in and update the permanent table based on temporary information about moves and their evaluations that we discover during games, puzzle solving, etc. finally the temp in-game transposition table, if enabled, is only used as a manager for the permanent transposition_move and anti-transposition_move tables, and a first access move library during timed game events, otherwise move knowledge should come from the permanent transposition_move and anti_transposition_move libraries, if enabled. If all three settings are disabled, then no transposition moves should be stored or updated and no transposition_move or anti_transposition_move entries should be used for move selection.
-
-Requirements
-Benchmark Suite Location:
-
-New module: engine_utilities/engine_benchmark.py.
-this file will call the adaptive_elo_finder and the puzzle_solver, which can also both be run independently (low coupling high cohesion)
-Puzzle-Based ELO Evaluation:
-
-puzzle solver location: engine_utilities/puzzle_solver.py
-puzzle directory: puzzles
-puzzle input file: lichess_db_puzzle.csv
-puzzle ingestion format: PuzzleId,FEN,Moves,Rating,RatingDeviation,Popularity,NbPlays,Themes,GameUrl,OpeningTags
-Puzzle ingestion should be performed on the csv file and the puzzles along with their solutions and all other data should be converted from the csv format in the file and ingested into a new puzzle database on our centralized storage. more puzzles can then be added to the centralized puzzle library as they become available. We will be able to dynamically add puzzles in any format by simply building a new converter and ingestion tool addon.
-Dynamically select puzzles from the project’s puzzle library based on configurable ELO ranges (e.g., 900–1200, or custom ranges).
-The puzzle_solver.py must serve puzzles of increasing difficulty and allow the engine three attempts per puzzle.
-Upon a correct guess, the next puzzle should be of higher ELO, with increments becoming logarithmic at higher ratings to avoid skipping potentially solvable puzzles in lieu of puzzles the engine cannot solve. This elo climbing should be calculated similar to the adaptive elo finder to ensure the best fit and puzzle elo calculation
-Configuration and Comparison:
-
-Support running puzzle solving for multiple engine configurations in a single session for comparative analysis.
-Associate each test result with its corresponding engine configuration, similar to how simulation results are linked to their configs.
-Possibly just piggy back on existing simulation manager code to add in a new simulation type detault which redirects play over to the puzzle solver to start solving puzzles as configured.
-Any puzzle related configurations will be found in config/puzzle_config.yaml
-If use_transposition_table is disabled in settings then no moves should be added to the temporary in game transposition table and thus no permanent memory should be stored of new transposition_move entries nor anti_transposition_move entires (this is a useful option for testing when we do not want moves stored as results could report incorrectly and corrupt the engines clean move library)
-Data Handling:
-
-Record each puzzle attempt and result, then store the data locally as puzzle data results.
-The local database manager processes these results as part of its data cleanup and reporting ETLs, in addition to simulation data for games that should already be processed.
-If enabled, Transposition moves stored in temporary transposition tables should be added to permanent storage transposition_move and anti-transposition_move libraries/tables (ensuring no duplicates).
-Output and Reporting:
-
-For each puzzle run, output the best-performing configuration to a tested_configurations directory.
-Output file should include the configuration file name, test run date/timestamp, ELO reached and type of test (e.g., v7p3r_20250617_2035_960_puzzle.yaml).
-Ensure the output configuration is immediately usable as the core configuration for releases.
-Ensure updates are being recorded to centralized transposition_move and anti_transposition_move libraries/tables.
-Acceptance Criteria
- engine_utilities/engine_benchmark.py exists and implements the described functionality.
- Puzzle data import can be run on lichess_db_puzzle.csv
- Engine supports dynamic ELO-based puzzle selection with logarithmic rating increments.
- Puzzle Elo finding can be run with one or multiple configurations, and results are linked appropriately.
- Data is stored locally and processed by the local database manager for reporting.
- Best configuration outputs are generated in the correct format and location.
- In-game Transposition Table, permanent transpositon_move library and anti_transposition_move libraries are all operating as expected to improve move selection and provide more human like learning capabilities.
-Rationale
-This enhancement will provide a standardized and automated way to evaluate engine improvements, benchmark configurations, and streamline the release process by surfacing the best-performing setups for immediate use or further development. It also contributes to the engines overall performance by improving its move library available for quicker access during play.
-
+Puzzle Solver
 """
-
-import os
+import chess
 import yaml
-import random
-from datetime import datetime
-from engine_utilities.puzzle_db_manager import PuzzleDBManager
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import logging
+from v7p3r_engine.v7p3r_score import v7p3rScore
+from v7p3r_engine.v7p3r_pst import v7p3rPST
 
-class PuzzleSolver:
-    def __init__(self, config_path="config/puzzle_config.yaml", db_path="puzzles/puzzle_data.db"):
-        self.config = self._load_config(config_path)
-        self.db = PuzzleDBManager(db_path)
-        self.max_attempts = self.config.get('max_attempts_per_puzzle', 3)
-        self.elo_step = self.config.get('elo_step', 50)
-        self.min_elo = self.config.get('min_elo', 800)
-        self.max_elo = self.config.get('max_elo', 3200)
-        self.engine_config = self.config.get('engine_config', {})
+class v7p3rSolver:
+    def __init__(self, engine_config, logger: logging.Logger):
+        self.engine_config = engine_config
+        self.logger = logger
+        self.pst = v7p3rPST()
+        self.print_scoring = engine_config.get('print_scoring', False)
+        self.ruleset_name = engine_config.get('engine_ruleset', 'default_evaluation')
+        # Required Scoring Modules
+        self.pst = v7p3rPST()
+        self.scoring_calculator = v7p3rScore(engine_config=engine_config, pst=self.pst, logger=self.logger)
+        
 
-    def _load_config(self, config_path):
-        if os.path.exists(config_path):
-            with open(config_path, 'r') as f:
-                return yaml.safe_load(f) or {}
-        return {}
+        # Ruleset Loading
+        self.rulesets = {}
+        self.rules = {}
+        try:
+            with open("v7p3r_engine/rulesets.yaml") as f:
+                self.rulesets = yaml.safe_load(f) or {}
+                self.rules = self.rulesets.get(f"{self.ruleset_name}", {})
+        except Exception as e:
+            self.logger.error(f"Error loading rulesets file: {e}")
 
-    def solve_puzzles(self, start_elo=None, end_elo=None, limit=50):
-        elo = start_elo or self.min_elo
-        end_elo = end_elo or self.max_elo
-        results = []
-        while elo <= end_elo:
-            puzzles = self.db.get_puzzles_by_elo(elo, elo + self.elo_step, limit=limit)
-            if not puzzles:
-                break
-            puzzle = random.choice(puzzles)
-            puzzle_id, fen, moves = puzzle[1], puzzle[2], puzzle[3].split()
-            attempts = 0
-            solved = False
-            while attempts < self.max_attempts and not solved:
-                # Here you would call the engine to solve the puzzle (stubbed)
-                engine_moves = self._engine_solve(fen)
-                correct = engine_moves[:len(moves)] == moves
-                self.db.record_attempt(
-                    puzzle_id=puzzle_id,
-                    engine_config=self.engine_config,
-                    attempt_moves=engine_moves,
-                    correct=correct,
-                    attempts_count=attempts+1,
-                    result_elo=elo
-                )
-                if correct:
-                    self.db.add_transposition(fen, moves[0], 1.0, source='puzzle')
-                    solved = True
-                else:
-                    if engine_moves:
-                        self.db.add_anti_transposition(fen, engine_moves[0], -1.0, source='puzzle')
-                attempts += 1
-            results.append({
-                'puzzle_id': puzzle_id,
-                'elo': elo,
-                'solved': solved,
-                'attempts': attempts
-            })
-            # Adaptive/logarithmic ELO climbing
-            if solved:
-                elo = int(elo + self.elo_step * (1.2 if elo > 2000 else 1.5))
-            else:
-                elo = int(elo + self.elo_step // 2)
-        return results
+        if self.logger:
+            self.logger.debug(f"v7p3rScoringCalculation initialized with ruleset: {self.ruleset_name}")
+            self.logger.debug(f"Current ruleset parameters: {self.rules}")
+    
+    def solve_puzzle(self, fen: str):
+        """Solve a chess puzzle by finding the best move."""
+        board = chess.Board(fen)
+        if not board.is_valid():
+            raise ValueError("Invalid chess board state")
+        
+        best_move = None
+        best_score = float('-inf')
+        
+        for move in board.legal_moves:
+            board.push(move)
+            score = self._evaluate_position(board)
+            board.pop()  # Undo the move
+            
+            if score > best_score:
+                best_score = score
+                best_move = move
+        
+        return best_move, best_score
+    
+    def _calculate_score(self, board: chess.Board, color: chess.Color, endgame_factor: float = 0.0) -> float:
+        """
+        Local override for scoring calculation function and engine thought deep dive.
+        """
+        score = 0.0
+        
+        # Helper for consistent color display in logs
+        color_name = "White" if color == chess.WHITE else "Black"
+        
+        # Critical scoring components
+        checkmate_threats_score = 1.0 * (self.scoring_calculator._checkmate_threats(board, color) or 0.0)
+        if self.logger:
+            self.logger.debug(f"Checkmate threats score for {color_name}: {checkmate_threats_score:.3f} (Ruleset: {self.ruleset_name})")
+        if self.print_scoring:
+            print(f"Checkmate threats score for {color_name}: {checkmate_threats_score:.3f} (Ruleset: {self.ruleset_name})")
+        score += checkmate_threats_score
 
-    def _engine_solve(self, fen):
-        # TODO: Integrate with your chess engine here
-        # Example: moves = my_engine.solve_puzzle(fen)
-        # For now, return a stub (random or fixed move)
-        return ["e2e4"]
+        king_safety_score = 1.0 * (self.scoring_calculator._king_safety(board, color) or 0.0)
+        if self.logger:
+            self.logger.debug(f"King safety score for {color_name}: {king_safety_score:.3f} (Ruleset: {self.ruleset_name})")
+        if self.print_scoring:
+            print(f"King safety score for {color_name}: {king_safety_score:.3f} (Ruleset: {self.ruleset_name})")
+        score += king_safety_score
+        
+        king_threat_score = 1.0 * (self.scoring_calculator._king_threat(board, color) or 0.0)
+        if self.logger:
+            self.logger.debug(f"King threat score for {color_name}: {king_threat_score:.3f} (Ruleset: {self.ruleset_name})")
+        if self.print_scoring:
+            print(f"King threat score for {color_name}: {king_threat_score:.3f} (Ruleset: {self.ruleset_name})")
+        score += king_threat_score
+        
+        king_endangerment_score = 1.0 * (self.scoring_calculator._king_endangerment(board, color) or 0.0)
+        if self.logger:
+            self.logger.debug(f"King endangerment score for {color_name}: {king_endangerment_score:.3f} (Ruleset: {self.ruleset_name})")
+        if self.print_scoring:
+            print(f"King endangerment score for {color_name}: {king_endangerment_score:.3f} (Ruleset: {self.ruleset_name})")
+        score += king_endangerment_score
 
-    def close(self):
-        self.db.close()
+        draw_scenarios_score = 1.0 * (self.scoring_calculator._draw_scenarios(board) or 0.0)
+        if self.logger:
+            self.logger.debug(f"Draw scenarios score for {color_name}: {draw_scenarios_score:.3f} (Ruleset: {self.ruleset_name})")
+        if self.print_scoring:
+            print(f"Draw scenarios score for {color_name}: {draw_scenarios_score:.3f} (Ruleset: {self.ruleset_name})")
+        score += draw_scenarios_score
+        
+        # Material and piece-square table evaluation
+        score += 1.0 * self.scoring_calculator._material_score(board, color)
+        pst_board_score = self.pst.evaluate_board_position(board, endgame_factor)
+        if color == chess.BLACK:
+            pst_board_score = -pst_board_score
+        if self.logger:
+            self.logger.debug(f"Piece-square table score for {color_name}: {pst_board_score:.3f} (Ruleset: {self.ruleset_name})")
+        if self.print_scoring:
+            print(f"Piece-square table score for {color_name}: {pst_board_score:.3f} (Ruleset: {self.ruleset_name})")
+        score += 1.0 * pst_board_score
 
+        # Piece coordination and control
+        piece_coordination_score = 1.0 * (self.scoring_calculator._piece_coordination(board, color) or 0.0)
+        if self.logger:
+            self.logger.debug(f"Piece coordination score for {color_name}: {piece_coordination_score:.3f} (Ruleset: {self.ruleset_name})")
+        if self.print_scoring:
+            print(f"Piece coordination score for {color_name}: {piece_coordination_score:.3f} (Ruleset: {self.ruleset_name})")
+        score += piece_coordination_score
+        
+        center_control_score = 1.0 * (self.scoring_calculator._center_control(board, color) or 0.0)
+        if self.logger:
+            self.logger.debug(f"Center control score for {color_name}: {center_control_score:.3f} (Ruleset: {self.ruleset_name})")
+        if self.print_scoring:
+            print(f"Center control score for {color_name}: {center_control_score:.3f} (Ruleset: {self.ruleset_name})")
+        score += center_control_score
+        
+        pawn_structure_score = 1.0 * (self.scoring_calculator._pawn_structure(board, color) or 0.0)
+        if self.logger:
+            self.logger.debug(f"Pawn structure score for {color_name}: {pawn_structure_score:.3f} (Ruleset: {self.ruleset_name})")
+        if self.print_scoring:
+            print(f"Pawn structure score for {color_name}: {pawn_structure_score:.3f} (Ruleset: {self.ruleset_name})")
+        score += pawn_structure_score
+        
+        pawn_weaknesses_score = 1.0 * (self.scoring_calculator._pawn_weaknesses(board, color) or 0.0)
+        if self.logger:
+            self.logger.debug(f"Pawn weaknesses score for {color_name}: {pawn_weaknesses_score:.3f} (Ruleset: {self.ruleset_name})")
+        if self.print_scoring:
+            print(f"Pawn weaknesses score for {color_name}: {pawn_weaknesses_score:.3f} (Ruleset: {self.ruleset_name})")
+        score += pawn_weaknesses_score
+        
+        passed_pawns_score = 1.0 * (self.scoring_calculator._passed_pawns(board, color) or 0.0)
+        if self.logger:
+            self.logger.debug(f"Passed pawns score for {color_name}: {passed_pawns_score:.3f} (Ruleset: {self.ruleset_name})")
+        if self.print_scoring:
+            print(f"Passed pawns score for {color_name}: {passed_pawns_score:.3f} (Ruleset: {self.ruleset_name})")
+        score += passed_pawns_score
+        
+        pawn_majority_score = 1.0 * (self.scoring_calculator._pawn_majority(board, color) or 0.0)
+        if self.logger:
+            self.logger.debug(f"Pawn majority score for {color_name}: {pawn_majority_score:.3f} (Ruleset: {self.ruleset_name})")
+        if self.print_scoring:
+            print(f"Pawn majority score for {color_name}: {pawn_majority_score:.3f} (Ruleset: {self.ruleset_name})")
+        score += pawn_majority_score
+        
+        bishop_pair_score = 1.0 * (self.scoring_calculator._bishop_pair(board, color) or 0.0)
+        if self.logger:
+            self.logger.debug(f"Bishop pair score for {color_name}: {bishop_pair_score:.3f} (Ruleset: {self.ruleset_name})")
+        if self.print_scoring:
+            print(f"Bishop pair score for {color_name}: {bishop_pair_score:.3f} (Ruleset: {self.ruleset_name})")
+        score += bishop_pair_score
+        
+        knight_pair_score = 1.0 * (self.scoring_calculator._knight_pair(board, color) or 0.0)
+        if self.logger:
+            self.logger.debug(f"Knight pair score for {color_name}: {knight_pair_score:.3f} (Ruleset: {self.ruleset_name})")
+        if self.print_scoring:
+            print(f"Knight pair score for {color_name}: {knight_pair_score:.3f} (Ruleset: {self.ruleset_name})")
+        score += knight_pair_score
+        
+        bishop_vision_score = 1.0 * (self.scoring_calculator._bishop_vision(board, color) or 0.0)
+        if self.logger:
+            self.logger.debug(f"Bishop vision score for {color_name}: {bishop_vision_score:.3f} (Ruleset: {self.ruleset_name})")
+        if self.print_scoring:
+            print(f"Bishop vision score for {color_name}: {bishop_vision_score:.3f} (Ruleset: {self.ruleset_name})")
+        score += bishop_vision_score
+        
+        rook_coordination_score = 1.0 * (self.scoring_calculator._rook_coordination(board, color) or 0.0)
+        if self.logger:
+            self.logger.debug(f"Rook coordination score for {color_name}: {rook_coordination_score:.3f} (Ruleset: {self.ruleset_name})")
+        if self.print_scoring:
+            print(f"Rook coordination score for {color_name}: {rook_coordination_score:.3f} (Ruleset: {self.ruleset_name})")
+        score += rook_coordination_score
+        
+        castling_evaluation_score = 1.0 * (self.scoring_calculator._castling_evaluation(board, color) or 0.0)
+        if self.logger:
+            self.logger.debug(f"Castling evaluation score for {color_name}: {castling_evaluation_score:.3f} (Ruleset: {self.ruleset_name})")
+        if self.print_scoring:
+            print(f"Castling evaluation score for {color_name}: {castling_evaluation_score:.3f} (Ruleset: {self.ruleset_name})")
+        score += castling_evaluation_score
+        
+        # Piece development and mobility
+        piece_activity_score = 1.0 * (self.scoring_calculator._piece_activity(board, color) or 0.0)
+        if self.logger:
+            self.logger.debug(f"Piece activity score for {color_name}: {piece_activity_score:.3f} (Ruleset: {self.ruleset_name})")
+        if self.print_scoring:
+            print(f"Piece activity score for {color_name}: {piece_activity_score:.3f} (Ruleset: {self.ruleset_name})")
+        score += piece_activity_score
+        
+        improved_minor_piece_activity_score = 1.0 * (self.scoring_calculator._improved_minor_piece_activity(board, color) or 0.0)
+        if self.logger:
+            self.logger.debug(f"Improved minor piece activity score for {color_name}: {improved_minor_piece_activity_score:.3f} (Ruleset: {self.ruleset_name})")
+        if self.print_scoring:
+            print(f"Improved minor piece activity score for {color_name}: {improved_minor_piece_activity_score:.3f} (Ruleset: {self.ruleset_name})")
+        score += improved_minor_piece_activity_score
+        
+        mobility_score = 1.0 * (self.scoring_calculator._mobility_score(board, color) or 0.0)
+        if self.logger:
+            self.logger.debug(f"Mobility score for {color_name}: {mobility_score:.3f} (Ruleset: {self.ruleset_name})")
+        if self.print_scoring:
+            print(f"Mobility score for {color_name}: {mobility_score:.3f} (Ruleset: {self.ruleset_name})")
+        score += mobility_score
+        
+        undeveloped_pieces_score = 1.0 * (self.scoring_calculator._undeveloped_pieces(board, color) or 0.0)
+        if self.logger:
+            self.logger.debug(f"Undeveloped pieces score for {color_name}: {undeveloped_pieces_score:.3f} (Ruleset: {self.ruleset_name})")
+        if self.print_scoring:
+            print(f"Undeveloped pieces score for {color_name}: {undeveloped_pieces_score:.3f} (Ruleset: {self.ruleset_name})")
+        score += undeveloped_pieces_score
+        
+        # Tactical and strategic considerations
+        tactical_evaluation_score = 1.0 * (self.scoring_calculator._tactical_evaluation(board, color) or 0.0)
+        if self.logger:
+            self.logger.debug(f"Tactical evaluation score for {color_name}: {self.scoring_calculator._tactical_evaluation(board, color):.3f} (Ruleset: {self.ruleset_name})")
+        if self.print_scoring:
+            print(f"Tactical evaluation score for {color_name}: {tactical_evaluation_score:.3f} (Ruleset: {self.ruleset_name})")
+        score += tactical_evaluation_score
+        
+        queen_capture_score = 1.0 * (self.scoring_calculator._queen_capture(board, color) or 0.0)
+        if self.logger:
+            self.logger.debug(f"Queen capture score for {color_name}: {queen_capture_score:.3f} (Ruleset: {self.ruleset_name})")
+        if self.print_scoring:
+            print(f"Queen capture score for {color_name}: {queen_capture_score:.3f} (Ruleset: {self.ruleset_name})")
+        score += queen_capture_score
+
+        tempo_bonus_score = 1.0 * (self.scoring_calculator._tempo_bonus(board, color) or 0.0)
+        if self.logger:
+            self.logger.debug(f"Tempo bonus score for {color_name}: {self.scoring_calculator._tempo_bonus(board, color):.3f} (Ruleset: {self.ruleset_name})")
+        if self.print_scoring:
+            print(f"Tempo bonus score for {color_name}: {tempo_bonus_score:.3f} (Ruleset: {self.ruleset_name})")
+        score += tempo_bonus_score
+        
+        special_moves_score = 1.0 * (self.scoring_calculator._special_moves(board, color) or 0.0) # Pass color
+        if self.logger:
+            self.logger.debug(f"Special moves score for {color_name}: {special_moves_score:.3f} (Ruleset: {self.ruleset_name})")
+        if self.print_scoring:
+            print(f"Special moves score for {color_name}: {special_moves_score:.3f} (Ruleset: {self.ruleset_name})")
+        score += special_moves_score
+        
+        open_files_score = 1.0 * (self.scoring_calculator._open_files(board, color) or 0.0)
+        if self.logger:
+            self.logger.debug(f"Open files score for {color_name}: {open_files_score:.3f} (Ruleset: {self.ruleset_name})")
+        if self.print_scoring:
+            print(f"Open files score for {color_name}: {open_files_score:.3f} (Ruleset: {self.ruleset_name})")
+        score += open_files_score
+        
+        stalemate_score = 1.0 * (self.scoring_calculator._stalemate(board) or 0.0)
+        if self.logger:
+            self.logger.debug(f"Stalemate score for {color_name}: {stalemate_score:.3f} (Ruleset: {self.ruleset_name})")
+        if self.print_scoring:
+            print(f"Stalemate score for {color_name}: {stalemate_score:.3f} (Ruleset: {self.ruleset_name})")
+        score += stalemate_score
+
+        if self.logger:
+            self.logger.debug(f"Final score for {color_name}: {score:.3f} (Ruleset: {self.ruleset_name}, Modifier: {1.0}) | FEN: {board.fen()}")
+
+        return score
+
+    def _evaluate_position(self, board: chess.Board) -> float:
+        """
+        Evaluate the position of the board using the scoring calculator.
+        This is a local override to ensure we use the correct ruleset and scoring logic.
+        """
+        color = board.turn
+        endgame_phase = self.scoring_calculator.calculate_game_phase(board)
+        if endgame_phase == "opening":
+        score = self._calculate_score(board, color, endgame_factor)
+        
+        if self.logger:
+            self.logger.debug(f"Evaluated position score: {score:.3f} (FEN: {board.fen()})")
+        
+        return score
+    
 if __name__ == "__main__":
-    solver = PuzzleSolver()
-    results = solver.solve_puzzles()
-    print("Puzzle solving results:", results)
-    solver.close()
+    # Example usage
+    engine_config = {
+        "print_scoring": True,
+        "engine_ruleset": "default_evaluation"
+    }
+    
+    logger = logging.getLogger("puzzle_solver_logger")
+    logger.setLevel(logging.DEBUG)
+    
+    solver = v7p3rSolver(engine_config, logger)
+    
+    # Test with a sample FEN
+    fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+    best_move, best_score = solver.solve_puzzle(fen)
+    
+    print(f"Best move: {best_move}, Score: {best_score}")

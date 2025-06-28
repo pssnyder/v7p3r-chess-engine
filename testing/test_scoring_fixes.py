@@ -53,7 +53,10 @@ def test_fixed_scoring_functions():
                 '_tactical_evaluation', 
                 '_rook_coordination',
                 '_queen_capture',
-                '_king_endangerment'
+                '_king_endangerment',
+                '_checkmate_threats',
+                '_king_safety',
+                '_king_threat'
             ]
             
             for func_name in functions_to_test:
