@@ -80,7 +80,7 @@ class v7p3rEngine:
                 "monitoring_enabled": True,          # Enable or disable monitoring features
                 "verbose_output": False,             # Enable or disable verbose output for debugging
                 "logger": "v7p3r_engine_logger",     # Logger name for the engine, used for logging engine-specific events
-                "max_game_count": 1,                 # Number of games to play in AI vs AI mode
+                "game_count": 1,                 # Number of games to play in AI vs AI mode
                 "starting_position": "default",      # Default starting position name (or FEN string)
                 "white_player": "v7p3r",             # Name of the engine being used (e.g., 'v7p3r', 'stockfish'), this value is a direct reference to the engine configuration values in their respective config files
                 "black_player": "stockfish",         # sets this colors engine configuration name, same as above, important note that if the engines are set the same then only whites metrics will be collected to prevent negation in win loss metrics
@@ -96,7 +96,7 @@ class v7p3rEngine:
         self.depth = self.engine_config.get("depth", 5)
         self.max_depth = self.engine_config.get("max_depth", 8)
         self.monitoring_enabled = self.engine_config.get("monitoring_enabled", True)
-        self.max_game_count = self.engine_config.get("max_game_count", 1)
+        self.game_count = self.engine_config.get("game_count", 1)
         self.starting_position = self.engine_config.get("starting_position", "default")
         self.white_player = self.engine_config.get("white_player", "v7p3r")
         self.black_player = self.engine_config.get("black_player", "stockfish")

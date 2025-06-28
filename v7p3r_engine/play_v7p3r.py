@@ -17,31 +17,15 @@ import hashlib
 
 # Define the maximum frames per second for the game loop
 MAX_FPS = 60
+# Import necessary modules from v7p3r_engine
 from v7p3r_engine.v7p3r import v7p3rEngine # Corrected import for v7p3rEngine
 from metrics.metrics_store import MetricsStore # Import MetricsStore
 from v7p3r_engine.stockfish_handler import StockfishHandler
 
-# Import new engines
-try:
-    from v7p3r_rl_engine.v7p3r_rl import v7p3rRLEngine
-    RL_ENGINE_AVAILABLE = True
-except ImportError:
-    RL_ENGINE_AVAILABLE = False
-    print("Warning: v7p3r_rl_engine not available")
-
-try:
-    from v7p3r_ga_engine.v7p3r_ga import V7P3RGeneticAlgorithm
-    GA_ENGINE_AVAILABLE = True
-except ImportError:
-    GA_ENGINE_AVAILABLE = False
-    print("Warning: v7p3r_ga_engine not available")
-
-try:
-    from v7p3r_nn_engine.v7p3r_nn import v7p3rNeuralNetwork
-    NN_ENGINE_AVAILABLE = True
-except ImportError:
-    NN_ENGINE_AVAILABLE = False
-    print("Warning: v7p3r_nn_engine not available")
+# Set engine availability values
+RL_ENGINE_AVAILABLE = False
+GA_ENGINE_AVAILABLE = False
+NN_ENGINE_AVAILABLE = False
 
 # At module level, define a single logger for this file
 def get_timestamp():
@@ -89,15 +73,10 @@ class ChessGame:
         # Enable logging
         self.logger = chess_game_logger
         
-        # Game Settings
-        self.game_config = config
-        self.game_count = config.get("game_count", 1)
-        self.white_player = config.get("white_player", "v7p3r")
-        self.black_player = config.get("black_player", "stockfish")
+        # Initialize Engines
+        self.engine_config = config.get("engine_config", {})
+        self.engine = v7p3rEngine(self.engine_config)
         self.stockfish_config = config.get("stockfish_config", {})
-
-        # Initialize Engine and Scoring
-        self.engine = v7p3rEngine()
         self.stockfish = StockfishHandler(self.stockfish_config)
         
         # Initialize new engines based on availability and configuration
@@ -106,8 +85,49 @@ class ChessGame:
             'stockfish': self.stockfish
         }
         
+        # Game Settings
+        self.game_count = self.engine.engine_config.get("game_count", 1)
+        self.white_player = self.engine.engine_config.get("white_player", "v7p3r")
+        self.black_player = self.engine.engine_config.get("black_player", "stockfish")
+
+        # Set game_config object
+        self.game_config = {
+            "game_count": self.game_count,
+            "white_player": self.white_player,
+            "black_player": self.black_player,
+            "starting_position": config.get("starting_position", "default"),
+        }
+
+        # Access global engine availability variables
+        global RL_ENGINE_AVAILABLE, GA_ENGINE_AVAILABLE, NN_ENGINE_AVAILABLE
+
+        if 'v7p3r_rl' in self.engines:
+            # Import new engines
+            try:
+                from v7p3r_rl_engine.v7p3r_rl import v7p3rRLEngine
+                RL_ENGINE_AVAILABLE = True
+            except ImportError:
+                RL_ENGINE_AVAILABLE = False
+                print("Warning: v7p3r_rl_engine not available")
+        
+        if 'v7p3r_ga' in self.engines:
+            try:
+                from v7p3r_ga_engine.v7p3r_ga import V7P3RGeneticAlgorithm
+                GA_ENGINE_AVAILABLE = True
+            except ImportError:
+                GA_ENGINE_AVAILABLE = False
+                print("Warning: v7p3r_ga_engine not available")
+
+        if 'v7p3r_nn' in self.engines:
+            try:
+                from v7p3r_nn_engine.v7p3r_nn import v7p3rNeuralNetwork
+                NN_ENGINE_AVAILABLE = True
+            except ImportError:
+                NN_ENGINE_AVAILABLE = False
+                print("Warning: v7p3r_nn_engine not available")
+
         # Initialize RL engine if available
-        if RL_ENGINE_AVAILABLE:
+        if RL_ENGINE_AVAILABLE and 'v7p3r_rl' in self.engines:
             try:
                 rl_config_path = config.get('rl_config_path', 'config/v7p3r_rl_config.yaml')
                 self.rl_engine = v7p3rRLEngine(rl_config_path)
@@ -117,7 +137,7 @@ class ChessGame:
                 print(f"Warning: Failed to initialize RL engine: {e}")
         
         # Initialize GA engine if available
-        if GA_ENGINE_AVAILABLE:
+        if GA_ENGINE_AVAILABLE and 'v7p3r_ga' in self.engines:
             try:
                 ga_config_path = config.get('ga_config_path', 'config/v7p3r_ga_config.yaml')
                 # The GA engine is primarily for training, not gameplay
@@ -130,7 +150,7 @@ class ChessGame:
                 print(f"Warning: Failed to initialize GA engine: {e}")
         
         # Initialize NN engine if available
-        if NN_ENGINE_AVAILABLE:
+        if NN_ENGINE_AVAILABLE and 'v7p3r_nn' in self.engines:
             try:
                 nn_config_path = config.get('nn_config_path', 'config/v7p3r_nn_config.yaml')
                 self.nn_engine = self._create_nn_engine_wrapper(nn_config_path)
@@ -267,6 +287,7 @@ class ChessGame:
 
         # Save YAML config file for metrics processing
         config_filepath = f"games/eval_game_{timestamp}.yaml"
+        
         # Save a combined config for this specific game, including relevant parts of all loaded configs
         game_specific_config = {
             "game_settings": self.game_config,
@@ -276,30 +297,6 @@ class ChessGame:
             yaml.dump(game_specific_config, f)
         if self.logger:
             self.logger.info(f"Game-specific combined configuration saved to {config_filepath}")
-
-        log_filepath = f"games/eval_game_{timestamp}.log"
-        eval_log_dir = "logging"
-        
-        log_files_to_copy = []
-        for f_name in os.listdir(eval_log_dir):
-            if f_name.startswith("v7p3r_evaluation_engine.log") or \
-               f_name.startswith("v7p3r_scoring_calculation.log") or \
-               f_name.startswith("chess_game.log") or \
-               f_name.startswith("stockfish_handler.log"):
-                log_files_to_copy.append(os.path.join(eval_log_dir, f_name))
-        log_files_to_copy.sort()
-        
-        with open(log_filepath, "w") as outfile:
-            for log_file in log_files_to_copy:
-                try:
-                    with open(log_file, "r") as infile:
-                        outfile.write(f"\n--- {os.path.basename(log_file)} ---\n")
-                        outfile.write(infile.read())
-                except Exception as e:
-                    if self.logger:
-                        self.logger.warning(f"Could not read {log_file}: {e}")
-        if self.logger:
-            self.logger.info(f"Combined logs saved to {log_filepath}")
 
         # Save the game result to a file for instant analysis
         self.quick_save_pgn(f"games/{game_id}.pgn")
@@ -616,6 +613,9 @@ class ChessGame:
     def _create_nn_engine_wrapper(self, nn_config_path):
         """Create a wrapper for NN engine if it doesn't have proper game interface."""
         try:
+            # Import the NN engine class here to avoid undefined reference
+            from v7p3r_nn_engine.v7p3r_nn import v7p3rNeuralNetwork
+            
             # Try to create NN engine, but it might not have search interface
             nn_engine = v7p3rNeuralNetwork(nn_config_path)
             
@@ -659,7 +659,7 @@ class ChessGame:
         while running and game_count_remaining >= 1:
             if self.logger:
                 self.logger.info(f"Running chess game loop: {self.game_count - game_count_remaining}/{self.game_count} completed.")
-            
+            print(f"Running chess game loop: {self.game_count - game_count_remaining}/{self.game_count} completed.")
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
@@ -673,9 +673,11 @@ class ChessGame:
                         running = False
                         if self.logger:
                             self.logger.info(f'All {self.game_count} games complete, exiting...')
+                        print(f'All {self.game_count} games complete, exiting...')
                     else:
                         if self.logger:
                             self.logger.info(f'Game {self.game_count - game_count_remaining}/{self.game_count} complete, starting next...')
+                        print(f'Game {self.game_count - game_count_remaining}/{self.game_count} complete, starting next...')
                         self.game_start_timestamp = get_timestamp()
                         self.current_game_db_id = f"eval_game_{self.game_start_timestamp}.pgn"
                         self.new_game()
@@ -721,34 +723,30 @@ class ChessGame:
 
 if __name__ == "__main__":
     config = {
-        "starting_position": "default",
-        "white_player": "v7p3r",
-        "black_player": "stockfish",
-        "game_count": 1,
         "engine_config": {
-                "name": "v7p3r",                     # Name of the engine, used for identification and logging
-                "version": "1.0.0",                  # Version of the engine, used for identification and logging
-                "color": "white",                    # Color of the engine, either 'white' or 'black'
-                "ruleset": "default_evaluation",     # Name of the evaluation rule set to use, see below for available options
-                "search_algorithm": "lookahead",       # Move search type for White (see search_algorithms for options)
-                "depth": 5,                          # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
-                "max_depth": 8,                      # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
-                "monitoring_enabled": True,          # Enable or disable monitoring features
-                "verbose_output": True,             # Enable or disable verbose output for debugging
-                "logger": "v7p3r_engine_logger",     # Logger name for the engine, used for logging engine-specific events
-                "max_game_count": 1,                 # Number of games to play in AI vs AI mode
-                "starting_position": "default",      # Default starting position name (or FEN string)
-                "white_player": "v7p3r",             # Name of the engine being used (e.g., 'v7p3r', 'stockfish'), this value is a direct reference to the engine configuration values in their respective config files
-                "black_player": "stockfish",         # sets this colors engine configuration name, same as above, important note that if the engines are set the same then only whites metrics will be collected to prevent negation in win loss metrics
+            "name": "v7p3r",                     # Name of the engine, used for identification and logging
+            "version": "1.0.0",                  # Version of the engine, used for identification and logging
+            "color": "white",                    # Color of the engine, either 'white' or 'black'
+            "ruleset": "default_evaluation",     # Name of the evaluation rule set to use, see below for available options
+            "search_algorithm": "lookahead",       # Move search type for White (see search_algorithms for options)
+            "depth": 2,                          # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
+            "max_depth": 3,                     # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
+            "monitoring_enabled": True,          # Enable or disable monitoring features
+            "verbose_output": True,             # Enable or disable verbose output for debugging
+            "logger": "v7p3r_engine_logger",     # Logger name for the engine, used for logging engine-specific events
+            "game_count": 1,                     # Number of games to play
+            "starting_position": "default",      # Default starting position name (or FEN string)
+            "white_player": "v7p3r",             # Name of the engine being used (e.g., 'v7p3r', 'stockfish'), this value is a direct reference to the engine configuration values in their respective config files
+            "black_player": "stockfish",         # sets this colors engine configuration name, same as above, important note that if the engines are set the same then only whites metrics will be collected to prevent negation in win loss metrics
         },
         "stockfish_config": {
             "stockfish_path": "engine_utilities/external_engines/stockfish/stockfish-windows-x86-64-avx2.exe",
-            "elo_rating": 100,
+            "elo_rating": 400,
             "skill_level": 1,
             "debug_mode": False,
             "depth": 2,
-            "max_depth": 3,
-            "movetime": 500,
+            "max_depth": 2,
+            "movetime": 1000,  # Time in milliseconds for Stockfish to think
         },
     }
     game = ChessGame(config)
