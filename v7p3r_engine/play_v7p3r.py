@@ -17,31 +17,15 @@ import hashlib
 
 # Define the maximum frames per second for the game loop
 MAX_FPS = 60
+# Import necessary modules from v7p3r_engine
 from v7p3r_engine.v7p3r import v7p3rEngine # Corrected import for v7p3rEngine
 from metrics.metrics_store import MetricsStore # Import MetricsStore
 from v7p3r_engine.stockfish_handler import StockfishHandler
 
-# Import new engines
-try:
-    from v7p3r_rl_engine.v7p3r_rl import v7p3rRLEngine
-    RL_ENGINE_AVAILABLE = True
-except ImportError:
-    RL_ENGINE_AVAILABLE = False
-    print("Warning: v7p3r_rl_engine not available")
-
-try:
-    from v7p3r_ga_engine.v7p3r_ga import V7P3RGeneticAlgorithm
-    GA_ENGINE_AVAILABLE = True
-except ImportError:
-    GA_ENGINE_AVAILABLE = False
-    print("Warning: v7p3r_ga_engine not available")
-
-try:
-    from v7p3r_nn_engine.v7p3r_nn import v7p3rNeuralNetwork
-    NN_ENGINE_AVAILABLE = True
-except ImportError:
-    NN_ENGINE_AVAILABLE = False
-    print("Warning: v7p3r_nn_engine not available")
+# Set engine availability values
+RL_ENGINE_AVAILABLE = False
+GA_ENGINE_AVAILABLE = False
+NN_ENGINE_AVAILABLE = False
 
 # At module level, define a single logger for this file
 def get_timestamp():
@@ -114,8 +98,36 @@ class ChessGame:
             "starting_position": config.get("starting_position", "default"),
         }
 
+        # Access global engine availability variables
+        global RL_ENGINE_AVAILABLE, GA_ENGINE_AVAILABLE, NN_ENGINE_AVAILABLE
+
+        if 'v7p3r_rl' in self.engines:
+            # Import new engines
+            try:
+                from v7p3r_rl_engine.v7p3r_rl import v7p3rRLEngine
+                RL_ENGINE_AVAILABLE = True
+            except ImportError:
+                RL_ENGINE_AVAILABLE = False
+                print("Warning: v7p3r_rl_engine not available")
+        
+        if 'v7p3r_ga' in self.engines:
+            try:
+                from v7p3r_ga_engine.v7p3r_ga import V7P3RGeneticAlgorithm
+                GA_ENGINE_AVAILABLE = True
+            except ImportError:
+                GA_ENGINE_AVAILABLE = False
+                print("Warning: v7p3r_ga_engine not available")
+
+        if 'v7p3r_nn' in self.engines:
+            try:
+                from v7p3r_nn_engine.v7p3r_nn import v7p3rNeuralNetwork
+                NN_ENGINE_AVAILABLE = True
+            except ImportError:
+                NN_ENGINE_AVAILABLE = False
+                print("Warning: v7p3r_nn_engine not available")
+
         # Initialize RL engine if available
-        if RL_ENGINE_AVAILABLE:
+        if RL_ENGINE_AVAILABLE and 'v7p3r_rl' in self.engines:
             try:
                 rl_config_path = config.get('rl_config_path', 'config/v7p3r_rl_config.yaml')
                 self.rl_engine = v7p3rRLEngine(rl_config_path)
@@ -125,7 +137,7 @@ class ChessGame:
                 print(f"Warning: Failed to initialize RL engine: {e}")
         
         # Initialize GA engine if available
-        if GA_ENGINE_AVAILABLE:
+        if GA_ENGINE_AVAILABLE and 'v7p3r_ga' in self.engines:
             try:
                 ga_config_path = config.get('ga_config_path', 'config/v7p3r_ga_config.yaml')
                 # The GA engine is primarily for training, not gameplay
@@ -138,7 +150,7 @@ class ChessGame:
                 print(f"Warning: Failed to initialize GA engine: {e}")
         
         # Initialize NN engine if available
-        if NN_ENGINE_AVAILABLE:
+        if NN_ENGINE_AVAILABLE and 'v7p3r_nn' in self.engines:
             try:
                 nn_config_path = config.get('nn_config_path', 'config/v7p3r_nn_config.yaml')
                 self.nn_engine = self._create_nn_engine_wrapper(nn_config_path)
@@ -625,6 +637,9 @@ class ChessGame:
     def _create_nn_engine_wrapper(self, nn_config_path):
         """Create a wrapper for NN engine if it doesn't have proper game interface."""
         try:
+            # Import the NN engine class here to avoid undefined reference
+            from v7p3r_nn_engine.v7p3r_nn import v7p3rNeuralNetwork
+            
             # Try to create NN engine, but it might not have search interface
             nn_engine = v7p3rNeuralNetwork(nn_config_path)
             
@@ -668,7 +683,7 @@ class ChessGame:
         while running and game_count_remaining >= 1:
             if self.logger:
                 self.logger.info(f"Running chess game loop: {self.game_count - game_count_remaining}/{self.game_count} completed.")
-            
+            print(f"Running chess game loop: {self.game_count - game_count_remaining}/{self.game_count} completed.")
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
@@ -682,9 +697,11 @@ class ChessGame:
                         running = False
                         if self.logger:
                             self.logger.info(f'All {self.game_count} games complete, exiting...')
+                        print(f'All {self.game_count} games complete, exiting...')
                     else:
                         if self.logger:
                             self.logger.info(f'Game {self.game_count - game_count_remaining}/{self.game_count} complete, starting next...')
+                        print(f'Game {self.game_count - game_count_remaining}/{self.game_count} complete, starting next...')
                         self.game_start_timestamp = get_timestamp()
                         self.current_game_db_id = f"eval_game_{self.game_start_timestamp}.pgn"
                         self.new_game()
@@ -735,11 +752,11 @@ if __name__ == "__main__":
             "version": "1.0.0",                  # Version of the engine, used for identification and logging
             "color": "white",                    # Color of the engine, either 'white' or 'black'
             "ruleset": "default_evaluation",     # Name of the evaluation rule set to use, see below for available options
-            "search_algorithm": "negamax",       # Move search type for White (see search_algorithms for options)
-            "depth": 6,                          # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
-            "max_depth": 10,                     # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
+            "search_algorithm": "lookahead",       # Move search type for White (see search_algorithms for options)
+            "depth": 2,                          # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
+            "max_depth": 3,                     # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
             "monitoring_enabled": True,          # Enable or disable monitoring features
-            "verbose_output": False,             # Enable or disable verbose output for debugging
+            "verbose_output": True,             # Enable or disable verbose output for debugging
             "logger": "v7p3r_engine_logger",     # Logger name for the engine, used for logging engine-specific events
             "game_count": 1,                     # Number of games to play
             "starting_position": "default",      # Default starting position name (or FEN string)
@@ -748,12 +765,12 @@ if __name__ == "__main__":
         },
         "stockfish_config": {
             "stockfish_path": "engine_utilities/external_engines/stockfish/stockfish-windows-x86-64-avx2.exe",
-            "elo_rating": 100,
+            "elo_rating": 400,
             "skill_level": 1,
             "debug_mode": False,
-            "depth": 1,
+            "depth": 2,
             "max_depth": 2,
-            "movetime": 250,  # Time in milliseconds for Stockfish to think
+            "movetime": 1000,  # Time in milliseconds for Stockfish to think
         },
     }
     game = ChessGame(config)
