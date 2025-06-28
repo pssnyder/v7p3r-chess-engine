@@ -746,9 +746,9 @@ if __name__ == "__main__":
             "elo_rating": 100,
             "skill_level": 1,
             "debug_mode": False,
-            "depth": 2,
-            "max_depth": 3,
-            "movetime": 500,
+            "depth": 1,
+            "max_depth": 2,
+            "movetime": 250,  # Time in milliseconds for Stockfish to think
         },
     }
     game = ChessGame(config)
