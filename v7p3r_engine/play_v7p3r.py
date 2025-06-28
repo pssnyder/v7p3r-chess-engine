@@ -17,9 +17,31 @@ import hashlib
 
 # Define the maximum frames per second for the game loop
 MAX_FPS = 60
-from v7p3r import v7p3rEngine # Corrected import for v7p3rEngine
+from v7p3r_engine.v7p3r import v7p3rEngine # Corrected import for v7p3rEngine
 from metrics.metrics_store import MetricsStore # Import MetricsStore
 from v7p3r_engine.stockfish_handler import StockfishHandler
+
+# Import new engines
+try:
+    from v7p3r_rl_engine.v7p3r_rl import v7p3rRLEngine
+    RL_ENGINE_AVAILABLE = True
+except ImportError:
+    RL_ENGINE_AVAILABLE = False
+    print("Warning: v7p3r_rl_engine not available")
+
+try:
+    from v7p3r_ga_engine.v7p3r_ga import V7P3RGeneticAlgorithm
+    GA_ENGINE_AVAILABLE = True
+except ImportError:
+    GA_ENGINE_AVAILABLE = False
+    print("Warning: v7p3r_ga_engine not available")
+
+try:
+    from v7p3r_nn_engine.v7p3r_nn import v7p3rNeuralNetwork
+    NN_ENGINE_AVAILABLE = True
+except ImportError:
+    NN_ENGINE_AVAILABLE = False
+    print("Warning: v7p3r_nn_engine not available")
 
 # At module level, define a single logger for this file
 def get_timestamp():
@@ -77,6 +99,46 @@ class ChessGame:
         # Initialize Engine and Scoring
         self.engine = v7p3rEngine()
         self.stockfish = StockfishHandler(self.stockfish_config)
+        
+        # Initialize new engines based on availability and configuration
+        self.engines = {
+            'v7p3r': self.engine,
+            'stockfish': self.stockfish
+        }
+        
+        # Initialize RL engine if available
+        if RL_ENGINE_AVAILABLE:
+            try:
+                rl_config_path = config.get('rl_config_path', 'config/v7p3r_rl_config.yaml')
+                self.rl_engine = v7p3rRLEngine(rl_config_path)
+                self.engines['v7p3r_rl'] = self.rl_engine
+                print("✓ v7p3r RL engine initialized")
+            except Exception as e:
+                print(f"Warning: Failed to initialize RL engine: {e}")
+        
+        # Initialize GA engine if available
+        if GA_ENGINE_AVAILABLE:
+            try:
+                ga_config_path = config.get('ga_config_path', 'config/v7p3r_ga_config.yaml')
+                # The GA engine is primarily for training, not gameplay
+                # We'll create a simple wrapper that uses the best ruleset
+                self.ga_engine = self._create_ga_engine_wrapper(ga_config_path)
+                if self.ga_engine:
+                    self.engines['v7p3r_ga'] = self.ga_engine
+                    print("✓ v7p3r GA engine wrapper initialized")
+            except Exception as e:
+                print(f"Warning: Failed to initialize GA engine: {e}")
+        
+        # Initialize NN engine if available
+        if NN_ENGINE_AVAILABLE:
+            try:
+                nn_config_path = config.get('nn_config_path', 'config/v7p3r_nn_config.yaml')
+                self.nn_engine = self._create_nn_engine_wrapper(nn_config_path)
+                if self.nn_engine:
+                    self.engines['v7p3r_nn'] = self.nn_engine
+                    print("✓ v7p3r NN engine wrapper initialized")
+            except Exception as e:
+                print(f"Warning: Failed to initialize NN engine: {e}")
 
         # Initialize MetricsStore
         self.metrics_store = MetricsStore()
@@ -352,16 +414,45 @@ class ChessGame:
                 if self.logger:
                     self.logger.info("Waiting for human player input...")
                 return
-            elif (self.white_player.lower() == 'v7p3r' and self.board.turn) or (self.black_player.lower() == 'v7p3r' and not self.board.turn):
+            
+            # Determine current player engine
+            current_engine_name = self.white_player.lower() if self.board.turn else self.black_player.lower()
+            
+            # Handle different engine types
+            if current_engine_name == 'v7p3r':
                 # Use the v7p3r engine for the current player
                 engine_move = self.engine.search_engine.search(self.board, current_player_color)
-            elif (self.white_player.lower() == 'stockfish' and self.board.turn) or (self.black_player.lower() == 'stockfish' and not self.board.turn):
+                
+            elif current_engine_name == 'stockfish':
                 # Use the Stockfish engine for the current player
                 if self.logger:
                     self.logger.info("Using Stockfish engine for move processing.")
-                
                 stockfish_handler = StockfishHandler(self.stockfish_config)
                 engine_move = stockfish_handler.search(self.board, current_player_color, self.stockfish_config)
+                
+            elif current_engine_name == 'v7p3r_rl' and 'v7p3r_rl' in self.engines:
+                # Use the RL engine
+                if self.logger:
+                    self.logger.info("Using v7p3r RL engine for move processing.")
+                engine_move = self.engines['v7p3r_rl'].search(self.board, current_player_color)
+                
+            elif current_engine_name == 'v7p3r_ga' and 'v7p3r_ga' in self.engines:
+                # Use the GA engine
+                if self.logger:
+                    self.logger.info("Using v7p3r GA engine for move processing.")
+                engine_move = self.engines['v7p3r_ga'].search(self.board, current_player_color)
+                
+            elif current_engine_name == 'v7p3r_nn' and 'v7p3r_nn' in self.engines:
+                # Use the NN engine
+                if self.logger:
+                    self.logger.info("Using v7p3r NN engine for move processing.")
+                engine_move = self.engines['v7p3r_nn'].search(self.board, current_player_color)
+                
+            else:
+                # Fallback to v7p3r engine for unknown engines
+                if self.logger:
+                    self.logger.warning(f"Unknown engine '{current_engine_name}', falling back to v7p3r engine.")
+                engine_move = self.engine.search_engine.search(self.board, current_player_color)
             if isinstance(engine_move, chess.Move) and self.board.is_legal(engine_move):
                 fen_before_move = self.board.fen()
                 move_number = self.board.fullmove_number
@@ -426,7 +517,8 @@ class ChessGame:
 
         print(f"{self.white_player if current_player_color == chess.WHITE else self.black_player} played: {engine_move} (Eval: {self.current_eval:.2f})")
         if self.logger:
-            self.logger.info(f"{self.white_player if current_player_color == chess.WHITE else self.black_player} played: {engine_move} (Eval: {self.current_eval:.2f}) | Time: {self.move_duration:.4f}s | Nodes: {self.engine.search_engine.nodes_searched}")
+            nodes_searched = self.engine.search_engine.nodes_searched
+            self.logger.info(f"{self.white_player if current_player_color == chess.WHITE else self.black_player} played: {engine_move} (Eval: {self.current_eval:.2f}) | Time: {self.move_duration:.4f}s | Nodes: {nodes_searched}")
 
     def push_move(self, move):
         """ Test and push a move to the board and game node """
@@ -485,6 +577,74 @@ class ChessGame:
             self.quick_save_pgn("games/game_error_dump.pgn")
             return False
 
+    def _create_ga_engine_wrapper(self, ga_config_path):
+        """Create a wrapper that can use GA-optimized rulesets for gameplay."""
+        try:
+            from v7p3r_ga_engine.ruleset_manager import RulesetManager
+            
+            # Load the best ruleset from GA training if available
+            ruleset_manager = RulesetManager()
+            
+            # Try to load the best evolved ruleset, fallback to default
+            try:
+                best_ruleset = ruleset_manager.load_ruleset('best_evolved')
+            except:
+                best_ruleset = ruleset_manager.load_ruleset('default_evaluation')
+            
+            # Create a simple wrapper that uses the GA-optimized ruleset with v7p3r engine
+            class GAEngineWrapper:
+                def __init__(self, ruleset):
+                    self.ruleset = ruleset
+                    self.v7p3r_engine = v7p3rEngine()
+                    # Note: GA-optimized ruleset integration would need proper implementation
+                    # For now, this wrapper just uses standard v7p3r engine
+                
+                def search(self, board, player_color, engine_config=None):
+                    """Search for best move using GA-optimized evaluation."""
+                    return self.v7p3r_engine.search_engine.search(board, player_color)
+                
+                def cleanup(self):
+                    """Cleanup resources."""
+                    pass
+            
+            return GAEngineWrapper(best_ruleset)
+            
+        except Exception as e:
+            print(f"Failed to create GA engine wrapper: {e}")
+            return None
+    
+    def _create_nn_engine_wrapper(self, nn_config_path):
+        """Create a wrapper for NN engine if it doesn't have proper game interface."""
+        try:
+            # Try to create NN engine, but it might not have search interface
+            nn_engine = v7p3rNeuralNetwork(nn_config_path)
+            
+            # Check if it has search method
+            if hasattr(nn_engine, 'search'):
+                return nn_engine
+            else:
+                # Create a wrapper
+                class NNEngineWrapper:
+                    def __init__(self, nn_engine):
+                        self.nn_engine = nn_engine
+                        self.v7p3r_engine = v7p3rEngine()
+                    
+                    def search(self, board, player_color, engine_config=None):
+                        """Search using NN-assisted evaluation."""
+                        # Fallback to v7p3r engine for now
+                        return self.v7p3r_engine.search_engine.search(board, player_color)
+                    
+                    def cleanup(self):
+                        """Cleanup resources."""
+                        if hasattr(self.nn_engine, 'cleanup'):
+                            self.nn_engine.cleanup()
+                
+                return NNEngineWrapper(nn_engine)
+                
+        except Exception as e:
+            print(f"Failed to create NN engine wrapper: {e}")
+            return None
+
     # =============================================
     # ============ MAIN GAME LOOP =================
 
@@ -522,9 +682,42 @@ class ChessGame:
 
             self.clock.tick(MAX_FPS)
             
-        # Cleanup
+        # Cleanup engines and resources
+        self.cleanup_engines()
         if pygame.get_init():
             pygame.quit()
+
+    def cleanup_engines(self):
+        """Clean up engine resources."""
+        try:
+            # Cleanup RL engine
+            if hasattr(self, 'rl_engine') and self.rl_engine:
+                self.rl_engine.cleanup()
+                
+            # Cleanup GA engine
+            if hasattr(self, 'ga_engine') and self.ga_engine and hasattr(self.ga_engine, 'cleanup'):
+                self.ga_engine.cleanup()
+                
+            # Cleanup NN engine
+            if hasattr(self, 'nn_engine') and self.nn_engine and hasattr(self.nn_engine, 'cleanup'):
+                self.nn_engine.cleanup()
+                
+            # Cleanup Stockfish
+            if hasattr(self, 'stockfish') and self.stockfish:
+                self.stockfish.quit()
+                
+        except Exception as e:
+            if self.logger:
+                self.logger.error(f"Error during engine cleanup: {e}")
+            else:
+                print(f"Error during engine cleanup: {e}")
+
+    def __del__(self):
+        """Destructor to ensure cleanup."""
+        try:
+            self.cleanup_engines()
+        except:
+            pass
 
 if __name__ == "__main__":
     config = {

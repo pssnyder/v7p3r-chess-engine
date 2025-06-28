@@ -221,7 +221,7 @@ class GAOptimizer:
     def save_optimization_results(self, results: List[Dict], param_grid: Dict):
         """Save optimization results to files."""
         timestamp = time.strftime("%Y%m%d_%H%M%S")
-        results_dir = f"ga_results/optimization_{timestamp}"
+        results_dir = f"v7p3r_ga_engine/ga_results/optimization_{timestamp}"
         os.makedirs(results_dir, exist_ok=True)
         
         # Save detailed results
