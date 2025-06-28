@@ -11,21 +11,6 @@ A sophisticated chess engine featuring multiple AI approaches including traditio
 - **Flexible Configuration:** YAML-based configuration for all engine components
 - **Performance Analytics:** Comprehensive metrics and benchmarking tools
 
----
-
-## Firebase Backend
-
-v7p3r Chess Engine now uses Firebase for backend storage, analytics, and data processing. Key features:
-
-- **Cloud Storage**: Store PGN files, trained models, and evaluation data
-- **Firestore Database**: Maintain game metadata, metrics, and model tracking
-- **Authentication**: Optional user accounts for personalized experiences
-- **Analytics**: Track engine performance and user engagement
-
-For setup instructions, see [FIREBASE_SETUP.md](FIREBASE_SETUP.md)
-
----
-
 ## Quick Start
 
 ### Core Engine

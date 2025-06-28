@@ -43,7 +43,7 @@ def setup_logging():
 
 def create_model_directory(config: Dict[str, Any]):
     """Create directory for model storage."""
-    model_path = config.get('model_path', 'v7p3r_rl_engine/models/v7p3r_rl_model.pt')
+    model_path = config.get('model_path', 'v7p3r_rl_engine/v7p3r_rl_models/v7p3r_rl_model.pt')
     model_dir = os.path.dirname(model_path)
     if model_dir and not os.path.exists(model_dir):
         os.makedirs(model_dir, exist_ok=True)
@@ -82,7 +82,7 @@ def run_training_session(engine: v7p3rRLEngine, config: Dict[str, Any], logger: 
             
             # Periodic model saving
             if (episode_batch + current_batch_size) % save_frequency == 0:
-                model_path = config.get('model_path', f'v7p3r_rl_engine/models/v7p3r_rl_checkpoint_{episode_batch + current_batch_size}.pt')
+                model_path = config.get('model_path', f'v7p3r_rl_engine/v7p3r_rl_models/v7p3r_rl_checkpoint_{episode_batch + current_batch_size}.pt')
                 logger.info(f"Saving model checkpoint to {model_path}")
                 engine.save(model_path)
             
@@ -99,7 +99,7 @@ def run_training_session(engine: v7p3rRLEngine, config: Dict[str, Any], logger: 
         raise
     finally:
         # Final model save
-        final_model_path = config.get('model_path', 'v7p3r_rl_engine/models/v7p3r_rl_final.pt')
+        final_model_path = config.get('model_path', 'v7p3r_rl_engine/v7p3r_rl_models/v7p3r_rl_final.pt')
         logger.info(f"Saving final model to {final_model_path}")
         engine.save(final_model_path)
         
