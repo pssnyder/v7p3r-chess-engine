@@ -1,0 +1,23 @@
+adaptive_mutation: true
+crossover_rate: 0.6
+cuda_batch_size: 64
+elitism_rate: 0.05
+enable_cache: true
+generations: 10
+max_cache_size: 10000
+max_stagnation: 8
+mutation_rate: 0.1
+neural_model_path: null
+population_size: 20
+positions_count: 70
+positions_source: random
+stockfish_config:
+  debug_mode: false
+  depth: 3
+  elo_rating: 100
+  max_depth: 4
+  movetime: 200
+  skill_level: 1
+  stockfish_path: engine_utilities/external_engines/stockfish/stockfish-windows-x86-64-avx2.exe
+use_cuda: true
+use_neural_evaluator: false

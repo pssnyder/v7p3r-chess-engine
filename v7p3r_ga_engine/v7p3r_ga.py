@@ -1,174 +1,232 @@
+
 """
-v7p3r_ga.py
-Genetic Algorithm for v7p3r Chess Engine Configuration Optimization
-
-This module implements a genetic algorithm (GA) to optimize the configuration
-dictionary for the v7p3r chess engine. The GA evolves config dicts, using self-play
-(v7p3r vs. v7p3r_opponent) as the fitness function. Only wins count as fitness.
-The best config is exported as YAML, including the specified config sections.
-
-Author: Pat Snyder
+Core genetic algorithm logic for ruleset optimization with CUDA acceleration.
+Features improved parallelization, elitism, and adaptive mutation.
 """
 import random
 import copy
-import yaml
+import time
+from typing import List, Tuple
 import concurrent.futures
-import os
 import multiprocessing
-from typing import Dict, Any, List
-from v7p3r_engine.v7p3r import v7p3rEngine
-
-# --- Config Section Names to Export ---
-V7P3R_CONFIG_SECTION = "v7p3r"
-BEST_EVAL_SECTION = "best_evaluation"
 
 class V7P3RGeneticAlgorithm:
-    """
-    Genetic Algorithm for optimizing v7p3r engine configuration.
-    Each individual is a config dict. Fitness is the number of wins in self-play
-    against a static opponent config. Only wins count as fitness.
-
-    Parallelism: The number of games played in parallel is controlled by max_workers.
-    Set this to the number of physical CPU cores or less to avoid overloading your system.
-    """
-    def __init__(self, base_config: Dict[str, Any],
-                 opponent_config: Dict[str, Any],
-                 population_size: int = 20,
-                 mutation_rate: float = 0.2,
-                 elite_count: int = 2,
-                 games_per_individual: int = 4,
-                 max_workers: int = 4):
-        self.base_config = base_config
-        self.opponent_config = opponent_config
+    def __init__(self, base_ruleset, ruleset_manager, position_evaluator, 
+                 population_size=20, mutation_rate=0.2, crossover_rate=0.5,
+                 elitism_rate=0.1, adaptive_mutation=True):
+        """
+        base_ruleset: dict
+        ruleset_manager: RulesetManager instance
+        position_evaluator: PositionEvaluator instance
+        elitism_rate: Fraction of best individuals to preserve each generation
+        adaptive_mutation: Whether to adapt mutation rate based on progress
+        """
+        self.base_ruleset = base_ruleset
+        self.ruleset_manager = ruleset_manager
+        self.position_evaluator = position_evaluator
         self.population_size = population_size
         self.mutation_rate = mutation_rate
-        self.elite_count = elite_count
-        self.games_per_individual = games_per_individual
-        # Limit max_workers to available CPU cores
-        cpu_count = multiprocessing.cpu_count()
-        if max_workers > cpu_count:
-            print(f"[WARNING] max_workers ({max_workers}) > CPU cores ({cpu_count}). Limiting to {cpu_count}.")
-            max_workers = cpu_count
-        self.max_workers = max_workers
-        self.population = []  # List[Dict[str, Any]]
+        self.initial_mutation_rate = mutation_rate
+        self.crossover_rate = crossover_rate
+        self.elitism_rate = elitism_rate
+        self.adaptive_mutation = adaptive_mutation
+        self.population = []
+        self.fitness_scores = []
+        self.best_ruleset = None
+        self.best_fitness = float('-inf')
+        self.best_fitness_history = []
+        self.generation_times = []
+        self.stagnation_counter = 0
+        
+        # Elite preservation
+        self.elite_size = max(1, int(population_size * elitism_rate))
 
     def initialize_population(self):
-        """Create initial population by mutating the base config."""
-        self.population = [self._mutate_config(copy.deepcopy(self.base_config), force_mutate=True)
-                           for _ in range(self.population_size)]
+        """Create initial population by mutating the base ruleset."""
+        self.population = [copy.deepcopy(self.base_ruleset)]
+        for _ in range(self.population_size - 1):
+            mutated = self.ruleset_manager.mutate_ruleset(self.base_ruleset, mutation_rate=self.mutation_rate)
+            self.population.append(mutated)
 
-    def evaluate_fitness(self, config: Dict[str, Any]) -> int:
+    def evaluate_population(self, positions):
         """
-        Run self-play games (v7p3r(config) vs. v7p3r_opponent) and return win count.
-        Only wins count as fitness. Draws/losses = 0.
+        Evaluate all rulesets in the population with improved parallelization and progress tracking.
         """
-        wins = 0
-        for _ in range(self.games_per_individual):
-            result = self._run_self_play_game(config, self.opponent_config)
-            if result == 1:
-                wins += 1
-        return wins
-
-    def evaluate_population(self) -> List[int]:
-        """Evaluate fitness for the entire population in parallel."""
-        with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            fitnesses = list(executor.map(self.evaluate_fitness, self.population))
-        return fitnesses
-
-    def evolve_population(self, fitnesses: List[int]):
-        """
-        Evolve population using selection, crossover, and mutation.
-        Elitism: keep top N configs. Rest are offspring.
-        """
-        # Pair configs with fitness and sort
-        paired = list(zip(self.population, fitnesses))
-        paired.sort(key=lambda x: x[1], reverse=True)
-        elites = [copy.deepcopy(cfg) for cfg, _ in paired[:self.elite_count]]
-        new_population = elites[:]
-        # Fill rest of population
-        while len(new_population) < self.population_size:
-            parent1 = self._tournament_selection(paired)
-            parent2 = self._tournament_selection(paired)
-            child = self._crossover_configs(parent1, parent2)
-            child = self._mutate_config(child)
-            new_population.append(child)
-        self.population = new_population
-
-    def _tournament_selection(self, paired, k=3):
-        """Select one config using tournament selection."""
-        sample = random.sample(paired, k)
-        sample.sort(key=lambda x: x[1], reverse=True)
-        return copy.deepcopy(sample[0][0])
-
-    def _crossover_configs(self, cfg1: Dict[str, Any], cfg2: Dict[str, Any]) -> Dict[str, Any]:
-        """Crossover two configs (single-point or uniform crossover)."""
-        child = copy.deepcopy(cfg1)
-        for key in child:
-            if key in cfg2 and isinstance(child[key], (int, float)):
-                if random.random() < 0.5:
-                    child[key] = cfg2[key]
-        return child
-
-    def _mutate_config(self, config: Dict[str, Any], force_mutate=False) -> Dict[str, Any]:
-        """Randomly mutate config values (weights, bonuses, etc)."""
-        new_config = copy.deepcopy(config)
-        for key, value in new_config.items():
-            if isinstance(value, (int, float)):
-                if force_mutate or random.random() < self.mutation_rate:
-                    if isinstance(value, int):
-                        new_config[key] = max(1, value + random.choice([-1, 1]))
-                    else:
-                        new_config[key] = value * random.uniform(0.8, 1.2)
-            elif isinstance(value, dict):
-                new_config[key] = self._mutate_config(value, force_mutate)
-        return new_config
-
-    def _run_self_play_game(self, config1: Dict[str, Any], config2: Dict[str, Any]) -> int:
-        """
-        Run a single self-play game between v7p3r(config1) and v7p3r_opponent(config2).
-        Returns 1 if config1 wins, 0 otherwise (draw/loss).
-        """
-        import chess
-        board = chess.Board()
-        engine1 = v7p3rEngine(board=board.copy(), player=True)
-        engine2 = v7p3rEngine(board=board.copy(), player=False)
-        move_count = 0
-        max_moves = 200  # Prevent infinite games
-        while not board.is_game_over() and move_count < max_moves:
-            if board.turn == chess.WHITE:
-                move = engine1.search(board, chess.WHITE)
-            else:
-                move = engine2.search(board, chess.BLACK)
-            if move is None or move == chess.Move.null():
-                break  # No legal moves
-            board.push(move)
-            move_count += 1
-        # Determine result
-        result = board.result()
-        # If config1 played as White, win is '1-0'. If as Black, win is '0-1'.
-        # Here, config1 always plays White.
-        if result == '1-0':
-            return 1  # config1 wins
+        start_time = time.time()
+        self.fitness_scores = []
+        print(f"    Evaluating {len(self.population)} individuals in parallel...")
+        
+        # Use multiprocessing for CPU-bound tasks with optimized worker count
+        max_workers = min(multiprocessing.cpu_count() - 1, len(self.population), 8)
+        
+        def evaluate_individual(args):
+            i, ruleset = args
+            try:
+                # This will use CUDA acceleration internally if available
+                v7p3r_evals, reference_evals = self.position_evaluator.evaluate_ruleset(ruleset, positions)
+                fitness = self.position_evaluator.calculate_fitness(v7p3r_evals, reference_evals)
+                print(f"    Individual {i+1}/{len(self.population)}: fitness = {fitness:.4f}")
+                return i, fitness, ruleset
+            except Exception as e:
+                print(f"    Individual {i+1}: ERROR = {e}")
+                return i, float('-inf'), ruleset
+        
+        # Process individuals in parallel
+        individual_results = []
+        with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all individuals for evaluation
+            futures = {executor.submit(evaluate_individual, (i, ruleset)): i 
+                      for i, ruleset in enumerate(self.population)}
+            
+            # Collect results with progress tracking
+            completed = 0
+            for future in concurrent.futures.as_completed(futures):
+                i, fitness, ruleset = future.result()
+                individual_results.append((i, fitness, ruleset))
+                completed += 1
+                
+                if completed % max(1, len(self.population) // 4) == 0:
+                    progress = (completed / len(self.population)) * 100
+                    elapsed = time.time() - start_time
+                    print(f"    Progress: {progress:.1f}% ({completed}/{len(self.population)}) - {elapsed:.1f}s elapsed")
+        
+        # Sort results by original index and extract fitness scores
+        individual_results.sort(key=lambda x: x[0])
+        self.fitness_scores = [result[1] for result in individual_results]
+        
+        # Update best individual
+        best_idx = max(range(len(self.fitness_scores)), key=lambda i: self.fitness_scores[i])
+        if self.fitness_scores[best_idx] > self.best_fitness:
+            self.best_fitness = self.fitness_scores[best_idx]
+            self.best_ruleset = copy.deepcopy(self.population[best_idx])
+            self.stagnation_counter = 0
+            print(f"    NEW BEST! Fitness: {self.best_fitness:.4f}")
         else:
-            return 0  # draw or loss
+            self.stagnation_counter += 1
+        
+        self.best_fitness_history.append(self.best_fitness)
+        
+        # Adaptive mutation rate
+        if self.adaptive_mutation:
+            self._adapt_mutation_rate()
+        
+        eval_time = time.time() - start_time
+        self.generation_times.append(eval_time)
+        print(f"    Evaluation completed in {eval_time:.2f}s")
+        
+        # Show performance stats periodically
+        if len(self.best_fitness_history) % 5 == 0:
+            stats = self.position_evaluator.get_performance_stats()
+            print(f"    Performance: Cache hits: {stats['cache_hits']}, "
+                  f"Cache size: {stats['cache_size']}, GPU memory: {stats.get('memory_usage', {})}")
+    
+    def _adapt_mutation_rate(self):
+        """Adapt mutation rate based on stagnation."""
+        if self.stagnation_counter > 3:
+            # Increase mutation if stagnating
+            self.mutation_rate = min(0.8, self.mutation_rate * 1.2)
+            print(f"    Adapting mutation rate to {self.mutation_rate:.3f} (stagnation: {self.stagnation_counter})")
+        elif self.stagnation_counter == 0:
+            # Decrease mutation if improving
+            self.mutation_rate = max(0.05, self.mutation_rate * 0.9)
+        
+        # Reset to initial rate if extreme
+        if self.mutation_rate > 0.8:
+            self.mutation_rate = self.initial_mutation_rate
+            print(f"    Reset mutation rate to {self.mutation_rate:.3f}")
+    
+    def select_parents(self):
+        """Enhanced parent selection with elitism and tournament selection."""
+        selected = []
+        
+        # First, preserve elite individuals
+        fitness_indices = list(enumerate(self.fitness_scores))
+        fitness_indices.sort(key=lambda x: x[1], reverse=True)
+        
+        # Add elite individuals
+        for i in range(self.elite_size):
+            idx = fitness_indices[i][0]
+            selected.append(copy.deepcopy(self.population[idx]))
+        
+        # Fill the rest with tournament selection
+        tournament_size = 3
+        while len(selected) < self.population_size:
+            # Tournament selection
+            tournament_indices = random.sample(range(self.population_size), tournament_size)
+            winner_idx = max(tournament_indices, key=lambda i: self.fitness_scores[i])
+            selected.append(copy.deepcopy(self.population[winner_idx]))
+        
+        return selected
 
-    def get_best_config(self, fitnesses: List[int]) -> Dict[str, Any]:
-        """Return the config with the highest fitness."""
-        idx = fitnesses.index(max(fitnesses))
-        return self.population[idx]
+    def evolve_population(self):
+        """Create next generation through selection, crossover, mutation with elitism."""
+        new_population = []
+        parents = self.select_parents()
+        
+        # Elitism: directly carry over best individuals
+        fitness_indices = list(enumerate(self.fitness_scores))
+        fitness_indices.sort(key=lambda x: x[1], reverse=True)
+        
+        for i in range(self.elite_size):
+            idx = fitness_indices[i][0]
+            new_population.append(copy.deepcopy(self.population[idx]))
+        
+        # Fill the rest through crossover and mutation
+        while len(new_population) < self.population_size:
+            parent1 = random.choice(parents)
+            parent2 = random.choice(parents)
+            
+            if random.random() < self.crossover_rate:
+                child = self.ruleset_manager.crossover_rulesets(parent1, parent2)
+            else:
+                child = copy.deepcopy(parent1)
+            
+            child = self.ruleset_manager.mutate_ruleset(child, mutation_rate=self.mutation_rate)
+            new_population.append(child)
+        
+        self.population = new_population[:self.population_size]
 
-    def export_best_config_yaml(self, best_config: Dict[str, Any], out_path: str):
-        """
-        Export the best config as YAML, including only the v7p3r and best_evaluation sections.
-        """
-        export_dict = {}
-        if V7P3R_CONFIG_SECTION in best_config:
-            export_dict[V7P3R_CONFIG_SECTION] = best_config[V7P3R_CONFIG_SECTION]
-        if BEST_EVAL_SECTION in best_config:
-            export_dict[BEST_EVAL_SECTION] = best_config[BEST_EVAL_SECTION]
-        with open(out_path, "w") as f:
-            yaml.dump(export_dict, f, default_flow_style=False)
+    def get_convergence_stats(self):
+        """Get statistics about algorithm convergence."""
+        if len(self.best_fitness_history) < 2:
+            return {}
+        
+        recent_improvement = (self.best_fitness_history[-1] - 
+                            self.best_fitness_history[max(0, len(self.best_fitness_history) - 5)])
+        
+        avg_generation_time = sum(self.generation_times) / len(self.generation_times) if self.generation_times else 0
+        
+        return {
+            'best_fitness': self.best_fitness,
+            'generations_completed': len(self.best_fitness_history),
+            'stagnation_counter': self.stagnation_counter,
+            'current_mutation_rate': self.mutation_rate,
+            'recent_improvement': recent_improvement,
+            'avg_generation_time': avg_generation_time,
+            'fitness_std': self._calculate_fitness_std()
+        }
+    
+    def _calculate_fitness_std(self):
+        """Calculate standard deviation of current population fitness."""
+        if not self.fitness_scores:
+            return 0.0
+        
+        valid_scores = [f for f in self.fitness_scores if f != float('-inf')]
+        if len(valid_scores) < 2:
+            return 0.0
+        
+        mean_fitness = sum(valid_scores) / len(valid_scores)
+        variance = sum((f - mean_fitness) ** 2 for f in valid_scores) / len(valid_scores)
+        return variance ** 0.5
 
-# --- End of V7P3RGeneticAlgorithm class ---
-
-# Usage example and further logic should be implemented in v7p3r_ga_training.py
+    def export_best_ruleset(self, filename):
+        """Export the best ruleset to a file."""
+        if self.best_ruleset is not None:
+            self.ruleset_manager.save_ruleset(self.best_ruleset, name=filename)
+            print(f"    Best ruleset exported as '{filename}' with fitness {self.best_fitness:.4f}")
+        else:
+            print("    No best ruleset available to export")
+    
+    def should_terminate_early(self, max_stagnation=10):
+        """Check if algorithm should terminate early due to convergence."""
+        return self.stagnation_counter >= max_stagnation

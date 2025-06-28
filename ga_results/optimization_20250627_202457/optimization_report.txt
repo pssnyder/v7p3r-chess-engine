@@ -1,0 +1,19 @@
+=== GA Optimization Report ===
+
+=== Best Parameters ===
+Best Fitness: -inf
+Parameters:
+  population_size: 25
+  mutation_rate: 0.3
+  crossover_rate: 0.8
+  elitism_rate: 0.15
+  positions_count: 30
+Generations: 0
+Avg Generation Time: 0.00s
+
+=== Top 5 Results ===
+1. Fitness: -inf | Params: {'population_size': 25, 'mutation_rate': 0.3, 'crossover_rate': 0.8, 'elitism_rate': 0.15, 'positions_count': 30}
+2. Fitness: -inf | Params: {'population_size': 15, 'mutation_rate': 0.2, 'crossover_rate': 0.8, 'elitism_rate': 0.1, 'positions_count': 50}
+3. Fitness: -inf | Params: {'population_size': 20, 'mutation_rate': 0.2, 'crossover_rate': 0.6, 'elitism_rate': 0.1, 'positions_count': 30}
+4. Fitness: -inf | Params: {'population_size': 25, 'mutation_rate': 0.1, 'crossover_rate': 0.8, 'elitism_rate': 0.1, 'positions_count': 70}
+5. Fitness: -inf | Params: {'population_size': 15, 'mutation_rate': 0.3, 'crossover_rate': 0.8, 'elitism_rate': 0.1, 'positions_count': 30}
