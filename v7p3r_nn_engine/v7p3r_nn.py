@@ -21,7 +21,7 @@ from typing import List, Dict, Tuple, Optional, Union
 
 # Add the project root to the Python path to allow imports from anywhere in the project
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from engine_utilities.stockfish_handler import StockfishHandler
+from v7p3r_engine.stockfish_handler import StockfishHandler
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, 
@@ -621,8 +621,10 @@ class v7p3rNeuralNetwork:
         # Initialize Stockfish handler
         try:
             stockfish = StockfishHandler(
-                stockfish_path=stockfish_path,
-                debug_mode=False
+                stockfish_config= {
+                    'stockfish_path': stockfish_path, 
+                    'depth': 15,
+                }
             )
             
             # Load the game from PGN
@@ -733,6 +735,10 @@ class v7p3rNeuralNetwork:
         """Close the move library and release resources"""
         if hasattr(self, 'move_library'):
             self.move_library.close()
+            
+    def cleanup(self):
+        """Cleanup resources - alias for close() to match engine interface"""
+        self.close()
             
     def reset(self, board: Optional[chess.Board] = None):
         """

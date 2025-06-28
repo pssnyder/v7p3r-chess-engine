@@ -363,22 +363,43 @@ class StockfishHandler:
         return score
 
     def close(self):
-        quit()
+        """Close the Stockfish handler and terminate the process."""
+        self.quit()
+
+    def __del__(self):
+        """Destructor to ensure Stockfish process is terminated when object is destroyed."""
+        try:
+            self.quit()
+        except:
+            # Ignore errors during cleanup
+            pass
 
     def quit(self):
         """Quits the Stockfish engine process."""
-        if self.process:
-            self._send_command("quit")
+        if self.process and self.process.poll() is None:  # Check if process is still running
             try:
-                self.process.wait(timeout=2)
+                self._send_command("quit")
+                self.process.wait(timeout=3)  # Increased timeout slightly
                 self.logger.info("Stockfish engine quit successfully.")
             except subprocess.TimeoutExpired:
-                self.process.kill()
-                self.logger.warning("Stockfish engine did not quit, killed process.")
+                self.logger.warning("Stockfish engine did not quit gracefully, terminating...")
+                self.process.terminate()
+                try:
+                    self.process.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    self.logger.warning("Stockfish engine did not terminate, killing process...")
+                    self.process.kill()
+                    self.process.wait()  # Wait for kill to complete
             except Exception as e:
                 self.logger.error(f"Error while quitting Stockfish: {e}")
+                # Force kill if there was an error
+                try:
+                    self.process.kill()
+                    self.process.wait()
+                except:
+                    pass
             finally:
-                self.process = None # Ensure process is None after attempting to quit
+                self.process = None  # Ensure process is None after attempting to quit
                 if self.stdout_thread and self.stdout_thread.is_alive():
                     # Daemon thread will exit with main process
                     pass

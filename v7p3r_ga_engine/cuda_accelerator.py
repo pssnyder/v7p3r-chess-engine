@@ -48,15 +48,27 @@ class CUDAAccelerator:
         if not v7p3r_evals or not stockfish_evals:
             return float('-inf')
         
-        # Convert to tensors and move to GPU
-        v7p3r_tensor = torch.tensor(v7p3r_evals, dtype=torch.float32, device=self.device)
-        stockfish_tensor = torch.tensor(stockfish_evals, dtype=torch.float32, device=self.device)
-        
-        # Calculate MSE using GPU
-        mse = torch.nn.functional.mse_loss(v7p3r_tensor, stockfish_tensor)
-        
-        # Return negative MSE (higher fitness = better)
-        return -mse.item()
+        try:
+            # Convert to tensors and move to GPU
+            v7p3r_tensor = torch.tensor(v7p3r_evals, dtype=torch.float32, device=self.device)
+            stockfish_tensor = torch.tensor(stockfish_evals, dtype=torch.float32, device=self.device)
+            
+            # Calculate MSE using GPU
+            mse = torch.nn.functional.mse_loss(v7p3r_tensor, stockfish_tensor)
+            
+            # Get result before cleanup
+            result = -mse.item()
+            
+            # Explicit cleanup
+            del v7p3r_tensor, stockfish_tensor, mse
+            if self.use_cuda:
+                torch.cuda.empty_cache()
+            
+            return result
+            
+        except Exception as e:
+            print(f"[CUDA] Error in fitness calculation: {e}")
+            return float('-inf')
     
     def batch_position_features(self, boards: List[chess.Board]) -> torch.Tensor:
         """

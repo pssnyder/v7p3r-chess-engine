@@ -10,16 +10,34 @@ from typing import List, Tuple
 import concurrent.futures
 import multiprocessing
 
+def _evaluate_individual_worker(args):
+    """
+    Standalone function for evaluating individual rulesets in parallel.
+    This needs to be at module level to be picklable for multiprocessing.
+    """
+    i, ruleset, positions, position_evaluator = args
+    try:
+        # This will use CUDA acceleration internally if available
+        v7p3r_evals, reference_evals = position_evaluator.evaluate_ruleset(ruleset, positions)
+        fitness = position_evaluator.calculate_fitness(v7p3r_evals, reference_evals)
+        print(f"    Individual {i+1}: fitness = {fitness:.4f}")
+        return i, fitness, ruleset
+    except Exception as e:
+        print(f"    Individual {i+1}: ERROR = {e}")
+        return i, float('-inf'), ruleset
+
 class V7P3RGeneticAlgorithm:
     def __init__(self, base_ruleset, ruleset_manager, position_evaluator, 
                  population_size=20, mutation_rate=0.2, crossover_rate=0.5,
-                 elitism_rate=0.1, adaptive_mutation=True):
+                 elitism_rate=0.1, adaptive_mutation=True, use_multiprocessing=True, max_workers=None):
         """
         base_ruleset: dict
         ruleset_manager: RulesetManager instance
         position_evaluator: PositionEvaluator instance
         elitism_rate: Fraction of best individuals to preserve each generation
         adaptive_mutation: Whether to adapt mutation rate based on progress
+        use_multiprocessing: Whether to use multiprocessing for evaluation
+        max_workers: Maximum number of worker processes (None = auto-detect)
         """
         self.base_ruleset = base_ruleset
         self.ruleset_manager = ruleset_manager
@@ -30,6 +48,8 @@ class V7P3RGeneticAlgorithm:
         self.crossover_rate = crossover_rate
         self.elitism_rate = elitism_rate
         self.adaptive_mutation = adaptive_mutation
+        self.use_multiprocessing = use_multiprocessing
+        self.max_workers = max_workers
         self.population = []
         self.fitness_scores = []
         self.best_ruleset = None
@@ -51,44 +71,48 @@ class V7P3RGeneticAlgorithm:
     def evaluate_population(self, positions):
         """
         Evaluate all rulesets in the population with improved parallelization and progress tracking.
+        Falls back to sequential evaluation if multiprocessing is disabled.
         """
         start_time = time.time()
         self.fitness_scores = []
-        print(f"    Evaluating {len(self.population)} individuals in parallel...")
+        print(f"    Evaluating {len(self.population)} individuals {'in parallel' if self.use_multiprocessing else 'sequentially'}...")
         
-        # Use multiprocessing for CPU-bound tasks with optimized worker count
-        max_workers = min(multiprocessing.cpu_count() - 1, len(self.population), 8)
-        
-        def evaluate_individual(args):
-            i, ruleset = args
-            try:
-                # This will use CUDA acceleration internally if available
-                v7p3r_evals, reference_evals = self.position_evaluator.evaluate_ruleset(ruleset, positions)
-                fitness = self.position_evaluator.calculate_fitness(v7p3r_evals, reference_evals)
-                print(f"    Individual {i+1}/{len(self.population)}: fitness = {fitness:.4f}")
-                return i, fitness, ruleset
-            except Exception as e:
-                print(f"    Individual {i+1}: ERROR = {e}")
-                return i, float('-inf'), ruleset
-        
-        # Process individuals in parallel
-        individual_results = []
-        with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
-            # Submit all individuals for evaluation
-            futures = {executor.submit(evaluate_individual, (i, ruleset)): i 
-                      for i, ruleset in enumerate(self.population)}
-            
-            # Collect results with progress tracking
-            completed = 0
-            for future in concurrent.futures.as_completed(futures):
-                i, fitness, ruleset = future.result()
-                individual_results.append((i, fitness, ruleset))
-                completed += 1
+        if not self.use_multiprocessing:
+            # Sequential evaluation fallback
+            individual_results = []
+            for i, ruleset in enumerate(self.population):
+                result = _evaluate_individual_worker((i, ruleset, positions, self.position_evaluator))
+                individual_results.append(result)
                 
-                if completed % max(1, len(self.population) // 4) == 0:
-                    progress = (completed / len(self.population)) * 100
+                if (i + 1) % max(1, len(self.population) // 4) == 0:
+                    progress = ((i + 1) / len(self.population)) * 100
                     elapsed = time.time() - start_time
-                    print(f"    Progress: {progress:.1f}% ({completed}/{len(self.population)}) - {elapsed:.1f}s elapsed")
+                    print(f"    Progress: {progress:.1f}% ({i + 1}/{len(self.population)}) - {elapsed:.1f}s elapsed")
+        else:
+            # Parallel evaluation with multiprocessing
+            max_workers = self.max_workers
+            if max_workers is None:
+                max_workers = min(multiprocessing.cpu_count() - 1, len(self.population), 8)
+            
+            # Process individuals in parallel
+            individual_results = []
+            with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
+                # Submit all individuals for evaluation
+                futures = {executor.submit(_evaluate_individual_worker, 
+                                         (i, ruleset, positions, self.position_evaluator)): i 
+                          for i, ruleset in enumerate(self.population)}
+                
+                # Collect results with progress tracking
+                completed = 0
+                for future in concurrent.futures.as_completed(futures):
+                    i, fitness, ruleset = future.result()
+                    individual_results.append((i, fitness, ruleset))
+                    completed += 1
+                    
+                    if completed % max(1, len(self.population) // 4) == 0:
+                        progress = (completed / len(self.population)) * 100
+                        elapsed = time.time() - start_time
+                        print(f"    Progress: {progress:.1f}% ({completed}/{len(self.population)}) - {elapsed:.1f}s elapsed")
         
         # Sort results by original index and extract fitness scores
         individual_results.sort(key=lambda x: x[0])

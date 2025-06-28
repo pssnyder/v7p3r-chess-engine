@@ -1,17 +1,19 @@
 # Enhanced GA configuration for v7p3r ruleset tuning with CUDA acceleration
-population_size: 15
-generations: 10
+population_size: 5   # Drastically reduced to prevent overheating
+generations: 3       # Reduced for testing
 mutation_rate: 0.1
 crossover_rate: 0.8
-elitism_rate: 0.05
+elitism_rate: 0.2    # Increased to preserve best individuals with smaller population
 adaptive_mutation: true
 positions_source: "random"
-positions_count: 50
-max_stagnation: 8
+positions_count: 5   # Drastically reduced to prevent memory issues
+max_stagnation: 3
 
 # CUDA and Performance Settings
-use_cuda: true
-cuda_batch_size: 64
+use_cuda: true       # Re-enabled now that cleanup is fixed
+cuda_batch_size: 64  # Moderate batch size for your 12GB GPU
+use_multiprocessing: false  # Disable temporarily due to CUDA thread lock pickling issues
+max_workers: null  # Auto-detect optimal worker count
 use_neural_evaluator: false  # Set to true if you have a trained NN model
 neural_model_path: null  # Path to trained neural network model
 
@@ -24,7 +26,7 @@ stockfish_config: {
   elo_rating: 100,
   skill_level: 1,
   debug_mode: False,
-  depth: 3,
-  max_depth: 4,
-  movetime: 200,  # Reduced for faster evaluation
+  depth: 1,  # Minimal depth for faster evaluation
+  max_depth: 2,  # Minimal max depth
+  movetime: 50,  # Much faster response
 }
