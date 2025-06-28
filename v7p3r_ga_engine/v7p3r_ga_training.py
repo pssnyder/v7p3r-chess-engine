@@ -41,14 +41,16 @@ class TrainingRunner:
             mutation_rate=config.get("mutation_rate", 0.2),
             crossover_rate=config.get("crossover_rate", 0.5),
             elitism_rate=config.get("elitism_rate", 0.1),
-            adaptive_mutation=config.get("adaptive_mutation", True)
+            adaptive_mutation=config.get("adaptive_mutation", True),
+            use_multiprocessing=config.get("use_multiprocessing", True),
+            max_workers=config.get("max_workers", None)
         )
         
         self.generations = config.get("generations", 30)
         self.positions_source = config.get("positions_source", "random")
         self.positions_count = config.get("positions_count", 50)
         self.max_stagnation = config.get("max_stagnation", 10)
-        self.results_dir = config.get("results_dir", "ga_results")
+        self.results_dir = config.get("results_dir", "v7p3r_ga_engine/ga_results")
         os.makedirs(self.results_dir, exist_ok=True)
         self.positions = []
         self.training_start_time = None
@@ -238,17 +240,28 @@ class TrainingRunner:
         
         # Final cleanup
         self.position_evaluator.clear_cache()
+        self.position_evaluator.cleanup()  # Ensure Stockfish is terminated
         print(f"[GA] Training complete and cleaned up!")
 
 def main():
     import yaml
-
-    with open("v7p3r_ga_engine/ga_config.yaml", "r") as f:
-        config = yaml.safe_load(f)
-        trainer = TrainingRunner(config)
-        trainer.prepare_environment()
-        trainer.run_training(generations=config.get("generations", 30))
-        trainer.save_results()
+    
+    trainer = None
+    try:
+        with open("v7p3r_ga_engine/ga_config.yaml", "r") as f:
+            config = yaml.safe_load(f)
+            trainer = TrainingRunner(config)
+            trainer.prepare_environment()
+            trainer.run_training(generations=config.get("generations", 30))
+            trainer.save_results()
+    finally:
+        # Ensure cleanup even if there's an error
+        if trainer:
+            try:
+                trainer.position_evaluator.cleanup()
+                print("[GA] Final cleanup completed")
+            except:
+                pass
 
 if __name__ == "__main__":
     main()

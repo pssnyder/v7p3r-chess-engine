@@ -10,5 +10,5 @@ Population Diversity (final): 0.000000
 
 === Cache Performance ===
 Cache Hits: 0
-Cache Misses: 0
-Final Cache Size: 0
+Cache Misses: 4
+Final Cache Size: 4
