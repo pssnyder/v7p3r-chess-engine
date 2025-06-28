@@ -1,15 +1,15 @@
-# v7p3r Chess Engine - Product README
+# v7p3r Chess Engine
 
-## Features (Streamlit App)
+A sophisticated chess engine featuring multiple AI approaches including traditional search algorithms, neural networks, and genetic algorithm optimization.
 
-- **Play vs AI:** Make moves as White or Black, and the AI will respond.
-- **AI Configuration:** Choose AI type (lookahead, minimax, negamax, random) and search depth.
-- **FEN Input:** Set up any position by pasting a FEN string.
-- **Position Evaluation:** Instantly evaluate any position with a single click.
-- **Human-Readable Moves:** Select moves in standard chess notation (SAN).
-- **Move History:** See the full move list in readable notation.
-- **Board Visualization:** Interactive chessboard updates after each move.
-- **No Installation Needed:** Deployable on [Streamlit Cloud](https://streamlit.io/cloud) for instant sharing.
+## Core Engine Features
+
+- **Multiple AI Engines:** Traditional v7p3r engine, neural network (NN), and genetic algorithm (GA) variants
+- **Advanced Search:** Alpha-beta pruning, move ordering, and time management
+- **Position Evaluation:** Multiple evaluation functions with piece-square tables
+- **Opening Book:** Built-in opening book support for improved early game play
+- **Flexible Configuration:** YAML-based configuration for all engine components
+- **Performance Analytics:** Comprehensive metrics and benchmarking tools
 
 ---
 
@@ -28,108 +28,218 @@ For setup instructions, see [FIREBASE_SETUP.md](FIREBASE_SETUP.md)
 
 ## Quick Start
 
-### Web Demo (Streamlit)
+### Core Engine
 
 1. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-    ```bash
-    pip install -r requirements.txt
-    ```
+2. Play against the engine:
+   ```bash
+   python v7p3r_engine/play_v7p3r.py
+   ```
 
-2. Run the web app:
+3. Run the web interface:
+   ```bash
+   python web_applications/v7p3r_webapp.py
+   ```
 
-    ```bash
-    streamlit run streamlit_app.py
-    ```
+### Neural Network Engine
 
-### Local Metrics Dashboard
+1. Train a new NN model:
+   ```bash
+   python v7p3r_nn_engine/v7p3r_nn_training.py
+   ```
 
-1. Install dependencies:
+2. Validate NN performance:
+   ```bash
+   python v7p3r_nn_engine/v7p3r_nn_validation.py
+   ```
 
-    ```bash
-    pip install -r requirements.txt
-    ```
+### Genetic Algorithm Engine
 
-2. Run the dashboard:
+1. Run GA optimization:
+   ```bash
+   python v7p3r_ga_engine/ga_optimizer.py
+   ```
 
-    ```bash
-    python metrics/chess_metrics.py
-    ```
+2. Analyze GA performance:
+   ```bash
+   python v7p3r_ga_engine/performance_analyzer.py
+   ```
 
-### Stockfish ELO Finder
+### ELO Testing with Stockfish
 
 Determine the ELO strength of your v7p3r configuration:
 
 1. Quick run with default settings:
-
    ```bash
-   python run_elo_finder.py
+   python engine_utilities/run_elo_finder.py
    ```
 
 2. Customize parameters:
-
    ```bash
-   python run_elo_finder.py --initial-elo 1500 --v7p3r-depth 4 --v7p3r-ruleset aggressive_evaluation
+   python engine_utilities/run_elo_finder.py --initial-elo 1500 --v7p3r-depth 4 --v7p3r-ruleset aggressive_evaluation
    ```
 
 3. For more options and advanced usage:
-
    ```bash
-   python run_elo_finder.py --help
+   python engine_utilities/run_elo_finder.py --help
    ```
 
-See [TEST_GUIDE.md](TEST_GUIDE.md) for detailed instructions and interpretation of ELO results.
+See [TEST_GUIDE.md](docs/TEST_GUIDE.md) for detailed instructions and interpretation of ELO results.
 
 ---
 
-## Significant File Overview
+## Core Engine Components
 
-- `chess_game.py` — Core chess game logic and rules
-- `v7p3r_scoring_calculation.py` — AI scoring and evaluation logic
-- `chess_metrics.py` — Engine performance metrics dashboard
-- `metrics_store.py` — Metrics database and logic
-- `v7p3r.py` — Core chess engine logic
-- `piece_square_tables.py` — Piece-square evaluation tables
+### v7p3r_engine (Traditional Engine)
+- `v7p3r.py` — Main engine logic and UCI interface
+- `v7p3r_search.py` — Alpha-beta search implementation  
+- `v7p3r_score.py` — Position evaluation and scoring
+- `v7p3r_ordering.py` — Move ordering for search optimization
+- `v7p3r_book.py` — Opening book implementation
+- `v7p3r_time.py` — Time management for tournament play
+- `v7p3r_pst.py` — Piece-square tables for evaluation
+- `stockfish_handler.py` — Interface for Stockfish integration
+- `play_v7p3r.py` — Interactive play interface
+- `rulesets.yaml` — Configuration for different playing styles
 
-- `config.yaml` — Engine and AI configuration
-- `testing/` — Unit and integration tests for each module
-- `games/` — Saved games, configs, and logs (for local/dev use)
+### v7p3r_nn_engine (Neural Network Engine)
+- `v7p3r_nn.py` — Neural network engine implementation
+- `v7p3r_nn_training.py` — Training pipeline for NN models
+- `v7p3r_nn_validation.py` — Model validation and testing
+- `v7p3r_nn_models/` — Trained neural network models
+- `v7p3r_nn_move_vocab/` — Move vocabulary for NN training
+
+### v7p3r_ga_engine (Genetic Algorithm Engine)
+- `v7p3r_ga.py` — Genetic algorithm engine implementation
+- `ga_optimizer.py` — GA optimization and evolution logic
+- `v7p3r_ga_training.py` — GA training and population management
+- `position_evaluator.py` — GA-optimized position evaluation
+- `performance_analyzer.py` — Performance analysis tools
+- `ruleset_manager.py` — Dynamic ruleset management
+- `cuda_accelerator.py` — GPU acceleration for GA operations
+- `v7p3r_ga_models/` — Evolved GA models and configurations
+
+### Support Systems
+- `metrics/chess_metrics.py` — Engine performance metrics dashboard
+- `metrics/metrics_store.py` — Metrics database and storage
+- `engine_utilities/` — Benchmarking, monitoring, and utility tools
+- `config/` — YAML configuration files for all components
 
 ---
 
 ## Testing
 
-- Each main `.py` file has a corresponding `[module]_testing.py` in `testing/`.
-- Run individual tests:
+Run comprehensive tests for engine components:
 
-    ```bash
-    python testing/metrics_store_testing.py
-    ```
+- **Unit Tests:** Each engine component has corresponding test files
+- **Integration Tests:** Full engine testing with various configurations
+- **Performance Tests:** ELO rating and benchmark comparisons
 
-- Or run a suite (see `testing/launch_testing_suite.py` and `testing/testing.yaml`).
+Run individual component tests:
+```bash
+# Test traditional engine
+python -m pytest v7p3r_engine/ -v
+
+# Test neural network engine  
+python -m pytest v7p3r_nn_engine/ -v
+
+# Test genetic algorithm engine
+python -m pytest v7p3r_ga_engine/ -v
+
+# Test utilities and metrics
+python -m pytest engine_utilities/ metrics/ -v
+```
+
+See [UNIT_TESTING_GUIDE.md](docs/UNIT_TESTING_GUIDE.md) for detailed testing procedures.
 
 ---
 
-## Deployment
+## Configuration
 
-- **Web:** Deploy `streamlit_app.py` to [Streamlit Cloud](https://streamlit.io/cloud).
-- **Local:** Run any module directly for advanced features and metrics.
+The engine uses YAML-based configuration files in the `config/` directory:
+
+- `v7p3r_nn_config.yaml` — Neural network training and model parameters
+- `v7p3r_ga_config.yaml` — Genetic algorithm evolution settings  
+- `v7p3r_rl_config.yaml` — Reinforcement learning configuration
+- `stockfish_config.yaml` — Stockfish integration settings
+- `engine_utilities_config.yaml` — Benchmarking and utility settings
+- `chess_metrics_config.yaml` — Metrics collection and analysis
+
+Customize engine behavior by editing the appropriate configuration files before running.
 
 ---
 
-## Limitations
+## Engine Comparison
 
-- No Lichess/UCI integration in the web demo.
-- Local metrics dashboard requires Python environment.
-- AI vs AI and distributed/cloud database support are in development.
+The v7p3r engine offers three distinct approaches:
+
+1. **Traditional Engine (v7p3r_engine):** Classic alpha-beta search with hand-crafted evaluation
+   - Fast and deterministic
+   - Well-suited for tactical positions
+   - Configurable search depth and time controls
+
+2. **Neural Network Engine (v7p3r_nn_engine):** Deep learning-based evaluation
+   - Learns from large datasets of master games
+   - Strong positional understanding
+   - Requires training time but adapts to playing styles
+
+3. **Genetic Algorithm Engine (v7p3r_ga_engine):** Evolutionary optimization
+   - Self-improving through evolution
+   - Discovers novel evaluation strategies
+   - GPU-accelerated for faster evolution
+
+## Advanced Features
+
+- **Multi-Engine Support:** Run multiple engine variants simultaneously
+- **Performance Analytics:** Detailed metrics on search efficiency and evaluation accuracy  
+- **Opening Book Integration:** Comprehensive opening theory database
+- **Time Management:** Tournament-ready time control handling
+- **UCI Protocol:** Compatible with standard chess interfaces
+- **Cloud Storage:** Firebase integration for model and game storage
 
 ---
 
 ## Example Usage
 
-- Play a game or analyze a position in the web app.
-- Tune engine parameters and visualize results in the dashboard.
-- Run tests to verify engine and metrics correctness.
+### Traditional Engine
+```bash
+# Play a game against the traditional engine
+python v7p3r_engine/play_v7p3r.py
+
+# Analyze a position
+python v7p3r_engine/v7p3r.py --analyze "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+```
+
+### Neural Network Engine  
+```bash
+# Train a new model
+python v7p3r_nn_engine/v7p3r_nn_training.py --epochs 100 --batch-size 64
+
+# Validate model performance
+python v7p3r_nn_engine/v7p3r_nn_validation.py --model latest
+```
+
+### Genetic Algorithm Engine
+```bash  
+# Run evolution for 50 generations
+python v7p3r_ga_engine/ga_optimizer.py --generations 50 --population 100
+
+# Analyze best performers
+python v7p3r_ga_engine/performance_analyzer.py --top 10
+```
+
+### Benchmarking
+```bash
+# Compare all engines against Stockfish
+python engine_utilities/engine_benchmark.py --engines all --depth 6
+
+# Find ELO ratings
+python engine_utilities/run_elo_finder.py --games 100
+```
 
 ---
 
