@@ -135,7 +135,7 @@ class v7p3rPST:
             piece: chess.Piece object
             square: chess square (0-63)
             color: chess.WHITE or chess.BLACK
-            endgame_factor: float between 0.0 (middlegame) and 1.0 (endgame)
+            endgame_factor: float between 0.0 (opening) and 1.0 (endgame)
             
         Returns:
             Value in centipawns (positive is good for the piece's color)
@@ -150,7 +150,7 @@ class v7p3rPST:
         
         table_value = 0
         if piece.piece_type == chess.PAWN:
-            # Interpolate between middlegame and endgame pawn tables
+            # Interpolate between opening, middlegame, and endgame pawn tables
             mg_value = self.PAWN_TABLE[rank][file]
             eg_value = self.PAWN_EG_TABLE[rank][file]
             table_value = mg_value * (1 - endgame_factor) + eg_value * endgame_factor
