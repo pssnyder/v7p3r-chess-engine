@@ -80,12 +80,13 @@ class v7p3rScore:
         
         # Helper for consistent color display in logs
         color_name = "White" if color == chess.WHITE else "Black"
+        current_player_name = self.engine_config.get('white_player','') if color == chess.WHITE else self.engine_config.get('black_player','')
         v7p3r_thinking = (color == chess.WHITE and self.engine_config.get('white_player','') == 'v7p3r') or (color == chess.BLACK and self.engine_config.get('black_player', '') == 'v7p3r')
         if v7p3r_thinking:
             if self.logger:
-                self.logger.debug(f"[Scoring Calc] Starting score calculation for {self.engine_config.get('white_player','') if color == chess.WHITE else self.engine_config.get('black_player','')} engine as {color_name} (Ruleset: {self.ruleset_name})")
+                self.logger.debug(f"[Scoring Calc] Starting score calculation for {current_player_name} engine as {color_name} | Ruleset: {self.ruleset_name} | FEN: {board.fen()}")
             if self.print_scoring:
-                print(f"[Scoring Calc] Starting score calculation for {self.engine_config.get('white_player','') if color == chess.WHITE else self.engine_config.get('black_player','')} engine as {color_name} (Ruleset: {self.ruleset_name})")
+                print(f"[Scoring Calc] Starting score calculation for {current_player_name} engine as {color_name} | Ruleset: {self.ruleset_name} | FEN: {board.fen()}")
         # Critical scoring components
         checkmate_threats_score = 1.0 * (self._checkmate_threats(board, color) or 0.0)
         if v7p3r_thinking:
@@ -313,9 +314,9 @@ class v7p3rScore:
         self.calculate_game_phase(board)
         if v7p3r_thinking:
             if self.logger:
-                self.logger.debug(f"[Scoring Calc] Final score for {color_name}: {score:.3f} (Ruleset: {self.ruleset_name}, FEN: {board.fen()})")
+                self.logger.debug(f"[Scoring Calc] Final score for {current_player_name} as {color_name}: {score:.3f} | Ruleset: {self.ruleset_name} | FEN: {board.fen()}")
             if self.print_scoring:
-                print(f"[Scoring Calc] Final score for {color_name}: {score:.3f} (Ruleset: {self.ruleset_name}, FEN: {board.fen()})")
+                print(f"[Scoring Calc] Final score for {current_player_name} as {color_name}: {score:.3f} | Ruleset: {self.ruleset_name} | FEN: {board.fen()}")
         return score
 
     def calculate_game_phase(self, board: chess.Board) -> str:

@@ -298,30 +298,6 @@ class ChessGame:
         if self.logger:
             self.logger.info(f"Game-specific combined configuration saved to {config_filepath}")
 
-        log_filepath = f"games/eval_game_{timestamp}.log"
-        eval_log_dir = "logging"
-        
-        log_files_to_copy = []
-        for f_name in os.listdir(eval_log_dir):
-            if f_name.startswith("v7p3r_evaluation_engine.log") or \
-               f_name.startswith("v7p3r_scoring_calculation.log") or \
-               f_name.startswith("chess_game.log") or \
-               f_name.startswith("stockfish_handler.log"):
-                log_files_to_copy.append(os.path.join(eval_log_dir, f_name))
-        log_files_to_copy.sort()
-        
-        with open(log_filepath, "w") as outfile:
-            for log_file in log_files_to_copy:
-                try:
-                    with open(log_file, "r") as infile:
-                        outfile.write(f"\n--- {os.path.basename(log_file)} ---\n")
-                        outfile.write(infile.read())
-                except Exception as e:
-                    if self.logger:
-                        self.logger.warning(f"Could not read {log_file}: {e}")
-        if self.logger:
-            self.logger.info(f"Combined logs saved to {log_filepath}")
-
         # Save the game result to a file for instant analysis
         self.quick_save_pgn(f"games/{game_id}.pgn")
 
