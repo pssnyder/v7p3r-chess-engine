@@ -327,7 +327,7 @@ class v7p3rNeuralNetwork:
         if not storage_config.get("enabled", False):
             return None
             
-        model_dir = storage_config.get("model_path", "v7p3r_nn_engine/models")
+        model_dir = storage_config.get("model_path", "v7p3r_nn_engine/v7p3R_nn_models")
         os.makedirs(model_dir, exist_ok=True)
         
         # Find the most recent model file
@@ -520,7 +520,7 @@ class v7p3rNeuralNetwork:
         if (epoch + 1) % checkpoint_freq != 0:
             return
             
-        model_dir = storage_config.get("model_path", "v7p3r_nn_engine/models")
+        model_dir = storage_config.get("model_path", "v7p3r_nn_engine/v7p3r_nn_models")
         os.makedirs(model_dir, exist_ok=True)
         
         checkpoint_path = os.path.join(model_dir, f"v7p3r_nn_checkpoint_epoch_{epoch+1}.pt")
@@ -533,7 +533,7 @@ class v7p3rNeuralNetwork:
         if not storage_config.get("enabled", False) or not storage_config.get("save_model", False):
             return
             
-        model_dir = storage_config.get("model_path", "v7p3r_nn_engine/models")
+        model_dir = storage_config.get("model_path", "v7p3r_nn_engine/v7p3r_nn_models")
         os.makedirs(model_dir, exist_ok=True)
         
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

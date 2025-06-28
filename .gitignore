@@ -17,13 +17,11 @@ games/
 logging/
 db_backups/
 training_data/
-
-# Omit external engine files
 */external_engines/*
-
-# Directories to ignore
 evaluation/
-models/
+v7p3r_nn_models/
+v7p3r_ga_models/
+v7p3r_rl_models/
 venv/
 .history/
 
