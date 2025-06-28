@@ -100,7 +100,7 @@ class v7p3rScore:
             print(f"King threat score for {color_name}: {king_threat_score:.3f} (Ruleset: {self.ruleset_name})")
         score += king_threat_score
         
-        king_endangerment_score = 1.0 * (self._king_endangerment(board) or 0.0)
+        king_endangerment_score = 1.0 * (self._king_endangerment(board, color) or 0.0)
         if self.logger:
             self.logger.debug(f"King endangerment score for {color_name}: {king_endangerment_score:.3f} (Ruleset: {self.ruleset_name})")
         if self.print_scoring:
@@ -240,7 +240,7 @@ class v7p3rScore:
             print(f"Tactical evaluation score for {color_name}: {tactical_evaluation_score:.3f} (Ruleset: {self.ruleset_name})")
         score += tactical_evaluation_score
         
-        queen_capture_score = 1.0 * (self._queen_capture(board) or 0.0)
+        queen_capture_score = 1.0 * (self._queen_capture(board, color) or 0.0)
         if self.logger:
             self.logger.debug(f"Queen capture score for {color_name}: {queen_capture_score:.3f} (Ruleset: {self.ruleset_name})")
         if self.print_scoring:
@@ -305,8 +305,6 @@ class v7p3rScore:
 
     # ==========================================
     # ========= RULE SCORING FUNCTIONS =========
-    # These functions are now methods of ViperScoringCalculation
-    # and access their rule values via self.rules.get()
 
     def _checkmate_threats(self, board: chess.Board, color: chess.Color) -> float:
         """
@@ -314,39 +312,14 @@ class v7p3rScore:
         Only consider legal moves for 'color' without mutating the original board's turn.
         """
         score = 0.0
-        # Only check threats for the current player's turn to avoid double counting
-        # or checking irrelevant checks for the given 'color' if not their turn.
-        # This function should assess if 'color' can deliver a checkmate on their *next* move.
-        original_turn = board.turn
-        # Only consider pseudo-legal moves for the correct color
-        try:
-            # Use a copy so we don't mutate the original board
-            board_copy = board.copy()
-            board_copy.turn = color
-            for move in board_copy.pseudo_legal_moves:
-                # Only consider moves that are legal (pseudo-legal may include illegal under check)
-                if not board_copy.is_legal(move):
-                    continue
-                board_copy.push(move)
-                if board_copy.is_checkmate():
-                    score += self.rules.get('checkmate_bonus', 0)
-                    board_copy.pop()
-                    # If a checkmate is found, we can break and return the bonus.
-                    # However, a common heuristic might be to give the bonus to the side *delivering* mate.
-                    # This function implies it's for `color` to *threaten* mate to opponent.
-                    # So the `board.turn` in `board.is_checkmate()` should be the *opponent's* turn after `move` is pushed.
-                    if board_copy.turn != color: # If the checkmate is on the *opponent's* king
-                        return score # Return immediately
-                else:
-                    board_copy.pop()
-        except Exception as e:
-            if self.logger:
-                self.logger.error(f"Error in _checkmate_threats: {e} | FEN: {board.fen()}")
+
+        if board.is_checkmate() and board.turn == (color == chess.WHITE):
+            score += self.rules.get('checkmate_bonus', 0)
         return score
 
     def _draw_scenarios(self, board: chess.Board) -> float:
         score = 0.0
-        if board.is_stalemate() or board.is_insufficient_material() or board.is_fivefold_repetition() or board.is_repetition(count=2):
+        if board.is_stalemate() or board.is_insufficient_material() or board.is_fivefold_repetition() or board.is_repetition(count=2) or board.is_seventyfive_moves() or board.is_variant_draw():
             score += self.rules.get('draw_penalty', -9999999999.0)
         return score
 
@@ -386,8 +359,6 @@ class v7p3rScore:
 
     def _tempo_bonus(self, board: chess.Board, color: chess.Color) -> float:
         """If it's the player's turn and the game is still ongoing, give a small tempo bonus"""
-        # The 'current_player' attribute is from EvaluationEngine, need to pass it or infer.
-        # This method is part of scoring specific 'color'. So, if it's 'color's turn.
         if board.turn == color and not board.is_game_over() and board.is_valid():
             return self.rules.get('tempo_bonus', 0.0)
         return 0.0
@@ -511,59 +482,49 @@ class v7p3rScore:
 
         return score
     
-    def _special_moves(self, board: chess.Board, color: chess.Color) -> float: # Added color parameter
-        """Evaluate special moves and opportunities for the given color"""
+    def _special_moves(self, board: chess.Board, color: chess.Color) -> float:
+        """Evaluate special moves and opportunities for the given color - STATIC EVALUATION"""
         score = 0.0
         
-        # En passant opportunity for 'color'
+        # En passant opportunity for 'color' - check if any of our pawns can capture en passant
         if board.ep_square:
-            for move in board.legal_moves:
-                # Check if the move is an en passant capture by 'color'
-                if move.to_square == board.ep_square:
-                    piece_on_from_square = board.piece_at(move.from_square)
-                    # Ensure piece_on_from_square is not None before accessing attributes
-                    if piece_on_from_square and piece_on_from_square.piece_type == chess.PAWN and piece_on_from_square.color == color:
-                        if board.is_en_passant(move):
-                            score += self.rules.get('en_passant_bonus', 0.0)
-                            break # Found one en passant, bonus applied
+            ep_file = chess.square_file(board.ep_square)
+            ep_rank = chess.square_rank(board.ep_square)
+            
+            # Check if any of our pawns can capture the en passant square
+            for file_offset in [-1, 1]:
+                potential_pawn_file = ep_file + file_offset
+                if 0 <= potential_pawn_file <= 7:
+                    # For white, pawn would be on rank 4 (index 4), for black on rank 3 (index 3)
+                    pawn_rank = 4 if color == chess.WHITE else 3
+                    potential_pawn_square = chess.square(potential_pawn_file, pawn_rank)
+                    piece = board.piece_at(potential_pawn_square)
+                    if piece and piece.piece_type == chess.PAWN and piece.color == color:
+                        score += self.rules.get('en_passant_bonus', 0.0)
+                        break  # Found one en passant opportunity
         
-        # Promotion opportunities for 'color'
-        # Iterate legal moves for the current player on the board. 
-        # If board.turn is not 'color', these are not 'color's opportunities right now.
-        # This function should evaluate based on 'color's potential.
-        # A simple way: check pawns of 'color' that are one step from promotion.
-        promotion_rank = 7 if color == chess.WHITE else 0
+        # Promotion opportunities for 'color' - check pawns on 7th/2nd rank
+        promotion_rank = 6 if color == chess.WHITE else 1  # 7th rank for white, 2nd rank for black
         for pawn_square in board.pieces(chess.PAWN, color):
-            if chess.square_rank(pawn_square) == (promotion_rank -1 if color == chess.WHITE else promotion_rank + 1):
-                # Check if pawn can advance to promotion rank
-                # This is a simplified check; a full check involves move generation.
-                # For now, just having a pawn on the 7th/2nd is a strong indicator.
-                score += self.rules.get('pawn_promotion_bonus', 0.0) 
-                # A more accurate way would be to check board.generate_legal_moves() for promotions for 'color'
-                # but that might be too slow for an eval term. The current approach is a heuristic.
+            if chess.square_rank(pawn_square) == promotion_rank:
+                score += self.rules.get('pawn_promotion_bonus', 0.0)
+        
         return score
 
     def _tactical_evaluation(self, board: chess.Board, color: chess.Color) -> float:
-        """Evaluate tactical elements related to captures and hanging pieces."""
+        """Evaluate tactical elements related to hanging pieces - STATIC EVALUATION"""
         score = 0.0
-        
-        for move in board.legal_moves:
-            if board.is_capture(move):
-                piece_making_capture = board.piece_at(move.from_square)
-                # Ensure piece_making_capture is not None
-                if piece_making_capture and piece_making_capture.color == color:
-                    score += self.rules.get('capture_bonus', 0.0)
-        
         opponent_color = not color
 
+        # Check all squares for hanging pieces and piece safety
         for square in chess.SQUARES:
             piece = board.piece_at(square)
             if piece and piece.color == opponent_color:
-                # Check if it's attacked by 'color' and not defended by 'opponent_color' (i.e., not attacked by opponent_color)
+                # Check if opponent piece is attacked by us and not defended by opponent
                 if board.is_attacked_by(color, square) and not board.is_attacked_by(opponent_color, square):
                     score += self.rules.get('hanging_piece_bonus', 0.0)
             elif piece and piece.color == color:
-                # Penalty for 'color' having pieces attacked by opponent_color and not defended by 'color'
+                # Penalty for our pieces being attacked by opponent and not defended by us
                 if board.is_attacked_by(opponent_color, square) and not board.is_attacked_by(color, square):
                     score += self.rules.get('undefended_piece_penalty', 0.0)
         
@@ -768,23 +729,29 @@ class v7p3rScore:
         return score
 
     def _rook_coordination(self, board: chess.Board, color: chess.Color) -> float:
-        """Calculate bonus for rook pairs on same file/rank and 7th rank."""
+        """Calculate bonus for rook pairs on same file/rank and 7th rank - FIXED DOUBLE COUNTING"""
         score = 0.0
         rooks = list(board.pieces(chess.ROOK, color))
 
+        # Check individual rook positions first (7th rank bonus)
+        for rook_square in rooks:
+            # Rook on 7th rank bonus (critical for attacking pawns)
+            # White on rank 7 (index 6) or black on rank 2 (index 1)
+            if (color == chess.WHITE and chess.square_rank(rook_square) == 6) or \
+               (color == chess.BLACK and chess.square_rank(rook_square) == 1):
+                score += self.rules.get('rook_position_bonus', 0.0)
+
+        # Check rook coordination (pairs)
         for i in range(len(rooks)):
             for j in range(i+1, len(rooks)):
                 sq1, sq2 = rooks[i], rooks[j]
+                # Same file (stacked rooks)
                 if chess.square_file(sq1) == chess.square_file(sq2):
                     score += self.rules.get('stacked_rooks_bonus', 0.0)
+                # Same rank (coordinated rooks)
                 if chess.square_rank(sq1) == chess.square_rank(sq2):
                     score += self.rules.get('coordinated_rooks_bonus', 0.0)
-                
-                # Rook on 7th rank bonus (critical for attacking pawns)
-                # Check for white on rank 7 (index 6) or black on rank 2 (index 1)
-                if (color == chess.WHITE and (chess.square_rank(sq1) == 6 or chess.square_rank(sq2) == 6)) or \
-                   (color == chess.BLACK and (chess.square_rank(sq1) == 1 or chess.square_rank(sq2) == 1)):
-                    score += self.rules.get('rook_position_bonus', 0.0)
+        
         return score
 
     def _open_files(self, board: chess.Board, color: chess.Color) -> float:
@@ -831,36 +798,59 @@ class v7p3rScore:
             return self.rules.get('stalemate_penalty', 0.0)
         return 0.0
     
-    def _queen_capture(self, board: chess.Board):
+    def _queen_capture(self, board: chess.Board, color: chess.Color) -> float:
         """
-        Awards a large bonus for capturing the opponent's queen with a lesser-valued piece.
+        Evaluate if the opponent's queen is under attack by a lesser piece - STATIC EVALUATION
         """
-        if board.move_stack:
-            move = board.pop() # Get the last move played
-            if board.is_capture(move):
-                captured_piece = board.piece_at(move.to_square)
-                if captured_piece and captured_piece.piece_type == chess.QUEEN:
-                    mover_piece = board.piece_at(move.from_square)
-                    if mover_piece and mover_piece.piece_type != chess.QUEEN:
-                        return self.rules.get('queen_capture_bonus', 1000.0)
-        return 0.0
+        score = 0.0
+        opponent_color = not color
+        
+        # Find opponent's queen(s)
+        for queen_square in board.pieces(chess.QUEEN, opponent_color):
+            # Check if our pieces are attacking the opponent's queen
+            if board.is_attacked_by(color, queen_square):
+                # Find what's attacking the queen
+                for attacker_square in board.attackers(color, queen_square):
+                    attacker_piece = board.piece_at(attacker_square)
+                    if attacker_piece and attacker_piece.piece_type != chess.QUEEN:
+                        # Lesser piece attacking queen - bonus for tactical opportunity
+                        score += self.rules.get('queen_capture_bonus', 100.0)
+                        break  # Only count once per queen under attack
+        
+        return score
 
-    def _king_endangerment(self, board: chess.Board):
+    def _king_endangerment(self, board: chess.Board, color: chess.Color) -> float:
         """
-        Penalizes non-castling king moves outside the endgame.
-        Uses self.game_phase (should be set by calculate_game_phase).
+        Evaluate king safety based on current position - STATIC EVALUATION
+        Penalizes exposed king position outside the endgame.
         """
-        if board.move_stack:
-            move = board.pop() # Get the last move played
-            mover_piece = board.piece_at(move.from_square)
-            if mover_piece and mover_piece.piece_type == chess.KING:
-                # Ignore castling
-                if board.is_castling(move):
-                    return 0.0
-                # Penalize king moves in opening/middlegame
-                if getattr(self, 'game_phase', None) != 'endgame':
-                    return self.rules.get('king_safety_penalty', -100.0)
-        return 0.0
+        score = 0.0
+        king_square = board.king(color)
+        if king_square is None:
+            return score
+        
+        # Count pieces to determine game phase (simplified)
+        total_pieces = len(board.piece_map())
+        is_endgame = total_pieces <= 10  # Rough endgame threshold
+        
+        if not is_endgame:
+            # In opening/middlegame, penalize king away from starting position if not castled
+            initial_king_square = chess.E1 if color == chess.WHITE else chess.E8
+            castled_squares = {
+                chess.WHITE: [chess.G1, chess.C1],  # Kingside, queenside
+                chess.BLACK: [chess.G8, chess.C8]
+            }
+            
+            # If king is not on initial square and not castled, apply penalty
+            if king_square != initial_king_square and king_square not in castled_squares[color]:
+                score += self.rules.get('king_safety_penalty', -50.0)
+                
+            # Additional penalty if king is in center files during opening/middlegame
+            king_file = chess.square_file(king_square)
+            if 2 <= king_file <= 5:  # Files c-f (danger zone)
+                score += self.rules.get('king_safety_penalty', -50.0) / 2
+        
+        return score
     
 
 # Testing
