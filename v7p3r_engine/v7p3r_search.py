@@ -17,6 +17,7 @@ class v7p3rSearch:
         self.depth = engine_config.get('depth', 2)  # Placeholder for engine reference
         self.max_depth = engine_config.get('max_depth', 5)  # Max depth of search for AI, default to 8 if not set
         self.logger = logger if logger else logging.getLogger("v7p3r_engine_logger")
+        self.nodes_searched = 0  # Initialize nodes searched counter
         
         # Required Search Modules
         self.scoring_calculator = scoring_calculator

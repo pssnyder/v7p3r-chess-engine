@@ -17,6 +17,7 @@ This enhanced genetic algorithm (GA) training system provides significant perfor
 - **Batch Stockfish evaluation** to reduce engine startup overhead
 - **Concurrent futures** for improved task scheduling
 - **Process-safe** evaluation with proper error handling
+- **Fixed pickling issues** with standalone evaluation functions for multiprocessing compatibility
 
 ### 🧠 Intelligent Caching
 - **Position evaluation cache** to avoid redundant calculations
@@ -85,6 +86,8 @@ max_stagnation: 8           # Early stopping threshold
 # Performance settings
 use_cuda: true              # Enable GPU acceleration
 cuda_batch_size: 64         # Batch size for GPU operations
+use_multiprocessing: true   # Enable parallel evaluation (disable if pickling issues)
+max_workers: null           # Number of worker processes (null = auto-detect)
 use_neural_evaluator: false # Use NN instead of Stockfish (if available)
 neural_model_path: null     # Path to trained neural network
 
@@ -255,6 +258,22 @@ print(f"CUDA devices: {torch.cuda.device_count()}")
 - Use the performance analyzer to identify bottlenecks
 - Run hyperparameter optimization to find optimal settings
 - Monitor system resources during training
+
+### Multiprocessing/Pickling Issues
+If you encounter pickling errors like:
+```
+AttributeError: Can't pickle local object 'V7P3RGeneticAlgorithm.evaluate_population.<locals>.evaluate_individual'
+```
+
+This has been fixed by moving the evaluation function to module level. If you still see this error:
+1. Ensure you're using the latest version of `v7p3r_ga.py`
+2. Try reducing the number of workers: `max_workers = 1` in the config
+3. As a fallback, disable multiprocessing entirely by setting `use_multiprocessing: false` in the config
+
+### Common Configuration Issues
+- **Windows users**: Ensure your Stockfish path uses forward slashes or escaped backslashes
+- **Path issues**: Use absolute paths for `stockfish_path` and `neural_model_path`
+- **Permission errors**: Run with appropriate permissions if accessing system directories
 
 ## Contributing
 

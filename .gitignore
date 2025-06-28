@@ -15,7 +15,8 @@ templates/
 .db-wal
 games/
 logging/
-*.db
+db_backups/
+training_data/
 
 # Omit external engine files
 */external_engines/*

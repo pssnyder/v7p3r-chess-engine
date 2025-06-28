@@ -5,7 +5,12 @@ Compares v7p3r and Stockfish evaluations for positions with CUDA acceleration.
 import chess
 import random
 import csv
+import sys
+import os
 from typing import List, Tuple, Optional
+
+# Add the current directory to path for imports
+sys.path.insert(0, os.path.dirname(__file__))
 from cuda_accelerator import CUDAAccelerator, NeuralNetworkEvaluator
 
 class PositionEvaluator:
@@ -38,6 +43,23 @@ class PositionEvaluator:
         self.evaluation_cache = {}  # Cache for position evaluations
         self.cache_hits = 0
         self.cache_misses = 0
+
+    def cleanup(self):
+        """Clean up resources, especially Stockfish processes."""
+        try:
+            if hasattr(self, 'stockfish') and self.stockfish:
+                self.stockfish.quit()
+                print("[PositionEvaluator] Stockfish process terminated")
+        except Exception as e:
+            print(f"[PositionEvaluator] Error during cleanup: {e}")
+
+    def __del__(self):
+        """Destructor to ensure cleanup when object is destroyed."""
+        try:
+            self.cleanup()
+        except:
+            # Ignore errors during cleanup
+            pass
 
     def load_positions(self, source="random", count=100):
         """
