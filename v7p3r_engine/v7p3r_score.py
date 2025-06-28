@@ -80,12 +80,12 @@ class v7p3rScore:
         
         # Helper for consistent color display in logs
         color_name = "White" if color == chess.WHITE else "Black"
-        current_player = chess.WHITE if board.turn else chess.BLACK
-        v7p3r_thinking = (current_player == chess.WHITE and self.engine_config.get('white_player','') == 'v7p3r') or (current_player == chess.BLACK and self.engine_config.get('black_player', '') == 'v7p3r')
-        print(f"Is v7p3r thinking? {'Yes' if v7p3r_thinking else 'No'}")
-        print(f"This is a request to score from {color_name}\'s perspective...")
-        print(f"It is {'White' if current_player == chess.WHITE else 'Black'}\'s turn...")
-        print(f"White player: {self.engine_config.get('white_player','')} | Black player: {self.engine_config.get('black_player','')}")
+        v7p3r_thinking = (color == chess.WHITE and self.engine_config.get('white_player','') == 'v7p3r') or (color == chess.BLACK and self.engine_config.get('black_player', '') == 'v7p3r')
+        if v7p3r_thinking:
+            if self.logger:
+                self.logger.debug(f"[Scoring Calc] Starting score calculation for {self.engine_config.get('white_player','') if color == chess.WHITE else self.engine_config.get('black_player','')} engine as {color_name} (Ruleset: {self.ruleset_name})")
+            if self.print_scoring:
+                print(f"[Scoring Calc] Starting score calculation for {self.engine_config.get('white_player','') if color == chess.WHITE else self.engine_config.get('black_player','')} engine as {color_name} (Ruleset: {self.ruleset_name})")
         # Critical scoring components
         checkmate_threats_score = 1.0 * (self._checkmate_threats(board, color) or 0.0)
         if v7p3r_thinking:
