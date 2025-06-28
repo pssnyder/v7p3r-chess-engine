@@ -27,7 +27,7 @@ stockfish_config:
   elo_rating: 1500
 
 # Model Persistence
-model_path: 'v7p3r_rl_engine/models/v7p3r_rl_model.pt'
+model_path: 'v7p3r_rl_engine/v7p3r_rl_models/v7p3r_rl_model.pt'
 save_frequency: 100  # Save model every N episodes
 
 # CUDA Settings
