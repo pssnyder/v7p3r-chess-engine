@@ -317,7 +317,7 @@ class v7p3rNeuralNetwork:
         model_path = self._get_latest_model_path()
         if model_path and os.path.exists(model_path):
             logger.info(f"Loading pre-trained model from {model_path}")
-            model.load_state_dict(torch.load(model_path, map_location=self.device))
+            model.load_state_dict(torch.load(model_path, map_location=self.device, weights_only=True))
             
         return model
         
