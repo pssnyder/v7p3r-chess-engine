@@ -35,7 +35,7 @@ def test_rl_vs_stockfish():
                 "monitoring_enabled": True,
                 "verbose_output": False,
                 "logger": "v7p3r_rl_logger",
-                "max_game_count": 1,
+                "game_count": 1,
                 "starting_position": "default",
                 "white_player": "v7p3r_rl",
                 "black_player": "stockfish",
