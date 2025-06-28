@@ -20,6 +20,7 @@ import torch.nn as nn
 import torch.optim as optim
 import chess
 import chess.pgn
+import logging
 import numpy as np
 from torch.distributions import Categorical
 from v7p3r_engine.v7p3r_score import v7p3rScore
@@ -54,7 +55,8 @@ class V7P3RRLAgent:
         self.rewards = []
         # Setup for scoring calculation
         self.engine_config = self.config.get('v7p3r', self.config)  # fallback to config if not nested
-        self.scorer = v7p3rScore(self.engine_config, self.v7p3r_config)
+        self.logger = logging.getLogger('v7p3r_rl')
+        self.scorer = v7p3rScore(self.engine_config, self.v7p3r_config, self.logger)
 
     def _load_config(self, config_path):
         if os.path.exists(config_path):
