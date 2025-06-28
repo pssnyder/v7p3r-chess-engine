@@ -37,7 +37,7 @@ def test_rl_integration():
             "monitoring_enabled": True,
             "verbose_output": True,
             "logger": "v7p3r_engine_logger",
-            "max_game_count": 1,
+            "game_count": 1,
             "starting_position": "default"
         }
         
