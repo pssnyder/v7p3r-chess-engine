@@ -727,12 +727,12 @@ if __name__ == "__main__":
             "name": "v7p3r",                     # Name of the engine, used for identification and logging
             "version": "1.0.0",                  # Version of the engine, used for identification and logging
             "color": "white",                    # Color of the engine, either 'white' or 'black'
-            "ruleset": "default_evaluation",     # Name of the evaluation rule set to use, see below for available options
-            "search_algorithm": "lookahead",       # Move search type for White (see search_algorithms for options)
+            "ruleset": "survival_evaluation",     # Name of the evaluation rule set to use, see below for available options
+            "search_algorithm": "negamax",       # Move search type for White (see search_algorithms for options)
             "depth": 2,                          # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
             "max_depth": 3,                     # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
             "monitoring_enabled": True,          # Enable or disable monitoring features
-            "verbose_output": True,             # Enable or disable verbose output for debugging
+            "verbose_output": False,             # Enable or disable verbose output for debugging
             "logger": "v7p3r_engine_logger",     # Logger name for the engine, used for logging engine-specific events
             "game_count": 1,                     # Number of games to play
             "starting_position": "default",      # Default starting position name (or FEN string)
