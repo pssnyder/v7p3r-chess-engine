@@ -484,3 +484,57 @@ test_evaluation_20250628_2228:
   stalemate_penalty: -999999999.0
   trapped_piece_penalty: 0.0
   undefended_piece_penalty: -1000.0
+tuned_ga_gen1:
+  backward_pawn_penalty: -0.5
+  bishop_activity_bonus: 0.15
+  bishop_vision_bonus: 1.0
+  capture_bonus: 15.0
+  capture_move_bonus: 4000
+  castling_bonus: 5.0
+  castling_protection_bonus: 3.0
+  castling_protection_penalty: -6.0
+  center_control_bonus: 0.25
+  check_bonus: 50.0
+  check_move_bonus: 10000
+  checkmate_bonus: 1000000.0
+  checkmate_move_bonus: 1000000
+  coordinated_rooks_bonus: 0.25
+  counter_move_bonus: 1000
+  doubled_pawn_penalty: -0.5
+  draw_penalty: -9999999999.0
+  en_passant_bonus: 1.0
+  exposed_king_penalty: -10.0
+  file_control_bonus: 0.12707669378432485
+  hanging_piece_bonus: 1.3862897228565974
+  hash_move_bonus: 5000
+  history_move_bonus: 1000
+  in_check_penalty: -10.0
+  isolated_pawn_penalty: -0.5
+  killer_move_bonus: 2000
+  king_safety_bonus: 1.5
+  king_safety_penalty: -100.0
+  king_threat_penalty: -50.0
+  knight_activity_bonus: 0.1
+  knight_pair_bonus: 1.0
+  knight_vision_penalty: -0.30115065400967794
+  material_weight: 0.7482690477864516
+  open_file_bonus: 0.3
+  passed_pawn_bonus: 1.0
+  pawn_advancement_bonus: 0.25
+  pawn_promotion_bonus: 5.0
+  pawn_structure_bonus: 0.1
+  piece_activity_bonus: 0.1
+  piece_coordination_bonus: 0.5
+  piece_development_bonus: 2.0
+  piece_mobility_bonus: 0.1
+  promotion_move_bonus: 3000
+  queen_capture_bonus: 1000.0
+  repetition_penalty: -9999999999.0
+  rook_development_penalty: 0.10827503895442486
+  rook_position_bonus: 0.4
+  stacked_rooks_bonus: 0.5
+  stalemate_penalty: -9999999999.0
+  tempo_bonus: 0.1
+  trapped_piece_penalty: -5.0
+  undefended_piece_penalty: -2.0
+  undeveloped_penalty: -0.5

@@ -6,14 +6,13 @@ It provides handler functionality for search algorithms, evaluation functions, a
 """
 
 import chess
-import yaml
 import logging
 import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
 import datetime
 from v7p3r_search import v7p3rSearch
-from v7p3r_score import v7p3rScore
+from v7p3r_engine.v7p3r_score_v2 import v7p3rScore
 from v7p3r_ordering import v7p3rOrdering
 from v7p3r_time import v7p3rTime
 from v7p3r_book import v7p3rBook
@@ -88,7 +87,7 @@ class v7p3rEngine:
             chess.PAWN: 1.0
         })  
         # Required Engine Modules
-        self.pst = v7p3rPST(self.piece_values, self.logger)
+        self.pst = v7p3rPST(self.logger)
         self.scoring_calculator = v7p3rScore(self.engine_config, self.pst, self.logger)
         self.move_organizer = v7p3rOrdering(self.engine_config, self.scoring_calculator, self.logger)
         self.time_manager = v7p3rTime()

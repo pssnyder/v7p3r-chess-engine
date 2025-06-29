@@ -1,0 +1,36 @@
+[Event "AI vs. AI Game"]
+[Site "192.168.50.124"]
+[Date "2025.06.23"]
+[Round "#"]
+[White "v7p3r"]
+[Black "v7p3r"]
+[Result "1-0"]
+[Rated "True"]
+
+1. e4 { Eval: 0.50 } 1... e6 { Eval: -0.10 } 2. f4 { Eval: 0.90 } 2... Nh6
+{ Eval: -1.10 } 3. Nc3 { Eval: 0.10 } 3... c6 { Eval: 0.50 } 4. Na4
+{ Eval: 0.30 } 4... Ba3 { Eval: -0.30 } 5. Nb6 { Eval: -0.40 } 5... Rf8
+{ Eval: 0.40 } 6. Nxd7 { Eval: -2.40 } 6... Qf6 { Eval: 2.20 } 7. Bc4
+{ Eval: -2.50 } 7... Qe7 { Eval: 2.60 } 8. Nh3 { Eval: -2.80 } 8... Rg8
+{ Eval: 2.80 } 9. Nf8 { Eval: -2.10 } 9... a5 { Eval: 3.00 } 10. Bd3
+{ Eval: -3.10 } 10... Kxf8 { Eval: 0.50 } 11. g4 { Eval: 0.40 } 11... g5
+{ Eval: 0.50 } 12. Nxg5 { Eval: -2.20 } 12... Qd8 { Eval: 2.30 } 13. Ba6
+{ Eval: -1.90 } 13... Qxd2+ { Eval: -0.20 } 14. Qxd2 { Eval: -8.90 } 14... f6
+{ Eval: 9.50 } 15. h3 { Eval: -8.70 } 15... bxa6 { Eval: 6.45 } 16. Nxe6+
+{ Eval: -8.35 } 16... Bxe6 { Eval: 4.65 } 17. Kd1 { Eval: -4.65 } 17... Ke7
+{ Eval: 4.85 } 18. f5 { Eval: -4.65 } 18... Nxf5 { Eval: 2.75 } 19. Rf1
+{ Eval: -2.75 } 19... Nh6 { Eval: 3.65 } 20. b4 { Eval: -2.75 } 20... Kf7
+{ Eval: 2.55 } 21. Ke2 { Eval: -2.55 } 21... Rh8 { Eval: 2.55 } 22. Re1
+{ Eval: -2.55 } 22... Kf8 { Eval: 2.55 } 23. Ke3 { Eval: -2.55 } 23... Kg7
+{ Eval: 2.55 } 24. Ke2 { Eval: -2.55 } 24... Kg6 { Eval: 2.55 } 25. Qc3
+{ Eval: -2.65 } 25... Bxg4+ { Eval: 1.75 } 26. hxg4 { Eval: -4.90 } 26... Ng8
+{ Eval: 5.10 } 27. Rd1 { Eval: -5.10 } 27... f5 { Eval: 5.30 } 28. g5
+{ Eval: -5.20 } 28... Nf6 { Eval: 4.20 } 29. Ke3 { Eval: -4.20 } 29... f4+
+{ Eval: 4.40 } 30. Kd4 { Eval: -4.40 } 30... Kg7 { Eval: 4.40 } 31. gxf6+
+{ Eval: -7.40 } 31... Kh6 { Eval: 7.20 } 32. Bxf4+ { Eval: -8.50 } 32... Kh5
+{ Eval: 8.50 } 33. Rd2 { Eval: -8.70 } 33... Rd8+ { Eval: 8.70 } 34. Kc4
+{ Eval: -8.90 } 34... Nd7 { Eval: 8.10 } 35. f7 { Eval: -8.50 } 35... Nb6+
+{ Eval: 8.50 } 36. Kc5 { Eval: -8.70 } 36... Rdc8 { Eval: 8.70 } 37. Rg1
+{ Eval: -8.70 } 37... Re8 { Eval: 8.70 } 38. f8=R { Eval: -12.50 } 38... Rxf8
+{ Eval: 7.50 } 39. Rh2# { Eval: -7.40 } 1-0
+

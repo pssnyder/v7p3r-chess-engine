@@ -17,8 +17,8 @@ import logging
 # Ensure parent path for engine imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from v7p3r_ga_ruleset_manager import GARulesetManager
-from v7p3r_engine.v7p3r_score import v7p3rScore
+from v7p3r_ga_ruleset_manager import v7p3rGARulesetManager
+from v7p3r_engine.v7p3r_score_v2 import v7p3rScore
 from v7p3r_engine.v7p3r_pst import v7p3rPST
 from v7p3r_engine.stockfish_handler import StockfishHandler
 from puzzles.puzzle_db_manager import PuzzleDBManager
@@ -38,14 +38,14 @@ class v7p3rGeneticAlgorithm:
         logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
         # Managers
-        self.ruleset_manager = GARulesetManager()
+        self.ruleset_manager = v7p3rGARulesetManager()
         self.stockfish = StockfishHandler(self.config['stockfish_config'])
         self.puzzle_db = PuzzleDBManager(self.config.get('puzzle_db_config', {}))
 
         # Scorer
         engine_cfg = {'verbose_output': False}
         # Initialize PST with default piece values and logger
-        pst = v7p3rPST({}, self.logger)
+        pst = v7p3rPST(self.logger)
         self.scorer = v7p3rScore(engine_cfg, pst, self.logger)
 
         # Load base ruleset

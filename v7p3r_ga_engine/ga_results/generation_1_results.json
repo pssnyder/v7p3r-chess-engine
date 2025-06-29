@@ -1,0 +1,93 @@
+{
+  "generation": 1,
+  "fens": [
+    "1r3r1k/2p4p/p2p1p1p/3QP3/3P4/q2BK3/P4P1P/6R1 b - - 0 27",
+    "r5k1/p1q3pp/3b4/3p1Q2/4p2P/3N2P1/PPP3K1/R7 b - - 1 24",
+    "8/3b4/5k2/2R3pp/3rPp2/p1K2P2/2B3P1/8 b - - 0 39",
+    "r2qkbnr/pp2pppp/2n5/2p2b2/4NP2/3P4/PPP3PP/R1BQKBNR w KQkq - 1 6",
+    "4r1k1/Q4bp1/1p3p2/3n1q1p/3P4/2P2NRP/P2B2P1/6K1 w - - 0 28"
+  ],
+  "ruleset": {
+    "backward_pawn_penalty": -0.5,
+    "bishop_activity_bonus": 0.15,
+    "bishop_vision_bonus": 1.0,
+    "capture_bonus": 15.0,
+    "capture_move_bonus": 4000,
+    "castling_bonus": 5.0,
+    "castling_protection_bonus": 3.0,
+    "castling_protection_penalty": -6.0,
+    "center_control_bonus": 0.25,
+    "check_bonus": 50.0,
+    "check_move_bonus": 10000,
+    "checkmate_bonus": 1000000.0,
+    "checkmate_move_bonus": 1000000,
+    "coordinated_rooks_bonus": 0.25,
+    "counter_move_bonus": 1000,
+    "doubled_pawn_penalty": -0.5,
+    "draw_penalty": -9999999999.0,
+    "en_passant_bonus": 1.0,
+    "exposed_king_penalty": -10.0,
+    "file_control_bonus": 0.12707669378432485,
+    "hanging_piece_bonus": 1.3862897228565974,
+    "hash_move_bonus": 5000,
+    "history_move_bonus": 1000,
+    "in_check_penalty": -10.0,
+    "isolated_pawn_penalty": -0.5,
+    "killer_move_bonus": 2000,
+    "king_safety_bonus": 1.5,
+    "king_safety_penalty": -100.0,
+    "king_threat_penalty": -50.0,
+    "knight_activity_bonus": 0.1,
+    "knight_pair_bonus": 1.0,
+    "knight_vision_penalty": -0.30115065400967794,
+    "material_weight": 0.7482690477864516,
+    "open_file_bonus": 0.3,
+    "passed_pawn_bonus": 1.0,
+    "pawn_advancement_bonus": 0.25,
+    "pawn_promotion_bonus": 5.0,
+    "pawn_structure_bonus": 0.1,
+    "piece_activity_bonus": 0.1,
+    "piece_coordination_bonus": 0.5,
+    "piece_development_bonus": 2.0,
+    "piece_mobility_bonus": 0.1,
+    "promotion_move_bonus": 3000,
+    "queen_capture_bonus": 1000.0,
+    "repetition_penalty": -9999999999.0,
+    "rook_development_penalty": 0.10827503895442486,
+    "rook_position_bonus": 0.4,
+    "stacked_rooks_bonus": 0.5,
+    "stalemate_penalty": -9999999999.0,
+    "tempo_bonus": 0.1,
+    "trapped_piece_penalty": -5.0,
+    "undefended_piece_penalty": -2.0,
+    "undeveloped_penalty": -0.5
+  },
+  "fitness": -205738869.6661267,
+  "evals": [
+    {
+      "fen": "1r3r1k/2p4p/p2p1p1p/3QP3/3P4/q2BK3/P4P1P/6R1 b - - 0 27",
+      "stockfish": 4.77,
+      "v7p3r": 7643.680665235375
+    },
+    {
+      "fen": "r5k1/p1q3pp/3b4/3p1Q2/4p2P/3N2P1/PPP3K1/R7 b - - 1 24",
+      "stockfish": 4.77,
+      "v7p3r": 13006.164354968687
+    },
+    {
+      "fen": "8/3b4/5k2/2R3pp/3rPp2/p1K2P2/2B3P1/8 b - - 0 39",
+      "stockfish": 4.77,
+      "v7p3r": 6279.247844253244
+    },
+    {
+      "fen": "r2qkbnr/pp2pppp/2n5/2p2b2/4NP2/3P4/PPP3PP/R1BQKBNR w KQkq - 1 6",
+      "stockfish": 0.0,
+      "v7p3r": 24197.911835229188
+    },
+    {
+      "fen": "4r1k1/Q4bp1/1p3p2/3n1q1p/3P4/2P2NRP/P2B2P1/6K1 w - - 0 28",
+      "stockfish": 0.0,
+      "v7p3r": 13312.591176564229
+    }
+  ]
+}
