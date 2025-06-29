@@ -23,6 +23,7 @@ class v7p3rScore:
         self.logger = logger if logger else logging.getLogger("v7p3r_engine_logger")
         self.print_scoring = engine_config.get('verbose_output', False)
         self.ruleset_name = engine_config.get('engine_ruleset', 'default_evaluation')
+        self.use_game_phase = engine_config.get('use_game_phase', False)
 
         # Required Scoring Modules
         self.pst = pst
@@ -311,7 +312,13 @@ class v7p3rScore:
                 print(f"[Scoring Calc] Stalemate score for {color_name}: {stalemate_score:.3f} (Ruleset: {self.ruleset_name})")
         score += stalemate_score
 
-        self.calculate_game_phase(board)
+        # Endgame factor adjustment
+        if self.use_game_phase:
+            self.calculate_game_phase(board)
+        else:
+            self.game_phase = 'opening'
+            self.game_factor = 0.0
+        
         if v7p3r_thinking:
             if self.logger:
                 self.logger.debug(f"[Scoring Calc] Final score for {current_player_name} as {color_name}: {score:.3f} | Ruleset: {self.ruleset_name} | FEN: {board.fen()}")
@@ -319,7 +326,7 @@ class v7p3rScore:
                 print(f"[Scoring Calc] Final score for {current_player_name} as {color_name}: {score:.3f} | Ruleset: {self.ruleset_name} | FEN: {board.fen()}")
         return score
 
-    def calculate_game_phase(self, board: chess.Board) -> str:
+    def calculate_game_phase(self, board: chess.Board):
         """
         Determines the current phase of the game: 'opening', 'middlegame', or 'endgame'.
         Uses material and castling rights as heuristics.
@@ -327,6 +334,12 @@ class v7p3rScore:
         """
         phase = 'opening'
         endgame_factor = 0.0
+
+        if not self.use_game_phase:
+            self.game_phase = 'opening'
+            self.game_factor = 0.0
+            return  # If game phase is not used, default to opening
+
         # Count total material (excluding kings)
         material = sum([
             len(board.pieces(piece_type, chess.WHITE)) + len(board.pieces(piece_type, chess.BLACK))
@@ -365,7 +378,7 @@ class v7p3rScore:
             
         self.game_phase = phase
         self.game_factor = endgame_factor
-        return phase
+        return
 
     # ==========================================
     # ========= RULE SCORING FUNCTIONS =========
@@ -924,10 +937,19 @@ if __name__ == "__main__":
     # Initialize required arguments
     engine_config = {
         'verbose_output': True,
-        'engine_ruleset': 'default_evaluation'
+        'engine_ruleset': 'default_evaluation',
+        'use_game_phase': False,
+        'piece_values': {
+            chess.PAWN: 1.0,
+            chess.KNIGHT: 3.0,
+            chess.BISHOP: 3.0,
+            chess.ROOK: 5.0,
+            chess.QUEEN: 9.0,
+            chess.KING: 0.0
+        },
     }
     from v7p3r_pst import v7p3rPST
-    pst = v7p3rPST()  # Replace with an actual piece-square table object
+    pst = v7p3rPST(engine_config['piece_values'], logging.getLogger("v7p3r_pst_logger"))
     logger = logging.getLogger("v7p3r_engine_logger")
     
     scoring_calculator = v7p3rScore(engine_config=engine_config, pst=pst, logger=logger)

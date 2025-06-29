@@ -112,7 +112,7 @@ class ChessGame:
         
         if 'v7p3r_ga' in self.engines:
             try:
-                from v7p3r_ga_engine.v7p3r_ga import V7P3RGeneticAlgorithm
+                from v7p3r_ga_engine.v7p3r_ga import v7p3rGeneticAlgorithm
                 GA_ENGINE_AVAILABLE = True
             except ImportError:
                 GA_ENGINE_AVAILABLE = False
@@ -139,13 +139,11 @@ class ChessGame:
         # Initialize GA engine if available
         if GA_ENGINE_AVAILABLE and 'v7p3r_ga' in self.engines:
             try:
+                from v7p3r_ga_engine.v7p3r_ga import v7p3rGeneticAlgorithm
                 ga_config_path = config.get('ga_config_path', 'config/v7p3r_ga_config.yaml')
-                # The GA engine is primarily for training, not gameplay
-                # We'll create a simple wrapper that uses the best ruleset
-                self.ga_engine = self._create_ga_engine_wrapper(ga_config_path)
-                if self.ga_engine:
-                    self.engines['v7p3r_ga'] = self.ga_engine
-                    print("✓ v7p3r GA engine wrapper initialized")
+                self.ga_engine = v7p3rGeneticAlgorithm(ga_config_path)
+                self.engines['v7p3r_ga'] = self.ga_engine
+                print("✓ v7p3r GA engine initialized for gameplay")
             except Exception as e:
                 print(f"Warning: Failed to initialize GA engine: {e}")
         
@@ -573,38 +571,6 @@ class ChessGame:
                 self.logger.error(f"ValueError pushing move {move}: {e}. Dumping PGN to error_dump.pgn")
             self.quick_save_pgn("games/game_error_dump.pgn")
             return False
-
-    def _create_ga_engine_wrapper(self, ga_config_path):
-        """Create a wrapper that can use GA-optimized rulesets for gameplay."""
-        try:
-            from v7p3r_ga_engine.ruleset_manager import RulesetManager
-            
-            # Load the best ruleset from GA training if available
-            ruleset_manager = RulesetManager()
-            
-            # Try to load the best evolved ruleset, fallback to default
-            try:
-                best_ruleset = ruleset_manager.load_ruleset('best_evolved')
-            except:
-                best_ruleset = ruleset_manager.load_ruleset('default_evaluation')
-            
-            # Create a simple wrapper that uses the GA-optimized ruleset with v7p3r engine
-            class GAEngineWrapper:
-                def __init__(self, ruleset):
-                    self.ruleset = ruleset
-                    self.v7p3r_engine = v7p3rEngine()
-                    # Note: GA-optimized ruleset integration would need proper implementation
-                    # For now, this wrapper just uses standard v7p3r engine
-                
-                def search(self, board, player_color, engine_config=None):
-                    """Search for best move using GA-optimized evaluation."""
-                    return self.v7p3r_engine.search_engine.search(board, player_color)
-                
-                def cleanup(self):
-                    """Cleanup resources."""
-                    pass
-            
-            return GAEngineWrapper(best_ruleset)
             
         except Exception as e:
             print(f"Failed to create GA engine wrapper: {e}")
@@ -727,10 +693,11 @@ if __name__ == "__main__":
             "name": "v7p3r",                     # Name of the engine, used for identification and logging
             "version": "1.0.0",                  # Version of the engine, used for identification and logging
             "color": "white",                    # Color of the engine, either 'white' or 'black'
-            "ruleset": "survival_evaluation",     # Name of the evaluation rule set to use, see below for available options
+            "ruleset": "test_evaluation_20250628_2228",    # Name of the evaluation rule set to use, see below for available options
             "search_algorithm": "negamax",       # Move search type for White (see search_algorithms for options)
-            "depth": 2,                          # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
-            "max_depth": 3,                     # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
+            "depth": 5,                          # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
+            "max_depth": 8,                      # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
+            "use_game_phase": False,             # Use game phase evaluation
             "monitoring_enabled": True,          # Enable or disable monitoring features
             "verbose_output": False,             # Enable or disable verbose output for debugging
             "logger": "v7p3r_engine_logger",     # Logger name for the engine, used for logging engine-specific events
@@ -741,12 +708,12 @@ if __name__ == "__main__":
         },
         "stockfish_config": {
             "stockfish_path": "engine_utilities/external_engines/stockfish/stockfish-windows-x86-64-avx2.exe",
-            "elo_rating": 400,
+            "elo_rating": 100,
             "skill_level": 1,
             "debug_mode": False,
             "depth": 2,
             "max_depth": 2,
-            "movetime": 1000,  # Time in milliseconds for Stockfish to think
+            "movetime": 500,  # Time in milliseconds for Stockfish to think
         },
     }
     game = ChessGame(config)

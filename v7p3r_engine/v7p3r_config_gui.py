@@ -112,7 +112,7 @@ def get_engine_options():
     
     # Check for GA engine
     try:
-        from v7p3r_ga_engine.v7p3r_ga import V7P3RGeneticAlgorithm
+        from v7p3r_ga_engine.v7p3r_ga import v7p3rGeneticAlgorithm
         engines.append("v7p3r_ga")
     except ImportError:
         pass
