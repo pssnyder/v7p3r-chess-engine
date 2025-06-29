@@ -7,23 +7,36 @@
 *.wip*
 
 # Project-specific resource files and directories
-*.v7p3r_chess_engine
-*.v7p3r_chess_engine.*
 .v7p3r_chess_engine_project_files/
+.product_management/
 templates/
 .db-shm
 .db-wal
-games/
-logging/
+#games/
+#logging/
 db_backups/
-training_data/
-*/external_engines/*
-evaluation/
-v7p3r_nn_models/
-v7p3r_ga_models/
-v7p3r_rl_models/
+#training_data/
+#*/external_engines/*
+chatfish/
+codebullet/
+#v7p3r_nn_models/
+#v7p3r_ga_models/
+#v7p3r_rl_models/
 venv/
 .history/
+
+# Data files
+#*.csv
+#*.jsonl
+#*.db
+#*.db-*
+#*.sqlite
+
+# Model files
+#*.pt
+#*.pth
+#*.ckpt
+#*.h5
 
 # Python specific
 __pycache__/
@@ -75,19 +88,6 @@ pip-delete-this-directory.txt
 # OS specific
 .DS_Store # macOS
 Thumbs.db # Windows
-
-# Data files
-*.csv
-*.jsonl
-*.db
-*.db-*
-*.sqlite
-
-# Model files
-*.pt
-*.pth
-*.ckpt
-*.h5
 
 # Testing and coverage
 htmlcov/
