@@ -41,12 +41,22 @@ class v7p3rSearch:
         self.board = board.copy()
         self.nodes_searched = 0  # Reset nodes searched for this search
 
+        # Check for checkmate patterns
+        # checkmate_move = self._checkmate_search(board.copy(), depth=self.depth, first_move=chess.Move.null())
+        checkmate_move = chess.Move.null() # TODO fix or remove - overriding this function for now
+        if checkmate_move != chess.Move.null() and self.board.is_legal(checkmate_move):
+            if self.logger:
+                self.logger.debug(f"Checkmate move found: {checkmate_move} | FEN: {board.fen()}")
+            return checkmate_move
+        
+        # Check for book moves
         book_move = self.opening_book.get_book_move(board.copy())
         if book_move and self.board.is_legal(book_move):
             if self.logger:
                 self.logger.debug(f"Opening book move found: {book_move} | FEN: {board.fen()}")
             return book_move
         
+        # Start the search evaluation
         if self.logger:
             self.logger.debug(f"== EVALUATION (Player: {'White' if player == chess.WHITE else 'Black'}) == | Search Type: {self.engine_search_algorithm} | Depth: {self.depth} | Max Depth: {self.max_depth} == ")
 
@@ -61,6 +71,23 @@ class v7p3rSearch:
             temp_board = self.board.copy()
             temp_board.push(move)
             current_move_score = 0.0
+
+            # Check for immediate checkmate or stalemate
+            if temp_board.is_checkmate():
+                if self.logger:
+                    self.logger.info(f"Checkmate move found: {move} | FEN: {temp_board.fen()}")
+                return move
+            elif (temp_board.is_stalemate()
+                or temp_board.is_insufficient_material()
+                or temp_board.can_claim_fifty_moves()
+                or temp_board.can_claim_threefold_repetition()
+                or temp_board.is_seventyfive_moves()
+                or temp_board.is_fivefold_repetition()
+                or temp_board.is_variant_draw()):
+                if self.logger:
+                    self.logger.info(f"Stalemate or draw condition met for move: {move} | FEN: {temp_board.fen()}")
+                continue # Skip this move if it leads to stalemate or draw
+
             try:
                 if self.engine_search_algorithm == 'deepsearch':
                     # Pass self.depth (from resolved config) to _deep_search
@@ -123,6 +150,16 @@ class v7p3rSearch:
                 self.logger.debug(f"No legal moves available | FEN: {board.fen()}")
             return chess.Move.null() # Return null move if no legal moves
         move = random.choice(legal_moves)
+
+        # Check for immediate checkmate or stalemate
+        for mating_move in legal_moves:
+            temp_board = board.copy()
+            temp_board.push(mating_move)
+            if temp_board.is_checkmate():
+                if self.logger:
+                    self.logger.info(f"Checkmate move found: {mating_move} | FEN: {temp_board.fen()}")
+                return mating_move
+
         if self.logger:
             self.logger.debug(f"Randomly selected move: {move} | FEN: {board.fen()}")
         return move
@@ -138,6 +175,23 @@ class v7p3rSearch:
         for move in legal_moves:
             temp_board = board.copy()
             temp_board.push(move)
+
+            # Check for immediate checkmate or stalemate
+            if temp_board.is_checkmate():
+                if self.logger:
+                    self.logger.info(f"Checkmate move found: {move} | FEN: {temp_board.fen()}")
+                return move
+            elif (temp_board.is_stalemate()
+                or temp_board.is_insufficient_material()
+                or temp_board.can_claim_fifty_moves()
+                or temp_board.can_claim_threefold_repetition()
+                or temp_board.is_seventyfive_moves()
+                or temp_board.is_fivefold_repetition()
+                or temp_board.is_variant_draw()):
+                if self.logger:
+                    self.logger.info(f"Stalemate or draw condition met for move: {move} | FEN: {temp_board.fen()}")
+                continue # Skip this move if it leads to stalemate or draw
+
             score = self.scoring_calculator.evaluate_position(temp_board)
             self.nodes_searched += 1  # Increment nodes searched
             if self.logger:
@@ -162,7 +216,23 @@ class v7p3rSearch:
         for move in legal_moves:
             temp_board = board.copy()
             temp_board.push(move)
-            # Recursive call: _lookahead_search only returns score (float)
+            
+            # Check for immediate checkmate or stalemate
+            if temp_board.is_checkmate():
+                if self.logger:
+                    self.logger.info(f"Checkmate move found: {move} | FEN: {temp_board.fen()}")
+                return 999999999 # Return a large score for checkmate
+            elif (temp_board.is_stalemate()
+                or temp_board.is_insufficient_material()
+                or temp_board.can_claim_fifty_moves()
+                or temp_board.can_claim_threefold_repetition()
+                or temp_board.is_seventyfive_moves()
+                or temp_board.is_fivefold_repetition()
+                or temp_board.is_variant_draw()):
+                if self.logger:
+                    self.logger.info(f"Stalemate or draw condition met for move: {move} | FEN: {temp_board.fen()}")
+                continue # Skip this move if it leads to stalemate or draw
+
             score = -self._lookahead_search(temp_board, depth - 1, -beta, -alpha)
             self.nodes_searched += 1  # Increment nodes searched
             if score > best_score:
@@ -181,6 +251,23 @@ class v7p3rSearch:
         for move in legal_moves:
             temp_board = board.copy()
             temp_board.push(move)
+
+            # Check for immediate checkmate or stalemate
+            if temp_board.is_checkmate():
+                if self.logger:
+                    self.logger.info(f"Checkmate move found: {move} | FEN: {temp_board.fen()}")
+                return 999999999 # Return a large score for checkmate
+            elif (temp_board.is_stalemate()
+                or temp_board.is_insufficient_material()
+                or temp_board.can_claim_fifty_moves()
+                or temp_board.can_claim_threefold_repetition()
+                or temp_board.is_seventyfive_moves()
+                or temp_board.is_fivefold_repetition()
+                or temp_board.is_variant_draw()):
+                if self.logger:
+                    self.logger.info(f"Stalemate or draw condition met for move: {move} | FEN: {temp_board.fen()}")
+                continue # Skip this move if it leads to stalemate or draw
+
             score = self._minimax_search(temp_board, depth-1, alpha, beta, not maximizing_player)
             self.nodes_searched += 1  # Increment nodes searched
             if maximizing_player:
@@ -226,6 +313,22 @@ class v7p3rSearch:
             temp_board = board.copy()
             temp_board.push(move)
             
+            # Check for immediate checkmate or stalemate
+            if temp_board.is_checkmate():
+                if self.logger:
+                    self.logger.info(f"Checkmate move found: {move} | FEN: {temp_board.fen()}")
+                return 999999999 # Return a large score for checkmate
+            elif (temp_board.is_stalemate()
+                or temp_board.is_insufficient_material()
+                or temp_board.can_claim_fifty_moves()
+                or temp_board.can_claim_threefold_repetition()
+                or temp_board.is_seventyfive_moves()
+                or temp_board.is_fivefold_repetition()
+                or temp_board.is_variant_draw()):
+                if self.logger:
+                    self.logger.info(f"Stalemate or draw condition met for move: {move} | FEN: {temp_board.fen()}")
+                continue # Skip this move if it leads to stalemate or draw
+
             # Recursive negamax call with flipped perspectives
             score = -self._negamax_search(temp_board, depth-1, -beta, -alpha)
             self.nodes_searched += 1
@@ -283,6 +386,22 @@ class v7p3rSearch:
                 temp_board = board.copy()
                 temp_board.push(move)
                 
+                # Check for immediate checkmate or stalemate
+                if temp_board.is_checkmate():
+                    if self.logger:
+                        self.logger.info(f"Checkmate move found: {move} | FEN: {temp_board.fen()}")
+                    return move
+                elif (temp_board.is_stalemate()
+                    or temp_board.is_insufficient_material()
+                    or temp_board.can_claim_fifty_moves()
+                    or temp_board.can_claim_threefold_repetition()
+                    or temp_board.is_seventyfive_moves()
+                    or temp_board.is_fivefold_repetition()
+                    or temp_board.is_variant_draw()):
+                    if self.logger:
+                        self.logger.info(f"Stalemate or draw condition met for move: {move} | FEN: {temp_board.fen()}")
+                    continue # Skip this move if it leads to stalemate or draw
+                
                 # For potential checkmates, search deeper
                 if temp_board.is_check():
                     # Search deeper when giving check to find potential checkmates
@@ -336,7 +455,7 @@ class v7p3rSearch:
         
         # Check for immediate game-ending conditions with huge scores
         if temp_board.is_checkmate():
-            return -float('inf') if maximizing_player else float('inf')
+            return -999999999 if maximizing_player else 999999999
         
         # Handle standing pat
         if maximizing_player:
@@ -389,33 +508,27 @@ class v7p3rSearch:
                     
         return alpha if maximizing_player else beta
     
-    def _checkmate_search(self, board: chess.Board, depth: int = 3) -> chess.Move:
+    def _checkmate_search(self, board: chess.Board, depth: int = 3, first_move: chess.Move = chess.Move.null()) -> chess.Move:
         """Identify checkmate patterns within the given depth (interpreted as ply)."""
-        def is_checkmate_chain(temp_board: chess.Board, current_depth: int) -> bool:
-            """Recursive helper to determine if a move chain results in checkmate."""
-            if current_depth == 0:
-                return temp_board.is_checkmate()
-            
-            pseudolegal_moves = list(temp_board.pseudo_legal_moves)
-            for move in pseudolegal_moves:
-                temp_board.push(move)
-                if is_checkmate_chain(temp_board, current_depth - 1):
-                    temp_board.pop()
-                    return True
-                temp_board.pop()
-            return False
+        # legal_moves = list(board.pseudo_legal_moves) # Complete list of pseudolegal moves
+        legal_moves = list(board.legal_moves)  # Use legal moves to avoid illegal checks
+        if depth <= 0 or board.is_game_over() or not legal_moves:
+            return chess.Move.null()  # No pseudolegal moves left or depth is zero
 
-        pseudolegal_moves = list(board.pseudo_legal_moves)
-        if not pseudolegal_moves:
-            return chess.Move.null()  # No pseudolegal moves, likely game over
-
-        for move in pseudolegal_moves:
+        for move in legal_moves:
+            first_move = move if first_move == chess.Move.null() else first_move
             temp_board = board.copy()
             temp_board.push(move)
-            if is_checkmate_chain(temp_board, depth - 1):
+            if temp_board.is_checkmate():
+                # Checkmate found
                 if self.logger:
                     self.logger.info(f"Checkmate move found: {move} | FEN: {board.fen()}")
-                return move  # Return the move that results in checkmate
+                return first_move  # Return the first move in the checkmate chain
+            else:
+                # Recursive check for further moves
+                next_move = self._checkmate_search(temp_board, depth - 1, first_move)
+                if self.logger:
+                    self.logger.info(f"Checking next move: {next_move} | Depth: {depth - 1} | FEN: {temp_board.fen()}")
 
         if self.logger:
             self.logger.debug(f"No checkmate move found within depth {depth}.")

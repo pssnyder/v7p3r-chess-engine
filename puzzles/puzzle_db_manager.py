@@ -21,18 +21,7 @@ from datetime import datetime
 import yaml
 import random
 from pathlib import Path
-try:
-    from prompt_toolkit import Application, HTML
-    from prompt_toolkit.layout import Layout, HSplit, VSplit
-    from prompt_toolkit.layout.containers import Window
-    from prompt_toolkit.layout.controls import FormattedTextControl
-    from prompt_toolkit.widgets import Button, Frame, Label, TextArea, Dialog, Box
-    from prompt_toolkit.key_binding import KeyBindings
-    from prompt_toolkit.styles import Style
-    PROMPT_TOOLKIT_AVAILABLE = True
-except ImportError:
-    PROMPT_TOOLKIT_AVAILABLE = False
-    print("Warning: prompt_toolkit not available, falling back to basic console UI")
+
 
 
 # Define ELO difficulty levels
@@ -534,6 +523,46 @@ class PuzzleDBManager:
         """Destructor to ensure the database connection is closed."""
         self.close()
 
+    def get_random_fens(self, count=50, min_elo=None, max_elo=None, themes=None):
+        """
+        Fetch a random set of FENs from the database, optionally filtered by ELO and themes.
+        Returns a list of FEN strings.
+        """
+        filters = {}
+        if min_elo is not None:
+            filters['min_rating'] = min_elo
+        if max_elo is not None:
+            filters['max_rating'] = max_elo
+        if themes:
+            filters['themes'] = themes
+        # Use ORDER BY RANDOM() for random selection
+        query_parts = ["SELECT fen FROM puzzles WHERE 1=1"]
+        query_params = []
+        if 'min_rating' in filters:
+            query_parts.append("AND rating >= ?")
+            query_params.append(filters['min_rating'])
+        if 'max_rating' in filters:
+            query_parts.append("AND rating <= ?")
+            query_params.append(filters['max_rating'])
+        if 'themes' in filters and filters['themes']:
+            themes_list = filters['themes']
+            if isinstance(themes_list, str):
+                themes_list = [themes_list]
+            for theme in themes_list:
+                query_parts.append("AND themes LIKE ?")
+                query_params.append(f"%{theme}%")
+        query_parts.append("ORDER BY RANDOM() LIMIT ?")
+        query_params.append(count)
+        if not self.conn:
+            self.logger.error("No database connection available")
+            return []
+        if not self.conn:
+            self.logger.error("No database connection available")
+            return []
+        cursor = self.conn.cursor()
+        cursor.execute(" ".join(query_parts), query_params)
+        return [row['fen'] for row in cursor.fetchall()]
+
 
 class ConsoleUI:
     """Basic console UI for the Puzzle Database Manager."""
@@ -750,146 +779,9 @@ class ConsoleUI:
             print(f"  {theme}: {count}")
 
 
-class PromptToolkitUI:
-    """Advanced UI using prompt_toolkit for the Puzzle Database Manager."""
-    
-    def __init__(self, db_manager):
-        """
-        Initialize the prompt_toolkit UI.
-        
-        Args:
-            db_manager (PuzzleDBManager): The puzzle database manager instance.
-        """
-        self.db_manager = db_manager
-        self.kb = KeyBindings()
-        
-        # Initialize UI components
-        self.output_area = TextArea(text="Welcome to the V7P3R Puzzle Database Manager!", read_only=True)
-        
-        # Define key bindings
-        @self.kb.add('c-c')
-        @self.kb.add('c-q')
-        def _(event):
-            """Exit the application on Ctrl+C or Ctrl+Q."""
-            event.app.exit()
-        
-        # UI styling
-        self.style = Style.from_dict({
-            'label': 'bg:#000000 #ffffff',
-            'button': 'bg:#222222 #ffffff',
-            'button.focused': 'bg:#008888 #ffffff',
-            'frame.border': '#888888',
-            'frame.label': 'bg:#000000 #ffffff',
-            'dialog': 'bg:#000000',
-            'dialog frame.label': 'bg:#000000 #ffffff',
-            'dialog.body': 'bg:#000000 #ffffff',
-            'dialog shadow': 'bg:#222222',
-        })
-    
-    def start(self):
-        """Start the prompt_toolkit UI."""
-        # Create the main layout
-        self.body = HSplit([
-            # Header
-            Frame(
-                Label(HTML('<style fg="ansigreen"><b>V7P3R CHESS ENGINE - PUZZLE DATABASE MANAGER</b></style>')),
-                height=3
-            ),
-            
-            # Main content
-            VSplit([
-                # Menu buttons
-                Frame(
-                    HSplit([
-                        Button("Import Puzzles", handler=self._show_import_dialog),
-                        Button("Query Puzzles", handler=self._show_query_dialog),
-                        Button("Generate Test Set", handler=self._show_test_set_dialog),
-                        Button("Database Statistics", handler=self._show_stats),
-                        Button("Exit", handler=self._exit_app)
-                    ]),
-                    width=30,
-                    title="Menu"
-                ),
-                
-                # Output area
-                Frame(
-                    self.output_area,
-                    title="Output"
-                )
-            ])
-        ])
-        
-        # Create the application
-        self.app = Application(
-            layout=Layout(self.body),
-            key_bindings=self.kb,
-            full_screen=True,
-            mouse_support=True,
-            style=self.style
-        )
-        
-        # Run the application
-        self.app.run()
-    
-    def _exit_app(self):
-        """Exit the application."""
-        self.app.exit()
-    
-    def _show_import_dialog(self):
-        """Show the import puzzles dialog."""
-        self.output_area.text = "Import dialog functionality would be shown here.\n\n"
-        self.output_area.text += "In a full implementation, this would provide a file picker\n"
-        self.output_area.text += "and progress display for importing puzzles from CSV."
-    
-    def _show_query_dialog(self):
-        """Show the query puzzles dialog."""
-        self.output_area.text = "Query dialog functionality would be shown here.\n\n"
-        self.output_area.text += "In a full implementation, this would provide filters for:\n"
-        self.output_area.text += "- Difficulty level\n"
-        self.output_area.text += "- Rating range\n"
-        self.output_area.text += "- Themes\n"
-        self.output_area.text += "- Popularity\n"
-        self.output_area.text += "And display matching puzzles in a scrollable view."
-    
-    def _show_test_set_dialog(self):
-        """Show the generate test set dialog."""
-        self.output_area.text = "Test set generation dialog would be shown here.\n\n"
-        self.output_area.text += "In a full implementation, this would provide:\n"
-        self.output_area.text += "- Filter selection\n"
-        self.output_area.text += "- Test set size input\n"
-        self.output_area.text += "- Output path selection\n"
-        self.output_area.text += "And display a confirmation when the test set is generated."
-    
-    def _show_stats(self):
-        """Show database statistics."""
-        try:
-            stats = self.db_manager.get_database_stats()
-            
-            output = "DATABASE STATISTICS\n\n"
-            output += f"Total puzzles: {stats['total_puzzles']}\n\n"
-            
-            output += "Puzzles by difficulty level:\n"
-            for level, count in stats['difficulty_distribution'].items():
-                output += f"  {level}: {count}\n"
-            
-            output += "\nRating statistics:\n"
-            output += f"  Minimum: {stats['rating_stats']['min']}\n"
-            output += f"  Maximum: {stats['rating_stats']['max']}\n"
-            output += f"  Average: {stats['rating_stats']['avg']:.2f}\n"
-            
-            output += "\nTop 10 themes:\n"
-            for theme, count in stats['top_themes'].items():
-                output += f"  {theme}: {count}\n"
-                
-            self.output_area.text = output
-            
-        except Exception as e:
-            self.output_area.text = f"Error retrieving database statistics: {str(e)}"
 
 
 def main():
-    """Main entry point for the puzzle database manager."""
-    # Parse command line arguments
     import argparse
     parser = argparse.ArgumentParser(description="V7P3R Chess Engine Puzzle Database Manager")
     parser.add_argument("--config", help="Path to configuration file")
@@ -897,36 +789,36 @@ def main():
     parser.add_argument("--generate-test", action="store_true", help="Generate a test set")
     parser.add_argument("--no-ui", action="store_true", help="Run without UI (for batch operations)")
     args = parser.parse_args()
-    
-    # Initialize database manager
+
     db_manager = PuzzleDBManager(args.config)
-    
+
     # Import CSV if specified
     if args.csv:
         print(f"Importing puzzles from {args.csv}...")
         count = db_manager.ingest_puzzles_from_csv(args.csv)
         print(f"Successfully imported {count} puzzles.")
-    
+        db_manager.close()
+        return 0
+
     # Generate test set if specified
     if args.generate_test:
         print("Generating test set...")
         output_path = db_manager.generate_test_set()
         print(f"Test set generated at {output_path}")
-    
-    # Start UI if not in batch mode
+        db_manager.close()
+        return 0
+
+    # Always use the simple console UI if not in batch mode
     if not args.no_ui:
-        if PROMPT_TOOLKIT_AVAILABLE:
-            ui = PromptToolkitUI(db_manager)
-        else:
-            ui = ConsoleUI(db_manager)
-        
+        ui = ConsoleUI(db_manager)
         try:
             ui.start()
         finally:
             db_manager.close()
-    
-    return 0
-
+    else:
+        print("No operation specified. Use --csv to import, --generate-test to create a test set, or run without --no-ui for interactive mode.")
+        db_manager.close()
+        return 0
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()
