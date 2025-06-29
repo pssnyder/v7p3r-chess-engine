@@ -34,8 +34,22 @@ if not stockfish_handler_logger.handlers:
     stockfish_handler_logger.propagate = False
 
 
+
 class StockfishHandler:
+    _instance = None
+    _lock = threading.Lock()
+
+    def __new__(cls, stockfish_config):
+        with cls._lock:
+            if cls._instance is None:
+                cls._instance = super(StockfishHandler, cls).__new__(cls)
+                cls._instance._initialized = False
+        return cls._instance
+
     def __init__(self, stockfish_config):
+        if getattr(self, '_initialized', False):
+            return
+        self._initialized = True
         self.stockfish_path = stockfish_config.get('stockfish_path')
         self.elo_rating = stockfish_config.get('elo_rating')
         self.skill_level = stockfish_config.get('skill_level')
@@ -362,16 +376,19 @@ class StockfishHandler:
             return -score
         return score
 
+
     def close(self):
-        """Close the Stockfish handler and terminate the process."""
+        """Close the Stockfish handler and terminate the process. Also resets singleton instance."""
         self.quit()
+        with self._lock:
+            type(self)._instance = None
+            self._initialized = False
 
     def __del__(self):
         """Destructor to ensure Stockfish process is terminated when object is destroyed."""
         try:
-            self.quit()
-        except:
-            # Ignore errors during cleanup
+            self.close()
+        except Exception:
             pass
 
     def quit(self):
@@ -396,7 +413,7 @@ class StockfishHandler:
                 try:
                     self.process.kill()
                     self.process.wait()
-                except:
+                except Exception:
                     pass
             finally:
                 self.process = None  # Ensure process is None after attempting to quit
