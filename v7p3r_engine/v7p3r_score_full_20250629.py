@@ -1,6 +1,6 @@
-# v7p3r_score.py
+# v7p3r_score_full.py
 
-""" v7p3r Scoring Calculation Module (New Simplified Version)
+""" v7p3r Scoring Calculation Module (Original Full Version)
 This module is responsible for calculating the score of a chess position based on various factors,
 including material balance, piece-square tables, king safety, and other positional features.
 It is designed to be used by the v7p3r chess engine.
@@ -88,7 +88,6 @@ class v7p3rScore:
                 self.logger.debug(f"[Scoring Calc] Starting score calculation for {current_player_name} engine as {color_name} | Ruleset: {self.ruleset_name} | FEN: {board.fen()}")
             if self.print_scoring:
                 print(f"[Scoring Calc] Starting score calculation for {current_player_name} engine as {color_name} | Ruleset: {self.ruleset_name} | FEN: {board.fen()}")
-        
         # Critical scoring components
         checkmate_threats_score = 1.0 * (self._checkmate_threats(board, color) or 0.0)
         if v7p3r_thinking:
@@ -97,6 +96,30 @@ class v7p3rScore:
             if self.print_scoring:
                 print(f"[Scoring Calc] Checkmate threats score for {color_name}: {checkmate_threats_score:.3f} (Ruleset: {self.ruleset_name})")
         score += checkmate_threats_score
+
+        king_safety_score = 1.0 * (self._king_safety(board, color) or 0.0)
+        if v7p3r_thinking:
+            if self.logger:
+                self.logger.debug(f"[Scoring Calc] King safety score for {color_name}: {king_safety_score:.3f} (Ruleset: {self.ruleset_name})")
+            if self.print_scoring:
+                print(f"[Scoring Calc] King safety score for {color_name}: {king_safety_score:.3f} (Ruleset: {self.ruleset_name})")
+        score += king_safety_score
+        
+        king_threat_score = 1.0 * (self._king_threat(board, color) or 0.0)
+        if v7p3r_thinking:
+            if self.logger:
+                self.logger.debug(f"[Scoring Calc] King threat score for {color_name}: {king_threat_score:.3f} (Ruleset: {self.ruleset_name})")
+            if self.print_scoring:
+                print(f"[Scoring Calc] King threat score for {color_name}: {king_threat_score:.3f} (Ruleset: {self.ruleset_name})")
+        score += king_threat_score
+        
+        king_endangerment_score = 1.0 * (self._king_endangerment(board, color) or 0.0)
+        if v7p3r_thinking:
+            if self.logger:
+                self.logger.debug(f"[Scoring Calc] King endangerment score for {color_name}: {king_endangerment_score:.3f} (Ruleset: {self.ruleset_name})")
+            if self.print_scoring:
+                print(f"[Scoring Calc] King endangerment score for {color_name}: {king_endangerment_score:.3f} (Ruleset: {self.ruleset_name})")
+        score += king_endangerment_score
 
         draw_scenarios_score = 1.0 * (self._draw_scenarios(board) or 0.0)
         if v7p3r_thinking:

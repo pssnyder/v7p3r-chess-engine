@@ -701,7 +701,7 @@ if __name__ == "__main__":
             "monitoring_enabled": True,          # Enable or disable monitoring features
             "verbose_output": False,             # Enable or disable verbose output for debugging
             "logger": "v7p3r_engine_logger",     # Logger name for the engine, used for logging engine-specific events
-            "game_count": 1,                     # Number of games to play
+            "game_count": 10,                     # Number of games to play
             "starting_position": "default",      # Default starting position name (or FEN string)
             "white_player": "v7p3r",             # Name of the engine being used (e.g., 'v7p3r', 'stockfish'), this value is a direct reference to the engine configuration values in their respective config files
             "black_player": "stockfish",         # sets this colors engine configuration name, same as above, important note that if the engines are set the same then only whites metrics will be collected to prevent negation in win loss metrics
