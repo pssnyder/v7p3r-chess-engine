@@ -24,7 +24,7 @@ logging.basicConfig(
 def get_pgn_files(directory):
     return [os.path.join(directory, f) for f in os.listdir(directory) if f.endswith('.pgn')]
 
-def parse_games(pgn_files, max_games=100):
+def parse_games(pgn_files, max_games=1000):
     games = []
     for pgn_file in sorted(pgn_files, reverse=True):
         with open(pgn_file, 'r', encoding='utf-8') as f:
@@ -120,7 +120,7 @@ def print_metrics():
         print("No PGN files found in games directory.")
         return
     # Always use the most recent 100 games
-    games = parse_games(pgn_files, max_games=100)
+    games = parse_games(pgn_files, max_games=1000)
     print(f"Parsed {len(games)} recent games.")
 
     outcomes, by_player = get_game_outcomes(games)
