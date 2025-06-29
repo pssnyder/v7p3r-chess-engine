@@ -33,11 +33,11 @@ def test_checkmate_detection():
     
     # Import required modules
     from v7p3r_engine.v7p3r_pst import v7p3rPST
-    from v7p3r_engine.v7p3r_score import v7p3rScore
+    from v7p3r_engine.v7p3r_score_v2 import v7p3rScore
     from v7p3r_engine.v7p3r_search import v7p3rSearch
-    from v7p3r_engine.v7p3r_time_manager import v7p3rTimeManager
-    from v7p3r_engine.v7p3r_move_organizer import v7p3rMoveOrganizer
-    from v7p3r_engine.v7p3r_opening_book import v7p3rOpeningBook
+    from v7p3r_engine.v7p3r_time import v7p3rTime
+    from v7p3r_engine.v7p3r_ordering import v7p3rOrdering
+    from v7p3r_engine.v7p3r_book import v7p3rBook
     
     # Test positions with known checkmates
     test_positions = [
@@ -70,10 +70,10 @@ def test_checkmate_detection():
     
     pst = v7p3rPST()
     scoring_calculator = v7p3rScore(engine_config=engine_config, pst=pst, logger=logger)
-    time_manager = v7p3rTimeManager(engine_config)
-    move_organizer = v7p3rMoveOrganizer(engine_config)
-    opening_book = v7p3rOpeningBook(engine_config)
-    
+    time_manager = v7p3rTime()
+    move_organizer = v7p3rOrdering(engine_config, scoring_calculator, logger)
+    opening_book = v7p3rBook()
+
     # Create the search engine
     search_engine = v7p3rSearch(
         engine_config=engine_config,

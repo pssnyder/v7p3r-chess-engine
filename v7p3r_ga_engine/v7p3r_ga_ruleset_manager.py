@@ -6,7 +6,7 @@ import yaml
 from v7p3r_engine.v7p3r_config_gui import RULESET_PATH
 
 
-class GARulesetManager:
+class v7p3rGARulesetManager:
     """
     Manages the rulesets.yaml file for the GA tuner.
     """

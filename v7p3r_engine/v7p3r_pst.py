@@ -5,12 +5,12 @@ import logging
 
 class v7p3rPST:
     """ Piece-Square Tables for chess position evaluation. """
-    def __init__(self, piece_values: dict, logger: logging.Logger):
+    def __init__(self, logger: logging.Logger = logging.getLogger("v7p3r_engine_logger")):
         self.logger = logger
         # Initialize piece-square tables
         self.tables = self._create_tables()
         # Default Piece Values
-        self.piece_values = piece_values if piece_values else {
+        self.piece_values = {
             chess.KING: 0.0,
             chess.QUEEN: 9.0,
             chess.ROOK: 5.0,
@@ -201,14 +201,7 @@ class v7p3rPST:
 # Example usage and testing
 if __name__ == "__main__":
     # Test the piece-square tables
-    pst = v7p3rPST({
-        chess.KING: 0.0,
-        chess.QUEEN: 9.0,
-        chess.ROOK: 5.0,
-        chess.BISHOP: 3.25,
-        chess.KNIGHT: 3.0,
-        chess.PAWN: 1.0
-    }, logging.getLogger("v7p3rPST"))
+    pst = v7p3rPST(logging.getLogger("v7p3rPST"))
     board = chess.Board()
     
     print("Initial position PST evaluation:", pst.evaluate_board_position(board))
