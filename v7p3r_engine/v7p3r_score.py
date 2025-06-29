@@ -31,7 +31,7 @@ class v7p3rScore:
         self.rulesets = {}
         self.rules = {}
         try:
-            with open("v7p3r_engine/rulesets.yaml") as f:
+            with open("v7p3r_engine/rulesets/rulesets.yaml") as f:
                 self.rulesets = yaml.safe_load(f) or {}
                 self.rules = self.rulesets.get(f"{self.ruleset_name}", {})
         except Exception as e:

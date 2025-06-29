@@ -6,7 +6,7 @@ import random
 import copy
 
 class RulesetManager:
-    def __init__(self, ruleset_path="v7p3r_engine/rulesets.yaml"):
+    def __init__(self, ruleset_path="v7p3r_engine/rulesets/rulesets.yaml"):
         self.ruleset_path = ruleset_path
 
     def load_ruleset(self, name="default_evaluation"):

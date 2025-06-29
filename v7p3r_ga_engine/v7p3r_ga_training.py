@@ -15,7 +15,7 @@ class TrainingRunner:
     def __init__(self, config):
         """Initialize with enhanced configuration."""
         self.config = config
-        self.ruleset_manager = RulesetManager(config.get("ruleset_path", "v7p3r_engine/rulesets.yaml"))
+        self.ruleset_manager = RulesetManager(config.get("ruleset_path", "v7p3r_engine/rulesets/rulesets.yaml"))
         self.stockfish_config = config.get("stockfish_config", {})
         
         # Import v7p3rScore dynamically to avoid circular imports
