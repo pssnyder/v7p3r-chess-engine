@@ -43,10 +43,12 @@ class v7p3rTuner:
         )
         self.logger = logging.getLogger("v7p3r_live_tuner")
         self.current_position = 0
+        self.engine_config = config.get("engine_config", {})
+        self.monitoring_enabled = self.engine_config.get("monitoring_enabled", False)
+        self.verbose_output_enabled = self.engine_config.get("verbose_output", False)
         
-
         # Initialize the engine with the loaded config
-        self.engine = v7p3rEngine(config.get("engine_config", {}))
+        self.engine = v7p3rEngine(self.engine_config)
 
     def get_starting_positions(self, criteria: dict):
         """
@@ -119,20 +121,20 @@ class v7p3rTuner:
         for solution_move in solution_moves:
             current_move_number += 1
             print(f"Processing position {current_position}/{position_count}, move {current_move_number}/{total_moves}: (engine should play {solution_move})")
-            if self.logger:
+            if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
                 self.logger.info(f"Processing position {current_position}/{position_count}, move {current_move_number}/{total_moves}: (engine should play {solution_move})")
             engine_guess = self.engine.search_engine.search(self.board, self.board.turn)
 
             # Validate engine move
             if engine_guess is None or str(engine_guess) == "0000":
                 print(f"Engine could not find a valid move for position {current_position}/{position_count} at move {current_move_number}.")
-                if self.logger:
-                    self.logger.warning(f"Engine could not find a valid move for position {current_position}/{position_count} at move {current_move_number}.")
+                if self.logger and self.monitoring_enabled:
+                    self.logger.error(f"[Error] Engine could not find a valid move for position {current_position}/{position_count} at move {current_move_number}.")
                 break
             if engine_guess not in self.board.legal_moves:
                 print(f"Engine guess {engine_guess} is not a legal move in this position. Skipping.")
-                if self.logger:
-                    self.logger.warning(f"Engine guess {engine_guess} is not a legal move in this position. Skipping.")
+                if self.logger and self.monitoring_enabled:
+                    self.logger.error(f"[Error] Engine guess {engine_guess} is not a legal move in this position. Skipping.")
                 break
 
             # Record engine move
@@ -141,13 +143,13 @@ class v7p3rTuner:
             # Push engine move
             self.board.push(engine_guess)
             print(f"Engine played move {current_move_number}/{total_moves}: {engine_guess.uci()}")
-            if self.logger:
+            if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
                 self.logger.info(f"Engine played move {current_move_number}/{total_moves}: {engine_guess.uci()}")
             # Print board state for debugging
             print(self.board)
             if self.board.is_game_over():
                 print(f"Game over: {self.board.result()} Reason: {self.board.outcome()}")
-                if self.logger:
+                if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
                     self.logger.info(f"Game over: {self.board.result()} Reason: {self.board.outcome()}")
                 break
 
@@ -156,11 +158,11 @@ class v7p3rTuner:
         print(f"Solution move sequence: {solution_moves}")
         if engine_moves == solution_moves:
             print("Engine solved the position correctly! WIN recorded.")
-            if self.logger:
+            if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
                 self.logger.info("Engine solved the position correctly! WIN recorded.")
         else:
             print("Engine did not solve the position. LOSS recorded.")
-            if self.logger:
+            if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
                 self.logger.info("Engine did not solve the position. LOSS recorded.")
 
 def main(config, position_config):
