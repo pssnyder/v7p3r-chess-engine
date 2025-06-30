@@ -4,18 +4,18 @@
 [Round "#"]
 [White "v7p3r"]
 [Black "stockfish"]
-[Result "0-1"]
+[Result "*"]
 
-1. e4 { Eval: -0.40 } 1... d5 { Eval: -4.30 } 2. Nh3 { Eval: 3.40 } 2... e5
-{ Eval: -3.80 } 3. Ng5 { Eval: 2.80 } 3... Qxg5 { Eval: -2.90 } 4. Rg1
-{ Eval: 5.10 } 4... Qd8 { Eval: -10.20 } 5. Rh1 { Eval: 9.90 } 5... Nc6
-{ Eval: -13.30 } 6. Rg1 { Eval: 14.00 } 6... Be6 { Eval: -15.25 } 7. Rh1
-{ Eval: 14.95 } 7... Nf6 { Eval: -17.55 } 8. Rg1 { Eval: 18.25 } 8... a6
-{ Eval: -17.50 } 9. Rh1 { Eval: 17.20 } 9... h5 { Eval: -16.30 } 10. Rg1
-{ Eval: 17.00 } 10... Bc5 { Eval: -18.15 } 11. Rh1 { Eval: 17.85 } 11... Qe7
-{ Eval: -17.45 } 12. Rg1 { Eval: 18.15 } 12... g6 { Eval: -17.65 } 13. Rh1
-{ Eval: 17.35 } 13... h4 { Eval: -17.15 } 14. Rg1 { Eval: 17.85 } 14... Bb6
-{ Eval: -17.10 } 15. Rh1 { Eval: 16.80 } 15... Bc5 { Eval: -17.15 } 16. Rg1
-{ Eval: 17.85 } 16... Bb6 { Eval: -17.10 } 17. Bxa6 { Eval: 16.15 } 17... Qc5
-{ Eval: -13.90 } 18. Bxb7 { Eval: 9.50 } 18... Qxf2# { Eval: 1001045.30 } 0-1
+1. e4 { Eval: -0.40 } 1... d5 { Eval: -4.30 } 2. Qf3 { Eval: 0.30 } 2... c6
+{ Eval: 0.15 } 3. Qxf7+ { Eval: 1066.20 } 3... Kxf7 { Eval: 102.60 } 4. Bc4
+{ Eval: -99.00 } 4... Ke6 { Eval: 89.30 } 5. Bxd5+ { Eval: -41.55 } 5... Kf6
+{ Eval: 110.45 } 6. Nf3 { Eval: -113.95 } 6... cxd5 { Eval: 101.20 } 7. Ne5
+{ Eval: -96.65 } 7... Qe8 { Eval: 101.25 } 8. O-O { Eval: -157.35 } 8... h5
+{ Eval: 158.25 } 9. d3 { Eval: -164.60 } 9... dxe4 { Eval: 163.40 } 10. Nc3
+{ Eval: -165.80 } 10... b5 { Eval: 166.50 } 11. Nxe4+ { Eval: -104.50 } 11...
+Kf5 { Eval: 166.35 } 12. Re1 { Eval: -166.05 } 12... Nf6 { Eval: 163.25 } 13.
+Ng3+ { Eval: -106.60 } 13... Ke6 { Eval: 157.40 } 14. Nc4+ { Eval: -96.95 }
+14... Kd5 { Eval: 164.95 } 15. Ne4 { Eval: -165.50 } 15... Kc6 { Eval: 164.35 }
+16. Ned6 { Eval: -1164.20 } 16... exd6 { Eval: 1152.90 } 17. Re3
+{ Eval: -1154.60 } 17... Na6 { Eval: 1154.20 } *
 
