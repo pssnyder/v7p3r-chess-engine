@@ -1,4 +1,4 @@
-# v7p3r_score_full.py
+# v7p3r_score.py
 
 """ v7p3r Scoring Calculation Module (Original Full Version)
 This module is responsible for calculating the score of a chess position based on various factors,
@@ -47,20 +47,19 @@ class v7p3rScore:
 
     def evaluate_position(self, board: chess.Board) -> float:
         """Calculate position evaluation from specified player's perspective by delegating to scoring_calculator."""
-        perspective_evaluation_board = board.copy()
-        player = perspective_evaluation_board.turn
-        if not isinstance(player, chess.Color) or not perspective_evaluation_board.is_valid():
+        player = board.turn
+        if not isinstance(player, chess.Color) or not board.is_valid():
             if self.logger:
                 player_name = "White" if player == chess.WHITE else "Black" if isinstance(player, chess.Color) else str(player)
-                self.logger.error(f"Invalid input for evaluation from perspective. Player: {player_name}, FEN: {perspective_evaluation_board.fen() if hasattr(perspective_evaluation_board, 'fen') else 'N/A'}")
+                self.logger.error(f"Invalid input for evaluation from perspective. Player: {player_name}, FEN: {board.fen() if hasattr(board, 'fen') else 'N/A'}")
             return 0.0
 
         white_score = self.calculate_score(
-            board=perspective_evaluation_board,
+            board=board,
             color=chess.WHITE,
         )
         black_score = self.calculate_score(
-            board=perspective_evaluation_board,
+            board=board,
             color=chess.BLACK,
         )
         
@@ -68,7 +67,7 @@ class v7p3rScore:
         
         if self.logger:
             player_name = "White" if player == chess.WHITE else "Black"
-            self.logger.debug(f"Position evaluation from {player_name} perspective (delegated): {score:.3f} | FEN: {perspective_evaluation_board.fen()}")
+            self.logger.debug(f"Position evaluation from {player_name} perspective (delegated): {score:.3f} | FEN: {board.fen()}")
         return score
     
     def calculate_score(self, board: chess.Board, color: chess.Color, endgame_factor: float = 0.0) -> float:
@@ -949,7 +948,7 @@ if __name__ == "__main__":
         },
     }
     from v7p3r_pst import v7p3rPST
-    pst = v7p3rPST(engine_config['piece_values'], logging.getLogger("v7p3r_pst_logger"))
+    pst = v7p3rPST(logging.getLogger("v7p3r_pst_logger"))
     logger = logging.getLogger("v7p3r_engine_logger")
     
     scoring_calculator = v7p3rScore(engine_config=engine_config, pst=pst, logger=logger)

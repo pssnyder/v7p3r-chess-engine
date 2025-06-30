@@ -247,7 +247,7 @@ class V7P3RRLAgent:
     def _init_v7p3r_scoring(self):
         """Initialize v7p3r scoring system with ruleset."""
         try:
-            from v7p3r_engine.v7p3r_score_v2 import v7p3rScore
+            from v7p3r_engine.v7p3r_score import v7p3rScore
             from v7p3r_engine.v7p3r_pst import v7p3rPST
             from v7p3r_ga_engine.v7p3r_ga_ruleset_manager import v7p3rGARulesetManager
             

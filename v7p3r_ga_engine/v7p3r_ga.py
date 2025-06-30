@@ -18,7 +18,7 @@ import logging
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from v7p3r_ga_ruleset_manager import v7p3rGARulesetManager
-from v7p3r_engine.v7p3r_score_v2 import v7p3rScore
+from v7p3r_engine.v7p3r_score import v7p3rScore
 from v7p3r_engine.v7p3r_pst import v7p3rPST
 from v7p3r_engine.stockfish_handler import StockfishHandler
 from puzzles.puzzle_db_manager import PuzzleDBManager
