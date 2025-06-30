@@ -28,12 +28,12 @@ config = {
         "version": "1.0.0",                  # Version of the engine, used for identification and logging
         "color": "white",                    # Color of the engine, either 'white' or 'black'
         "ruleset": "default_evaluation",    # Name of the evaluation rule set to use, see below for available options
-        "search_algorithm": "enhanced_search",       # Move search type for White (see search_algorithms for options)
-        "depth": 5,                          # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
-        "max_depth": 8,                      # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
+        "search_algorithm": "minimax",       # Move search type for White (see search_algorithms for options)
+        "depth": 3,                          # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
+        "max_depth": 4,                      # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
         "use_game_phase": False,             # Use game phase evaluation
         "monitoring_enabled": True,          # Enable or disable monitoring features
-        "verbose_output": False,             # Enable or disable verbose output for debugging
+        "verbose_output": True,             # Enable or disable verbose output for debugging
         "logger": "v7p3r_engine_logger",     # Logger name for the engine, used for logging engine-specific events
     },
     "stockfish_config": {
