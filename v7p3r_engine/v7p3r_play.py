@@ -2,11 +2,9 @@
 
 import os
 import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import pygame
 import chess
 import chess.pgn
-import random
 import yaml
 import datetime
 import logging
@@ -49,29 +47,32 @@ config = {
 
 # Define the maximum frames per second for the game loop
 MAX_FPS = 60
-# Import necessary modules from v7p3r_engine
-from v7p3r_engine.v7p3r import v7p3rEngine # Corrected import for v7p3rEngine
-from metrics.metrics_store import MetricsStore # Import MetricsStore
-from v7p3r_engine.stockfish_handler import StockfishHandler
 
 # Set engine availability values
 RL_ENGINE_AVAILABLE = False
 GA_ENGINE_AVAILABLE = False
 NN_ENGINE_AVAILABLE = False
 
-# At module level, define a single logger for this file
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+def resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    base = getattr(sys, '_MEIPASS', None)
+    if base:
+        return os.path.join(base, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
 def get_timestamp():
     return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 def get_log_file_path():
-    # Use a timestamped log file for each game session
+    # Optional timestamp for log file name
     timestamp = get_timestamp()
     log_dir = "logging"
     if not os.path.exists(log_dir):
         os.makedirs(log_dir, exist_ok=True)
-    return os.path.join(log_dir, f"chess_game_{timestamp}.log")
-
-chess_game_logger = logging.getLogger("chess_game")
-chess_game_logger.setLevel(logging.DEBUG)
+    return os.path.join(log_dir, f"v7p3r_evaluation_engine.log")
+v7p3r_engine_logger = logging.getLogger("v7p3r_evaluation_engine")
+v7p3r_engine_logger.setLevel(logging.DEBUG)
 _init_status = globals().get("_init_status", {})
 if not _init_status.get("initialized", False):
     log_file_path = get_log_file_path()
@@ -87,11 +88,16 @@ if not _init_status.get("initialized", False):
         datefmt='%H:%M:%S'
     )
     file_handler.setFormatter(formatter)
-    chess_game_logger.addHandler(file_handler)
-    chess_game_logger.propagate = False
+    v7p3r_engine_logger.addHandler(file_handler)
+    v7p3r_engine_logger.propagate = False
     _init_status["initialized"] = True
     # Store the log file path for later use (e.g., to match with PGN/config)
     _init_status["log_file_path"] = log_file_path
+
+# Import necessary modules from v7p3r_engine
+from v7p3r_engine.v7p3r import v7p3rEngine # Corrected import for v7p3rEngine
+from metrics.metrics_store import MetricsStore # Import MetricsStore
+from v7p3r_engine.stockfish_handler import StockfishHandler
 
 class ChessGame:
     def __init__(self, config):
@@ -103,7 +109,7 @@ class ChessGame:
         self.clock = pygame.time.Clock()
 
         # Enable logging
-        self.logger = chess_game_logger
+        self.logger = v7p3r_engine_logger
         
         # Initialize Engines
         self.engine_config = config.get("engine_config", {})
@@ -503,8 +509,8 @@ class ChessGame:
                     print(f"HARDSTOP ERROR: Cannot find move via v7p3rNeuralNetwork: {e}. | FEN: {self.board.fen()}")
             else:
                 if self.logger and self.monitoring_enabled:
-                    self.logger.error(f"[HARDSTOP Error] No valid engine in configuration: {e}. | FEN: {self.board.fen()}")
-                print(f"HARDSTOP ERROR: No valid engine in configuration: {e}. | FEN: {self.board.fen()}")
+                    self.logger.error(f"[HARDSTOP Error] No valid engine in configuration: {current_engine_name}. | FEN: {self.board.fen()}")
+                print(f"HARDSTOP ERROR: No valid engine in configuration: {current_engine_name}. | FEN: {self.board.fen()}")
                 return
 
             # Check and Push the move

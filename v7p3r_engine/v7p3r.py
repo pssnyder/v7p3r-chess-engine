@@ -30,7 +30,7 @@ if not v7p3r_engine_logger.handlers:
     from logging.handlers import RotatingFileHandler
     # Use a timestamped log file for each engine run
     timestamp = get_timestamp()
-    log_file_path = f"logging/v7p3r_evaluation_engine_{timestamp}.log"
+    log_file_path = f"logging/v7p3r_evaluation_engine.log"
     file_handler = RotatingFileHandler(
         log_file_path,
         maxBytes=10*1024*1024,
@@ -67,12 +67,12 @@ class v7p3rEngine:
         self.name = self.engine_config.get("name", "v7p3r")
         self.version = self.engine_config.get("version", "0.0.0")
         self.ruleset = self.engine_config.get("ruleset", "default_evaluation")
-        self.search_algorithm = self.engine_config.get("search_algorithm", "lookahead")
+        self.search_algorithm = self.engine_config.get("search_algorithm", "simple")
         self.depth = self.engine_config.get("depth", 5)
         self.max_depth = self.engine_config.get("max_depth", 8)
-        self.use_game_phase = self.engine_config.get("use_game_phase", False)
-        self.monitoring_enabled = self.engine_config.get("monitoring_enabled", False)
-        self.verbose_output = self.engine_config.get("verbose_output", False)
+        self.use_game_phase = self.engine_config.get("use_game_phase", True)
+        self.monitoring_enabled = self.engine_config.get("monitoring_enabled", True)
+        self.verbose_output = self.engine_config.get("verbose_output", True)
         self.piece_values = self.engine_config.get("piece_values", {
             chess.KING: 0.0,
             chess.QUEEN: 9.0,
@@ -88,3 +88,4 @@ class v7p3rEngine:
         self.time_manager = v7p3rTime()
         self.opening_book = v7p3rBook()
         self.search_engine = v7p3rSearch(self.engine_config, self.scoring_calculator, self.move_organizer, self.time_manager, self.opening_book, self.logger)
+        print(f"pst: {type(self.pst)} | scoring: {type(self.scoring_calculator)} | ordering: {type(self.move_organizer)} | time: {type(self.time_manager)} | book: {type(self.opening_book)} | search: {type(self.search_engine)}")

@@ -7,25 +7,34 @@ import chess
 import time
 import sys
 import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
+import datetime
 import logging
 from typing import Optional, Dict, Any, Callable # Added Callable import
 
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
 def resource_path(relative_path):
     """Get absolute path to resource, works for dev and for PyInstaller"""
     base = getattr(sys, '_MEIPASS', None)
     if base:
         return os.path.join(base, relative_path)
-    return os.path.join(os.path.abspath(".."), relative_path)
-
-# At module level, define a single logger for this file
-stockfish_handler_logger = logging.getLogger("stockfish_handler")
-stockfish_handler_logger.setLevel(logging.DEBUG)
-if not stockfish_handler_logger.handlers:
-    if not os.path.exists('logging'):
-        os.makedirs('logging', exist_ok=True)
+    return os.path.join(os.path.abspath("."), relative_path)
+def get_timestamp():
+    return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+def get_log_file_path():
+    # Optional timestamp for log file name
+    timestamp = get_timestamp()
+    log_dir = "logging"
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir, exist_ok=True)
+    return os.path.join(log_dir, f"v7p3r_evaluation_engine.log")
+v7p3r_engine_logger = logging.getLogger("v7p3r_evaluation_engine")
+v7p3r_engine_logger.setLevel(logging.DEBUG)
+_init_status = globals().get("_init_status", {})
+if not _init_status.get("initialized", False):
+    log_file_path = get_log_file_path()
     from logging.handlers import RotatingFileHandler
-    log_file_path = "logging/stockfish_handler.log"
     file_handler = RotatingFileHandler(
         log_file_path,
         maxBytes=10*1024*1024,
@@ -37,10 +46,11 @@ if not stockfish_handler_logger.handlers:
         datefmt='%H:%M:%S'
     )
     file_handler.setFormatter(formatter)
-    stockfish_handler_logger.addHandler(file_handler)
-    stockfish_handler_logger.propagate = False
-
-
+    v7p3r_engine_logger.addHandler(file_handler)
+    v7p3r_engine_logger.propagate = False
+    _init_status["initialized"] = True
+    # Store the log file path for later use (e.g., to match with PGN/config)
+    _init_status["log_file_path"] = log_file_path
 
 class StockfishHandler:
     _instance = None
@@ -64,7 +74,7 @@ class StockfishHandler:
         self.stdout_queue = queue.Queue()
         self.stdout_thread = None
         self.debug_mode = stockfish_config.get('debug_mode', False)
-        self.logger = stockfish_handler_logger
+        self.logger = v7p3r_engine_logger
 
         if self.debug_mode:
             self.logger.debug(f"Initializing StockfishHandler from {self.stockfish_path}")
