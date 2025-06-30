@@ -15,7 +15,7 @@ def test_rl_vs_stockfish():
     
     try:
         # Import the updated play_v7p3r
-        from v7p3r_engine.play_v7p3r import ChessGame
+        from v7p3r_engine.v7p3r_play import ChessGame
         
         # Configuration for RL vs Stockfish
         config = {

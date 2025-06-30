@@ -1,0 +1,36 @@
+[Event "v7p3r Engine Chess Game"]
+[Site "192.168.50.124"]
+[Date "2025.06.28"]
+[Round "#"]
+[White "v7p3r"]
+[Black "stockfish"]
+[Result "0-1"]
+
+1. e4 { Eval: -0.40 } 1... c5 { Eval: 1.70 } 2. Nf3 { Eval: -4.30 } 2... g6
+{ Eval: 4.90 } 3. Ba6 { Eval: -0.45 } 3... bxa6 { Eval: 0.20 } 4. Na3
+{ Eval: -1.00 } 4... d6 { Eval: -1.40 } 5. Ng5 { Eval: 2.10 } 5... h6
+{ Eval: -5.20 } 6. Ke2 { Eval: 108.80 } 6... Bg7 { Eval: -112.15 } 7. h4
+{ Eval: 108.55 } 7... Bb7 { Eval: -108.90 } 8. Rh3 { Eval: 109.15 } 8... Nf6
+{ Eval: -109.60 } 9. g4 { Eval: 114.60 } 9... Qc8 { Eval: -115.00 } 10. h5
+{ Eval: 119.70 } 10... O-O { Eval: -172.30 } 11. d4 { Eval: 165.50 } 11... Nbd7
+{ Eval: -166.70 } 12. Qd3 { Eval: 166.40 } 12... d5 { Eval: -165.15 } 13. Qd1
+{ Eval: 165.85 } 13... a5 { Eval: -164.95 } 14. Rb3 { Eval: 164.95 } 14... e5
+{ Eval: -165.15 } 15. Kf3 { Eval: 161.25 } 15... c4 { Eval: -160.95 } 16. Rb1
+{ Eval: 160.65 } 16... dxe4+ { Eval: -104.15 } 17. Ke3 { Eval: 179.55 } 17...
+Nxg4+ { Eval: -121.15 } 18. Qxg4 { Eval: 170.95 } 18... exd4+ { Eval: -116.50 }
+19. Ke2 { Eval: 175.85 } 19... Qc6 { Eval: -175.15 } 20. Ne6 { Eval: 172.75 }
+20... Nf6 { Eval: -1171.15 } 21. f3 { Eval: 1166.55 } 21... Rae8
+{ Eval: -1165.55 } 22. Bxh6 { Eval: 1167.05 } 22... exf3+ { Eval: -1118.80 }
+23. Kd2 { Eval: 1175.90 } 23... Ne4+ { Eval: -113.85 } 24. Qxe4
+{ Eval: 176.05 } 24... c3+ { Eval: -116.20 } 25. Ke1 { Eval: 81.30 } 25... Qxe6
+{ Eval: -1085.20 } 26. bxc3 { Eval: 1086.00 } 26... Bxe4 { Eval: -101.30 } 27.
+Kd1 { Eval: 192.60 } 27... f5 { Eval: -189.95 } 28. Ke1 { Eval: 99.05 } 28...
+Bd3+ { Eval: -34.05 } 29. Kf2 { Eval: 184.25 } 29... Bxc2 { Eval: -183.90 } 30.
+Be3 { Eval: 177.95 } 30... dxe3+ { Eval: -129.60 } 31. Kg1 { Eval: 34.40 }
+31... Qf6 { Eval: -32.15 } 32. Kf1 { Eval: 187.45 } 32... e2+ { Eval: -132.25 }
+33. Kg1 { Eval: 37.35 } 33... Qg5+ { Eval: 21.40 } 34. Kh2 { Eval: 134.00 }
+34... Qh4+ { Eval: -73.30 } 35. Kg1 { Eval: 34.40 } 35... e1=R+ { Eval: 21.45 }
+36. Rxe1 { Eval: 32.05 } 36... Qg3+ { Eval: 23.25 } 37. Kh1 { Eval: 131.65 }
+37... Qh4+ { Eval: -66.55 } 38. Kg1 { Eval: 32.05 } 38... Qg3+ { Eval: 23.25 }
+39. Kh1 { Eval: 131.65 } 39... Rxe1# { Eval: 999921.90 } 0-1
+

@@ -249,10 +249,10 @@ class V7P3RRLAgent:
         try:
             from v7p3r_engine.v7p3r_score import v7p3rScore
             from v7p3r_engine.v7p3r_pst import v7p3rPST
-            from v7p3r_ga_engine.ruleset_manager import RulesetManager
+            from v7p3r_ga_engine.v7p3r_ga_ruleset_manager import v7p3rGARulesetManager
             
             # Load ruleset for rewards
-            self.ruleset_manager = RulesetManager()
+            self.ruleset_manager = v7p3rGARulesetManager()
             self.reward_ruleset = self.ruleset_manager.load_ruleset(
                 self.config.get('reward_ruleset', 'default_evaluation')
             )

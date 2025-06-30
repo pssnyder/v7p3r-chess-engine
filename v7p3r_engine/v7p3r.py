@@ -6,14 +6,13 @@ It provides handler functionality for search algorithms, evaluation functions, a
 """
 
 import chess
-import yaml
 import logging
 import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
 import datetime
 from v7p3r_search import v7p3rSearch
-from v7p3r_score import v7p3rScore
+from v7p3r_engine.v7p3r_score import v7p3rScore
 from v7p3r_ordering import v7p3rOrdering
 from v7p3r_time import v7p3rTime
 from v7p3r_book import v7p3rBook
@@ -55,54 +54,35 @@ class v7p3rEngine:
         # Overrides
         self.time_control = {    # Default to infinite time control
             'infinite': True
-        }  
-        self.piece_values = {    # Hard-coded base piece values
-            chess.KING: 0.0,
-            chess.QUEEN: 9.0,
-            chess.ROOK: 5.0,
-            chess.BISHOP: 3.25,
-            chess.KNIGHT: 3.0,
-            chess.PAWN: 1.0
         }
 
         # Engine Configuration
         if engine_config is not None:
             self.engine_config = engine_config
         else:
-            self.engine_config = {
-                "name": "v7p3r",                     # Name of the engine, used for identification and logging
-                "version": "1.0.0",                  # Version of the engine, used for identification and logging
-                "color": "white",                    # Color of the engine, either 'white' or 'black'
-                "ruleset": "default_evaluation",     # Name of the evaluation rule set to use, see below for available options
-                "search_algorithm": "minimax",       # Move search type for White (see search_algorithms for options)
-                "depth": 5,                          # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
-                "max_depth": 8,                      # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
-                "monitoring_enabled": True,          # Enable or disable monitoring features
-                "verbose_output": False,             # Enable or disable verbose output for debugging
-                "logger": "v7p3r_engine_logger",     # Logger name for the engine, used for logging engine-specific events
-                "game_count": 1,                 # Number of games to play in AI vs AI mode
-                "starting_position": "default",      # Default starting position name (or FEN string)
-                "white_player": "v7p3r",             # Name of the engine being used (e.g., 'v7p3r', 'stockfish'), this value is a direct reference to the engine configuration values in their respective config files
-                "black_player": "stockfish",         # sets this colors engine configuration name, same as above, important note that if the engines are set the same then only whites metrics will be collected to prevent negation in win loss metrics
-                "piece_values": self.piece_values    # Hard-coded base piece values
-            }
+            if self.logger:
+                self.logger.info("No engine configuration provided, using v7p3r's inbuilt configuration.")
 
         # Load engine config and default values
         self.name = self.engine_config.get("name", "v7p3r")
-        self.version = self.engine_config.get("version", "1.0.0")
-        self.color = self.engine_config.get("color", "white")
+        self.version = self.engine_config.get("version", "0.0.0")
         self.ruleset = self.engine_config.get("ruleset", "default_evaluation")
-        self.search_algorithm = self.engine_config.get("search_algorithm", "minimax")
+        self.search_algorithm = self.engine_config.get("search_algorithm", "lookahead")
         self.depth = self.engine_config.get("depth", 5)
         self.max_depth = self.engine_config.get("max_depth", 8)
-        self.monitoring_enabled = self.engine_config.get("monitoring_enabled", True)
-        self.game_count = self.engine_config.get("game_count", 1)
-        self.starting_position = self.engine_config.get("starting_position", "default")
-        self.white_player = self.engine_config.get("white_player", "v7p3r")
-        self.black_player = self.engine_config.get("black_player", "stockfish")
-
+        self.use_game_phase = self.engine_config.get("use_game_phase", False)
+        self.monitoring_enabled = self.engine_config.get("monitoring_enabled", False)
+        self.verbose_output = self.engine_config.get("verbose_output", False)
+        self.piece_values = self.engine_config.get("piece_values", {
+            chess.KING: 0.0,
+            chess.QUEEN: 9.0,
+            chess.ROOK: 5.0,
+            chess.BISHOP: 3.25,
+            chess.KNIGHT: 3.0,
+            chess.PAWN: 1.0
+        })  
         # Required Engine Modules
-        self.pst = v7p3rPST()
+        self.pst = v7p3rPST(self.logger)
         self.scoring_calculator = v7p3rScore(self.engine_config, self.pst, self.logger)
         self.move_organizer = v7p3rOrdering(self.engine_config, self.scoring_calculator, self.logger)
         self.time_manager = v7p3rTime()
