@@ -431,63 +431,101 @@ class ChessGame:
         self.move_duration = 0
         if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
             self.logger.info(f"Processing move for {self.white_player if current_player_color == chess.WHITE else self.black_player} using {self.engine.name} engine.")
-
         print(f"{self.white_player if current_player_color == chess.WHITE else self.black_player} is thinking...")
 
-        try:
-            # Send the move request to the appropriate engine or human interface
-            if (self.white_player.lower() == 'human' and self.board.turn) or (self.black_player.lower() == 'human' and not self.board.turn):
-                # Handle human player input (not implemented here, placeholder)
-                if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
-                    self.logger.info("Waiting for human player input...")
-                return
-            
+        # Send the move request to the appropriate engine or human interface
+        if (self.white_player.lower() == 'human' and self.board.turn) or (self.black_player.lower() == 'human' and not self.board.turn):
+            # Handle human player input (not implemented here, placeholder)
+            if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
+                self.logger.info("Waiting for human player input...")
+            return
+        else:
             # Determine current player engine
             current_engine_name = self.white_player.lower() if self.board.turn else self.black_player.lower()
             
             # Handle different engine types
             if current_engine_name == 'v7p3r':
-                # Use the v7p3r engine for the current player
-                engine_move = self.engine.search_engine.search(self.board, current_player_color)
-                
+                try:
+                    # Use the v7p3r engine for the current player
+                    engine_move = self.engine.search_engine.search(self.board, current_player_color)
+                except Exception as e:
+                    if self.logger and self.monitoring_enabled:
+                        self.logger.error(f"[HARDSTOP Error] Cannot find move via v7p3rSearch: {e}. | FEN: {self.board.fen()}")
+                    print(f"HARDSTOP ERROR: Cannot find move via v7p3rSearch: {e}. | FEN: {self.board.fen()}")
+                    return
+                    
             elif current_engine_name == 'stockfish':
-                # Use the Stockfish engine for the current player
-                if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
-                    self.logger.info("Using Stockfish engine for move processing.")
-                stockfish_handler = StockfishHandler(self.stockfish_config)
-                engine_move = stockfish_handler.search(self.board, current_player_color, self.stockfish_config)
-                
+                try:
+                    # Use the Stockfish engine for the current player
+                    if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
+                        self.logger.info("Using Stockfish engine for move processing.")
+                    stockfish_handler = StockfishHandler(self.stockfish_config)
+                    engine_move = stockfish_handler.search(self.board, current_player_color, self.stockfish_config)
+                except Exception as e:
+                    if self.logger and self.monitoring_enabled:
+                        self.logger.error(f"[HARDSTOP Error] Cannot find move via Stockfish: {e}. | FEN: {self.board.fen()}")
+                    print(f"HARDSTOP ERROR: Cannot find move via Stockfish: {e}. | FEN: {self.board.fen()}")
+                    return
+            
             elif current_engine_name == 'v7p3r_rl' and 'v7p3r_rl' in self.engines:
-                # Use the RL engine
-                if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
-                    self.logger.info("Using v7p3r RL engine for move processing.")
-                engine_move = self.engines['v7p3r_rl'].search(self.board, current_player_color)
-                
+                try:
+                    # Use the RL engine for the current player
+                    if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
+                        self.logger.info("Using v7p3r RL engine for move processing.")
+                    engine_move = self.engines['v7p3r_rl'].search(self.board, current_player_color)
+                except Exception as e:
+                    if self.logger and self.monitoring_enabled:
+                        self.logger.error(f"[HARDSTOP Error] Cannot find move via v7p3rReinforcementLearning: {e}. | FEN: {self.board.fen()}")
+                    print(f"HARDSTOP ERROR: Cannot find move via v7p3rReinforcementLearning: {e}. | FEN: {self.board.fen()}")
+                    return
+                    
             elif current_engine_name == 'v7p3r_ga' and 'v7p3r_ga' in self.engines:
-                # Use the GA engine
-                if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
-                    self.logger.info("Using v7p3r GA engine for move processing.")
-                engine_move = self.engines['v7p3r_ga'].search(self.board, current_player_color)
-                
+                try:
+                    # Use the GA engine
+                    if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
+                        self.logger.info("Using v7p3r GA engine for move processing.")
+                    engine_move = self.engines['v7p3r_ga'].search(self.board, current_player_color)
+                except Exception as e:
+                    if self.logger and self.monitoring_enabled:
+                        self.logger.error(f"[HARDSTOP Error] Cannot find move via v7p3rGeneticAlgorithm: {e}. | FEN: {self.board.fen()}")
+                    print(f"HARDSTOP ERROR: Cannot find move via v7p3r_ga: {e}. | FEN: {self.board.fen()}")
+                    return
+                    
             elif current_engine_name == 'v7p3r_nn' and 'v7p3r_nn' in self.engines:
-                # Use the NN engine
-                if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
-                    self.logger.info("Using v7p3r NN engine for move processing.")
-                engine_move = self.engines['v7p3r_nn'].search(self.board, current_player_color)
-                
+                try:
+                    # Use the NN engine
+                    if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
+                        self.logger.info("Using v7p3r NN engine for move processing.")
+                    engine_move = self.engines['v7p3r_nn'].search(self.board, current_player_color)
+                except Exception as e:
+                    if self.logger and self.monitoring_enabled:
+                        self.logger.error(f"[HARDSTOP Error] Cannot find move via v7p3rNeuralNetwork: {e}. | FEN: {self.board.fen()}")
+                    print(f"HARDSTOP ERROR: Cannot find move via v7p3rNeuralNetwork: {e}. | FEN: {self.board.fen()}")
             else:
-                # Fallback to v7p3r engine for unknown engines
                 if self.logger and self.monitoring_enabled:
-                    self.logger.error(f"[Error] Unknown engine '{current_engine_name}', falling back to v7p3r engine.")
-                engine_move = self.engine.search_engine.search(self.board, current_player_color)
-            if isinstance(engine_move, chess.Move) and self.board.is_legal(engine_move):
-                fen_before_move = self.board.fen()
-                move_number = self.board.fullmove_number
-                self.push_move(engine_move)
-                self.last_engine_move = engine_move
-                self.move_end_time = time.time()  # End timing the move
-                self.move_duration = self.move_end_time - self.move_start_time
-                self.pv_line = ""
+                    self.logger.error(f"[HARDSTOP Error] No valid engine in configuration: {e}. | FEN: {self.board.fen()}")
+                print(f"HARDSTOP ERROR: No valid engine in configuration: {e}. | FEN: {self.board.fen()}")
+                return
+
+            # Check and Push the move
+            if not isinstance(engine_move, chess.Move):
+                return # Move invalid
+            try:
+                if self.board.is_legal(engine_move):
+                    fen_before_move = self.board.fen()
+                    move_number = self.board.fullmove_number
+                    self.push_move(engine_move)
+                    self.last_engine_move = engine_move
+                    self.move_end_time = time.time()  # End timing the move
+                    self.move_duration = self.move_end_time - self.move_start_time
+                    self.pv_line = ""
+            except Exception as e:
+                if self.logger and self.monitoring_enabled:
+                    self.logger.error(f"[HARDSTOP Error] Move Invalid: {e}. | Move: {engine_move} | FEN: {self.board.fen()}")
+                print(f"HARDSTOP ERROR: Move Invalid: {e}. | Move: {engine_move} | FEN: {self.board.fen()}")
+                return
+            
+            try: 
                 # Ensure all move metric fields are present
                 metric = {
                     'game_id': self.current_game_db_id,
@@ -505,47 +543,22 @@ class ChessGame:
                     'time_taken': self.move_duration,
                     'pv_line': self.pv_line
                 }
+                # Add metrics record
                 self.metrics_store.add_move_metric(**metric)
                 self._move_metrics_batch.append(metric)
-                    
+                
                 if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
-                    self.logger.debug(f"Move metrics for {engine_move.uci()} added to MetricsStore.")
-
-        except Exception as e:
-            if self.logger and self.monitoring_enabled:
-                self.logger.error(f"[Error] -- Hardstop Error -- Cannot process any AI moves: {e}. Forcing random move. | FEN: {self.board.fen()}")
-            print(f"-- Hardstop Error -- Cannot process any AI moves: {e}")
-            
-            legal_moves = list(self.board.legal_moves)
-            if legal_moves:
-                fallback_move = random.choice(legal_moves)
-                fen_before_move = self.board.fen()
-                move_number = self.board.fullmove_number
-                self.push_move(fallback_move)
-                if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
-                    self.logger.info(f"{self.white_player if current_player_color == chess.WHITE else self.black_player} played emergency fallback move: {fallback_move} (Eval: {self.current_eval:.2f})")
-                self.last_engine_move = fallback_move
-                self.metrics_store.add_move_metric(
-                    game_id=self.current_game_db_id,
-                    move_number=move_number,
-                    player_color='w' if current_player_color == chess.WHITE else 'b',
-                    move_uci=fallback_move.uci(),
-                    fen_before=fen_before_move,
-                    evaluation=self.current_eval,
-                    search_algorithm=self.engine.search_algorithm + "_CRITICAL_FALLBACK",
-                    depth=0,
-                    nodes_searched=0,
-                    time_taken=0.0,
-                    pv_line=f"CRITICAL FALLBACK: {e}"
-                )
-            else:
+                    self.logger.debug(f"Move metrics for {engine_move} added to MetricsStore.")
+            except Exception as e:
                 if self.logger and self.monitoring_enabled:
-                    self.logger.error(f"[Error] No legal moves for emergency fallback. Game might be over or stalled. | FEN: {self.board.fen()}")
-
-        print(f"{self.white_player if current_player_color == chess.WHITE else self.black_player} played: {engine_move} after {self.move_duration:.4f}s (Eval: {self.current_eval:.2f})")
-        if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
-            nodes_searched = self.engine.search_engine.nodes_searched
-            self.logger.info(f"{self.white_player if current_player_color == chess.WHITE else self.black_player} played: {engine_move} (Eval: {self.current_eval:.2f}) | Time: {self.move_duration:.4f}s | Nodes: {nodes_searched}")
+                    self.logger.error(f"[HARDSTOP Error] Move Invalid: {e}. | Move: {engine_move} | FEN: {self.board.fen()}")
+                print(f"HARDSTOP ERROR: Move Invalid: {e}. | Move: {engine_move} | FEN: {self.board.fen()}")
+                return
+    
+            print(f"{self.white_player if current_player_color == chess.WHITE else self.black_player} played: {engine_move} after {self.move_duration:.4f}s (Eval: {self.current_eval:.2f})")
+            if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
+                nodes_searched = self.engine.search_engine.nodes_searched
+                self.logger.info(f"{self.white_player if current_player_color == chess.WHITE else self.black_player} played: {engine_move} (Eval: {self.current_eval:.2f}) | Time: {self.move_duration:.4f}s | Nodes: {nodes_searched}")
 
     def push_move(self, move):
         """ Test and push a move to the board and game node """
