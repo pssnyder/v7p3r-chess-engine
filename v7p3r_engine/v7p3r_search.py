@@ -31,7 +31,6 @@ class v7p3rSearch:
             'lookahead',                     # Lookahead search with simple max value comparison
             'minimax',                       # Minimax search with alpha-beta pruning
             'negamax',                       # Negamax search with alpha-beta pruning
-            'simple_search',                 # Simple 1 ply search
             'random',                        # Random move selection
         ]
     
@@ -41,13 +40,6 @@ class v7p3rSearch:
         root_board = board.copy()
         self.board = root_board
         self.nodes_searched = 0  # Reset nodes searched for this search
-
-        # Check for checkmate patterns
-        checkmate_move = self._checkmate_search(root_board)
-        if checkmate_move != chess.Move.null() and root_board.is_legal(checkmate_move):
-            if self.logger:
-                self.logger.debug(f"Checkmate move found: {checkmate_move} | FEN: {root_board.fen()}")
-            return checkmate_move
 
         # Check for book moves
         book_move = self.opening_book.get_book_move(root_board)
@@ -65,10 +57,9 @@ class v7p3rSearch:
                 self.logger.debug(f"No legal moves found for player: {'White' if player == chess.WHITE else 'Black'} | FEN: {root_board.fen()}")
             return chess.Move.null()
 
-        ordered_moves = self.move_organizer.order_moves(root_board, legal_moves, depth=self.depth if self.depth is not None else 1)
         best_score_overall = -float('inf')
         best_move = chess.Move.null()
-        for move in ordered_moves:
+        for move in legal_moves:
             temp_board = root_board.copy()
             temp_board.push(move)
             current_move_score = 0.0
@@ -78,17 +69,8 @@ class v7p3rSearch:
                 if self.logger:
                     self.logger.info(f"Checkmate move found: {move} | FEN: {temp_board.fen()}")
                 return move
-            elif (temp_board.is_stalemate()
-                or temp_board.is_insufficient_material()
-                or temp_board.can_claim_fifty_moves()
-                or temp_board.can_claim_threefold_repetition()
-                or temp_board.is_seventyfive_moves()
-                or temp_board.is_fivefold_repetition()
-                or temp_board.is_variant_draw()):
-                if self.logger:
-                    self.logger.info(f"Stalemate or draw condition met for move: {move} | FEN: {temp_board.fen()}")
-                continue # Skip this move if it leads to stalemate or draw
-
+            elif self._draw_search(temp_board, depth=1):
+                continue
 
             try:
                 if self.search_algorithm == 'enhanced_search':
@@ -96,12 +78,9 @@ class v7p3rSearch:
                 elif self.search_algorithm == 'deepsearch':
                     current_move_score = self._deep_search(root_board, self.depth, self.max_depth)[1]
                 elif self.search_algorithm == 'minimax':
-                    current_move_score = self._minimax_search(temp_board, self.depth, -float('inf'), float('inf'), self.current_player == chess.WHITE)
+                    current_move_score = self._minimax_search(temp_board, self.depth, -float('inf'), float('inf'), False)
                 elif self.search_algorithm == 'negamax':
-                    current_move_score = -self._negamax_search(temp_board, self.depth, -float('inf'), float('inf'))
-                elif self.search_algorithm == 'lookahead':
-                    current_move_score = -self._lookahead_search(temp_board, self.depth, -float('inf'), float('inf'))
-                
+                    current_move_score = self._negamax_search(temp_board, self.depth, -float('inf'), float('inf'))
             except Exception as e:
                 if self.logger:
                     self.logger.error(f"Error in search algorithm '{self.search_algorithm}' for move {move}: {e}. | FEN: {temp_board.fen()}")
@@ -117,54 +96,44 @@ class v7p3rSearch:
 
         return best_move
 
-    def _random_search(self, board: chess.Board) -> chess.Move:
-        """Select a random legal move from the board."""
-        root_board = board.copy()
-        legal_moves = list(root_board.legal_moves)
-        if not legal_moves:
-            if self.logger:
-                self.logger.debug(f"No legal moves available | FEN: {root_board.fen()}")
-            return chess.Move.null() # Return null move if no legal moves
-        # Prefer checkmate if available
-        for mating_move in legal_moves:
-            temp_board = root_board.copy()
-            temp_board.push(mating_move)
-            if temp_board.is_checkmate():
-                if self.logger:
-                    self.logger.info(f"Checkmate move found: {mating_move} | FEN: {temp_board.fen()}")
-                return mating_move
-        move = random.choice(legal_moves)
-        if self.logger:
-            self.logger.debug(f"Randomly selected move: {move} | FEN: {root_board.fen()}")
-        return move
-
-    def _lookahead_search(self, board: chess.Board, depth: int, alpha: float, beta: float):
-        """Lookahead search with static depth. Returns score (float)."""
+    def _minimax_search(self, board: chess.Board, depth: int, alpha: float, beta: float, maximizing_player: bool):
+        """Minimax search with alpha-beta pruning. Returns score (float)."""
         root_board = board.copy()
         if depth == 0 or root_board.is_game_over():
-            return self._quiescence_search(root_board, alpha, beta, True)
-        best_score = -float('inf') if root_board.turn else float('inf')
+            return self._quiescence_search(root_board, alpha, beta, maximizing_player)
+
+        best_score = -float('inf') if maximizing_player else float('inf')
         legal_moves = self.move_organizer.order_moves(root_board, list(root_board.legal_moves), depth=depth)
+
         for move in legal_moves:
             temp_board = root_board.copy()
             temp_board.push(move)
-            checkmate_move = self._checkmate_search(temp_board, depth=1)
-            if checkmate_move != chess.Move.null() and temp_board.is_legal(checkmate_move):
+
+            # Check for immediate checkmate or draw
+            if temp_board.is_checkmate():
                 if self.logger:
-                    self.logger.info(f"Checkmate move found: {checkmate_move} | FEN: {temp_board.fen()}")
-                return 999999999
-            if self._draw_search(temp_board, depth=1):
+                    self.logger.info(f"Checkmate move found: {move} | FEN: {temp_board.fen()}")
+                return 999999999 if maximizing_player else -999999999
+            elif self._draw_search(temp_board, depth=1):
                 continue
-            score = -self._lookahead_search(temp_board, depth - 1, -beta, -alpha)
-            self.nodes_searched += 1  # Increment nodes searched
-            if score > best_score:
-                best_score = score
-            alpha = max(alpha, best_score)
+
+            # Recursive minimax call
+            score = self._minimax_search(temp_board, depth - 1, alpha, beta, not maximizing_player)
+
+            if maximizing_player:
+                best_score = max(best_score, score)
+                alpha = max(alpha, best_score)
+            else:
+                best_score = min(best_score, score)
+                beta = min(beta, best_score)
+
+            # Alpha-beta pruning
             if alpha >= beta:
-                break # Prune remaining moves at this depth
+                break
+
         return best_score
 
-    def _minimax_search(self, board: chess.Board, depth: int, alpha: float, beta: float, maximizing_player: bool):
+    def _minimax_search_alternate(self, board: chess.Board, depth: int, alpha: float, beta: float, maximizing_player: bool):
         """Minimax search with alpha-beta pruning. Returns score (float)."""
         root_board = board.copy()
         if depth == 0 or root_board.is_game_over():
@@ -172,6 +141,7 @@ class v7p3rSearch:
         best_score = -float('inf') if maximizing_player else float('inf')
         legal_moves = self.move_organizer.order_moves(root_board, list(root_board.legal_moves), depth=depth)
         for move in legal_moves:
+            self.nodes_searched += 1  # Increment nodes searched
             temp_board = root_board.copy()
             temp_board.push(move)
             checkmate_move = self._checkmate_search(temp_board, depth=1)
@@ -181,8 +151,7 @@ class v7p3rSearch:
                 return 999999999
             if self._draw_search(temp_board, depth=1):
                 continue
-            score = self._minimax_search(temp_board, depth-1, alpha, beta, not maximizing_player)
-            self.nodes_searched += 1  # Increment nodes searched
+            score = self.scoring_calculator.evaluate_position(temp_board)
             if maximizing_player:
                 if score > best_score:
                     best_score = score
@@ -194,10 +163,13 @@ class v7p3rSearch:
                 alpha = max(alpha, score)
                 if alpha >= beta:
                     break # Alpha-beta cutoff
+                beta = self._minimax_search(temp_board, depth-1, alpha, beta, not maximizing_player)
             else: # Minimizing player
                 beta = min(beta, score)
                 if alpha >= beta:
                     break # Alpha-beta cutoff
+            if depth > 1:
+                return self._minimax_search(temp_board, depth-1, alpha, beta, not maximizing_player)
         return best_score
 
     def _negamax_search(self, board: chess.Board, depth: int, alpha: float, beta: float) -> float:
@@ -463,9 +435,6 @@ class v7p3rSearch:
                 return first_move  # Return the first move in the checkmate chain
             else:
                 self._checkmate_search(temp_board,depth-1,first_move)
-
-        if self.logger:
-            self.logger.debug(f"No checkmate move found within depth {depth}.")
         return chess.Move.null()  # Return null move if no checkmate is found
     
     def _draw_search(self, board: chess.Board, depth: int = 3, first_move: chess.Move = chess.Move.null()) -> bool:
@@ -488,6 +457,4 @@ class v7p3rSearch:
                 if self.logger:
                     self.logger.info(f"Stalemate or draw condition met for move: {move} | FEN: {temp_board.fen()}")
                 return True  # Return true if a draw condition is found
-        if self.logger:
-            self.logger.debug(f"No drawing moves found within depth {depth}.")
         return False  # Return false if no drawing moves are found
