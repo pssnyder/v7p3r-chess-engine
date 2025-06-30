@@ -43,6 +43,7 @@ class v7p3rOrdering:
         if temp_board.is_check(): # Check after move is made
             score += self.scoring_calculator.rules('check_move_bonus', 99999.0)
 
+        temp_board.pop()
         if temp_board.is_capture(move):
             score += self.scoring_calculator.rules('capture_move_bonus', 5000.0)
             victim_type = temp_board.piece_type_at(move.to_square)
@@ -54,5 +55,4 @@ class v7p3rOrdering:
             score += self.scoring_calculator.rules('promotion_move_bonus', 3000.0)
             if move.promotion == chess.QUEEN:
                 score += self.engine_config.get('piece_values', {}).get(chess.QUEEN, 9.0) * 100 # Ensure piece_values is used
-
         return score
