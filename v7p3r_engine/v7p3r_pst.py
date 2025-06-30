@@ -1,10 +1,12 @@
 # v7p3r_engine/v7p3r_pst.py
 
 import chess
+import logging
 
 class v7p3rPST:
     """ Piece-Square Tables for chess position evaluation. """
-    def __init__(self):
+    def __init__(self, logger: logging.Logger = logging.getLogger("v7p3r_engine_logger")):
+        self.logger = logger
         # Initialize piece-square tables
         self.tables = self._create_tables()
         # Default Piece Values
@@ -26,8 +28,8 @@ class v7p3rPST:
             [ -5, 10, 20, 30, 30, 20, 10, -5],  # 5th rank
             [ -5, 10, 20, 30, 30, 20, 10, -5],  # 4th rank
             [ -5, 10, 20, 20, 20, 20, 10, -5],  # 3rd rank
-            [ -5, 10, 10, 10, 10, 10, 10, -5],  # 2nd rank
-            [  0,  0,  0,  0,  0,  0,  0,  0]   # 1st rank
+            [ 10, 10, 10, 10, 10, 10, 10, 10],  # 2nd rank
+            [ 10, 10, 10, 10, 10, 10, 10, 10]   # 1st rank
         ]
 
         # Pawn table - encourages advancement and center control
@@ -196,31 +198,10 @@ class v7p3rPST:
                     
         return total_score / 100.0  # Convert centipawns to pawn units
 
-
-# Integration function for your existing evaluation engine
-def add_piece_square_evaluation(evaluation_engine_instance):
-    """
-    Add piece-square table evaluation to your existing EvaluationEngine class.
-    Call this function in your EvaluationEngine.__init__() method.
-    """
-    evaluation_engine_instance.pst = v7p3rPST()
-    
-    # Add new evaluation method
-    # The original _piece_square_evaluation passed board. This update accounts for it.
-    def _piece_square_evaluation(self, board, endgame_factor=0.0):
-        """Evaluate position using piece-square tables"""
-        # Ensure the board is passed correctly to the PST evaluation
-        return self.pst.evaluate_board_position(board, endgame_factor) * self.pst_weight # Use pst_weight from config
-    
-    # Bind the method to the instance
-    import types
-    evaluation_engine_instance._piece_square_evaluation = types.MethodType(_piece_square_evaluation, evaluation_engine_instance)
-
-
 # Example usage and testing
 if __name__ == "__main__":
     # Test the piece-square tables
-    pst = v7p3rPST()
+    pst = v7p3rPST(logging.getLogger("v7p3rPST"))
     board = chess.Board()
     
     print("Initial position PST evaluation:", pst.evaluate_board_position(board))

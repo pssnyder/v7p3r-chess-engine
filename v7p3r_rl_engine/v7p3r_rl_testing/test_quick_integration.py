@@ -4,7 +4,7 @@
 import sys
 sys.path.insert(0, '.')
 
-from v7p3r_engine.play_v7p3r import ChessGame
+from v7p3r_engine.v7p3r_play import ChessGame
 
 # Test basic config
 config = {

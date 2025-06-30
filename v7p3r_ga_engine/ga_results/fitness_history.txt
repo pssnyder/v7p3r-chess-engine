@@ -1,2 +1,0 @@
-# Generation, Best_Fitness, Avg_Fitness, Std_Fitness
-1, -217.028519
