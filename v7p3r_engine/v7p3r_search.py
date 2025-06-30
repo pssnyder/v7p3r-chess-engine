@@ -98,15 +98,13 @@ class v7p3rSearch:
 
     def _minimax_search(self, board: chess.Board, depth: int, alpha: float, beta: float, maximizing_player: bool):
         """Minimax search with alpha-beta pruning. Returns score (float)."""
-        root_board = board.copy()
-        if depth == 0 or root_board.is_game_over():
-            return self._quiescence_search(root_board, alpha, beta, maximizing_player)
-
+        if depth <= 0 or board.is_game_over():
+            return self.scoring_calculator.evaluate_position(board)
         best_score = -float('inf') if maximizing_player else float('inf')
-        legal_moves = self.move_organizer.order_moves(root_board, list(root_board.legal_moves), depth=depth)
-
+        legal_moves = list(board.legal_moves)
+        #legal_moves = self.move_organizer.order_moves(board, legal_moves, depth-1)
         for move in legal_moves:
-            temp_board = root_board.copy()
+            temp_board = board.copy()
             temp_board.push(move)
 
             # Check for immediate checkmate or draw
@@ -133,58 +131,13 @@ class v7p3rSearch:
 
         return best_score
 
-    def _minimax_search_alternate(self, board: chess.Board, depth: int, alpha: float, beta: float, maximizing_player: bool):
-        """Minimax search with alpha-beta pruning. Returns score (float)."""
-        root_board = board.copy()
-        if depth == 0 or root_board.is_game_over():
-            return self._quiescence_search(root_board, alpha, beta, maximizing_player)
-        best_score = -float('inf') if maximizing_player else float('inf')
-        legal_moves = self.move_organizer.order_moves(root_board, list(root_board.legal_moves), depth=depth)
-        for move in legal_moves:
-            self.nodes_searched += 1  # Increment nodes searched
-            temp_board = root_board.copy()
-            temp_board.push(move)
-            checkmate_move = self._checkmate_search(temp_board, depth=1)
-            if checkmate_move != chess.Move.null() and temp_board.is_legal(checkmate_move):
-                if self.logger:
-                    self.logger.info(f"Checkmate move found: {checkmate_move} | FEN: {temp_board.fen()}")
-                return 999999999
-            if self._draw_search(temp_board, depth=1):
-                continue
-            score = self.scoring_calculator.evaluate_position(temp_board)
-            if maximizing_player:
-                if score > best_score:
-                    best_score = score
-            else: # Minimizing player
-                if score < best_score:
-                    best_score = score
-            # Alpha-beta pruning update
-            if maximizing_player:
-                alpha = max(alpha, score)
-                if alpha >= beta:
-                    break # Alpha-beta cutoff
-                beta = self._minimax_search(temp_board, depth-1, alpha, beta, not maximizing_player)
-            else: # Minimizing player
-                beta = min(beta, score)
-                if alpha >= beta:
-                    break # Alpha-beta cutoff
-            if depth > 1:
-                return self._minimax_search(temp_board, depth-1, alpha, beta, not maximizing_player)
-        return best_score
-
     def _negamax_search(self, board: chess.Board, depth: int, alpha: float, beta: float) -> float:
         """Negamax search with alpha-beta pruning and basic tactical extensions."""
-        
-        # Leaf node: go to quiescence search
-        if depth <= 0:
-            return self._quiescence_search(board, alpha, beta, True)
+        if depth <= 0 or board.is_game_over():
+            return self.scoring_calculator.evaluate_position(board)
         # Internal node: explore moves
         best_score = -float('inf')
-        # Tactical extension: search deeper if in check (to avoid horizon effect)
-        if board.is_check():
-            depth += 1
-        # Move ordering is critical for alpha-beta efficiency
-        legal_moves = self.move_organizer.order_moves(board, list(board.legal_moves), depth=depth)
+        legal_moves = list(board.legal_moves)
         for move in legal_moves:
             temp_board = board.copy()
             temp_board.push(move)
