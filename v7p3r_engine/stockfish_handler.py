@@ -11,6 +11,13 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
 import logging
 from typing import Optional, Dict, Any, Callable # Added Callable import
 
+def resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    base = getattr(sys, '_MEIPASS', None)
+    if base:
+        return os.path.join(base, relative_path)
+    return os.path.join(os.path.abspath(".."), relative_path)
+
 # At module level, define a single logger for this file
 stockfish_handler_logger = logging.getLogger("stockfish_handler")
 stockfish_handler_logger.setLevel(logging.DEBUG)
@@ -85,7 +92,7 @@ class StockfishHandler:
                 creationflags = subprocess.CREATE_NO_WINDOW
 
             self.process = subprocess.Popen(
-                self.stockfish_path,
+                resource_path(self.stockfish_path),
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
