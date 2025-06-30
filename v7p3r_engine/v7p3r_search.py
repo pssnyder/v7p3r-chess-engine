@@ -29,7 +29,6 @@ class v7p3rSearch:
         # Engine Search Types (search algorithms used by v7p3r)
         self.search_algorithms = [
             'deepsearch',                    # Dynamic deep search via negamax with time control and iterative deepening
-            'lookahead',                     # Lookahead search with simple max value comparison
             'minimax',                       # Minimax search with alpha-beta pruning
             'negamax',                       # Negamax search with alpha-beta pruning
             'random',                        # Random move selection
@@ -56,7 +55,7 @@ class v7p3rSearch:
         legal_moves = self.move_organizer.order_moves(root_board, legal_moves, depth=self.depth)
         if not legal_moves:
             if self.monitoring_enabled and self.logger:
-                self.logger.debug(f"No legal moves found for player: {'White' if player == chess.WHITE else 'Black'} | FEN: {root_board.fen()}")
+                self.logger.error(f"[Error] No legal moves found for player: {'White' if player == chess.WHITE else 'Black'} | FEN: {root_board.fen()}")
             return chess.Move.null()
 
         best_score_overall = -float('inf')
@@ -255,63 +254,6 @@ class v7p3rSearch:
 
         return best_move_root, best_score_root
     
-    def _enhanced_search(self, board: chess.Board, depth: int = 2, alpha: float = -float('inf'), beta: float = float('inf')):
-
-        """
-        Enhanced search: robust PV negamax with root PV tracking.
-        Always returns the best legal move for the root position, and the full PV from root.
-        Returns (best_move, best_score, pv_sequence).
-        """
-        root_board = board.copy()
-        self.nodes_searched = 0
-
-        def pv_negamax(board, depth, alpha, beta):
-            if depth == 0 or board.is_game_over():
-                score = self._quiescence_search(board, alpha, beta, True)
-                return score, []
-
-            best_score = -float('inf')
-            best_line = []
-            legal_moves = self.move_organizer.order_moves(board, list(board.legal_moves), depth=depth)
-            if not legal_moves:
-                return self._quiescence_search(board, alpha, beta, True), []
-
-            for move in legal_moves:
-                temp_board = board.copy()
-                temp_board.push(move)
-                checkmate_move = self._checkmate_search(temp_board, depth=1)
-                if checkmate_move != chess.Move.null() and temp_board.is_legal(checkmate_move):
-                    if self.monitoring_enabled and self.logger:
-                        self.logger.info(f"Checkmate move found: {checkmate_move} | FEN: {temp_board.fen()}")
-                    return 999999999, [checkmate_move]
-                if self._draw_search(temp_board, depth=1):
-                    continue
-                score, line = pv_negamax(temp_board, depth-1, -beta, -alpha)
-                score = -score
-                self.nodes_searched += 1
-                if score > best_score:
-                    best_score = score
-                    best_line = [move] + line
-                alpha = max(alpha, score)
-                if alpha >= beta:
-                    break
-            return best_score, best_line
-
-        # At root, get best move and PV
-        best_score, pv = pv_negamax(root_board, depth, alpha, beta)
-        # Defensive: ensure PV is from root and move is legal in root
-        best_move = pv[0] if pv and root_board.is_legal(pv[0]) else chess.Move.null()
-        if best_move == chess.Move.null():
-            legal_moves = list(root_board.legal_moves)
-            if legal_moves:
-                best_move = random.choice(legal_moves)
-                pv = [best_move]
-            else:
-                best_move = chess.Move.null()
-                pv = []
-
-        return best_move, best_score, pv
-
     def _quiescence_search(self, board: chess.Board, alpha: float, beta: float, maximizing_player: bool, current_ply: int = 0) -> float:
         """Quiescence search to handle tactical positions."""
         # Get a static evaluation first
