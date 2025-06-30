@@ -548,7 +548,7 @@ class ChessGame:
                 self._move_metrics_batch.append(metric)
                 
                 if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
-                    self.logger.debug(f"Move metrics for {engine_move} added to MetricsStore.")
+                    self.logger.debug(f"Move metrics for {engine_move.uci()} added to MetricsStore.")
             except Exception as e:
                 if self.logger and self.monitoring_enabled:
                     self.logger.error(f"[HARDSTOP Error] Move Invalid: {e}. | Move: {engine_move} | FEN: {self.board.fen()}")
