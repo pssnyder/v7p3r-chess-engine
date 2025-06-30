@@ -30,9 +30,9 @@ if parent_dir not in sys.path:
 
 # Import the ChessGame class from play_v7p3r
 try:
-    from play_v7p3r import ChessGame  # Try local import first
+    from v7p3r_engine.v7p3r_play import ChessGame  # Try local import first
 except ImportError:
-    from v7p3r_engine.play_v7p3r import ChessGame  # Fallback to package import
+    from v7p3r_engine.v7p3r_play import ChessGame  # Fallback to package import
 
 # Default values used for new configurations
 DEFAULT_CONFIG = {
@@ -1208,10 +1208,10 @@ class ConfigGUI:
                 # Import ChessGame here to avoid circular imports
                 try:
                     # Try local import first
-                    from play_v7p3r import ChessGame
+                    from v7p3r_engine.v7p3r_play import ChessGame
                 except ImportError:
                     # Fallback to package import
-                    from v7p3r_engine.play_v7p3r import ChessGame
+                    from v7p3r_engine.v7p3r_play import ChessGame
                 
                 game = ChessGame(config_data)
                 game.run()

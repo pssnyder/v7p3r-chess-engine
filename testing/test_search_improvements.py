@@ -33,7 +33,7 @@ def test_checkmate_detection():
     
     # Import required modules
     from v7p3r_engine.v7p3r_pst import v7p3rPST
-    from v7p3r_engine.v7p3r_score_v2 import v7p3rScore
+    from v7p3r_engine.v7p3r_score import v7p3rScore
     from v7p3r_engine.v7p3r_search import v7p3rSearch
     from v7p3r_engine.v7p3r_time import v7p3rTime
     from v7p3r_engine.v7p3r_ordering import v7p3rOrdering

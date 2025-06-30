@@ -14,7 +14,7 @@ def test_rl_integration():
     print("Testing v7p3r RL Engine integration with play_v7p3r.py...")
     
     try:
-        from v7p3r_engine.play_v7p3r import ChessGame
+        from v7p3r_engine.v7p3r_play import ChessGame
         
         # Configuration for RL vs RL test
         config = {
@@ -78,7 +78,7 @@ def test_engine_vs_stockfish():
     print("\\nTesting v7p3r_rl vs Stockfish...")
     
     try:
-        from v7p3r_engine.play_v7p3r import ChessGame
+        from v7p3r_engine.v7p3r_play import ChessGame
         
         config = {
             "game_count": 1,

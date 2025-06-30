@@ -12,7 +12,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
 import datetime
 from v7p3r_search import v7p3rSearch
-from v7p3r_engine.v7p3r_score_v2 import v7p3rScore
+from v7p3r_engine.v7p3r_score import v7p3rScore
 from v7p3r_ordering import v7p3rOrdering
 from v7p3r_time import v7p3rTime
 from v7p3r_book import v7p3rBook
@@ -65,19 +65,14 @@ class v7p3rEngine:
 
         # Load engine config and default values
         self.name = self.engine_config.get("name", "v7p3r")
-        self.version = self.engine_config.get("version", "1.0.0")
-        self.color = self.engine_config.get("color", "white")
+        self.version = self.engine_config.get("version", "0.0.0")
         self.ruleset = self.engine_config.get("ruleset", "default_evaluation")
         self.search_algorithm = self.engine_config.get("search_algorithm", "lookahead")
-        self.depth = self.engine_config.get("depth", 3)
-        self.max_depth = self.engine_config.get("max_depth", 4)
+        self.depth = self.engine_config.get("depth", 5)
+        self.max_depth = self.engine_config.get("max_depth", 8)
         self.use_game_phase = self.engine_config.get("use_game_phase", False)
         self.monitoring_enabled = self.engine_config.get("monitoring_enabled", False)
         self.verbose_output = self.engine_config.get("verbose_output", False)
-        self.game_count = self.engine_config.get("game_count", 1)
-        self.starting_position = self.engine_config.get("starting_position", "default")
-        self.white_player = self.engine_config.get("white_player", "v7p3r")
-        self.black_player = self.engine_config.get("black_player", "stockfish")
         self.piece_values = self.engine_config.get("piece_values", {
             chess.KING: 0.0,
             chess.QUEEN: 9.0,
