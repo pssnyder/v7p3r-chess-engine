@@ -6,6 +6,5 @@
 [Black "stockfish"]
 [Result "*"]
 
-1. e4 { Eval: 0.40 } 1... e5 { Eval: 0.10 } 2. Bc4 { Eval: 1.15 } 2... Bc5
-{ Eval: 0.10 } *
+1. d4 { Eval: 0.80 } 1... e6 { Eval: -1.20 } *
 
