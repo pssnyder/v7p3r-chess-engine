@@ -6,5 +6,8 @@
 [Black "stockfish"]
 [Result "*"]
 
-1. c4 { Eval: -1.20 } *
+1. e4 { Eval: 0.40 } 1... e5 { Eval: 0.10 } 2. f4 { Eval: -2.90 } 2... Nc6
+{ Eval: -10.20 } 3. fxe5 { Eval: 41.85 } 3... Qh4+ { Eval: 98.85 } 4. Ke2
+{ Eval: -65.00 } 4... Qxe4+ { Eval: -53.90 } 5. Kf2 { Eval: -112.25 } 5... Bc5+
+{ Eval: -57.30 } *
 

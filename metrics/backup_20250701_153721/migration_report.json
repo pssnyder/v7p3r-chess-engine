@@ -1,0 +1,21 @@
+{
+  "migration_timestamp": "2025-07-01T15:51:33.277514",
+  "backup_directory": "metrics/backup_20250701_153721",
+  "migration_success": true,
+  "enhanced_features": [
+    "Detailed scoring breakdown (23+ evaluation components)",
+    "Engine-specific metrics with proper attribution",
+    "Game phase and position analysis",
+    "Search efficiency and performance metrics",
+    "Enhanced database schema with optimized indexes",
+    "Comprehensive position classification",
+    "Material balance and piece activity tracking",
+    "Opening book usage detection",
+    "Tactical motif identification"
+  ],
+  "new_database_files": [
+    "metrics/chess_metrics_v2.db"
+  ],
+  "backup_files": [],
+  "migration_notes": "Enhanced metrics system provides comprehensive chess engine analysis capabilities"
+}
