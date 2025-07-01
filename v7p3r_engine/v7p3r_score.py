@@ -417,6 +417,8 @@ class v7p3rScore:
                 print(f"[Scoring Calc] Final score for {current_player_name} as {color_name}: {score:.3f} | Ruleset: {self.ruleset_name} | FEN: {board.fen()}")
         return score
 
+    # ==========================================
+    # ========== GAME PHASE CALCULATION ========
     def calculate_game_phase(self, board: chess.Board):
         """
         Determines the current phase of the game: 'opening', 'middlegame', or 'endgame'.
@@ -437,16 +439,17 @@ class v7p3rScore:
             for piece_type in [chess.PAWN, chess.KNIGHT, chess.BISHOP, chess.ROOK, chess.QUEEN]
         ])
         # Heuristic: opening if all queens/rooks/bishops/knights are present, endgame if queens are gone or little material
-        if material <= 10:
+        if material <= 8:
             # Endgame Phase
             phase = "endgame"
+            # Heuristic: if less than 8 pieces are on the board, endgame is likely
             endgame_factor = 1.0
-        elif material < 25 and (not board.has_castling_rights(chess.WHITE) or not board.has_castling_rights(chess.BLACK)):
+        elif material < 20 and (not board.has_castling_rights(chess.WHITE) or not board.has_castling_rights(chess.BLACK)):
             # Middlegame Phase
             phase = "middlegame"
-            # Heuristic: if less than 25 pieces are on the board and one player has castled
+            # Heuristic: if less than 20 pieces are on the board and at least one player has castled
             endgame_factor = 0.5
-            if material < 20 and not board.has_castling_rights(chess.WHITE) and not board.has_castling_rights(chess.BLACK):
+            if material < 18 and not board.has_castling_rights(chess.WHITE) and not board.has_castling_rights(chess.BLACK):
                 # Heuristic: if less than 20 pieces are on the board and both sides have still not castled, unstable position, collapse of opening preparation
                 endgame_factor = 0.75
         elif material <= 32 and (board.has_castling_rights(chess.WHITE) and board.has_castling_rights(chess.BLACK)):
