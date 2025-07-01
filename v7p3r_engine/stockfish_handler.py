@@ -364,7 +364,8 @@ class StockfishHandler:
         best_move_found = False
         
         start_time = time.time()
-        while time.time() - start_time < 2.0: # Give it up to 2 seconds to respond
+        timeout = 1.0  # Reduced timeout to 1 second for faster GA training
+        while time.time() - start_time < timeout:
             line = self._read_response(timeout=0.1)
             if not line:
                 # If no line received for a short period, check if process is still alive

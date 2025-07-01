@@ -83,6 +83,18 @@ class v7p3rPST:
         # Pawn table - encourages advancement and center control
         self.PAWN_TABLE = [
             [  0,  0,  0,  0,  0,  0,  0,  0],  # 8th rank (promotion)
+            [  0,  0,  0,  0,  0,  0,  0,  0],  # 7th rank 
+            [  0,  0,  0,  0,  0,  0,  0,  0],  # 6th rank
+            [  0,  0,  0,  0,  0,  0,  0,  0],  # 5th rank
+            [  5,  5, 10, 20, 20, 10,  5,  0],  # 4th rank
+            [  5,  5,-10, 10, 10,-10, -5,  5],  # 3rd rank
+            [  5, 10, 10,-20,-20, 10, 10,  5],  # 2nd rank
+            [  0,  0,  0,  0,  0,  0,  0,  0]   # 1st rank
+        ]
+
+        # Pawn middlegame table - encourages advancement and center control
+        self.PAWN_MG_TABLE = [
+            [  0,  0,  0,  0,  0,  0,  0,  0],  # 8th rank (promotion)
             [ 50, 50, 50, 50, 50, 50, 50, 50],  # 7th rank 
             [ 10, 10, 20, 30, 30, 20, 10, 10],  # 6th rank
             [  5,  5, 10, 25, 25, 10,  5,  5],  # 5th rank
@@ -93,7 +105,6 @@ class v7p3rPST:
         ]
 
         # Pawn endgame table - encourages advancement and king safety in the endgame
-        # Pawns become more valuable as they get closer to promotion
         self.PAWN_EG_TABLE = [
             [  0,  0,  0,  0,  0,  0,  0,  0],  # 8th rank (promotion)
             [ 90, 90, 90, 90, 90, 90, 90, 90],  # 7th rank (promotion square)
@@ -152,8 +163,20 @@ class v7p3rPST:
             [-10,  0,  5,  0,  0,  0,  0,-10],
             [-20,-10,-10, -5, -5,-10,-10,-20]
         ]
-        
-        # King table - encourages castling and safety (middlegame)
+
+        # King table - encourages stability and castling protection
+        self.KING_TABLE = [ # Renamed from KING_TABLE for clarity
+            [-50,-50,-50,-50,-50,-50,-50,-50],
+            [-50,-50,-50,-50,-50,-50,-50,-50],
+            [-50,-50,-50,-50,-50,-50,-50,-50],
+            [-50,-50,-50,-50,-50,-50,-50,-50],
+            [-50,-50,-50,-50,-50,-50,-50,-50],
+            [-50,-50,-50,-50,-50,-50,-50,-50],
+            [-50,-50,-50,-50,-50,-50,-50,-50],
+            [  0,  0,  0, 50, 50,  0,  0,  0] # Adjusted slightly for castling bonus
+        ]
+
+        # King middlegame table - encourages castling and safety (middlegame)
         self.KING_MG_TABLE = [ # Renamed from KING_TABLE for clarity
             [-30,-40,-40,-50,-50,-40,-40,-30],
             [-30,-40,-40,-50,-50,-40,-40,-30],
@@ -161,8 +184,8 @@ class v7p3rPST:
             [-30,-40,-40,-50,-50,-40,-40,-30],
             [-20,-30,-30,-40,-40,-30,-30,-20],
             [-10,-20,-20,-20,-20,-20,-20,-10],
-            [ 10, 10,  0,  0,  0,  0, 10, 10],
-            [ 20, 30, 10,  0,  0, 10, 30, 20] # Adjusted slightly for castling bonus
+            [  5,  5,-10,-10,-10,-10,  5,  5],
+            [ 20, 30, 10, -5, -5, 10, 30, 20] # Adjusted slightly for castling bonus
         ]
 
         # King endgame table (encourages activity and centralization)
@@ -200,10 +223,11 @@ class v7p3rPST:
         
         table_value = 0
         if piece.piece_type == chess.PAWN:
-            # Interpolate between opening, middlegame, and endgame pawn tables
-            mg_value = self.PAWN_TABLE[rank][file]
-            eg_value = self.PAWN_EG_TABLE[rank][file]
-            table_value = mg_value * (1 - endgame_factor) + eg_value * endgame_factor
+            # Interpolate between game phase pawn tables
+            op_value = self.PAWN_TABLE[rank][file] if endgame_factor <= 0.25 else 0
+            mg_value = self.PAWN_MG_TABLE[rank][file] if endgame_factor <= 0.75 else 0
+            eg_value = self.PAWN_EG_TABLE[rank][file] if endgame_factor > 0.75 else 0
+            table_value = (op_value * (1 - endgame_factor)) + (mg_value * (1 - endgame_factor)) + (eg_value * (1 - endgame_factor)) 
         elif piece.piece_type == chess.KNIGHT:
             table_value = self.KNIGHT_TABLE[rank][file]
         elif piece.piece_type == chess.BISHOP:
@@ -213,10 +237,11 @@ class v7p3rPST:
         elif piece.piece_type == chess.QUEEN:
             table_value = self.QUEEN_TABLE[rank][file]
         elif piece.piece_type == chess.KING:
-            # Interpolate between middlegame and endgame king tables
-            mg_value = self.KING_MG_TABLE[rank][file]
-            eg_value = self.KING_EG_TABLE[rank][file]
-            table_value = mg_value * (1 - endgame_factor) + eg_value * endgame_factor
+            # Interpolate between game phase king tables
+            op_value = self.KING_TABLE[rank][file] if endgame_factor <= 0.25 else 0
+            mg_value = self.KING_MG_TABLE[rank][file] if endgame_factor <= 0.75 else 0
+            eg_value = self.KING_EG_TABLE[rank][file] if endgame_factor > 0.75 else 0
+            table_value = (op_value * (1 - endgame_factor)) + (mg_value * (1 - endgame_factor)) + (eg_value * (1 - endgame_factor))
         else:
             table_value = 0
         
