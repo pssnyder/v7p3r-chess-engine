@@ -73,6 +73,7 @@ class v7p3rSearch:
             'deepsearch',                    # Dynamic deep search via negamax with time control and iterative deepening
             'minimax',                       # Minimax search with alpha-beta pruning
             'negamax',                       # Negamax search with alpha-beta pruning
+            'simple',                        # Simple evaluation-based search
             'random',                        # Random move selection
         ]
     
@@ -139,8 +140,6 @@ class v7p3rSearch:
                     if self.monitoring_enabled and self.logger:
                         self.logger.info(f"Checkmate move found: {move} | FEN: {temp_board.fen()}")
                     return move
-                #elif self._draw_search(temp_board, depth=1):
-                #    continue
 
                 try:
                     if self.monitoring_enabled and self.logger:
@@ -244,7 +243,7 @@ class v7p3rSearch:
                     self.logger.info(f"Checkmate move found: {move} | FEN: {temp_board.fen()}")
                 return 999999999 if maximizing_player else -999999999
             elif self._draw_search(temp_board, depth=1):
-                continue
+                return -99999
 
             # Recursive minimax call
             score = self._minimax_search(temp_board, depth - 1, alpha, beta, not maximizing_player)
@@ -272,62 +271,117 @@ class v7p3rSearch:
 
     def _negamax_search(self, board: chess.Board, depth: int, alpha: float, beta: float) -> float:
         """Negamax search with alpha-beta pruning and basic tactical extensions."""
+        if self.monitoring_enabled and self.logger:
+            self.logger.debug(f"NEGAMAX: Starting search at depth {depth}, alpha={alpha:.2f}, beta={beta:.2f}")
+        
         if depth <= 0 or board.is_game_over():
-            return self.scoring_calculator.evaluate_position(board)
+            eval_result = self.scoring_calculator.evaluate_position(board)
+            if self.monitoring_enabled and self.logger:
+                self.logger.debug(f"NEGAMAX: Leaf node evaluation: {eval_result:.2f} (type: {type(eval_result)})")
+            return eval_result
+            
         # Internal node: explore moves
         best_score = -float('inf')
         legal_moves = list(board.legal_moves)
         if self.monitoring_enabled and self.logger:
-            self.logger.debug(f"NEGAMAX: Found {len(legal_moves)} legal moves")
+            self.logger.debug(f"NEGAMAX: Found {len(legal_moves)} legal moves at depth {depth}")
+            
         legal_moves = self.move_organizer.order_moves(board, legal_moves, depth=self.depth)
+        if self.monitoring_enabled and self.logger:
+            self.logger.debug(f"NEGAMAX: Ordered moves, first few: {legal_moves[:3] if len(legal_moves) >= 3 else legal_moves}")
+        
+        moves_evaluated = 0
         for move in legal_moves:
+            moves_evaluated += 1
+            if self.monitoring_enabled and self.logger:
+                self.logger.debug(f"NEGAMAX: Evaluating move {moves_evaluated}/{len(legal_moves)}: {move}")
+                
             temp_board = board.copy()
             temp_board.push(move)
+            
+            # Check for immediate checkmate
             checkmate_move = self._checkmate_search(temp_board, depth=1)
             if checkmate_move != chess.Move.null() and temp_board.is_legal(checkmate_move):
                 if self.monitoring_enabled and self.logger:
-                    self.logger.info(f"Checkmate move found: {checkmate_move} | FEN: {temp_board.fen()}")
+                    self.logger.info(f"NEGAMAX: Checkmate move found: {checkmate_move} | FEN: {temp_board.fen()}")
                 return 999999999
+                
+            # Check for draw conditions
             if self._draw_search(temp_board, depth=1):
+                if self.monitoring_enabled and self.logger:
+                    self.logger.debug(f"NEGAMAX: Draw condition detected for move {move}, skipping")
                 continue
+                
             # Recursive negamax call with flipped perspectives
             score = -self._negamax_search(temp_board, depth-1, -beta, -alpha)
             self.nodes_searched += 1
+            
+            if self.monitoring_enabled and self.logger:
+                self.logger.debug(f"NEGAMAX: Move {move} returned score: {score:.2f}")
+            
             # Update best score
             if score > best_score:
                 best_score = score
+                if self.monitoring_enabled and self.logger:
+                    self.logger.debug(f"NEGAMAX: New best score: {best_score:.2f}")
+                    
             # Alpha-beta pruning
             alpha = max(alpha, score)
             if alpha >= beta:
+                if self.monitoring_enabled and self.logger:
+                    self.logger.debug(f"NEGAMAX: Beta cutoff (alpha={alpha:.2f} >= beta={beta:.2f}) after {moves_evaluated} moves")
                 break  # Beta cutoff
+                
+        if self.monitoring_enabled and self.logger:
+            self.logger.debug(f"NEGAMAX: Returning best score: {best_score:.2f} after evaluating {moves_evaluated} moves at depth {depth}")
         return best_score
 
     
     def _deep_search(self, board: chess.Board, depth: int, max_depth: int, current_depth: int = 1):
         """Iterative deepening search with time management and more aggressive tactics."""
+        if self.monitoring_enabled and self.logger:
+            self.logger.debug(f"DEEPSEARCH: Starting iterative deepening, depth={depth}, max_depth={max_depth}, current_depth={current_depth}")
+        
         best_move_root = chess.Move.null() 
         best_score_root = -float('inf')
+        
         # Define legal_moves at the beginning of the method for the current board state
         legal_moves = list(board.legal_moves)
         if self.monitoring_enabled and self.logger:
             self.logger.debug(f"DEEPSEARCH: Found {len(legal_moves)} legal moves")
+            
         legal_moves = self.move_organizer.order_moves(board, legal_moves, depth=self.depth)
+        if self.monitoring_enabled and self.logger:
+            self.logger.debug(f"DEEPSEARCH: Ordered moves, first few: {legal_moves[:3] if len(legal_moves) >= 3 else legal_moves}")
+            
         if not legal_moves:
+            if self.monitoring_enabled and self.logger:
+                self.logger.debug(f"DEEPSEARCH: No legal moves to search")
             return chess.Move.null(), -float('inf')  # No legal moves to search
 
         search_depth_limit = min(depth, max_depth)
+        if self.monitoring_enabled and self.logger:
+            self.logger.debug(f"DEEPSEARCH: Search depth limit set to {search_depth_limit}")
+            
         for iterative_depth in range(current_depth, search_depth_limit + 1):
+            if self.monitoring_enabled and self.logger:
+                self.logger.debug(f"DEEPSEARCH: Starting iteration at depth {iterative_depth}")
+                
             if self.time_manager.should_stop(self.depth if self.depth is not None else 1):
                 if self.monitoring_enabled and self.logger:
-                    self.logger.info(f"Deepsearch stopped by time manager at depth {iterative_depth-1}.")
+                    self.logger.info(f"DEEPSEARCH: Stopped by time manager at depth {iterative_depth-1}.")
                 break # Stop if time manager says so
             
             current_iter_legal_moves = list(board.legal_moves) 
             if not current_iter_legal_moves:
+                if self.monitoring_enabled and self.logger:
+                    self.logger.debug(f"DEEPSEARCH: No legal moves at iteration depth {iterative_depth}")
                 break
 
             # Re-order moves at each iteration - prioritize captures, checks, and central pawn moves
             ordered_moves = self.move_organizer.order_moves(board, current_iter_legal_moves, depth=iterative_depth)
+            if self.monitoring_enabled and self.logger:
+                self.logger.debug(f"DEEPSEARCH: Re-ordered {len(ordered_moves)} moves for depth {iterative_depth}")
 
             local_best_move_at_depth = chess.Move.null()
             local_best_score_at_depth = -float('inf')
@@ -338,64 +392,100 @@ class v7p3rSearch:
                 window = 50.0 # Pawn = 100, so half pawn window
                 alpha = best_score_root - window
                 beta = best_score_root + window
+                if self.monitoring_enabled and self.logger:
+                    self.logger.debug(f"DEEPSEARCH: Using aspiration window at depth {iterative_depth}: alpha={alpha:.2f}, beta={beta:.2f}")
             else:
                 alpha = -float('inf')
                 beta = float('inf')
+                if self.monitoring_enabled and self.logger:
+                    self.logger.debug(f"DEEPSEARCH: Using full window at depth {iterative_depth}")
 
+            moves_evaluated_at_depth = 0
             # Search with aspiration windows
             for move in ordered_moves:
+                moves_evaluated_at_depth += 1
+                if self.monitoring_enabled and self.logger:
+                    self.logger.debug(f"DEEPSEARCH: Evaluating move {moves_evaluated_at_depth}/{len(ordered_moves)} at depth {iterative_depth}: {move}")
+                
                 temp_board = board.copy()
                 temp_board.push(move)
+                
+                # Check for immediate checkmate
                 checkmate_move = self._checkmate_search(temp_board, depth=1)
                 if checkmate_move != chess.Move.null() and temp_board.is_legal(checkmate_move):
                     if self.monitoring_enabled and self.logger:
-                        self.logger.info(f"Checkmate move found: {checkmate_move} | FEN: {temp_board.fen()}")
+                        self.logger.info(f"DEEPSEARCH: Checkmate move found: {checkmate_move} | FEN: {temp_board.fen()}")
                     return checkmate_move, 999999999
+                    
+                # Check for draw conditions
                 if self._draw_search(temp_board, depth=1):
+                    if self.monitoring_enabled and self.logger:
+                        self.logger.debug(f"DEEPSEARCH: Draw condition detected for move {move}, skipping")
                     continue
+                    
                 # For potential checkmates, search deeper
                 if temp_board.is_check():
                     # Search deeper when giving check to find potential checkmates
                     check_extension = 1
+                    if self.monitoring_enabled and self.logger:
+                        self.logger.debug(f"DEEPSEARCH: Check extension (+{check_extension}) for move {move}")
                     current_move_score = -self._negamax_search(temp_board, iterative_depth - 1 + check_extension, -beta, -alpha)
                 else:
                     current_move_score = -self._negamax_search(temp_board, iterative_depth - 1, -beta, -alpha)
                 
                 self.nodes_searched += 1
                 
+                if self.monitoring_enabled and self.logger:
+                    self.logger.debug(f"DEEPSEARCH: Move {move} at depth {iterative_depth} returned score: {current_move_score:.2f}")
+                
                 if current_move_score > local_best_score_at_depth:
                     local_best_score_at_depth = current_move_score
                     local_best_move_at_depth = move
+                    if self.monitoring_enabled and self.logger:
+                        self.logger.debug(f"DEEPSEARCH: New local best at depth {iterative_depth}: {move} with score {current_move_score:.2f}")
                 
                 # If outside aspiration window, research with full window
                 if current_move_score <= alpha or current_move_score >= beta:
+                    if self.monitoring_enabled and self.logger:
+                        self.logger.debug(f"DEEPSEARCH: Score {current_move_score:.2f} outside aspiration window [{alpha:.2f}, {beta:.2f}], researching with full window")
                     alpha = -float('inf')
                     beta = float('inf')
                     current_move_score = -self._negamax_search(temp_board, iterative_depth - 1, -beta, -alpha)
                     
+                    if self.monitoring_enabled and self.logger:
+                        self.logger.debug(f"DEEPSEARCH: Research returned score: {current_move_score:.2f}")
+                    
                     if current_move_score > local_best_score_at_depth:
                         local_best_score_at_depth = current_move_score
                         local_best_move_at_depth = move
+                        if self.monitoring_enabled and self.logger:
+                            self.logger.debug(f"DEEPSEARCH: New local best after research: {move} with score {current_move_score:.2f}")
                 
                 alpha = max(alpha, current_move_score)
                 if alpha >= beta:
+                    if self.monitoring_enabled and self.logger:
+                        self.logger.debug(f"DEEPSEARCH: Beta cutoff at depth {iterative_depth} after {moves_evaluated_at_depth} moves")
                     break
             
             # After each full depth iteration, update the overall best move
             if local_best_move_at_depth != chess.Move.null():
                 best_move_root = local_best_move_at_depth
                 best_score_root = local_best_score_at_depth
+                if self.monitoring_enabled and self.logger:
+                    self.logger.debug(f"DEEPSEARCH: Updated root best move: {best_move_root} with score {best_score_root:.2f}")
             
             # If checkmate or mate-in-N is found, stop early
             checkmate_bonus = self.scoring_calculator.rules.get('checkmate_bonus', 1000000.0)
             if abs(best_score_root) > checkmate_bonus / 2:
                 if self.monitoring_enabled and self.logger:
-                    self.logger.info(f"Deepsearch found a potential checkmate at depth {iterative_depth}. Stopping early.")
+                    self.logger.info(f"DEEPSEARCH: Found potential checkmate at depth {iterative_depth} (score: {best_score_root:.2f}). Stopping early.")
                 break
 
             if self.monitoring_enabled and self.logger:
-                self.logger.debug(f"Deepsearch finished depth {iterative_depth}: Best move {best_move_root} with score {best_score_root:.2f}")
+                self.logger.debug(f"DEEPSEARCH: Finished depth {iterative_depth}: Best move {best_move_root} with score {best_score_root:.2f}, evaluated {moves_evaluated_at_depth} moves")
 
+        if self.monitoring_enabled and self.logger:
+            self.logger.debug(f"DEEPSEARCH: Final result - Best move: {best_move_root}, Score: {best_score_root:.2f}")
         return best_move_root, best_score_root
     
     def _quiescence_search(self, board: chess.Board, alpha: float, beta: float, maximizing_player: bool, current_ply: int = 0) -> float:
