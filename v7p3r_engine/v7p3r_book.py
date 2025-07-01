@@ -113,6 +113,17 @@ class v7p3rBook:
             (chess.Move.from_uci("g8f6"), 30),   # Indian Defense
             (chess.Move.from_uci("f7f5"), 15),   # Dutch Defense
             (chess.Move.from_uci("e7e6"), 15),   # French-like setup
+            (chess.Move.from_uci("c7c5"), 20),   # Benoni Defense
+            (chess.Move.from_uci("c7c6"), 20),   # Caro-Kann Defense
+            (chess.Move.from_uci("g7g6"), 10),   # King's Indian Defense
+            (chess.Move.from_uci("b7b6"), 5),    # Nimzowitsch-Larsen Attack
+            (chess.Move.from_uci("e7e5"), 10),   # Slav Defense
+            (chess.Move.from_uci("d7d6"), 5),    # Pirc Defense
+            (chess.Move.from_uci("c2c4"), 10),   # English Opening
+            (chess.Move.from_uci("f2f4"), -1),   # Bird's Opening
+            (chess.Move.from_uci("e2e3"), -1),   # Van't Kruijs Opening
+            (chess.Move.from_uci("g2g3"), -1),   # King's Fianchetto
+            (chess.Move.from_uci("b2b3"), -1),   # Nimzo-Larsen Attack
         ]
 
 
@@ -128,6 +139,10 @@ class v7p3rBook:
             (chess.Move.from_uci("b1c3"), 10),   # Four Knights Game
             (chess.Move.from_uci("d2d3"), 5),    # Italian Gambit
             (chess.Move.from_uci("e1e2"), -1),   # Bongcloud Opening
+            (chess.Move.from_uci("g1e2"), 5),   # King's Indian Attack
+            (chess.Move.from_uci("c2c3"), 5),    # Bishop's Opening
+            (chess.Move.from_uci("b2b3"), 5),    # Nimzowitsch-Larsen Attack
+            (chess.Move.from_uci("g2g3"), 5),    # King's Fianchetto
         ]
 
         # After 1.e4 e5 2.Nf3
@@ -138,6 +153,15 @@ class v7p3rBook:
         self.book[ruy_lopez_pos.fen()] = [
             (chess.Move.from_uci("b8c6"), 20),   # Knight defense
             (chess.Move.from_uci("d7d6"), 80),   # Philidor Defense
+            (chess.Move.from_uci("g8f6"), 50),   # Classical Defense
+            (chess.Move.from_uci("f7f6"), 10),   # Schliemann Defense
+            (chess.Move.from_uci("c7c6"), 30),   # Caro-Kann Defense
+            (chess.Move.from_uci("d7d5"), 20),   # Scandinavian Defense
+            (chess.Move.from_uci("f7f5"), 10),   # Dutch Defense
+            (chess.Move.from_uci("g7g6"), 10),   # King's Indian Defense
+            (chess.Move.from_uci("b7b6"), 5),    # Nimzowitsch-Larsen Attack
+            (chess.Move.from_uci("c2c3"), 5),    # Bishop's Opening
+            (chess.Move.from_uci("e1e2"), -1),   # Bongcloud Opening
         ]
 
         # After 1.e4 e5 2.Nf3 Nc6
@@ -151,6 +175,16 @@ class v7p3rBook:
             (chess.Move.from_uci("f1c4"), 30),   # Italian Game
             (chess.Move.from_uci("d2d4"), 20),   # Scotch Game
             (chess.Move.from_uci("b1c3"), 10),   # Four Knights
+            (chess.Move.from_uci("c2c3"), 5),    # Bishop's Opening
+            (chess.Move.from_uci("e1e2"), -1),   # Bongcloud Opening
+            (chess.Move.from_uci("g1e2"), 5),    # King's Indian Attack
+            (chess.Move.from_uci("g2g3"), 5),    # King's Fianchetto
+            (chess.Move.from_uci("b2b3"), 5),    # Nimzowitsch-Larsen Attack
+            (chess.Move.from_uci("f2f4"), 5),    # King's Gambit
+            (chess.Move.from_uci("d2d3"), 5),    # Italian Gambit
+            (chess.Move.from_uci("c7c6"), 5),    # Caro-Kann Defense
+            (chess.Move.from_uci("f7f6"), 5),    # Schliemann Defense
+            (chess.Move.from_uci("d7d5"), 5),    # Scandinavian Defense
         ]
 
         # Add some common Sicilian lines...
@@ -161,6 +195,8 @@ class v7p3rBook:
             (chess.Move.from_uci("g1f3"), 50),   # Open Sicilian
             (chess.Move.from_uci("b1c3"), 25),   # Closed Sicilian
             (chess.Move.from_uci("c2c3"), 25),   # c3 Sicilian
+            (chess.Move.from_uci("d2d4"), 20),   # Open Sicilian
+            (chess.Move.from_uci("f2f4"), 10),   # Grand Prix Attack
         ]
 
         # Add more lines as needed...
