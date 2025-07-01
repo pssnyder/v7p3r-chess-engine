@@ -67,11 +67,17 @@ if not v7p3r_config_gui_logger.handlers:
     v7p3r_config_gui_logger.addHandler(file_handler)
     v7p3r_config_gui_logger.propagate = False
 
-# Import the ChessGame class from play_v7p3r
+# Import the ChessGame class from v7p3r_play
 try:
-    from v7p3r_play import ChessGame  # Try local import first
+    from .v7p3r_play import ChessGame  # Try relative import first
 except ImportError:
-    from v7p3r_play import ChessGame  # Fallback to package import
+    try:
+        from v7p3r_engine.v7p3r_play import ChessGame  # Try package import
+    except ImportError:
+        import sys
+        import os
+        sys.path.insert(0, os.path.dirname(__file__))
+        from v7p3r_play import ChessGame  # Direct import from same directory
 
 # Default values used for new configurations
 DEFAULT_CONFIG = {

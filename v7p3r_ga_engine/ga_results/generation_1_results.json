@@ -1,11 +1,11 @@
 {
   "generation": 1,
   "fens": [
-    "1r3r1k/2p4p/p2p1p1p/3QP3/3P4/q2BK3/P4P1P/6R1 b - - 0 27",
-    "r5k1/p1q3pp/3b4/3p1Q2/4p2P/3N2P1/PPP3K1/R7 b - - 1 24",
-    "8/3b4/5k2/2R3pp/3rPp2/p1K2P2/2B3P1/8 b - - 0 39",
-    "r2qkbnr/pp2pppp/2n5/2p2b2/4NP2/3P4/PPP3PP/R1BQKBNR w KQkq - 1 6",
-    "4r1k1/Q4bp1/1p3p2/3n1q1p/3P4/2P2NRP/P2B2P1/6K1 w - - 0 28"
+    "r6k/2p1R1pp/p4r2/1p2Qp2/3P4/1B2BNK1/P3q3/8 w - - 2 29",
+    "r1b2rk1/ppp1bppp/3q4/4R1B1/6n1/2NB4/PPP1QPPP/R5K1 w - - 3 12",
+    "1k1r4/2p5/R5pp/1B2Pp1b/5P1b/4B3/PPPK1P2/8 w - - 1 26",
+    "2kr3r/Qp1nbppp/2p1p1q1/8/3PnB2/5B1P/PPP2PP1/2K1R2R b - - 0 15",
+    "r4rk1/ppp2p1p/2nb2p1/8/3PB3/2P2Q2/PP3KPq/R1B2R2 b - - 1 16"
   ],
   "ruleset": {
     "backward_pawn_penalty": -0.5,
@@ -14,7 +14,7 @@
     "capture_bonus": 15.0,
     "capture_move_bonus": 4000,
     "castling_bonus": 5.0,
-    "castling_protection_bonus": 3.0,
+    "castling_protection_bonus": 2.194919178019988,
     "castling_protection_penalty": -6.0,
     "center_control_bonus": 0.25,
     "check_bonus": 50.0,
@@ -22,13 +22,13 @@
     "checkmate_bonus": 1000000.0,
     "checkmate_move_bonus": 1000000,
     "coordinated_rooks_bonus": 0.25,
-    "counter_move_bonus": 1000,
+    "counter_move_bonus": 910.0136280616041,
     "doubled_pawn_penalty": -0.5,
     "draw_penalty": -9999999999.0,
     "en_passant_bonus": 1.0,
     "exposed_king_penalty": -10.0,
-    "file_control_bonus": 0.12707669378432485,
-    "hanging_piece_bonus": 1.3862897228565974,
+    "file_control_bonus": 0.2,
+    "hanging_piece_bonus": 2.0,
     "hash_move_bonus": 5000,
     "history_move_bonus": 1000,
     "in_check_penalty": -10.0,
@@ -39,8 +39,8 @@
     "king_threat_penalty": -50.0,
     "knight_activity_bonus": 0.1,
     "knight_pair_bonus": 1.0,
-    "knight_vision_penalty": -0.30115065400967794,
-    "material_weight": 0.7482690477864516,
+    "knight_vision_penalty": -0.25,
+    "material_weight": 0.40702043882462124,
     "open_file_bonus": 0.3,
     "passed_pawn_bonus": 1.0,
     "pawn_advancement_bonus": 0.25,
@@ -53,41 +53,41 @@
     "promotion_move_bonus": 3000,
     "queen_capture_bonus": 1000.0,
     "repetition_penalty": -9999999999.0,
-    "rook_development_penalty": 0.10827503895442486,
+    "rook_development_penalty": 0.2,
     "rook_position_bonus": 0.4,
     "stacked_rooks_bonus": 0.5,
-    "stalemate_penalty": -9999999999.0,
+    "stalemate_penalty": -8259581296.594569,
     "tempo_bonus": 0.1,
     "trapped_piece_penalty": -5.0,
     "undefended_piece_penalty": -2.0,
     "undeveloped_penalty": -0.5
   },
-  "fitness": -205738869.6661267,
+  "fitness": -74208821.39494681,
   "evals": [
     {
-      "fen": "1r3r1k/2p4p/p2p1p1p/3QP3/3P4/q2BK3/P4P1P/6R1 b - - 0 27",
-      "stockfish": 4.77,
-      "v7p3r": 7643.680665235375
+      "fen": "r6k/2p1R1pp/p4r2/1p2Qp2/3P4/1B2BNK1/P3q3/8 w - - 2 29",
+      "stockfish": 999964,
+      "v7p3r": 3949.0240319827726
     },
     {
-      "fen": "r5k1/p1q3pp/3b4/3p1Q2/4p2P/3N2P1/PPP3K1/R7 b - - 1 24",
-      "stockfish": 4.77,
-      "v7p3r": 13006.164354968687
+      "fen": "r1b2rk1/ppp1bppp/3q4/4R1B1/6n1/2NB4/PPP1QPPP/R5K1 w - - 3 12",
+      "stockfish": 999964,
+      "v7p3r": 15840.25163545703
     },
     {
-      "fen": "8/3b4/5k2/2R3pp/3rPp2/p1K2P2/2B3P1/8 b - - 0 39",
-      "stockfish": 4.77,
-      "v7p3r": 6279.247844253244
+      "fen": "1k1r4/2p5/R5pp/1B2Pp1b/5P1b/4B3/PPPK1P2/8 w - - 1 26",
+      "stockfish": 999964,
+      "v7p3r": 8190.973502550698
     },
     {
-      "fen": "r2qkbnr/pp2pppp/2n5/2p2b2/4NP2/3P4/PPP3PP/R1BQKBNR w KQkq - 1 6",
-      "stockfish": 0.0,
-      "v7p3r": 24197.911835229188
+      "fen": "2kr3r/Qp1nbppp/2p1p1q1/8/3PnB2/5B1P/PPP2PP1/2K1R2R b - - 0 15",
+      "stockfish": 999964,
+      "v7p3r": 5667.378382407814
     },
     {
-      "fen": "4r1k1/Q4bp1/1p3p2/3n1q1p/3P4/2P2NRP/P2B2P1/6K1 w - - 0 28",
-      "stockfish": 0.0,
-      "v7p3r": 13312.591176564229
+      "fen": "r4rk1/ppp2p1p/2nb2p1/8/3PB3/2P2Q2/PP3KPq/R1B2R2 b - - 1 16",
+      "stockfish": 8.46,
+      "v7p3r": 10071.720008649138
     }
   ]
 }

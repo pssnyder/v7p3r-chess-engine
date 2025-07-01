@@ -7,13 +7,15 @@ import sys
 import yaml
 import json
 import logging
-from v7p3r_ga import v7p3rGeneticAlgorithm
-from v7p3r_ga_ruleset_manager import v7p3rGARulesetManager
-from puzzles.puzzle_db_manager import PuzzleDBManager
 import copy
 import random
 
+# Add the parent directory to the Python path first
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from v7p3r_ga_engine.v7p3r_ga import v7p3rGeneticAlgorithm
+from v7p3r_ga_engine.v7p3r_ga_ruleset_manager import v7p3rGARulesetManager
+from puzzles.puzzle_db_manager import PuzzleDBManager
 
 def main():
     # Load config

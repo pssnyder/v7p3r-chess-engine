@@ -2,7 +2,7 @@
 # Configuration file for the chess puzzle solver and database
 
 puzzle_database:
-  db_path: "puzzles/puzzle_data.db"
+  db_path: "s:/Maker Stuff/Programming/V7P3R Chess Engine/viper_chess_engine/puzzles/puzzle_data.db"
   
   # Puzzle selection parameters
   selection:

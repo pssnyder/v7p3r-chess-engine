@@ -21,8 +21,11 @@ neural_model_path: null  # Path to trained neural network model
 enable_cache: true
 max_cache_size: 10000
 
+# Puzzle Database Configuration
+puzzle_db_config: "s:/Maker Stuff/Programming/V7P3R Chess Engine/viper_chess_engine/config/puzzle_config.yaml"
+
 stockfish_config: {
-  stockfish_path: "engine_utilities/external_engines/stockfish/stockfish-windows-x86-64-avx2.exe",
+  stockfish_path: "s:/Maker Stuff/Programming/V7P3R Chess Engine/viper_chess_engine/v7p3r_engine/external_engines/stockfish/stockfish-windows-x86-64-avx2.exe",
   elo_rating: 100,
   skill_level: 1,
   debug_mode: False,
