@@ -1,4 +1,4 @@
-# v7p3r_engine/search_algorithms.py
+# v7p3r_engine/v7p3r_search.py
 
 import sys
 import os
