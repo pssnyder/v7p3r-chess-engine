@@ -1,13 +1,14 @@
 # v7p3r Chess Engine
 
-A sophisticated chess engine featuring multiple AI approaches including traditional search algorithms, neural networks, and genetic algorithm optimization.
+A sophisticated chess engine featuring multiple AI approaches including traditional search algorithms, neural networks, genetic algorithm optimization, reinforcement learning, and puzzle-solving capabilities.
 
 ## Core Engine Features
 
-- **Multiple AI Engines:** Traditional v7p3r engine, neural network (NN), and genetic algorithm (GA) variants
+- **Multiple AI Engines:** Traditional v7p3r engine, neural network (NN), genetic algorithm (GA), and reinforcement learning (RL) variants
 - **Advanced Search:** Alpha-beta pruning, move ordering, and time management
 - **Position Evaluation:** Multiple evaluation functions with piece-square tables
 - **Opening Book:** Built-in opening book support for improved early game play
+- **Puzzle Solver:** Dedicated puzzle-solving engine for tactical training
 - **Flexible Configuration:** YAML-based configuration for all engine components
 - **Performance Analytics:** Comprehensive metrics and benchmarking tools
 
@@ -52,6 +53,30 @@ A sophisticated chess engine featuring multiple AI approaches including traditio
 2. Analyze GA performance:
    ```bash
    python v7p3r_ga_engine/performance_analyzer.py
+   ```
+
+### Reinforcement Learning Engine
+
+1. Train RL models:
+   ```bash
+   python v7p3r_rl_engine/v7p3r_rl_training.py
+   ```
+
+2. Evaluate RL performance:
+   ```bash
+   python v7p3r_rl_engine/v7p3r_rl_evaluation.py
+   ```
+
+### Puzzle Solver
+
+1. Solve chess puzzles:
+   ```bash
+   python puzzles/puzzle_solver.py --input puzzles/sample_puzzles.yaml
+   ```
+
+2. Generate new puzzles:
+   ```bash
+   python puzzles/puzzle_generator.py --output puzzles/generated_puzzles.yaml
    ```
 
 ### ELO Testing with Stockfish
@@ -108,9 +133,24 @@ See [TEST_GUIDE.md](docs/TEST_GUIDE.md) for detailed instructions and interpreta
 - `cuda_accelerator.py` — GPU acceleration for GA operations
 - `v7p3r_ga_models/` — Evolved GA models and configurations
 
-### Support Systems
+### v7p3r_rl_engine (Reinforcement Learning Engine)
+- `v7p3r_rl.py` — RL engine implementation
+- `v7p3r_rl_training.py` — Training pipeline for RL models
+- `v7p3r_rl_evaluation.py` — Evaluation and testing of RL models
+- `v7p3r_rl_models/` — Trained RL models and configurations
+
+### Metrics
 - `metrics/chess_metrics.py` — Engine performance metrics dashboard
 - `metrics/metrics_store.py` — Metrics database and storage
+- `metrics/elo_tracker.py` — ELO tracking and analysis tools
+
+### Puzzles
+- `puzzle_solver.py` — Puzzle-solving engine
+- `puzzle_generator.py` — Puzzle generation tools
+- `sample_puzzles.yaml` — Example puzzles for testing
+- `generated_puzzles.yaml` — Generated puzzles for training
+
+### Support Systems
 - `engine_utilities/` — Benchmarking, monitoring, and utility tools
 - `config/` — YAML configuration files for all components
 
@@ -135,6 +175,12 @@ python -m pytest v7p3r_nn_engine/ -v
 # Test genetic algorithm engine
 python -m pytest v7p3r_ga_engine/ -v
 
+# Test reinforcement learning engine
+python -m pytest v7p3r_rl_engine/ -v
+
+# Test puzzles
+python -m pytest puzzles/ -v
+
 # Test utilities and metrics
 python -m pytest engine_utilities/ metrics/ -v
 ```
@@ -153,6 +199,7 @@ The engine uses YAML-based configuration files in the `config/` directory:
 - `stockfish_config.yaml` — Stockfish integration settings
 - `engine_utilities_config.yaml` — Benchmarking and utility settings
 - `chess_metrics_config.yaml` — Metrics collection and analysis
+- `puzzle_config.yaml` — Puzzle generation and solving settings
 
 Customize engine behavior by editing the appropriate configuration files before running.
 
@@ -160,7 +207,7 @@ Customize engine behavior by editing the appropriate configuration files before 
 
 ## Engine Comparison
 
-The v7p3r engine offers three distinct approaches:
+The v7p3r engine offers four distinct approaches:
 
 1. **Traditional Engine (v7p3r_engine):** Classic alpha-beta search with hand-crafted evaluation
    - Fast and deterministic
@@ -177,11 +224,17 @@ The v7p3r engine offers three distinct approaches:
    - Discovers novel evaluation strategies
    - GPU-accelerated for faster evolution
 
+4. **Reinforcement Learning Engine (v7p3r_rl_engine):** RL-based evaluation and decision-making
+   - Learns through self-play and reward systems
+   - Adapts dynamically to opponents
+   - Requires extensive training but offers high adaptability
+
 ## Advanced Features
 
 - **Multi-Engine Support:** Run multiple engine variants simultaneously
 - **Performance Analytics:** Detailed metrics on search efficiency and evaluation accuracy  
 - **Opening Book Integration:** Comprehensive opening theory database
+- **Puzzle Solver:** Tactical puzzle-solving and generation tools
 - **Time Management:** Tournament-ready time control handling
 - **UCI Protocol:** Compatible with standard chess interfaces
 - **Cloud Storage:** Firebase integration for model and game storage
@@ -215,6 +268,24 @@ python v7p3r_ga_engine/ga_optimizer.py --generations 50 --population 100
 
 # Analyze best performers
 python v7p3r_ga_engine/performance_analyzer.py --top 10
+```
+
+### Reinforcement Learning Engine
+```bash
+# Train RL models
+python v7p3r_rl_engine/v7p3r_rl_training.py --episodes 1000
+
+# Evaluate RL models
+python v7p3r_rl_engine/v7p3r_rl_evaluation.py --model latest
+```
+
+### Puzzle Solver
+```bash
+# Solve puzzles
+python puzzles/puzzle_solver.py --input puzzles/sample_puzzles.yaml
+
+# Generate puzzles
+python puzzles/puzzle_generator.py --output puzzles/generated_puzzles.yaml
 ```
 
 ### Benchmarking
