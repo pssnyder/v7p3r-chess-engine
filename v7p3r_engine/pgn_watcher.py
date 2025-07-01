@@ -29,7 +29,7 @@ def resource_path(relative_path):
     base = getattr(sys, '_MEIPASS', None)
     if base:
         return os.path.join(base, relative_path)
-    return os.path.join(os.path.abspath("."), relative_path)
+    return os.path.join(os.path.abspath(".."), relative_path)
 # =====================================
 # ========== LOGGING SETUP ============
 def get_timestamp():
