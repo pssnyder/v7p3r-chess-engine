@@ -319,6 +319,12 @@ def update_ab_testing_section(_, selected_metric):
     except Exception as e:
         print(f"Error querying move metrics: {e}")
         all_v7p3r_moves_raw = []
+        
+    # Debug: Print the number of raw moves found
+    print(f"DEBUG: Found {len(all_v7p3r_moves_raw)} raw move metrics for v7p3r games")
+    if all_v7p3r_moves_raw:
+        print(f"DEBUG: Sample game_ids from move_metrics: {[m['game_id'] for m in all_v7p3r_moves_raw[:3]]}")
+        
     if not all_v7p3r_moves_raw:
         fig_ab_test.update_layout(
             title=f"No '{selected_metric}' Data for v7p3r Engine",
@@ -345,13 +351,23 @@ def update_ab_testing_section(_, selected_metric):
         if white_is_v7p3r and black_is_v7p3r: # V7P3R vs V7P3R
             if winner == '1-0' and not exclude_white: # White V7P3R won
                 v7p3r_perspectives.append({'game_id': game_id, 'v7p3r_color_to_analyze': 'white'})
+                # Also add entry for .pgn version
+                v7p3r_perspectives.append({'game_id': game_id + '.pgn', 'v7p3r_color_to_analyze': 'white'})
             elif winner == '0-1' and not exclude_black: # Black V7P3R won
                 v7p3r_perspectives.append({'game_id': game_id, 'v7p3r_color_to_analyze': 'black'})
+                v7p3r_perspectives.append({'game_id': game_id + '.pgn', 'v7p3r_color_to_analyze': 'black'})
             # Moves from drawn V7P3R vs V7P3R or losing V7P3R are excluded for this trend
         elif white_is_v7p3r and not exclude_white: # V7P3R (White) vs Non-V7P3R
             v7p3r_perspectives.append({'game_id': game_id, 'v7p3r_color_to_analyze': 'white'})
+            v7p3r_perspectives.append({'game_id': game_id + '.pgn', 'v7p3r_color_to_analyze': 'white'})
         elif black_is_v7p3r and not exclude_black: # V7P3R (Black) vs Non-V7P3R
             v7p3r_perspectives.append({'game_id': game_id, 'v7p3r_color_to_analyze': 'black'})
+            v7p3r_perspectives.append({'game_id': game_id + '.pgn', 'v7p3r_color_to_analyze': 'black'})
+    
+    # Debug: Print perspectives        
+    print(f"DEBUG: Created {len(v7p3r_perspectives)} game perspectives")
+    if v7p3r_perspectives:
+        print(f"DEBUG: Sample perspectives: {v7p3r_perspectives[:3]}")
             
     if not v7p3r_perspectives:
         fig_ab_test.update_layout(title=f"No Valid Game Context for V7P3R's '{selected_metric}'", paper_bgcolor=DARK_PANEL, plot_bgcolor=DARK_PANEL, font=dict(color=DARK_TEXT))

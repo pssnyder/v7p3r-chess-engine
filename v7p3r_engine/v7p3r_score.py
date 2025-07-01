@@ -12,6 +12,7 @@ import sys
 import os
 import logging
 import datetime
+from typing import Optional
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if parent_dir not in sys.path:
@@ -74,6 +75,10 @@ class v7p3rScore:
         self.game_factor = 0.0  # Default game factor for endgame awareness
         self.fallback_bonus = 100
         self.fallback_penalty = -100
+        self.scoring = {
+            'move': chess.Move.null(),
+            'score': 0.0
+        }
         
         # Required Scoring Modules
         self.pst = pst
@@ -96,14 +101,12 @@ class v7p3rScore:
     # ===== EVALUATION FUNCTIONS ======
 
     def evaluate_position(self, board: chess.Board) -> float:
-        """Calculate position evaluation from specified player's perspective by delegating to scoring_calculator."""
-        player = board.turn
-        if not isinstance(player, chess.Color) or not board.is_valid():
+        """Calculate position evaluation from general perspective by delegating to scoring_calculator."""
+        if not isinstance(board, chess.Board) or not board.is_valid():
             if self.logger and self.monitoring_enabled:
-                player_name = "White" if player == chess.WHITE else "Black" if isinstance(player, chess.Color) else str(player)
-                self.logger.error(f"[Error] Invalid input for evaluation from perspective. Player: {player_name}, FEN: {board.fen() if hasattr(board, 'fen') else 'N/A'}")
+                self.logger.error(f"[Error] Invalid input for evaluation. Board: {board.fen() if hasattr(board, 'fen') else 'N/A'}")
             return 0.0
-
+        
         white_score = self.calculate_score(
             board=board,
             color=chess.WHITE,
@@ -113,13 +116,89 @@ class v7p3rScore:
             color=chess.BLACK,
         )
         
-        #score = (white_score - black_score) if player == chess.WHITE else (black_score - white_score)
-        score = white_score - black_score
+        # Return the score from whites persective, inverted if blacks turn
+        score = white_score - black_score if board.turn else -1 * (white_score - black_score)
         if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
-            player_name = "White" if player == chess.WHITE else "Black"
-            self.logger.debug(f"{player_name} perspective: {score:.3f} | FEN: {board.fen()}")
+            self.logger.debug(f"Evaluation: {score:.3f} | FEN: {board.fen()}")
         return score
     
+    def evaluate_position_from_perspective(self, board: chess.Board, color: Optional[chess.Color] = chess.WHITE) -> float:
+        """Calculate position evaluation from specified player's perspective by delegating to scoring_calculator."""
+        current_turn = board.turn
+        color_name = "White" if color == chess.WHITE else "Black"
+        
+        if not isinstance(color, chess.Color) or color != current_turn or not board.is_valid():
+            if self.logger and self.monitoring_enabled:
+                self.logger.error(f"[Error] Invalid input for evaluation from perspective. Player: {color_name}, FEN: {board.fen() if hasattr(board, 'fen') else 'N/A'}")
+            return 0.0
+
+        score = self.calculate_score(board=board,color=color)
+
+        if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
+            self.logger.debug(f"{color_name}'s perspective: {score:.3f} | FEN: {board.fen()}")
+        return score
+    
+    # ==========================================
+    # ========== GAME PHASE CALCULATION ========
+    def calculate_game_phase(self, board: chess.Board):
+        """
+        Determines the current phase of the game: 'opening', 'middlegame', or 'endgame'.
+        Uses material and castling rights as heuristics.
+        Sets self.game_phase for use in other scoring functions.
+        """
+        phase = 'opening'
+        endgame_factor = 0.0
+
+        if not self.use_game_phase:
+            self.game_phase = 'opening'
+            self.game_factor = 0.0
+            return  # If game phase is not used, default to opening
+
+        # Count total material (excluding kings)
+        material = sum([
+            len(board.pieces(piece_type, chess.WHITE)) + len(board.pieces(piece_type, chess.BLACK))
+            for piece_type in [chess.PAWN, chess.KNIGHT, chess.BISHOP, chess.ROOK, chess.QUEEN]
+        ])
+        # Heuristic: opening if all queens/rooks/bishops/knights are present, endgame if queens are gone or little material
+        if material <= 8:
+            # Endgame Phase
+            phase = "endgame"
+            # Heuristic: if less than 8 pieces are on the board, endgame is likely
+            endgame_factor = 1.0
+        elif material < 20 and (not board.has_castling_rights(chess.WHITE) or not board.has_castling_rights(chess.BLACK)):
+            # Middlegame Phase
+            phase = "middlegame"
+            # Heuristic: if less than 20 pieces are on the board and at least one player has castled
+            endgame_factor = 0.5
+            if material < 18 and not board.has_castling_rights(chess.WHITE) and not board.has_castling_rights(chess.BLACK):
+                # Heuristic: if less than 20 pieces are on the board and both sides have still not castled, unstable position, collapse of opening preparation
+                endgame_factor = 0.75
+        elif material <= 32 and (board.has_castling_rights(chess.WHITE) and board.has_castling_rights(chess.BLACK)):
+            # Opening Phase
+            phase = 'opening'
+            if material < 24 and ((board.has_castling_rights(chess.WHITE) and not board.has_castling_rights(chess.BLACK)) or (not board.has_castling_rights(chess.WHITE) and board.has_castling_rights(chess.BLACK))):
+                # Heuristic: multiple pieces exchanged, one side has castled, position is destabilizing
+                endgame_factor = 0.5
+            elif material <= 28 and (board.has_castling_rights(chess.WHITE) and board.has_castling_rights(chess.BLACK)):
+                # Heuristic: piece exchanges but both sides remain un-castled
+                endgame_factor = 0.35
+            elif material < 32:
+                # Heuristic: at least one exchange, game just beginning
+                endgame_factor = 0.25
+            elif material == 32:
+                # Heuristic: all material remains on the board, fully stable/closed position
+                endgame_factor = 0.1
+            else:
+                endgame_factor = 0.0
+            
+        self.game_phase = phase
+        self.game_factor = endgame_factor
+        if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
+            self.logger.debug(f"[Game Phase] Current phase: {self.game_phase} | Endgame factor: {self.game_factor:.2f} | FEN: {board.fen()}")
+        return
+    
+    # ==========================================
+    # ========= CALCULATION FUNCTION ===========
     def calculate_score(self, board: chess.Board, color: chess.Color, endgame_factor: float = 0.0) -> float:
         """
         Calculates the position evaluation score for a given board and color,
@@ -418,65 +497,6 @@ class v7p3rScore:
         return score
 
     # ==========================================
-    # ========== GAME PHASE CALCULATION ========
-    def calculate_game_phase(self, board: chess.Board):
-        """
-        Determines the current phase of the game: 'opening', 'middlegame', or 'endgame'.
-        Uses material and castling rights as heuristics.
-        Sets self.game_phase for use in other scoring functions.
-        """
-        phase = 'opening'
-        endgame_factor = 0.0
-
-        if not self.use_game_phase:
-            self.game_phase = 'opening'
-            self.game_factor = 0.0
-            return  # If game phase is not used, default to opening
-
-        # Count total material (excluding kings)
-        material = sum([
-            len(board.pieces(piece_type, chess.WHITE)) + len(board.pieces(piece_type, chess.BLACK))
-            for piece_type in [chess.PAWN, chess.KNIGHT, chess.BISHOP, chess.ROOK, chess.QUEEN]
-        ])
-        # Heuristic: opening if all queens/rooks/bishops/knights are present, endgame if queens are gone or little material
-        if material <= 8:
-            # Endgame Phase
-            phase = "endgame"
-            # Heuristic: if less than 8 pieces are on the board, endgame is likely
-            endgame_factor = 1.0
-        elif material < 20 and (not board.has_castling_rights(chess.WHITE) or not board.has_castling_rights(chess.BLACK)):
-            # Middlegame Phase
-            phase = "middlegame"
-            # Heuristic: if less than 20 pieces are on the board and at least one player has castled
-            endgame_factor = 0.5
-            if material < 18 and not board.has_castling_rights(chess.WHITE) and not board.has_castling_rights(chess.BLACK):
-                # Heuristic: if less than 20 pieces are on the board and both sides have still not castled, unstable position, collapse of opening preparation
-                endgame_factor = 0.75
-        elif material <= 32 and (board.has_castling_rights(chess.WHITE) and board.has_castling_rights(chess.BLACK)):
-            # Opening Phase
-            phase = 'opening'
-            if material < 24 and ((board.has_castling_rights(chess.WHITE) and not board.has_castling_rights(chess.BLACK)) or (not board.has_castling_rights(chess.WHITE) and board.has_castling_rights(chess.BLACK))):
-                # Heuristic: multiple pieces exchanged, one side has castled, position is destabilizing
-                endgame_factor = 0.5
-            elif material <= 28 and (board.has_castling_rights(chess.WHITE) and board.has_castling_rights(chess.BLACK)):
-                # Heuristic: piece exchanges but both sides remain un-castled
-                endgame_factor = 0.35
-            elif material < 32:
-                # Heuristic: at least one exchange, game just beginning
-                endgame_factor = 0.25
-            elif material == 32:
-                # Heuristic: all material remains on the board, fully stable/closed position
-                endgame_factor = 0.1
-            else:
-                endgame_factor = 0.0
-            
-        self.game_phase = phase
-        self.game_factor = endgame_factor
-        if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
-            self.logger.debug(f"[Game Phase] Current phase: {self.game_phase} | Endgame factor: {self.game_factor:.2f} | FEN: {board.fen()}")
-        return
-
-    # ==========================================
     # ========= RULE SCORING FUNCTIONS =========
 
     def _checkmate_threats(self, board: chess.Board, color: chess.Color) -> float:
@@ -486,7 +506,7 @@ class v7p3rScore:
         """
         score = 0.0
 
-        if board.is_checkmate() and board.turn == (color == chess.WHITE):
+        if board.is_checkmate() and board.turn == color:
             score += self.rules.get('checkmate_bonus', 0)
         return score
 
@@ -606,14 +626,6 @@ class v7p3rScore:
         score = 0.0
         # Check if the board is in check.
         if board.is_check():
-            # If it's 'color's turn AND 'color' just caused check (i.e., opponent is in check)
-            # This is hard to tell from `board.turn` directly without knowing the previous move.
-            # Simpler: if `color` is the one whose turn it is AND the board IS in check, it means
-            # the *opponent* of `color` is in check (from previous move).
-            # If `color` is the one whose turn it is NOT AND the board IS in check, it means
-            # `color` itself is in check.
-            
-            # This method calculates score from the perspective of 'color'
             if board.turn != color: # If it's *not* 'color's turn, and board is in check, 'color' is in check
                 score += self.rules.get('in_check_penalty', self.fallback_penalty)
             else: # If it *is* 'color's turn, and board is in check, then 'color' just gave check

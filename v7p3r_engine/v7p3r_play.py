@@ -26,9 +26,9 @@ config = {
         "version": "1.0.0",                  # Version of the engine, used for identification and logging
         "ruleset": "tuned_ga_gen2",          # Name of the evaluation rule set to use, see below for available options
         "search_algorithm": "minimax",    # Move search type for White (see search_algorithms for options)
-        "depth": 2,                          # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
-        "max_depth": 4,                      # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
-        "max_moves": 3,                      # Maximum number of moves to consider after ordering (truncates move list to top N moves)
+        "depth": 3,                          # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
+        "max_depth": 3,                      # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
+        "max_moves": 4,                      # Maximum number of moves to consider after ordering (truncates move list to top N moves)
         "use_game_phase": True,              # Use game phase evaluation
         "monitoring_enabled": True,          # Enable or disable monitoring features
         "verbose_output": True,              # Enable or disable verbose output for debugging
@@ -101,8 +101,17 @@ if not v7p3r_play_logger.handlers:
 
 # Import necessary modules from v7p3r_engine
 from v7p3r_engine.v7p3r import v7p3rEngine # Corrected import for v7p3rEngine
-from metrics.metrics_store import MetricsStore # Import MetricsStore
+from metrics.metrics_store import MetricsStore # Import MetricsStore (legacy)
 from v7p3r_engine.stockfish_handler import StockfishHandler
+
+# Import enhanced metrics system
+try:
+    from enhanced_metrics_store import EnhancedMetricsStore
+    from enhanced_scoring_collector import EnhancedScoringCollector
+    ENHANCED_METRICS_AVAILABLE = True
+except ImportError:
+    ENHANCED_METRICS_AVAILABLE = False
+    print("Warning: Enhanced metrics system not available, using legacy system")
 
 class ChessGame:
     def __init__(self, config):
@@ -122,6 +131,21 @@ class ChessGame:
         self.stockfish_config = config.get("stockfish_config", {})
         self.stockfish = StockfishHandler(self.stockfish_config)
         
+        # Initialize enhanced metrics system
+        if ENHANCED_METRICS_AVAILABLE:
+            self.enhanced_metrics_store = EnhancedMetricsStore(logger=self.logger)
+            self.scoring_collector = EnhancedScoringCollector(logger=self.logger)
+            self.use_enhanced_metrics = True
+            if self.logger:
+                self.logger.info("Enhanced metrics system initialized")
+        else:
+            self.use_enhanced_metrics = False
+            if self.logger:
+                self.logger.warning("Using legacy metrics system")
+        
+        # Initialize legacy metrics store (for compatibility)
+        self.metrics_store = MetricsStore()
+        
         # Set logging level
         self.monitoring_enabled = self.engine_config.get("monitoring_enabled", True)
         self.verbose_output_enabled = self.engine_config.get("verbose_output", True)
@@ -138,6 +162,11 @@ class ChessGame:
         self.white_player = self.game_config.get("white_player", "v7p3r")
         self.black_player = self.game_config.get("black_player", "stockfish")
         self.starting_position = self.game_config.get("starting_position", "default")
+        
+        # Prepare engine configurations for enhanced metrics
+        if self.use_enhanced_metrics:
+            self.white_engine_config = self._get_engine_config_for_player(self.white_player)
+            self.black_engine_config = self._get_engine_config_for_player(self.black_player)
 
         # Access global engine availability variables
         global RL_ENGINE_AVAILABLE, GA_ENGINE_AVAILABLE, NN_ENGINE_AVAILABLE
@@ -218,16 +247,35 @@ class ChessGame:
         self.selected_square = chess.SQUARES[0]
         self.last_engine_move = chess.Move.null()
         self.current_eval = 0.0
-        self.current_player = chess.WHITE if self.board.turn else chess.BLACK
+        self.current_player = self.board.turn
         self.last_move = chess.Move.null()
         self.move_history = []
         self.move_start_time = 0
         self.move_end_time = 0
         self.move_duration = 0
+        self.game_start_time = time.time()  # Track overall game timing
 
         # Reset PGN headers and file
         self.set_headers()
         self.quick_save_pgn("logging/active_game.pgn")
+        
+        # Initialize enhanced metrics for this game
+        if self.use_enhanced_metrics:
+            try:
+                self.enhanced_metrics_store.start_game(
+                    game_id=self.current_game_db_id,
+                    white_player=self.white_player,
+                    black_player=self.black_player,
+                    white_config=self.white_engine_config,
+                    black_config=self.black_engine_config,
+                    pgn_filename=f"{self.current_game_db_id}.pgn"
+                )
+                if self.logger and self.monitoring_enabled:
+                    self.logger.info(f"Enhanced metrics initialized for game: {self.current_game_db_id}")
+            except Exception as e:
+                if self.logger:
+                    self.logger.error(f"Error initializing enhanced metrics: {e}")
+                self.use_enhanced_metrics = False
         
         if self.logger and self.monitoring_enabled:
             self.logger.info(f"Starting new game: {self.current_game_db_id}.")
@@ -302,7 +350,43 @@ class ChessGame:
         self.game.accept(exporter)
         pgn_text = buf.getvalue()
 
-        # Prepare game result data for metrics_store (ensure all fields are present)
+        # Enhanced metrics game completion
+        if self.use_enhanced_metrics:
+            try:
+                # Determine termination reason
+                termination = "unknown"
+                if self.board.is_checkmate():
+                    termination = "checkmate"
+                elif self.board.is_stalemate():
+                    termination = "stalemate"
+                elif self.board.is_insufficient_material():
+                    termination = "insufficient_material"
+                elif self.board.can_claim_fifty_moves():
+                    termination = "fifty_moves"
+                elif self.board.can_claim_threefold_repetition():
+                    termination = "threefold_repetition"
+                
+                # Calculate total game duration if available
+                game_duration = 0.0
+                if hasattr(self, 'game_start_time') and hasattr(self, 'move_end_time'):
+                    game_duration = max(0.0, self.move_end_time - self.game_start_time)
+                
+                self.enhanced_metrics_store.finish_game(
+                    game_id=game_id,
+                    result=result,
+                    termination=termination,
+                    total_moves=self.board.fullmove_number,
+                    game_duration=game_duration
+                )
+                
+                if self.logger and self.monitoring_enabled:
+                    self.logger.info(f"Enhanced metrics game completion recorded for: {game_id}")
+                    
+            except Exception as e:
+                if self.logger:
+                    self.logger.error(f"Error recording enhanced game completion: {e}")
+
+        # Prepare game result data for legacy metrics_store (ensure all fields are present)
         metrics_data = {
             "game_id": game_id,
             "timestamp": timestamp,
@@ -312,7 +396,7 @@ class ChessGame:
             "black_player": self.game.headers.get("Black"),
             "game_length": self.board.fullmove_number,
         }
-        # Save locally using metrics_store
+        # Save to legacy metrics store
         self.metrics_store.add_game_result(**metrics_data)
         
         # Save locally into pgn file
@@ -436,24 +520,24 @@ class ChessGame:
         """Process move for the engine"""
         engine_move = chess.Move.null()
         self.current_eval = 0.0
-        current_player_color = chess.WHITE if self.board.turn else chess.BLACK
+        self.current_player = self.board.turn
         self.move_start_time = time.time()  # Start timing the move
         self.move_end_time = 0
         self.move_duration = 0
         if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
-            self.logger.info(f"Processing move for {self.white_player if current_player_color == chess.WHITE else self.black_player} using {self.engine.name} engine.")
-        print(f"{self.white_player if current_player_color == chess.WHITE else self.black_player} is thinking...")
+            self.logger.info(f"Processing move for {self.white_player if self.current_player == chess.WHITE else self.black_player} using {self.engine.name} engine.")
+        print(f"{self.white_player if self.current_player == chess.WHITE else self.black_player} is thinking...")
 
         # Send the move request to the appropriate engine or human interface
-        if (self.white_player.lower() == 'human' and self.board.turn) or (self.black_player.lower() == 'human' and not self.board.turn):
+        if (self.white_player.lower() == 'human' and self.current_player == chess.WHITE) or (self.black_player.lower() == 'human' and self.current_player == chess.BLACK):
             # Handle human player input (not implemented here, placeholder)
             if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
                 self.logger.info("Waiting for human player input...")
             return
         else:
             # Determine current player engine
-            current_engine_name = self.white_player.lower() if self.board.turn else self.black_player.lower()
-            
+            current_engine_name = self.white_player.lower() if self.current_player == chess.WHITE else self.black_player.lower()
+
             # Handle different engine types
             if current_engine_name == 'v7p3r':
                 try:
@@ -470,7 +554,7 @@ class ChessGame:
                             self.logger.debug(f"Search attribute: {search_attr}")
                     
                     # Use the v7p3r engine for the current player
-                    engine_move = self.engine.search_engine.search(self.board, current_player_color)
+                    engine_move = self.engine.search_engine.search(self.board, self.current_player)
                 except Exception as e:
                     if self.logger and self.monitoring_enabled:
                         self.logger.error(f"[HARDSTOP Error] Cannot find move via v7p3rSearch: {e}. | FEN: {self.board.fen()}")
@@ -485,7 +569,7 @@ class ChessGame:
                     # Use the Stockfish engine for the current player
                     if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
                         self.logger.info("Using Stockfish engine for move processing.")
-                    engine_move = self.stockfish.search(self.board, current_player_color, self.stockfish_config)
+                    engine_move = self.stockfish.search(self.board, self.current_player, self.stockfish_config)
                 except Exception as e:
                     if self.logger and self.monitoring_enabled:
                         self.logger.error(f"[HARDSTOP Error] Cannot find move via Stockfish: {e}. | FEN: {self.board.fen()}")
@@ -497,7 +581,7 @@ class ChessGame:
                     # Use the RL engine for the current player
                     if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
                         self.logger.info("Using v7p3r RL engine for move processing.")
-                    engine_move = self.engines['v7p3r_rl'].search(self.board, current_player_color)
+                    engine_move = self.engines['v7p3r_rl'].search(self.board, self.current_player)
                 except Exception as e:
                     if self.logger and self.monitoring_enabled:
                         self.logger.error(f"[HARDSTOP Error] Cannot find move via v7p3rReinforcementLearning: {e}. | FEN: {self.board.fen()}")
@@ -509,7 +593,7 @@ class ChessGame:
                     # Use the GA engine
                     if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
                         self.logger.info("Using v7p3r GA engine for move processing.")
-                    engine_move = self.engines['v7p3r_ga'].search(self.board, current_player_color)
+                    engine_move = self.engines['v7p3r_ga'].search(self.board, self.current_player)
                 except Exception as e:
                     if self.logger and self.monitoring_enabled:
                         self.logger.error(f"[HARDSTOP Error] Cannot find move via v7p3rGeneticAlgorithm: {e}. | FEN: {self.board.fen()}")
@@ -521,7 +605,7 @@ class ChessGame:
                     # Use the NN engine
                     if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
                         self.logger.info("Using v7p3r NN engine for move processing.")
-                    engine_move = self.engines['v7p3r_nn'].search(self.board, current_player_color)
+                    engine_move = self.engines['v7p3r_nn'].search(self.board, self.current_player)
                 except Exception as e:
                     if self.logger and self.monitoring_enabled:
                         self.logger.error(f"[HARDSTOP Error] Cannot find move via v7p3rNeuralNetwork: {e}. | FEN: {self.board.fen()}")
@@ -551,40 +635,304 @@ class ChessGame:
                 print(f"HARDSTOP ERROR: Move Invalid: {e}. | Move: {engine_move} | FEN: {self.board.fen()}")
                 return
             
-            try: 
-                # Ensure all move metric fields are present
-                metric = {
-                    'game_id': self.current_game_db_id,
-                    'move_number': move_number,
-                    'player_color': 'w' if current_player_color == chess.WHITE else 'b',
-                    'move_uci': engine_move.uci(),
-                    'fen_before': fen_before_move,
-                    'evaluation': self.current_eval,
-                    'search_algorithm': self.engine.search_algorithm,
-                    'depth': self.engine.depth,
-                    'engine_id': hashlib.md5(self.engine.name.encode()).hexdigest(),
-                    'engine_name': self.engine.name,
-                    'engine_version': self.engine.version,
-                    'nodes_searched': self.engine.search_engine.nodes_searched,
-                    'time_taken': self.move_duration,
-                    'pv_line': self.pv_line
-                }
-                # Add metrics record
-                self.metrics_store.add_move_metric(**metric)
-                self._move_metrics_batch.append(metric)
-                
-                if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
-                    self.logger.debug(f"Move metrics for {engine_move.uci()} added to MetricsStore.")
+            
+            # Enhanced metrics collection
+            try:
+                self._collect_and_store_enhanced_metrics(
+                    engine_move, fen_before_move, move_number
+                )
             except Exception as e:
                 if self.logger and self.monitoring_enabled:
-                    self.logger.error(f"[HARDSTOP Error] Move Invalid: {e}. | Move: {engine_move} | FEN: {self.board.fen()}")
-                print(f"HARDSTOP ERROR: Move Invalid: {e}. | Move: {engine_move} | FEN: {self.board.fen()}")
-                return
-    
-            print(f"{self.white_player if current_player_color == chess.WHITE else self.black_player} played: {engine_move} after {self.move_duration:.4f}s (Eval: {self.current_eval:.2f})")
+                    self.logger.error(f"[Error] Enhanced metrics collection failed: {e}")
+                # Fall back to legacy metrics collection
+                self._collect_legacy_metrics(
+                    engine_move, self.current_player, fen_before_move, move_number
+                )
+
+            print(f"{self.white_player if self.current_player == chess.WHITE else self.black_player} played: {engine_move} after {self.move_duration:.4f}s (Eval: {self.current_eval:.2f})")
+            
+            # Initialize logged_nodes
+            logged_nodes = 0
+            
             if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
-                nodes_searched = self.engine.search_engine.nodes_searched
-                self.logger.info(f"{self.white_player if current_player_color == chess.WHITE else self.black_player} played: {engine_move} (Eval: {self.current_eval:.2f}) | Time: {self.move_duration:.4f}s | Nodes: {nodes_searched}")
+                # Use the nodes_searched from the appropriate engine
+                current_engine_name = self.white_player.lower() if self.current_player == chess.WHITE else self.black_player.lower()
+                try:
+                    if current_engine_name == 'v7p3r' and hasattr(self.engine.search_engine, 'nodes_searched'):
+                        logged_nodes = self.engine.search_engine.nodes_searched
+                    else:
+                        logged_nodes = 0
+                except:
+                    logged_nodes = 0
+                    
+                self.logger.info(f"{self.white_player if self.current_player == chess.WHITE else self.black_player} played: {engine_move} (Eval: {self.current_eval:.2f}) | Time: {self.move_duration:.4f}s | Nodes: {logged_nodes}")
+
+    def _collect_and_store_enhanced_metrics(self, engine_move: chess.Move, fen_before_move: str, move_number: int):
+        """
+        Collect and store comprehensive metrics using the enhanced system
+        """
+        if not self.use_enhanced_metrics:
+            print(f"DEBUG: Enhanced metrics not enabled, returning")
+            return
+            
+        print(f"DEBUG: Collecting enhanced metrics for move {move_number}: {engine_move.uci()}")
+
+        current_engine_name = self.white_player.lower() if self.current_player == chess.WHITE else self.black_player.lower()
+        print(f"DEBUG: Current engine: {current_engine_name}")
+        
+        # Base metrics
+        enhanced_metric = {
+            'game_id': self.current_game_db_id,
+            'move_number': move_number,
+            'player_color': 'white' if self.current_player == chess.WHITE else 'black',
+            'move_san': self.board.san(engine_move),
+            'move_uci': engine_move.uci(),
+            'fen_before': fen_before_move,
+            'fen_after': self.board.fen(),
+            'time_taken': self.move_duration,
+            'evaluation': self.current_eval,
+            'best_line': self.pv_line
+        }
+        
+        print(f"DEBUG: Base metrics created, game_id: {self.current_game_db_id}")
+        
+        # Engine-specific metrics
+        try:
+            if current_engine_name == 'v7p3r':
+                print(f"DEBUG: Collecting v7p3r specific metrics")
+                enhanced_metric.update(self._collect_v7p3r_metrics(fen_before_move))
+            elif current_engine_name == 'stockfish':
+                print(f"DEBUG: Collecting stockfish specific metrics")
+                enhanced_metric.update(self._collect_stockfish_metrics())
+            elif current_engine_name in ['v7p3r_rl', 'v7p3r_ga', 'v7p3r_nn'] and current_engine_name in self.engines:
+                enhanced_metric.update(self._collect_specialized_engine_metrics(current_engine_name))
+            else:
+                enhanced_metric.update(self._collect_default_metrics(current_engine_name))
+        except Exception as e:
+            print(f"DEBUG ERROR: Failed to collect engine-specific metrics: {e}")
+            import traceback
+            traceback.print_exc()
+        
+        # Game and position analysis
+        try:
+            print(f"DEBUG: Collecting position analysis")
+            enhanced_metric.update(self._collect_position_analysis(fen_before_move, engine_move))
+        except Exception as e:
+            print(f"DEBUG ERROR: Failed to collect position analysis: {e}")
+            import traceback
+            traceback.print_exc()
+        
+        # Store the enhanced metrics
+        try:
+            print(f"DEBUG: About to call enhanced_metrics_store.add_enhanced_move_metric")
+            print(f"DEBUG: enhanced_metric keys: {list(enhanced_metric.keys())}")
+            print(f"DEBUG: enhanced_metrics_store object: {self.enhanced_metrics_store}")
+            self.enhanced_metrics_store.add_enhanced_move_metric(**enhanced_metric)
+            print(f"DEBUG: Enhanced metrics stored successfully")
+        except Exception as e:
+            print(f"DEBUG ERROR: Failed to store enhanced metrics: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
+        
+        if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
+            self.logger.debug(f"Enhanced metrics collected for move {engine_move.uci()}")
+    
+    def _collect_v7p3r_metrics(self, fen_before_move: str) -> dict:
+        """
+        Collect detailed metrics from v7p3r engine including scoring breakdown
+        """
+        metrics = {
+            'search_algorithm': self.engine.search_algorithm,
+            'depth_reached': self.engine.depth,
+            'nodes_searched': getattr(self.engine.search_engine, 'nodes_searched', 0),
+            'engine_config_id': hashlib.md5(self.engine.name.encode()).hexdigest()
+        }
+        
+        # Calculate search efficiency
+        if metrics['nodes_searched'] > 0 and self.move_duration > 0:
+            efficiency = self.scoring_collector.calculate_search_efficiency_metrics(
+                metrics['nodes_searched'], self.move_duration, metrics['depth_reached']
+            )
+            metrics.update(efficiency)
+        
+        # Get detailed scoring breakdown
+        try:
+            # Create a board state before the move for scoring analysis
+            temp_board = chess.Board(fen_before_move)
+            current_color = temp_board.turn
+            
+            detailed_scores = self.scoring_collector.collect_detailed_scoring(
+                self.engine.scoring_calculator, temp_board, current_color
+            )
+            metrics.update(detailed_scores)
+        except Exception as e:
+            if self.logger:
+                self.logger.warning(f"Could not collect detailed scoring: {e}")
+        
+        return metrics
+    
+    def _collect_stockfish_metrics(self) -> dict:
+        """
+        Collect metrics from Stockfish engine
+        """
+        return {
+            'search_algorithm': 'stockfish',
+            'depth_reached': self.stockfish_config.get('depth', 2),
+            'nodes_searched': 0,  # Stockfish doesn't expose this in our interface
+            'engine_config_id': hashlib.md5("stockfish".encode()).hexdigest(),
+            'nps': 0.0,
+            'branching_factor': 0.0
+        }
+    
+    def _collect_specialized_engine_metrics(self, engine_name: str) -> dict:
+        """
+        Collect metrics from specialized engines (RL, GA, NN)
+        """
+        engine_obj = self.engines[engine_name]
+        return {
+            'search_algorithm': getattr(engine_obj, 'search_algorithm', engine_name),
+            'depth_reached': getattr(engine_obj, 'depth', 0),
+            'nodes_searched': getattr(engine_obj, 'nodes_searched', 0),
+            'engine_config_id': hashlib.md5(getattr(engine_obj, 'name', engine_name).encode()).hexdigest(),
+            'nps': 0.0,
+            'branching_factor': 0.0
+        }
+    
+    def _collect_default_metrics(self, engine_name: str) -> dict:
+        """
+        Collect default metrics for unknown engines
+        """
+        return {
+            'search_algorithm': 'unknown',
+            'depth_reached': 0,
+            'nodes_searched': 0,
+            'engine_config_id': hashlib.md5(engine_name.encode()).hexdigest(),
+            'nps': 0.0,
+            'branching_factor': 0.0
+        }
+    
+    def _collect_position_analysis(self, fen_before: str, move: chess.Move) -> dict:
+        """
+        Collect game phase and position analysis
+        """
+        try:
+            temp_board = chess.Board(fen_before)
+            
+            analysis = {
+                'game_phase': self.scoring_collector.analyze_game_phase(temp_board),
+                'position_type': self.scoring_collector.classify_position_type(temp_board),
+                'material_balance': self.scoring_collector.calculate_material_balance(temp_board),
+                'piece_count': self.scoring_collector.count_pieces(temp_board),
+                'move_type': self.scoring_collector.classify_move_type(temp_board, move),
+                'is_check': temp_board.is_check(),
+                'is_checkmate': temp_board.is_checkmate(),
+                'from_opening_book': False,  # TODO: Integrate with opening book detection
+                'opening_book_name': None
+            }
+            
+            # Check if move gives check
+            temp_board.push(move)
+            analysis['gives_check'] = temp_board.is_check()
+            
+            return analysis
+            
+        except Exception as e:
+            if self.logger:
+                self.logger.warning(f"Error in position analysis: {e}")
+            return {
+                'game_phase': 'unknown',
+                'position_type': 'unknown',
+                'material_balance': 0.0,
+                'piece_count': 0,
+                'move_type': 'unknown',
+                'is_check': False,
+                'is_checkmate': False,
+                'gives_check': False,
+                'from_opening_book': False,
+                'opening_book_name': None
+            }
+    
+    def _collect_legacy_metrics(self, engine_move: chess.Move, current_player_color: chess.Color, fen_before_move: str, move_number: int):
+        """
+        Fallback to legacy metrics collection if enhanced system fails
+        """
+        try: 
+            # Determine which engine actually made the move
+            current_engine_name = self.white_player.lower() if current_player_color == chess.WHITE else self.black_player.lower()
+            
+            # Get engine-specific metrics
+            nodes_searched = 0
+            search_algorithm = "unknown"
+            depth = 0
+            engine_name = current_engine_name
+            engine_version = "unknown"
+            engine_id = ""
+            
+            if current_engine_name == 'v7p3r':
+                try:
+                    nodes_searched = self.engine.search_engine.nodes_searched if hasattr(self.engine.search_engine, 'nodes_searched') else 0
+                    search_algorithm = self.engine.search_algorithm
+                    depth = self.engine.depth
+                    engine_name = self.engine.name
+                    engine_version = self.engine.version
+                    engine_id = hashlib.md5(self.engine.name.encode()).hexdigest()
+                except AttributeError as e:
+                    if self.logger and self.monitoring_enabled:
+                        self.logger.warning(f"Could not access v7p3r engine metrics: {e}")
+                    nodes_searched = 0
+                    
+            elif current_engine_name == 'stockfish':
+                search_algorithm = "stockfish"
+                depth = self.stockfish_config.get('depth', 2)
+                engine_name = "stockfish"
+                engine_version = "unknown"
+                engine_id = hashlib.md5("stockfish".encode()).hexdigest()
+                nodes_searched = 0
+                
+            elif current_engine_name in ['v7p3r_rl', 'v7p3r_ga', 'v7p3r_nn'] and current_engine_name in self.engines:
+                engine_obj = self.engines[current_engine_name]
+                try:
+                    nodes_searched = getattr(engine_obj, 'nodes_searched', 0)
+                    search_algorithm = getattr(engine_obj, 'search_algorithm', current_engine_name)
+                    depth = getattr(engine_obj, 'depth', 0)
+                    engine_name = getattr(engine_obj, 'name', current_engine_name)
+                    engine_version = getattr(engine_obj, 'version', "unknown")
+                    engine_id = hashlib.md5(engine_name.encode()).hexdigest()
+                except AttributeError as e:
+                    if self.logger and self.monitoring_enabled:
+                        self.logger.warning(f"Could not access {current_engine_name} engine metrics: {e}")
+                    nodes_searched = 0
+            
+            # Legacy metric format
+            metric = {
+                'game_id': self.current_game_db_id,
+                'move_number': move_number,
+                'player_color': 'w' if current_player_color == chess.WHITE else 'b',
+                'move_uci': engine_move.uci(),
+                'fen_before': fen_before_move,
+                'evaluation': self.current_eval,
+                'search_algorithm': search_algorithm,
+                'depth': depth,
+                'engine_id': engine_id,
+                'engine_name': engine_name,
+                'engine_version': engine_version,
+                'nodes_searched': nodes_searched,
+                'time_taken': self.move_duration,
+                'pv_line': self.pv_line
+            }
+            
+            # Add to legacy metrics store
+            self.metrics_store.add_move_metric(**metric)
+            self._move_metrics_batch.append(metric)
+            
+            if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
+                self.logger.debug(f"Legacy metrics for {engine_move.uci()} added to MetricsStore.")
+                
+        except Exception as e:
+            if self.logger and self.monitoring_enabled:
+                self.logger.error(f"[Error] Legacy metrics collection failed: {e}")
+            return
 
     def push_move(self, move):
         """ Test and push a move to the board and game node """
@@ -621,7 +969,7 @@ class ChessGame:
             if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
                 self.logger.info(f"Move pushed successfully: {move} | FEN: {self.board.fen()}")
             
-            self.current_player = chess.WHITE if self.board.turn else chess.BLACK
+            self.current_player = self.board.turn
             
             if self.engine.name.lower() == 'v7p3r':
                 self.record_evaluation()
@@ -683,6 +1031,54 @@ class ChessGame:
         except Exception as e:
             print(f"Failed to create NN engine wrapper: {e}")
             return None
+
+    def _get_engine_config_for_player(self, player_name: str) -> dict:
+        """
+        Get the appropriate engine configuration for a given player
+        """
+        player_lower = player_name.lower()
+        
+        if player_lower == 'v7p3r':
+            return {
+                'name': self.engine.name,
+                'version': self.engine.version,
+                'search_algorithm': self.engine.search_algorithm,
+                'depth': self.engine.depth,
+                'max_depth': self.engine.max_depth,
+                'ruleset': self.engine.ruleset,
+                'use_game_phase': self.engine.use_game_phase,
+                'piece_values': self.engine.piece_values
+            }
+        elif player_lower == 'stockfish':
+            return {
+                'name': 'stockfish',
+                'version': 'unknown',
+                'search_algorithm': 'stockfish',
+                'depth': self.stockfish_config.get('depth', 2),
+                'max_depth': self.stockfish_config.get('max_depth', 2),
+                'elo_rating': self.stockfish_config.get('elo_rating', 1000),
+                'skill_level': self.stockfish_config.get('skill_level', 5),
+                'movetime': self.stockfish_config.get('movetime', 1000)
+            }
+        elif player_lower in ['v7p3r_rl', 'v7p3r_ga', 'v7p3r_nn'] and player_lower in self.engines:
+            # Get configuration from specialized engines
+            engine_obj = self.engines[player_lower]
+            return {
+                'name': getattr(engine_obj, 'name', player_lower),
+                'version': getattr(engine_obj, 'version', 'unknown'),
+                'search_algorithm': getattr(engine_obj, 'search_algorithm', player_lower),
+                'depth': getattr(engine_obj, 'depth', 0),
+                'max_depth': getattr(engine_obj, 'max_depth', 0)
+            }
+        else:
+            # Default configuration for unknown engines
+            return {
+                'name': player_name,
+                'version': 'unknown',
+                'search_algorithm': 'unknown',
+                'depth': 0,
+                'max_depth': 0
+            }
 
     # =============================================
     # ============ MAIN GAME LOOP =================
