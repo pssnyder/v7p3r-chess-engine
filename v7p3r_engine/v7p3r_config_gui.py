@@ -20,19 +20,58 @@ from tkinter import ttk, messagebox, scrolledtext, filedialog
 import datetime
 import yaml
 from tkinter.font import Font
-import ast
 import copy
+import logging
 
-# Add parent directory to sys.path for imports
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
+def resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    base = getattr(sys, '_MEIPASS', None)
+    if base:
+        return os.path.join(base, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
+# =====================================
+# ========== LOGGING SETUP ============
+def get_timestamp():
+    return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+
+# Create logging directory relative to project root
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+log_dir = os.path.join(project_root, 'logging')
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir, exist_ok=True)
+
+# Setup individual logger for this file
+timestamp = get_timestamp()
+log_filename = f"v7p3r_config_gui_{timestamp}.log"
+log_file_path = os.path.join(log_dir, log_filename)
+
+v7p3r_config_gui_logger = logging.getLogger(f"v7p3r_config_gui_{timestamp}")
+v7p3r_config_gui_logger.setLevel(logging.DEBUG)
+
+if not v7p3r_config_gui_logger.handlers:
+    from logging.handlers import RotatingFileHandler
+    file_handler = RotatingFileHandler(
+        log_file_path,
+        maxBytes=10*1024*1024,
+        backupCount=3,
+        delay=True
+    )
+    formatter = logging.Formatter(
+        '%(asctime)s | %(funcName)-15s | %(message)s',
+        datefmt='%H:%M:%S'
+    )
+    file_handler.setFormatter(formatter)
+    v7p3r_config_gui_logger.addHandler(file_handler)
+    v7p3r_config_gui_logger.propagate = False
 
 # Import the ChessGame class from play_v7p3r
 try:
-    from v7p3r_engine.v7p3r_play import ChessGame  # Try local import first
+    from v7p3r_play import ChessGame  # Try local import first
 except ImportError:
-    from v7p3r_engine.v7p3r_play import ChessGame  # Fallback to package import
+    from v7p3r_play import ChessGame  # Fallback to package import
 
 # Default values used for new configurations
 DEFAULT_CONFIG = {
@@ -1208,7 +1247,7 @@ class ConfigGUI:
                 # Import ChessGame here to avoid circular imports
                 try:
                     # Try local import first
-                    from v7p3r_engine.v7p3r_play import ChessGame
+                    from v7p3r_play import ChessGame
                 except ImportError:
                     # Fallback to package import
                     from v7p3r_engine.v7p3r_play import ChessGame

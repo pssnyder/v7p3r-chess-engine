@@ -7,18 +7,40 @@ import chess
 import time
 import sys
 import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
+import datetime
 import logging
 from typing import Optional, Dict, Any, Callable # Added Callable import
 
-# At module level, define a single logger for this file
-stockfish_handler_logger = logging.getLogger("stockfish_handler")
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+def resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    base = getattr(sys, '_MEIPASS', None)
+    if base:
+        return os.path.join(base, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
+# =====================================
+# ========== LOGGING SETUP ============
+def get_timestamp():
+    return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+
+# Create logging directory relative to project root
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+log_dir = os.path.join(project_root, 'logging')
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir, exist_ok=True)
+
+# Setup individual logger for this file
+timestamp = get_timestamp()
+log_filename = f"stockfish_handler_{timestamp}.log"
+log_file_path = os.path.join(log_dir, log_filename)
+
+stockfish_handler_logger = logging.getLogger(f"stockfish_handler_{timestamp}")
 stockfish_handler_logger.setLevel(logging.DEBUG)
+
 if not stockfish_handler_logger.handlers:
-    if not os.path.exists('logging'):
-        os.makedirs('logging', exist_ok=True)
     from logging.handlers import RotatingFileHandler
-    log_file_path = "logging/stockfish_handler.log"
     file_handler = RotatingFileHandler(
         log_file_path,
         maxBytes=10*1024*1024,
@@ -32,8 +54,6 @@ if not stockfish_handler_logger.handlers:
     file_handler.setFormatter(formatter)
     stockfish_handler_logger.addHandler(file_handler)
     stockfish_handler_logger.propagate = False
-
-
 
 class StockfishHandler:
     _instance = None
@@ -85,7 +105,7 @@ class StockfishHandler:
                 creationflags = subprocess.CREATE_NO_WINDOW
 
             self.process = subprocess.Popen(
-                self.stockfish_path,
+                resource_path(self.stockfish_path),
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,

@@ -1,8 +1,8 @@
 # v7p3r_live_tuner.py
 import os
 import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import logging
+import datetime
 import sqlite3
 import chess
 from v7p3r_engine.v7p3r import v7p3rEngine
@@ -30,6 +30,50 @@ config = {
     }
 }
 
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+def resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    base = getattr(sys, '_MEIPASS', None)
+    if base:
+        return os.path.join(base, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
+# =====================================
+# ========== LOGGING SETUP ============
+def get_timestamp():
+    return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+
+# Create logging directory relative to project root
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+log_dir = os.path.join(project_root, 'logging')
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir, exist_ok=True)
+
+# Setup individual logger for this file
+timestamp = get_timestamp()
+log_filename = f"v7p3r_live_tuner_{timestamp}.log"
+log_file_path = os.path.join(log_dir, log_filename)
+
+v7p3r_live_tuner_logger = logging.getLogger(f"v7p3r_live_tuner_{timestamp}")
+v7p3r_live_tuner_logger.setLevel(logging.DEBUG)
+
+if not v7p3r_live_tuner_logger.handlers:
+    from logging.handlers import RotatingFileHandler
+    file_handler = RotatingFileHandler(
+        log_file_path,
+        maxBytes=10*1024*1024,
+        backupCount=3,
+        delay=True
+    )
+    formatter = logging.Formatter(
+        '%(asctime)s | %(funcName)-15s | %(message)s',
+        datefmt='%H:%M:%S'
+    )
+    file_handler.setFormatter(formatter)
+    v7p3r_live_tuner_logger.addHandler(file_handler)
+    v7p3r_live_tuner_logger.propagate = False
+
 class v7p3rTuner:
     """v7p3rTuner
     This class is responsible for tuning the v7p3r engine using starting positions from a database.
@@ -41,7 +85,7 @@ class v7p3rTuner:
             level=logging.INFO,
             format='%(asctime)s %(levelname)s %(message)s'
         )
-        self.logger = logging.getLogger("v7p3r_live_tuner")
+        self.logger = v7p3r_live_tuner_logger
         self.current_position = 0
         self.engine_config = config.get("engine_config", {})
         self.monitoring_enabled = self.engine_config.get("monitoring_enabled", False)

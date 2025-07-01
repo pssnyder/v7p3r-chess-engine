@@ -2,11 +2,9 @@
 
 import os
 import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import pygame
 import chess
 import chess.pgn
-import random
 import yaml
 import datetime
 import logging
@@ -27,13 +25,14 @@ config = {
         "name": "v7p3r",                     # Name of the engine, used for identification and logging
         "version": "1.0.0",                  # Version of the engine, used for identification and logging
         "color": "white",                    # Color of the engine, either 'white' or 'black'
-        "ruleset": "default_evaluation",    # Name of the evaluation rule set to use, see below for available options
+        "ruleset": "balanced_evaluation",     # Name of the evaluation rule set to use, see below for available options
         "search_algorithm": "minimax",       # Move search type for White (see search_algorithms for options)
         "depth": 3,                          # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
         "max_depth": 4,                      # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
+        "max_moves": 5,                      # Maximum number of moves to consider after ordering (truncates move list to top N moves)
         "use_game_phase": False,             # Use game phase evaluation
         "monitoring_enabled": True,          # Enable or disable monitoring features
-        "verbose_output": True,             # Enable or disable verbose output for debugging
+        "verbose_output": True,              # Enable or disable verbose output for debugging
         "logger": "v7p3r_engine_logger",     # Logger name for the engine, used for logging engine-specific events
     },
     "stockfish_config": {
@@ -49,32 +48,43 @@ config = {
 
 # Define the maximum frames per second for the game loop
 MAX_FPS = 60
-# Import necessary modules from v7p3r_engine
-from v7p3r_engine.v7p3r import v7p3rEngine # Corrected import for v7p3rEngine
-from metrics.metrics_store import MetricsStore # Import MetricsStore
-from v7p3r_engine.stockfish_handler import StockfishHandler
 
 # Set engine availability values
 RL_ENGINE_AVAILABLE = False
 GA_ENGINE_AVAILABLE = False
 NN_ENGINE_AVAILABLE = False
 
-# At module level, define a single logger for this file
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+
+def resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    base = getattr(sys, '_MEIPASS', None)
+    if base:
+        return os.path.join(base, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
+
+# =====================================
+# ========== LOGGING SETUP ============
 def get_timestamp():
     return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-def get_log_file_path():
-    # Use a timestamped log file for each game session
-    timestamp = get_timestamp()
-    log_dir = "logging"
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir, exist_ok=True)
-    return os.path.join(log_dir, f"chess_game_{timestamp}.log")
 
-chess_game_logger = logging.getLogger("chess_game")
-chess_game_logger.setLevel(logging.DEBUG)
-_init_status = globals().get("_init_status", {})
-if not _init_status.get("initialized", False):
-    log_file_path = get_log_file_path()
+# Create logging directory relative to project root
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+log_dir = os.path.join(project_root, 'logging')
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir, exist_ok=True)
+
+# Setup individual logger for this file
+timestamp = get_timestamp()
+log_filename = f"v7p3r_play_{timestamp}.log"
+log_file_path = os.path.join(log_dir, log_filename)
+
+v7p3r_play_logger = logging.getLogger(f"v7p3r_play_{timestamp}")
+v7p3r_play_logger.setLevel(logging.DEBUG)
+
+if not v7p3r_play_logger.handlers:
     from logging.handlers import RotatingFileHandler
     file_handler = RotatingFileHandler(
         log_file_path,
@@ -87,11 +97,13 @@ if not _init_status.get("initialized", False):
         datefmt='%H:%M:%S'
     )
     file_handler.setFormatter(formatter)
-    chess_game_logger.addHandler(file_handler)
-    chess_game_logger.propagate = False
-    _init_status["initialized"] = True
-    # Store the log file path for later use (e.g., to match with PGN/config)
-    _init_status["log_file_path"] = log_file_path
+    v7p3r_play_logger.addHandler(file_handler)
+    v7p3r_play_logger.propagate = False
+
+# Import necessary modules from v7p3r_engine
+from v7p3r_engine.v7p3r import v7p3rEngine # Corrected import for v7p3rEngine
+from metrics.metrics_store import MetricsStore # Import MetricsStore
+from v7p3r_engine.stockfish_handler import StockfishHandler
 
 class ChessGame:
     def __init__(self, config):
@@ -103,7 +115,7 @@ class ChessGame:
         self.clock = pygame.time.Clock()
 
         # Enable logging
-        self.logger = chess_game_logger
+        self.logger = v7p3r_play_logger
         
         # Initialize Engines
         self.engine_config = config.get("engine_config", {})
@@ -431,63 +443,116 @@ class ChessGame:
         self.move_duration = 0
         if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
             self.logger.info(f"Processing move for {self.white_player if current_player_color == chess.WHITE else self.black_player} using {self.engine.name} engine.")
-
         print(f"{self.white_player if current_player_color == chess.WHITE else self.black_player} is thinking...")
 
-        try:
-            # Send the move request to the appropriate engine or human interface
-            if (self.white_player.lower() == 'human' and self.board.turn) or (self.black_player.lower() == 'human' and not self.board.turn):
-                # Handle human player input (not implemented here, placeholder)
-                if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
-                    self.logger.info("Waiting for human player input...")
-                return
-            
+        # Send the move request to the appropriate engine or human interface
+        if (self.white_player.lower() == 'human' and self.board.turn) or (self.black_player.lower() == 'human' and not self.board.turn):
+            # Handle human player input (not implemented here, placeholder)
+            if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
+                self.logger.info("Waiting for human player input...")
+            return
+        else:
             # Determine current player engine
             current_engine_name = self.white_player.lower() if self.board.turn else self.black_player.lower()
             
             # Handle different engine types
             if current_engine_name == 'v7p3r':
-                # Use the v7p3r engine for the current player
-                engine_move = self.engine.search_engine.search(self.board, current_player_color)
-                
+                try:
+                    # Debug logging to track the issue (always log this)
+                    if self.logger and self.monitoring_enabled:
+                        self.logger.debug(f"Engine type: {type(self.engine)}")
+                        self.logger.debug(f"Search engine type: {type(self.engine.search_engine)}")
+                        self.logger.debug(f"Search method type: {type(self.engine.search_engine.search)}")
+                        self.logger.debug(f"Search method is callable: {callable(getattr(self.engine.search_engine, 'search', None))}")
+                        if hasattr(self.engine.search_engine, 'search'):
+                            search_attr = getattr(self.engine.search_engine, 'search')
+                            if isinstance(search_attr, dict):
+                                self.logger.error(f"FOUND THE ISSUE! search attribute is a dict: {search_attr}")
+                            self.logger.debug(f"Search attribute: {search_attr}")
+                    
+                    # Use the v7p3r engine for the current player
+                    engine_move = self.engine.search_engine.search(self.board, current_player_color)
+                except Exception as e:
+                    if self.logger and self.monitoring_enabled:
+                        self.logger.error(f"[HARDSTOP Error] Cannot find move via v7p3rSearch: {e}. | FEN: {self.board.fen()}")
+                        self.logger.error(f"Engine type: {type(self.engine)}")
+                        self.logger.error(f"Search engine type: {type(self.engine.search_engine)}")
+                        self.logger.error(f"Search engine search attr: {type(getattr(self.engine.search_engine, 'search', 'NOT_FOUND'))}")
+                    print(f"HARDSTOP ERROR: Cannot find move via v7p3rSearch: {e}. | FEN: {self.board.fen()}")
+                    return
+                    
             elif current_engine_name == 'stockfish':
-                # Use the Stockfish engine for the current player
-                if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
-                    self.logger.info("Using Stockfish engine for move processing.")
-                stockfish_handler = StockfishHandler(self.stockfish_config)
-                engine_move = stockfish_handler.search(self.board, current_player_color, self.stockfish_config)
-                
+                try:
+                    # Use the Stockfish engine for the current player
+                    if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
+                        self.logger.info("Using Stockfish engine for move processing.")
+                    engine_move = self.stockfish.search(self.board, current_player_color, self.stockfish_config)
+                except Exception as e:
+                    if self.logger and self.monitoring_enabled:
+                        self.logger.error(f"[HARDSTOP Error] Cannot find move via Stockfish: {e}. | FEN: {self.board.fen()}")
+                    print(f"HARDSTOP ERROR: Cannot find move via Stockfish: {e}. | FEN: {self.board.fen()}")
+                    return
+            
             elif current_engine_name == 'v7p3r_rl' and 'v7p3r_rl' in self.engines:
-                # Use the RL engine
-                if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
-                    self.logger.info("Using v7p3r RL engine for move processing.")
-                engine_move = self.engines['v7p3r_rl'].search(self.board, current_player_color)
-                
+                try:
+                    # Use the RL engine for the current player
+                    if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
+                        self.logger.info("Using v7p3r RL engine for move processing.")
+                    engine_move = self.engines['v7p3r_rl'].search(self.board, current_player_color)
+                except Exception as e:
+                    if self.logger and self.monitoring_enabled:
+                        self.logger.error(f"[HARDSTOP Error] Cannot find move via v7p3rReinforcementLearning: {e}. | FEN: {self.board.fen()}")
+                    print(f"HARDSTOP ERROR: Cannot find move via v7p3rReinforcementLearning: {e}. | FEN: {self.board.fen()}")
+                    return
+                    
             elif current_engine_name == 'v7p3r_ga' and 'v7p3r_ga' in self.engines:
-                # Use the GA engine
-                if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
-                    self.logger.info("Using v7p3r GA engine for move processing.")
-                engine_move = self.engines['v7p3r_ga'].search(self.board, current_player_color)
-                
+                try:
+                    # Use the GA engine
+                    if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
+                        self.logger.info("Using v7p3r GA engine for move processing.")
+                    engine_move = self.engines['v7p3r_ga'].search(self.board, current_player_color)
+                except Exception as e:
+                    if self.logger and self.monitoring_enabled:
+                        self.logger.error(f"[HARDSTOP Error] Cannot find move via v7p3rGeneticAlgorithm: {e}. | FEN: {self.board.fen()}")
+                    print(f"HARDSTOP ERROR: Cannot find move via v7p3r_ga: {e}. | FEN: {self.board.fen()}")
+                    return
+                    
             elif current_engine_name == 'v7p3r_nn' and 'v7p3r_nn' in self.engines:
-                # Use the NN engine
-                if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
-                    self.logger.info("Using v7p3r NN engine for move processing.")
-                engine_move = self.engines['v7p3r_nn'].search(self.board, current_player_color)
-                
+                try:
+                    # Use the NN engine
+                    if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
+                        self.logger.info("Using v7p3r NN engine for move processing.")
+                    engine_move = self.engines['v7p3r_nn'].search(self.board, current_player_color)
+                except Exception as e:
+                    if self.logger and self.monitoring_enabled:
+                        self.logger.error(f"[HARDSTOP Error] Cannot find move via v7p3rNeuralNetwork: {e}. | FEN: {self.board.fen()}")
+                    print(f"HARDSTOP ERROR: Cannot find move via v7p3rNeuralNetwork: {e}. | FEN: {self.board.fen()}")
+                    return
             else:
-                # Fallback to v7p3r engine for unknown engines
                 if self.logger and self.monitoring_enabled:
-                    self.logger.error(f"[Error] Unknown engine '{current_engine_name}', falling back to v7p3r engine.")
-                engine_move = self.engine.search_engine.search(self.board, current_player_color)
-            if isinstance(engine_move, chess.Move) and self.board.is_legal(engine_move):
-                fen_before_move = self.board.fen()
-                move_number = self.board.fullmove_number
-                self.push_move(engine_move)
-                self.last_engine_move = engine_move
-                self.move_end_time = time.time()  # End timing the move
-                self.move_duration = self.move_end_time - self.move_start_time
-                self.pv_line = ""
+                    self.logger.error(f"[HARDSTOP Error] No valid engine in configuration: {current_engine_name}. | FEN: {self.board.fen()}")
+                print(f"HARDSTOP ERROR: No valid engine in configuration: {current_engine_name}. | FEN: {self.board.fen()}")
+                return
+
+            # Check and Push the move
+            if not isinstance(engine_move, chess.Move):
+                return # Move invalid
+            try:
+                if self.board.is_legal(engine_move):
+                    fen_before_move = self.board.fen()
+                    move_number = self.board.fullmove_number
+                    self.push_move(engine_move)
+                    self.last_engine_move = engine_move
+                    self.move_end_time = time.time()  # End timing the move
+                    self.move_duration = self.move_end_time - self.move_start_time
+                    self.pv_line = ""
+            except Exception as e:
+                if self.logger and self.monitoring_enabled:
+                    self.logger.error(f"[HARDSTOP Error] Move Invalid: {e}. | Move: {engine_move} | FEN: {self.board.fen()}")
+                print(f"HARDSTOP ERROR: Move Invalid: {e}. | Move: {engine_move} | FEN: {self.board.fen()}")
+                return
+            
+            try: 
                 # Ensure all move metric fields are present
                 metric = {
                     'game_id': self.current_game_db_id,
@@ -505,47 +570,22 @@ class ChessGame:
                     'time_taken': self.move_duration,
                     'pv_line': self.pv_line
                 }
+                # Add metrics record
                 self.metrics_store.add_move_metric(**metric)
                 self._move_metrics_batch.append(metric)
-                    
+                
                 if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
                     self.logger.debug(f"Move metrics for {engine_move.uci()} added to MetricsStore.")
-
-        except Exception as e:
-            if self.logger and self.monitoring_enabled:
-                self.logger.error(f"[Error] -- Hardstop Error -- Cannot process any AI moves: {e}. Forcing random move. | FEN: {self.board.fen()}")
-            print(f"-- Hardstop Error -- Cannot process any AI moves: {e}")
-            
-            legal_moves = list(self.board.legal_moves)
-            if legal_moves:
-                fallback_move = random.choice(legal_moves)
-                fen_before_move = self.board.fen()
-                move_number = self.board.fullmove_number
-                self.push_move(fallback_move)
-                if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
-                    self.logger.info(f"{self.white_player if current_player_color == chess.WHITE else self.black_player} played emergency fallback move: {fallback_move} (Eval: {self.current_eval:.2f})")
-                self.last_engine_move = fallback_move
-                self.metrics_store.add_move_metric(
-                    game_id=self.current_game_db_id,
-                    move_number=move_number,
-                    player_color='w' if current_player_color == chess.WHITE else 'b',
-                    move_uci=fallback_move.uci(),
-                    fen_before=fen_before_move,
-                    evaluation=self.current_eval,
-                    search_algorithm=self.engine.search_algorithm + "_CRITICAL_FALLBACK",
-                    depth=0,
-                    nodes_searched=0,
-                    time_taken=0.0,
-                    pv_line=f"CRITICAL FALLBACK: {e}"
-                )
-            else:
+            except Exception as e:
                 if self.logger and self.monitoring_enabled:
-                    self.logger.error(f"[Error] No legal moves for emergency fallback. Game might be over or stalled. | FEN: {self.board.fen()}")
-
-        print(f"{self.white_player if current_player_color == chess.WHITE else self.black_player} played: {engine_move} after {self.move_duration:.4f}s (Eval: {self.current_eval:.2f})")
-        if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
-            nodes_searched = self.engine.search_engine.nodes_searched
-            self.logger.info(f"{self.white_player if current_player_color == chess.WHITE else self.black_player} played: {engine_move} (Eval: {self.current_eval:.2f}) | Time: {self.move_duration:.4f}s | Nodes: {nodes_searched}")
+                    self.logger.error(f"[HARDSTOP Error] Move Invalid: {e}. | Move: {engine_move} | FEN: {self.board.fen()}")
+                print(f"HARDSTOP ERROR: Move Invalid: {e}. | Move: {engine_move} | FEN: {self.board.fen()}")
+                return
+    
+            print(f"{self.white_player if current_player_color == chess.WHITE else self.black_player} played: {engine_move} after {self.move_duration:.4f}s (Eval: {self.current_eval:.2f})")
+            if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
+                nodes_searched = self.engine.search_engine.nodes_searched
+                self.logger.info(f"{self.white_player if current_player_color == chess.WHITE else self.black_player} played: {engine_move} (Eval: {self.current_eval:.2f}) | Time: {self.move_duration:.4f}s | Nodes: {nodes_searched}")
 
     def push_move(self, move):
         """ Test and push a move to the board and game node """
@@ -605,8 +645,10 @@ class ChessGame:
             return False
             
         except Exception as e:
-            print(f"Failed to create GA engine wrapper: {e}")
-            return None
+            if self.logger and self.monitoring_enabled:
+                self.logger.error(f"[Error] Exception pushing move {move}: {e}. Dumping PGN to error_dump.pgn")
+            self.quick_save_pgn("games/game_error_dump.pgn")
+            return False
     
     def _create_nn_engine_wrapper(self, nn_config_path):
         """Create a wrapper for NN engine if it doesn't have proper game interface."""

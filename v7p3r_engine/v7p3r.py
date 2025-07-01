@@ -12,7 +12,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
 import datetime
 from v7p3r_search import v7p3rSearch
-from v7p3r_engine.v7p3r_score import v7p3rScore
+from v7p3r_score import v7p3rScore
 from v7p3r_ordering import v7p3rOrdering
 from v7p3r_time import v7p3rTime
 from v7p3r_book import v7p3rBook
@@ -22,15 +22,23 @@ from v7p3r_pst import v7p3rPST
 # ========== LOGGING SETUP ============
 def get_timestamp():
     return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-v7p3r_engine_logger = logging.getLogger("v7p3r_evaluation_engine")
-v7p3r_engine_logger.setLevel(logging.DEBUG)
-if not v7p3r_engine_logger.handlers:
-    if not os.path.exists('logging'):
-        os.makedirs('logging', exist_ok=True)
+
+# Create logging directory relative to project root
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+log_dir = os.path.join(project_root, 'logging')
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir, exist_ok=True)
+
+# Setup individual logger for this file
+timestamp = get_timestamp()
+log_filename = f"v7p3r_{timestamp}.log"
+log_file_path = os.path.join(log_dir, log_filename)
+
+v7p3r_logger = logging.getLogger(f"v7p3r_{timestamp}")
+v7p3r_logger.setLevel(logging.DEBUG)
+
+if not v7p3r_logger.handlers:
     from logging.handlers import RotatingFileHandler
-    # Use a timestamped log file for each engine run
-    timestamp = get_timestamp()
-    log_file_path = f"logging/v7p3r_evaluation_engine_{timestamp}.log"
     file_handler = RotatingFileHandler(
         log_file_path,
         maxBytes=10*1024*1024,
@@ -42,14 +50,14 @@ if not v7p3r_engine_logger.handlers:
         datefmt='%H:%M:%S'
     )
     file_handler.setFormatter(formatter)
-    v7p3r_engine_logger.addHandler(file_handler)
-    v7p3r_engine_logger.propagate = False
+    v7p3r_logger.addHandler(file_handler)
+    v7p3r_logger.propagate = False
 
 # =====================================
 # ========== ENGINE CLASS =============
 class v7p3rEngine:
     def __init__(self, engine_config=None):
-        self.logger = v7p3r_engine_logger
+        self.logger = v7p3r_logger
 
         # Overrides
         self.time_control = {    # Default to infinite time control
@@ -60,6 +68,7 @@ class v7p3rEngine:
         if engine_config is not None:
             self.engine_config = engine_config
         else:
+            self.engine_config = {}  # Ensure it's always a dictionary
             if self.logger:
                 self.logger.info("No engine configuration provided, using v7p3r's inbuilt configuration.")
 
@@ -67,12 +76,12 @@ class v7p3rEngine:
         self.name = self.engine_config.get("name", "v7p3r")
         self.version = self.engine_config.get("version", "0.0.0")
         self.ruleset = self.engine_config.get("ruleset", "default_evaluation")
-        self.search_algorithm = self.engine_config.get("search_algorithm", "lookahead")
+        self.search_algorithm = self.engine_config.get("search_algorithm", "simple")
         self.depth = self.engine_config.get("depth", 5)
         self.max_depth = self.engine_config.get("max_depth", 8)
-        self.use_game_phase = self.engine_config.get("use_game_phase", False)
-        self.monitoring_enabled = self.engine_config.get("monitoring_enabled", False)
-        self.verbose_output = self.engine_config.get("verbose_output", False)
+        self.use_game_phase = self.engine_config.get("use_game_phase", True)
+        self.monitoring_enabled = self.engine_config.get("monitoring_enabled", True)
+        self.verbose_output = self.engine_config.get("verbose_output", True)
         self.piece_values = self.engine_config.get("piece_values", {
             chess.KING: 0.0,
             chess.QUEEN: 9.0,
@@ -88,3 +97,10 @@ class v7p3rEngine:
         self.time_manager = v7p3rTime()
         self.opening_book = v7p3rBook()
         self.search_engine = v7p3rSearch(self.engine_config, self.scoring_calculator, self.move_organizer, self.time_manager, self.opening_book, self.logger)
+        
+        # Debug: Check if all components are properly initialized
+        if self.logger:
+            self.logger.debug(f"pst: {type(self.pst)} | scoring: {type(self.scoring_calculator)} | ordering: {type(self.move_organizer)} | time: {type(self.time_manager)} | book: {type(self.opening_book)} | search: {type(self.search_engine)}")
+            self.logger.debug(f"search_engine.search method: {type(getattr(self.search_engine, 'search', 'NOT_FOUND'))}")
+            
+        print(f"pst: {type(self.pst)} | scoring: {type(self.scoring_calculator)} | ordering: {type(self.move_organizer)} | time: {type(self.time_manager)} | book: {type(self.opening_book)} | search: {type(self.search_engine)}")
