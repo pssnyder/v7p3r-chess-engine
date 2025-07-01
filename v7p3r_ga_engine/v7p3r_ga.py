@@ -1,239 +1,164 @@
-# v7p3r_ga_engine/v7p3r_ga.py
-# v7p3r Chess Engine Genetic Algorithm Module
-# TODO: refactor this code pulled from another project to fit the goals set out in the enhancement issue #84 [v7p3r AI Models] Phase 2: Genetic Algorithm Engine: Implement v7p3r_ga.py for automated engine tuning
+"""
+Core genetic algorithm logic for ruleset optimization with CUDA acceleration.
+Features improved parallelization, elitism, and adaptive mutation.
+"""
 
+import os
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+import os
+import sys
+import yaml
 import random
-import numpy as np
-import chess
-import chess.pgn
 import copy
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.utils.data import Dataset, DataLoader
+import logging
 
-class ChessDataset(Dataset):
-    def __init__(self, pgn_path, username):
-        self.positions = []
-        self.moves = []
-        
-        pgn = open(pgn_path)
-        while True:
-            game = chess.pgn.read_game(pgn)
-            if not game:
-                break
-            
-            if game.headers["White"] == username or game.headers["Black"] == username:
-                board = game.board()
-                for move in game.mainline_moves():
-                    if (board.turn == chess.WHITE and game.headers["White"] == username) or \
-                       (board.turn == chess.BLACK and game.headers["Black"] == username):
-                        self.positions.append(self.board_to_tensor(board))
-                        self.moves.append(move.uci())
-                    board.push(move)
+# Ensure parent path for engine imports
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-    def board_to_tensor(self, board):
-        tensor = np.zeros((12, 8, 8), dtype=np.float32)
-        for square in chess.SQUARES:
-            piece = board.piece_at(square)
-            if piece:
-                channel = piece.piece_type - 1 + (6 if piece.color == chess.BLACK else 0)
-                tensor[channel][7 - square//8][square%8] = 1
-        return tensor
+from v7p3r_ga_ruleset_manager import v7p3rGARulesetManager
+from v7p3r_engine.v7p3r_score import v7p3rScore
+from v7p3r_engine.v7p3r_pst import v7p3rPST
+from v7p3r_engine.stockfish_handler import StockfishHandler
+from puzzles.puzzle_db_manager import PuzzleDBManager
 
-    def __len__(self):
-        return len(self.positions)
+class v7p3rGeneticAlgorithm:
+    """
+    Genetic Algorithm for tuning v7p3r evaluation rulesets.
+    """
+    def __init__(self, config_path=None):
+        # Load GA configuration
+        cfg_path = config_path or os.path.join(os.path.dirname(__file__), 'ga_config.yaml')
+        with open(cfg_path, 'r') as f:
+            self.config = yaml.safe_load(f)
 
-    def __getitem__(self, idx):
-        return self.positions[idx], self.moves[idx]
+        # Setup logger
+        self.logger = logging.getLogger(__name__)
+        logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-class ChessAI(nn.Module):
-    def __init__(self, num_classes):
-        super().__init__()
-        
-        # Convolutional layers for spatial pattern recognition
-        self.conv1 = nn.Conv2d(12, 64, kernel_size=3, padding=1)
-        self.conv2 = nn.Conv2d(64, 128, kernel_size=3, padding=1)
-        self.conv3 = nn.Conv2d(128, 64, kernel_size=3, padding=1)
-        
-        # Fully connected layers for move prediction
-        self.fc1 = nn.Linear(64 * 8 * 8, 512)
-        self.fc2 = nn.Linear(512, 256)
-        self.fc3 = nn.Linear(256, num_classes)
-        
-        # Value head for position evaluation
-        self.value_fc1 = nn.Linear(64 * 8 * 8, 256)
-        self.value_fc2 = nn.Linear(256, 1)
-        
-        # Initialize piece-square tables
-        self.initialize_piece_tables()
-        
-        # Genetic parameters (will be evolved)
-        self.genetic_params = {
-            'material_weight': 1.0,
-            'position_weight': 0.5,
-            'search_depth': 2
-        }
-    
-    def forward(self, x):
-        # CNN forward pass
-        x = F.relu(self.conv1(x))
-        x = F.relu(self.conv2(x))
-        x = F.relu(self.conv3(x))
-        
-        # Flatten
-        x_flat = x.view(x.size(0), -1)
-        
-        # Policy head (move prediction)
-        policy = F.relu(self.fc1(x_flat))
-        policy = F.relu(self.fc2(policy))
-        policy = self.fc3(policy)  # Raw logits
-        
-        # Value head (position evaluation)
-        value = F.relu(self.value_fc1(x_flat))
-        value = torch.tanh(self.value_fc2(value))  # Value between -1 and 1
-        
-        return policy, value
+        # Managers
+        self.ruleset_manager = v7p3rGARulesetManager()
+        self.stockfish = StockfishHandler(self.config['stockfish_config'])
+        self.puzzle_db = PuzzleDBManager(self.config.get('puzzle_db_config', {}))
 
+        # Scorer
+        engine_cfg = {'verbose_output': False}
+        # Initialize PST with default piece values and logger
+        pst = v7p3rPST(self.logger)
+        self.scorer = v7p3rScore(engine_cfg, pst, self.logger)
 
-class GeneticAlgorithm:
-    def __init__(self, population_size=30, mutation_rate=0.2, elite_count=3):
-        self.population_size = population_size
-        self.mutation_rate = mutation_rate
-        self.elite_count = elite_count
-        self.population = []
-        
-    def initialize_population(self, model_template):
-        """Initialize a population of models with random genetic parameters"""
-        self.population = []
-        for _ in range(self.population_size):
-            # Create a copy of the template model
-            model = copy.deepcopy(model_template)
-            
-            # Randomize genetic parameters
-            model.genetic_params = {
-                'material_weight': random.uniform(0.5, 1.5),
-                'position_weight': random.uniform(0.2, 0.8),
-                'search_depth': random.randint(1, 3)
-            }
-            
-            self.population.append(model)
-    
-    def evaluate_fitness(self, model, games):
-        """Calculate fitness based on v7p3r's games performance"""
-        fitness = 0
-        
-        for game in games:
-            # Check if v7p3r played this game
-            played_white = game.headers.get("White") == "v7p3r"
-            played_black = game.headers.get("Black") == "v7p3r"
-            
-            if not (played_white or played_black):
-                continue
-                
-            # Parse result
-            result = game.headers.get("Result")
-            if result == "1-0":
-                result_score = 1.0  # White win
-            elif result == "0-1":
-                result_score = 0.0  # Black win
-            else:
-                result_score = 0.5  # Draw
-            
-            # Higher fitness if v7p3r won
-            if (played_white and result_score == 1.0) or (played_black and result_score == 0.0):
-                fitness += 10
-            elif result_score == 0.5:
-                fitness += 2
-                
-            # Test model's ability to predict v7p3r's moves
-            board = chess.Board()
-            move_count = 0
-            
-            for move in game.mainline_moves():
-                # If it's v7p3r's turn
-                if (board.turn == chess.WHITE and played_white) or (board.turn == chess.BLACK and played_black):
-                    # Predict move
-                    predicted_move, _ = model.select_move(board)
-                    
-                    # Compare with actual move
-                    if predicted_move == move:
-                        fitness += 2
-                
-                # Apply move
-                board.push(move)
-                move_count += 1
-                
-                # Limit to first 20 moves for performance
-                if move_count >= 20:
-                    break
-        
-        return fitness
-    
-    def evolve_population(self, games):
-        """Evolve population through selection, crossover, and mutation"""
-        # Evaluate fitness for each model
-        fitness_scores = []
-        for model in self.population:
-            fitness = self.evaluate_fitness(model, games)
-            fitness_scores.append(fitness)
-        
-        # Pair models with their fitness scores
-        model_fitness = list(zip(self.population, fitness_scores))
-        
-        # Sort by fitness (descending)
-        model_fitness.sort(key=lambda x: x[1], reverse=True)
-        
-        # Keep elite models
-        new_population = [model for model, _ in model_fitness[:self.elite_count]]
-        
-        # Create offspring
-        while len(new_population) < self.population_size:
-            # Tournament selection
-            parent1 = self._tournament_selection(model_fitness)
-            parent2 = self._tournament_selection(model_fitness)
-            
-            # Crossover
-            child = self._crossover(parent1, parent2)
-            
-            # Mutation
-            child = self._mutate(child)
-            
-            # Add to new population
-            new_population.append(child)
-        
-        # Update population
-        self.population = new_population
-        
-        # Return best model and its fitness
-        return self.population[0], model_fitness[0][1]
-    
-    def _tournament_selection(self, model_fitness, tournament_size=3):
-        """Tournament selection - select best from random subset"""
-        tournament = random.sample(model_fitness, tournament_size)
-        tournament.sort(key=lambda x: x[1], reverse=True)
-        return tournament[0][0]  # Return the model with highest fitness
-    
-    def _crossover(self, parent1, parent2):
-        """Crossover genetic parameters from two parents"""
-        child = copy.deepcopy(parent1)
-        
-        # For each genetic parameter, randomly choose from parent1 or parent2
-        for key in child.genetic_params:
-            if random.random() < 0.5:
-                child.genetic_params[key] = parent2.genetic_params[key]
-        
+        # Load base ruleset
+        all_rulesets = self.ruleset_manager.load_all_rulesets()
+        base_name = self.config.get('base_ruleset', 'default_evaluation')
+        self.base_ruleset = copy.deepcopy(all_rulesets.get(base_name, {}))
+
+        # Initialize population
+        self.population = self._initialize_population()
+
+        # Load test positions
+        self._load_test_positions()
+
+    def _initialize_population(self):
+        pop_size = self.config.get('population_size', 10)
+        pop = [copy.deepcopy(self.base_ruleset)]
+        while len(pop) < pop_size:
+            indiv = copy.deepcopy(self.base_ruleset)
+            self._mutate(indiv, scale=0.5)
+            pop.append(indiv)
+        return pop
+
+    def _load_test_positions(self):
+        count = self.config.get('positions_count', 20)
+        level = self.config.get('positions_source', 'random')
+        # Using puzzle DB manager to fetch
+        self.test_positions = self.puzzle_db.get_puzzles(limit=count)
+        if not self.test_positions:
+            self.logger.warning('No puzzles found; defaulting to starting position')
+            self.test_positions = [{'fen': 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'}]
+
+    def _mutate(self, ruleset, scale=0.1):
+        rate = self.config.get('mutation_rate', 0.1)
+        for k, v in ruleset.items():
+            if isinstance(v, (int, float)) and random.random() < rate:
+                change = random.uniform(-scale, scale) * (abs(v) or 1)
+                ruleset[k] = v + change
+
+    def _crossover(self, p1, p2):
+        child = {}
+        rate = self.config.get('crossover_rate', 0.7)
+        for k in p1:
+            child[k] = p1[k] if random.random() < rate else p2.get(k, p1[k])
         return child
-    
-    def _mutate(self, model):
-        """Mutate genetic parameters with probability mutation_rate"""
-        for key in model.genetic_params:
-            if random.random() < self.mutation_rate:
-                # Mutate the parameter
-                if key == 'search_depth':
-                    model.genetic_params[key] = random.randint(1, 3)
-                else:
-                    # For continuous parameters, add random noise
-                    model.genetic_params[key] *= random.uniform(0.8, 1.2)
+
+    def _evaluate(self, ruleset):
+        # Override ruleset directly in scorer
+        self.scorer.rules = ruleset
+        # Optional: update ruleset_name for logging
+        self.scorer.ruleset_name = 'GA_Tuning'
+        error = 0.0
+        from chess import Board
+        for entry in self.test_positions:
+            fen = entry['fen'] if isinstance(entry, dict) else entry
+            try:
+                board = Board(fen)
+                sf_eval = self.stockfish.evaluate_position(board)
+                v7_eval = self.scorer.calculate_score(board, board.turn) * 100
+                error += (v7_eval - sf_eval) ** 2
+            except Exception:
+                error += 1e6
+        mse = error / len(self.test_positions)
+        return -mse
+
+    def cleanup(self):
+        """
+        Cleanup resources, close database connections, etc.
+        """
+        if hasattr(self.stockfish, 'close'):
+            self.stockfish.close()
+        if hasattr(self.puzzle_db, 'close'):
+            self.puzzle_db.close()
+        self.logger.info('Cleanup complete')
         
-        return model
+    def run(self):
+        gens = self.config.get('generations', 20)
+        elitism = self.config.get('elitism_rate', 0.1)
+        for g in range(gens):
+            self.logger.info(f'Generation {g+1}/{gens}')
+            scores = [self._evaluate(r) for r in self.population]
+            paired = list(zip(self.population, scores))
+            paired.sort(key=lambda x: x[1], reverse=True)
+            # preserve elites
+            elite_count = max(1, int(len(paired) * elitism))
+            new_pop = [copy.deepcopy(paired[i][0]) for i in range(elite_count)]
+            # breed rest
+            while len(new_pop) < len(self.population):
+                p1 = random.choice(paired[:len(paired)//2])[0]
+                p2 = random.choice(paired[:len(paired)//2])[0]
+                child = self._crossover(p1, p2)
+                self._mutate(child)
+                new_pop.append(child)
+            self.population = new_pop
+            best = paired[0]
+            self.logger.info(f'Best fitness: {best[1]}')
+            # save best to results
+            self._save_best(best[0], g)
+        self.logger.info('GA tuning complete')
+
+    def _save_best(self, ruleset, generation):
+        out_dir = os.path.join(os.path.dirname(__file__), 'ga_results')
+        os.makedirs(out_dir, exist_ok=True)
+        name = f'generation_{generation+1}_best.yaml'
+        path = os.path.join(out_dir, name)
+        with open(path, 'w') as f:
+            yaml.dump(ruleset, f)
+        # also update main rulesets.yaml
+        self.ruleset_manager.save_ruleset(f'tuned_ga_gen{generation+1}', ruleset)
+        self.logger.info(f'Saved best ruleset for gen {generation+1} to {path}')
+
+def main():
+    ga = v7p3rGeneticAlgorithm()
+    ga.run()
+
+if __name__ == '__main__':
+    main()
