@@ -50,8 +50,9 @@ def main():
     try:
         for gen in range(generations):
             logger.info(f'=== Generation {gen+1}/{generations} ===')
-            # Fetch new random FENs for this generation
-            fens = puzzle_db.get_random_fens(count=positions_per_gen)
+            # Fetch new random FENs for this generation (reduced count)
+            positions_per_gen_actual = min(positions_per_gen, 3)  # Cap at 3 for speed
+            fens = puzzle_db.get_random_fens(count=positions_per_gen_actual)
             print(f"[DEBUG] Generation {gen+1}: Retrieved {len(fens)} FENs from DB.")
             if not fens:
                 logger.error(f"No FENs found in the database for generation {gen+1}. Check DB path and data.")
@@ -78,7 +79,7 @@ def main():
             best_ruleset, best_score = paired[0]
             print(f"[DEBUG] Generation {gen+1}: Best score: {best_score}")
 
-            # Record results
+            # Record results (simplified)
             gen_result = {
                 'generation': gen+1,
                 'fens': fens,
@@ -86,12 +87,17 @@ def main():
                 'fitness': best_score,
                 'evals': []
             }
-            from chess import Board
-            for fen in fens:
-                board = Board(fen)
-                sf_eval = ga.stockfish.evaluate_position(board)
-                v7_eval = ga.scorer.calculate_score(board, board.turn) * 100
-                gen_result['evals'].append({'fen': fen, 'stockfish': sf_eval, 'v7p3r': v7_eval})
+            # Skip detailed evaluation recording for speed during debugging
+            if len(fens) <= 3:  # Only record if small number of positions
+                from chess import Board
+                for fen in fens:
+                    try:
+                        board = Board(fen)
+                        sf_eval = ga.stockfish.evaluate_position(board)
+                        v7_eval = ga.scorer.calculate_score(board, board.turn) * 100
+                        gen_result['evals'].append({'fen': fen, 'stockfish': sf_eval, 'v7p3r': v7_eval})
+                    except Exception as e:
+                        print(f"[DEBUG] Error evaluating {fen}: {e}")
 
             # Save generation result
             with open(os.path.join(results_dir, f'generation_{gen+1}_results.json'), 'w') as f:

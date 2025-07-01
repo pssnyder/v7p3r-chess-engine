@@ -1,11 +1,9 @@
 {
   "generation": 1,
   "fens": [
-    "r6k/2p1R1pp/p4r2/1p2Qp2/3P4/1B2BNK1/P3q3/8 w - - 2 29",
-    "r1b2rk1/ppp1bppp/3q4/4R1B1/6n1/2NB4/PPP1QPPP/R5K1 w - - 3 12",
-    "1k1r4/2p5/R5pp/1B2Pp1b/5P1b/4B3/PPPK1P2/8 w - - 1 26",
-    "2kr3r/Qp1nbppp/2p1p1q1/8/3PnB2/5B1P/PPP2PP1/2K1R2R b - - 0 15",
-    "r4rk1/ppp2p1p/2nb2p1/8/3PB3/2P2Q2/PP3KPq/R1B2R2 b - - 1 16"
+    "r1b2rk1/pp1n1pbp/2pp2pB/4p2n/3PP1Pq/2NB1P2/PPPQN2P/R2K3R b - - 2 11",
+    "5r1k/1p3pp1/p1p3rp/4P3/2B2q2/PP3PP1/2Q3KP/4R3 w - - 0 28",
+    "3r2k1/5pp1/2p1p1qp/p3Q3/Pb6/1P1BP2P/5PP1/3R2K1 w - - 2 33"
   ],
   "ruleset": {
     "backward_pawn_penalty": -0.5,
@@ -14,7 +12,7 @@
     "capture_bonus": 15.0,
     "capture_move_bonus": 4000,
     "castling_bonus": 5.0,
-    "castling_protection_bonus": 2.194919178019988,
+    "castling_protection_bonus": 3.0,
     "castling_protection_penalty": -6.0,
     "center_control_bonus": 0.25,
     "check_bonus": 50.0,
@@ -22,7 +20,7 @@
     "checkmate_bonus": 1000000.0,
     "checkmate_move_bonus": 1000000,
     "coordinated_rooks_bonus": 0.25,
-    "counter_move_bonus": 910.0136280616041,
+    "counter_move_bonus": 1000,
     "doubled_pawn_penalty": -0.5,
     "draw_penalty": -9999999999.0,
     "en_passant_bonus": 1.0,
@@ -40,7 +38,7 @@
     "knight_activity_bonus": 0.1,
     "knight_pair_bonus": 1.0,
     "knight_vision_penalty": -0.25,
-    "material_weight": 0.40702043882462124,
+    "material_weight": 0.8,
     "open_file_bonus": 0.3,
     "passed_pawn_bonus": 1.0,
     "pawn_advancement_bonus": 0.25,
@@ -56,38 +54,28 @@
     "rook_development_penalty": 0.2,
     "rook_position_bonus": 0.4,
     "stacked_rooks_bonus": 0.5,
-    "stalemate_penalty": -8259581296.594569,
+    "stalemate_penalty": -9999999999.0,
     "tempo_bonus": 0.1,
     "trapped_piece_penalty": -5.0,
     "undefended_piece_penalty": -2.0,
     "undeveloped_penalty": -0.5
   },
-  "fitness": -74208821.39494681,
+  "fitness": -6922177896.429001,
   "evals": [
     {
-      "fen": "r6k/2p1R1pp/p4r2/1p2Qp2/3P4/1B2BNK1/P3q3/8 w - - 2 29",
-      "stockfish": 999964,
-      "v7p3r": 3949.0240319827726
+      "fen": "r1b2rk1/pp1n1pbp/2pp2pB/4p2n/3PP1Pq/2NB1P2/PPPQN2P/R2K3R b - - 2 11",
+      "stockfish": 1.32,
+      "v7p3r": 16041.551571690066
     },
     {
-      "fen": "r1b2rk1/ppp1bppp/3q4/4R1B1/6n1/2NB4/PPP1QPPP/R5K1 w - - 3 12",
-      "stockfish": 999964,
-      "v7p3r": 15840.25163545703
+      "fen": "5r1k/1p3pp1/p1p3rp/4P3/2B2q2/PP3PP1/2Q3KP/4R3 w - - 0 28",
+      "stockfish": 1.33,
+      "v7p3r": 98736.46942562191
     },
     {
-      "fen": "1k1r4/2p5/R5pp/1B2Pp1b/5P1b/4B3/PPPK1P2/8 w - - 1 26",
-      "stockfish": 999964,
-      "v7p3r": 8190.973502550698
-    },
-    {
-      "fen": "2kr3r/Qp1nbppp/2p1p1q1/8/3PnB2/5B1P/PPP2PP1/2K1R2R b - - 0 15",
-      "stockfish": 999964,
-      "v7p3r": 5667.378382407814
-    },
-    {
-      "fen": "r4rk1/ppp2p1p/2nb2p1/8/3PB3/2P2Q2/PP3KPq/R1B2R2 b - - 1 16",
-      "stockfish": 8.46,
-      "v7p3r": 10071.720008649138
+      "fen": "3r2k1/5pp1/2p1p1qp/p3Q3/Pb6/1P1BP2P/5PP1/3R2K1 w - - 2 33",
+      "stockfish": 0.0,
+      "v7p3r": 104136.10713347475
     }
   ]
 }

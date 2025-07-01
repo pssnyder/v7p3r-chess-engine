@@ -1,25 +1,25 @@
 # Enhanced GA configuration for v7p3r ruleset tuning with CUDA acceleration
-population_size: 5   # Drastically reduced to prevent overheating
-generations: 3       # Reduced for testing
-mutation_rate: 0.1
+population_size: 3   # Further reduced for initial debugging
+generations: 2       # Minimal for testing
+mutation_rate: 0.2   # Increased for faster evolution
 crossover_rate: 0.8
-elitism_rate: 0.2    # Increased to preserve best individuals with smaller population
+elitism_rate: 0.33   # Keep top 1/3
 adaptive_mutation: true
 positions_source: "random"
-positions_count: 5   # Drastically reduced to prevent memory issues
-max_stagnation: 3
+positions_count: 3   # Minimal number of positions to prevent timeout
+max_stagnation: 2    # Reduced for faster convergence
 
 # CUDA and Performance Settings
-use_cuda: true       # Re-enabled now that cleanup is fixed
-cuda_batch_size: 64  # Moderate batch size for your 12GB GPU
-use_multiprocessing: false  # Disable temporarily due to CUDA thread lock pickling issues
-max_workers: null  # Auto-detect optimal worker count
-use_neural_evaluator: false  # Set to true if you have a trained NN model
-neural_model_path: null  # Path to trained neural network model
+use_cuda: false      # Disable CUDA temporarily to avoid complexity
+cuda_batch_size: 32  # Smaller batch size
+use_multiprocessing: false  # Keep disabled
+max_workers: 1       # Single threaded for debugging
+use_neural_evaluator: false
+neural_model_path: null
 
 # Position Evaluation Cache
 enable_cache: true
-max_cache_size: 10000
+max_cache_size: 1000  # Smaller cache
 
 # Puzzle Database Configuration
 puzzle_db_config: "s:/Maker Stuff/Programming/V7P3R Chess Engine/viper_chess_engine/config/puzzle_config.yaml"
@@ -29,7 +29,7 @@ stockfish_config: {
   elo_rating: 100,
   skill_level: 1,
   debug_mode: False,
-  depth: 1,  # Minimal depth for faster evaluation
-  max_depth: 2,  # Minimal max depth
-  movetime: 50,  # Much faster response
+  depth: 1,        # Minimal depth for fastest evaluation
+  max_depth: 1,    # Minimal max depth
+  movetime: 25,    # Even faster response time
 }
