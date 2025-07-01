@@ -1,0 +1,17 @@
+[Event "v7p3r Engine Chess Game"]
+[Site "192.168.50.124"]
+[Date "2025.07.01"]
+[Round "#"]
+[White "v7p3r"]
+[Black "stockfish"]
+[Result "0-1"]
+
+1. e4 { Eval: 0.40 } 1... e5 { Eval: 0.10 } 2. Bc4 { Eval: 1.15 } 2... Nf6
+{ Eval: -5.45 } 3. Be6 { Eval: -9.65 } 3... dxe6 { Eval: -113.50 } 4. Nh3
+{ Eval: -112.60 } 4... b6 { Eval: -112.00 } 5. Nf4 { Eval: -114.30 } 5... Nc6
+{ Eval: -117.20 } 6. Ng6 { Eval: -114.50 } 6... Bb7 { Eval: -115.80 } 7. Nxh8
+{ Eval: -112.25 } 7... Nxe4 { Eval: -108.70 } 8. Ng6 { Eval: -110.60 } 8...
+fxg6 { Eval: -107.45 } 9. Rg1 { Eval: -109.15 } 9... Qh4 { Eval: -112.95 } 10.
+Rf1 { Eval: -113.15 } 10... Rd8 { Eval: -106.65 } 11. Rh1 { Eval: -102.85 }
+11... Qxf2# { Eval: 1000949.90 } 0-1
+

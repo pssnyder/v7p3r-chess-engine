@@ -6,15 +6,5 @@
 [Black "stockfish"]
 [Result "*"]
 
-1. e4 { Eval: 0.40 } 1... e5 { Eval: 0.10 } 2. Nf3 { Eval: 6.70 } 2... d6
-{ Eval: 2.35 } 3. Bb5+ { Eval: -57.00 } 3... c6 { Eval: -1.20 } 4. Bxc6+
-{ Eval: -9.15 } 4... bxc6 { Eval: -51.35 } 5. Nxe5 { Eval: -3.70 } 5... dxe5
-{ Eval: -55.95 } 6. Rg1 { Eval: -57.65 } 6... Be6 { Eval: -59.35 } 7. Rh1
-{ Eval: -59.55 } 7... Nf6 { Eval: -66.15 } 8. Rg1 { Eval: -66.35 } 8... h6
-{ Eval: -65.45 } 9. Rh1 { Eval: -65.65 } 9... Qb6 { Eval: -65.75 } 10. Rg1
-{ Eval: -65.95 } 10... Qd8 { Eval: -65.45 } 11. Rh1 { Eval: -65.65 } 11... Nbd7
-{ Eval: -67.55 } 12. Rg1 { Eval: -67.75 } 12... h5 { Eval: -67.55 } 13. Qxh5
-{ Eval: -1017.40 } 13... Rh6 { Eval: -1020.05 } 14. Qxf7+ { Eval: -1076.40 }
-14... Bxf7 { Eval: -25.00 } 15. Rh1 { Eval: -21.20 } 15... Qb6 { Eval: -21.80 }
-16. Rg1 { Eval: -26.00 } 16... Rg6 { Eval: -21.20 } *
+1. c4 { Eval: -1.20 } *
 
