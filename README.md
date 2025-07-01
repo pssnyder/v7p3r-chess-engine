@@ -21,7 +21,7 @@ A sophisticated chess engine featuring advanced search algorithms, position eval
 
 2. Play against the engine:
    ```bash
-   python v7p3r_engine/play_v7p3r.py
+   python v7p3r_engine/v7p3r_play.py
    ```
 
 3. Analyze a position:
@@ -42,7 +42,7 @@ A sophisticated chess engine featuring advanced search algorithms, position eval
 - `v7p3r_time.py` — Time management for tournament play
 - `v7p3r_pst.py` — Piece-square tables for evaluation
 - `stockfish_handler.py` — Interface for Stockfish integration
-- `play_v7p3r.py` — Interactive play interface
+- `v7p3r_play.py` — Interactive play interface
 - `rulesets.yaml` — Configuration for different playing styles
 
 ---
@@ -77,7 +77,7 @@ Customize engine behavior by editing the appropriate configuration files before 
 ### Traditional Engine
 ```bash
 # Play a game against the traditional engine
-python v7p3r_engine/play_v7p3r.py
+python v7p3r_engine/v7p3r_play.py
 
 # Analyze a position
 python v7p3r_engine/v7p3r.py --analyze "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
@@ -113,7 +113,7 @@ See [TEST_GUIDE.md](docs/TEST_GUIDE.md) for detailed instructions and interpreta
 - `v7p3r_time.py` — Time management for tournament play
 - `v7p3r_pst.py` — Piece-square tables for evaluation
 - `stockfish_handler.py` — Interface for Stockfish integration
-- `play_v7p3r.py` — Interactive play interface
+- `v7p3r_play.py` — Interactive play interface
 - `rulesets.yaml` — Configuration for different playing styles
 
 ### v7p3r_nn_engine (Neural Network Engine)
@@ -246,7 +246,7 @@ The v7p3r engine offers four distinct approaches:
 ### Traditional Engine
 ```bash
 # Play a game against the traditional engine
-python v7p3r_engine/play_v7p3r.py
+python v7p3r_engine/v7p3r_play.py
 
 # Analyze a position
 python v7p3r_engine/v7p3r.py --analyze "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
