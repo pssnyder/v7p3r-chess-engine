@@ -1,0 +1,27 @@
+[Event "v7p3r Engine Chess Game"]
+[Site "192.168.50.124"]
+[Date "2025.07.01"]
+[Round "#"]
+[White "v7p3r"]
+[Black "stockfish"]
+[Result "0-1"]
+
+1. e4 { Eval: 0.40 } 1... c5 { Eval: 1.70 } 2. Nf3 { Eval: 4.30 } 2... e6
+{ Eval: 3.30 } 3. Ng5 { Eval: -1.40 } 3... d5 { Eval: -0.30 } 4. Bb5+
+{ Eval: -59.65 } 4... Nc6 { Eval: -3.35 } 5. Bxc6+ { Eval: -60.95 } 5... bxc6
+{ Eval: -101.75 } 6. Nxh7 { Eval: -56.60 } 6... Qh4 { Eval: -55.60 } 7. Nf6+
+{ Eval: -106.10 } 7... Nxf6 { Eval: -59.70 } 8. exd5 { Eval: -54.20 } 8... Qe4+
+{ Eval: 1.55 } 9. Kf1 { Eval: -156.45 } 9... cxd5 { Eval: -159.15 } 10. Rg1
+{ Eval: -163.35 } 10... Qh7 { Eval: -161.90 } 11. Rh1 { Eval: -158.10 } 11...
+Bd7 { Eval: -160.60 } 12. Rg1 { Eval: -164.80 } 12... Bd6 { Eval: -167.95 } 13.
+Rh1 { Eval: -164.15 } 13... e5 { Eval: -162.10 } 14. Rg1 { Eval: -166.30 }
+14... d4 { Eval: -166.50 } 15. Rh1 { Eval: -162.70 } 15... e4 { Eval: -163.65 }
+16. Rg1 { Eval: -167.85 } 16... Rc8 { Eval: -166.35 } 17. Rh1 { Eval: -162.55 }
+17... Be7 { Eval: -160.20 } 18. Rg1 { Eval: -164.40 } 18... Ng4
+{ Eval: -164.95 } 19. Qxg4 { Eval: -1164.65 } 19... Bxg4 { Eval: -168.85 } 20.
+Rh1 { Eval: -165.05 } 20... a5 { Eval: -163.95 } 21. Rg1 { Eval: -168.15 }
+21... Be2+ { Eval: -103.45 } 22. Kxe2 { Eval: -64.15 } 22... d3+
+{ Eval: -11.20 } 23. cxd3 { Eval: -61.40 } 23... exd3+ { Eval: -7.25 } 24. Kf3
+{ Eval: -62.75 } 24... Qf5+ { Eval: -2.95 } 25. Kg3 { Eval: -8.75 } 25... Bd6+
+{ Eval: 51.50 } 26. f4 { Eval: -7.40 } 26... Qxf4# { Eval: 1000999.70 } 0-1
+

@@ -1,0 +1,39 @@
+[Event "v7p3r Engine Chess Game"]
+[Site "192.168.50.124"]
+[Date "2025.07.01"]
+[Round "#"]
+[White "v7p3r"]
+[Black "stockfish"]
+[Result "0-1"]
+
+1. Nc3 { Eval: 3.00 } 1... Nf6 { Eval: 0.10 } 2. Nd5 { Eval: -4.35 } 2... Nxd5
+{ Eval: -6.15 } 3. Nh3 { Eval: -5.25 } 3... Nb6 { Eval: -5.00 } 4. Ng5
+{ Eval: -4.60 } 4... e5 { Eval: -8.80 } 5. Nxh7 { Eval: 40.75 } 5... d5
+{ Eval: 40.05 } 6. Nf6+ { Eval: -17.95 } 6... gxf6 { Eval: 40.40 } 7. Rg1
+{ Eval: 34.20 } 7... Nc6 { Eval: 31.30 } 8. Rh1 { Eval: 35.60 } 8... Qe7
+{ Eval: 37.65 } 9. Rg1 { Eval: 32.95 } 9... Be6 { Eval: 32.25 } 10. Rh1
+{ Eval: 36.55 } 10... Bc8 { Eval: 37.65 } 11. Rg1 { Eval: 32.95 } 11... Rxh2
+{ Eval: -13.65 } 12. Rh1 { Eval: -13.65 } 12... Be6 { Eval: -14.35 } 13. Rxh2
+{ Eval: -8.90 } 13... Bg7 { Eval: -9.30 } 14. Rh8+ { Eval: -73.40 } 14... Bf8
+{ Eval: -8.70 } 15. Rxf8+ { Eval: 30.00 } 15... Kxf8 { Eval: 191.00 } 16. Rb1
+{ Eval: 183.80 } 16... d4 { Eval: 178.65 } 17. Ra1 { Eval: 182.95 } 17... a5
+{ Eval: 183.85 } 18. Rb1 { Eval: 179.15 } 18... f5 { Eval: 181.50 } 19. Ra1
+{ Eval: 185.80 } 19... f4 { Eval: 185.35 } 20. Rb1 { Eval: 180.65 } 20... a4
+{ Eval: 180.75 } 21. Ra1 { Eval: 185.05 } 21... Nd5 { Eval: 185.75 } 22. Rb1
+{ Eval: 185.05 } 22... Qd6 { Eval: 185.35 } 23. Ra1 { Eval: 185.65 } 23... b5
+{ Eval: 185.75 } 24. Rb1 { Eval: 186.05 } 24... Bd7 { Eval: 186.25 } 25. Ra1
+{ Eval: 186.55 } 25... b4 { Eval: 186.35 } 26. Rb1 { Eval: 185.65 } 26... Ra5
+{ Eval: 185.65 } 27. Ra1 { Eval: 185.95 } 27... Bf5 { Eval: 185.40 } 28. Rb1
+{ Eval: 184.70 } 28... Nf6 { Eval: 185.15 } 29. Ra1 { Eval: 185.45 } 29... Be6
+{ Eval: 185.65 } 30. Rb1 { Eval: 180.95 } 30... e4 { Eval: 180.45 } 31. Ra1
+{ Eval: 184.75 } 31... Rh5 { Eval: 184.95 } 32. Rb1 { Eval: 180.25 } 32... Rh1
+{ Eval: 181.35 } 33. Ra1 { Eval: 185.65 } 33... Rh5 { Eval: 184.95 } 34. Rb1
+{ Eval: 180.25 } 34... Bd7 { Eval: 185.20 } 35. Ra1 { Eval: 185.50 } 35... Be6
+{ Eval: 184.95 } 36. Rb1 { Eval: 180.25 } 36... Rh1 { Eval: 181.35 } 37. Ra1
+{ Eval: 185.65 } 37... Ng4 { Eval: 187.00 } 38. Rb1 { Eval: 182.30 } 38... f5
+{ Eval: 183.30 } 39. Ra1 { Eval: 188.60 } 39... Kf7 { Eval: 187.70 } 40. Rb1
+{ Eval: 183.00 } 40... Qe5 { Eval: 183.35 } 41. Ra1 { Eval: 187.65 } 41... Qh8
+{ Eval: 188.70 } 42. Rb1 { Eval: 184.00 } 42... e3 { Eval: 184.70 } 43. fxe3
+{ Eval: 240.75 } 43... Qh4+ { Eval: 301.35 } 44. g3 { Eval: 1236.45 } 44...
+Qxg3# { Eval: 1000246.20 } 0-1
+

@@ -1,0 +1,66 @@
+[Event "v7p3r Engine Chess Game"]
+[Site "192.168.50.124"]
+[Date "2025.07.01"]
+[Round "#"]
+[White "v7p3r"]
+[Black "stockfish"]
+[Result "0-1"]
+
+1. Nc3 { Eval: 3.00 } 1... Nc6 { Eval: 0.10 } 2. Nd5 { Eval: -0.35 } 2... e6
+{ Eval: -6.50 } 3. Nxc7+ { Eval: -12.20 } 3... Qxc7 { Eval: 43.50 } 4. Nh3
+{ Eval: 44.40 } 4... a6 { Eval: 45.30 } 5. Ng5 { Eval: 45.70 } 5... Be7
+{ Eval: 40.90 } 6. Nxh7 { Eval: 90.15 } 6... Nb4 { Eval: 91.10 } 7. Nf6+
+{ Eval: 37.70 } 7... gxf6 { Eval: 92.45 } 8. Rg1 { Eval: 86.25 } 8... Nd5
+{ Eval: 84.55 } 9. Rh1 { Eval: 88.85 } 9... Bf8 { Eval: 89.75 } 10. Rg1
+{ Eval: 85.05 } 10... Be7 { Eval: 84.55 } 11. Rh1 { Eval: 88.85 } 11... Nb6
+{ Eval: 90.20 } 12. Rg1 { Eval: 85.50 } 12... d6 { Eval: 88.05 } 13. Rh1
+{ Eval: 92.35 } 13... Bd7 { Eval: 89.05 } 14. Rg1 { Eval: 84.35 } 14... Nd5
+{ Eval: 83.40 } 15. Rh1 { Eval: 87.70 } 15... a5 { Eval: 87.90 } 16. Rg1
+{ Eval: 83.20 } 16... b6 { Eval: 84.20 } 17. Rh1 { Eval: 88.50 } 17... Rb8
+{ Eval: 89.80 } 18. Rg1 { Eval: 85.10 } 18... Bd8 { Eval: 86.00 } 19. Rh1
+{ Eval: 90.30 } 19... a4 { Eval: 90.50 } 20. Rg1 { Eval: 85.80 } 20... Qa7
+{ Eval: 87.20 } 21. Rh1 { Eval: 91.50 } 21... Nge7 { Eval: 89.70 } 22. Rg1
+{ Eval: 85.00 } 22... Ra8 { Eval: 84.80 } 23. Rh1 { Eval: 89.10 } 23... b5
+{ Eval: 90.00 } 24. Rg1 { Eval: 85.30 } 24... Nf5 { Eval: 83.90 } 25. Rh1
+{ Eval: 88.20 } 25... Nde7 { Eval: 90.35 } 26. Rg1 { Eval: 85.65 } 26... Nd5
+{ Eval: 83.90 } 27. Rh1 { Eval: 88.20 } 27... Rc8 { Eval: 88.20 } 28. Rg1
+{ Eval: 83.50 } 28... b4 { Eval: 82.30 } 29. Rh1 { Eval: 86.60 } 29... Rb8
+{ Eval: 87.20 } 30. Rg1 { Eval: 82.50 } 30... Nde7 { Eval: 84.65 } 31. Rh1
+{ Eval: 88.95 } 31... Rc8 { Eval: 89.25 } 32. Rg1 { Eval: 84.55 } 32... Ra8
+{ Eval: 84.95 } 33. Rh1 { Eval: 89.25 } 33... d5 { Eval: 90.80 } 34. Rg1
+{ Eval: 86.10 } 34... Ng6 { Eval: 84.90 } 35. Rh1 { Eval: 89.20 } 35... Rg8
+{ Eval: 97.80 } 36. Rg1 { Eval: 97.10 } 36... Rh8 { Eval: 92.40 } 37. Rh1
+{ Eval: 96.70 } 37... Rg8 { Eval: 97.80 } 38. Rg1 { Eval: 97.10 } 38... Be7
+{ Eval: 95.10 } 39. Rh1 { Eval: 95.40 } 39... Nf8 { Eval: 96.50 } 40. Rg1
+{ Eval: 95.80 } 40... Rh8 { Eval: 92.00 } 41. Rh1 { Eval: 96.30 } 41... Bd6
+{ Eval: 95.35 } 42. Rg1 { Eval: 90.65 } 42... Rg8 { Eval: 90.85 } 43. Rh1
+{ Eval: 95.15 } 43... Rh8 { Eval: 95.35 } 44. Rg1 { Eval: 90.65 } 44... Be5
+{ Eval: 90.75 } 45. Rh1 { Eval: 95.05 } 45... Rb8 { Eval: 94.95 } 46. Rg1
+{ Eval: 90.25 } 46... Ra8 { Eval: 90.75 } 47. Rh1 { Eval: 95.05 } 47... Rb8
+{ Eval: 94.95 } 48. Rg1 { Eval: 90.25 } 48... d4 { Eval: 91.00 } 49. Rh1
+{ Eval: 95.30 } 49... Rc8 { Eval: 95.60 } 50. Rg1 { Eval: 90.90 } 50... Rc7
+{ Eval: 91.25 } 51. Rh1 { Eval: 95.55 } 51... Rc8 { Eval: 95.60 } 52. Rg1
+{ Eval: 90.90 } 52... Rc7 { Eval: 91.25 } 53. Rh1 { Eval: 95.55 } 53... Bd6
+{ Eval: 95.20 } 54. Rg1 { Eval: 90.50 } 54... Rc8 { Eval: 90.55 } 55. Rh1
+{ Eval: 94.85 } 55... e5 { Eval: 97.05 } 56. Rg1 { Eval: 92.35 } 56... Rb8
+{ Eval: 92.95 } 57. Rh1 { Eval: 97.25 } 57... Rc8 { Eval: 97.05 } 58. Rg1
+{ Eval: 92.35 } 58... Ng6 { Eval: 90.75 } 59. Rh1 { Eval: 95.05 } 59... Nge7
+{ Eval: 96.15 } 60. Rg1 { Eval: 91.45 } 60... Ng6 { Eval: 90.75 } 61. Rh1
+{ Eval: 95.05 } 61... Nf8 { Eval: 97.05 } 62. Rg1 { Eval: 92.35 } 62... Ng6
+{ Eval: 90.75 } 63. Rh1 { Eval: 95.05 } 63... Nge7 { Eval: 96.15 } 64. Rg1
+{ Eval: 91.45 } 64... Ng6 { Eval: 90.75 } 65. Rh1 { Eval: 95.05 } 65... Rg8
+{ Eval: 96.15 } 66. Rg1 { Eval: 95.45 } 66... e4 { Eval: 90.80 } 67. Rh1
+{ Eval: 95.10 } 67... Kd8 { Eval: 192.80 } 68. Rg1 { Eval: 188.10 } 68... Ke8
+{ Eval: 90.80 } 69. Rh1 { Eval: 95.10 } 69... Be7 { Eval: 96.45 } 70. Rg1
+{ Eval: 95.75 } 70... Kd8 { Eval: 193.45 } 71. Rh1 { Eval: 193.75 } 71... Bd6
+{ Eval: 192.80 } 72. Rg1 { Eval: 188.10 } 72... Re8 { Eval: 187.30 } 73. Rh1
+{ Eval: 191.60 } 73... Re5 { Eval: 192.75 } 74. Rg1 { Eval: 192.05 } 74... Nge7
+{ Eval: 192.75 } 75. Rh1 { Eval: 193.05 } 75... Qc7 { Eval: 194.15 } 76. Rg1
+{ Eval: 193.45 } 76... Qa7 { Eval: 192.75 } 77. Rh1 { Eval: 193.05 } 77... Ng6
+{ Eval: 192.75 } 78. Rg1 { Eval: 192.05 } 78... Qb8 { Eval: 192.05 } 79. Rh1
+{ Eval: 192.35 } 79... d3 { Eval: 193.05 } 80. exd3 { Eval: 144.55 } 80... Nf4
+{ Eval: 144.55 } 81. dxe4 { Eval: 194.65 } 81... Nd4 { Eval: 194.25 } 82. Rg1
+{ Eval: 193.55 } 82... Qb7 { Eval: 194.05 } 83. Rh1 { Eval: 194.35 } 83...
+Qxe4+ { Eval: 254.85 } 84. Be2 { Eval: 191.95 } 84... Nxc2+ { Eval: 246.75 }
+85. Qxc2 { Eval: -807.35 } 85... Qxe2# { Eval: 1000146.30 } 0-1
+
