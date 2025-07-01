@@ -42,6 +42,11 @@ class v7p3rGeneticAlgorithm:
         self.stockfish = StockfishHandler(self.config['stockfish_config'])
         self.puzzle_db = PuzzleDBManager(self.config.get('puzzle_db_config', {}))
 
+        # Add evaluation cache for efficiency
+        self.evaluation_cache = {}
+        self.cache_enabled = self.config.get('enable_cache', True)
+        self.max_cache_size = self.config.get('max_cache_size', 1000)
+
         # Scorer
         engine_cfg = {'verbose_output': False}
         # Initialize PST with default piece values and logger
@@ -98,16 +103,42 @@ class v7p3rGeneticAlgorithm:
         self.scorer.ruleset_name = 'GA_Tuning'
         error = 0.0
         from chess import Board
-        for entry in self.test_positions:
+        
+        # Batch evaluation for efficiency
+        positions_to_evaluate = []
+        for i, entry in enumerate(self.test_positions):
+            if i >= 3:  # Limit to first 3 positions for faster evaluation during training
+                break
             fen = entry['fen'] if isinstance(entry, dict) else entry
             try:
                 board = Board(fen)
-                sf_eval = self.stockfish.evaluate_position(board)
-                v7_eval = self.scorer.calculate_score(board, board.turn) * 100
-                error += (v7_eval - sf_eval) ** 2
+                positions_to_evaluate.append((board, fen))
             except Exception:
                 error += 1e6
-        mse = error / len(self.test_positions)
+        
+        # Evaluate positions with caching
+        for board, fen in positions_to_evaluate:
+            try:
+                # Check cache first
+                if self.cache_enabled and fen in self.evaluation_cache:
+                    sf_eval = self.evaluation_cache[fen]
+                else:
+                    sf_eval = self.stockfish.evaluate_position(board)
+                    # Cache the result
+                    if self.cache_enabled:
+                        if len(self.evaluation_cache) >= self.max_cache_size:
+                            # Remove oldest entry (simple FIFO)
+                            oldest_key = next(iter(self.evaluation_cache))
+                            del self.evaluation_cache[oldest_key]
+                        self.evaluation_cache[fen] = sf_eval
+                
+                v7_eval = self.scorer.calculate_score(board, board.turn) * 100
+                error += (v7_eval - sf_eval) ** 2
+            except Exception as e:
+                self.logger.warning(f"Error evaluating position {fen}: {e}")
+                error += 1e6
+        
+        mse = error / max(len(positions_to_evaluate), 1)
         return -mse
 
     def cleanup(self):

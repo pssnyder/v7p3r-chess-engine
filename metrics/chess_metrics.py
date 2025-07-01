@@ -15,9 +15,12 @@ import yaml
 import atexit
 from datetime import datetime # Import datetime for parsing timestamps
 import sqlite3
+import os
 
-ANALYTICS_DB_PATH = "metrics/chess_analytics.db"
-RAW_DB_PATH = "metrics/chess_metrics.db"
+# Use absolute paths to avoid nested directory issues
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ANALYTICS_DB_PATH = os.path.join(BASE_DIR, "chess_analytics.db")
+RAW_DB_PATH = os.path.join(BASE_DIR, "chess_metrics.db")
 
 # Initialize the metrics store globally
 metrics_store = MetricsStore(db_path=ANALYTICS_DB_PATH)
@@ -254,11 +257,68 @@ def update_ab_testing_section(_, selected_metric):
         move_metrics_details_components.append(html.P("Please select a metric from the dropdown to visualize V7P3R's performance trend.", style={"color": DARK_TEXT}))
         return fig_ab_test, move_metrics_details_components
     
-    all_v7p3r_moves_raw = metrics_store.get_filtered_move_metrics(
-        white_engine_names=['v7p3r'],
-        black_engine_names=['v7p3r'],
-        metric_name=selected_metric
-    )
+    # Get all moves where v7p3r was the player (not engine name, since those are None)
+    # We need to find games where white_player or black_player is 'v7p3r'
+    df_games_raw = metrics_store.get_all_game_results_df()
+    
+    if df_games_raw is None or df_games_raw.empty:
+        fig_ab_test.update_layout(
+            title=f"No Game Data Available",
+            paper_bgcolor=DARK_PANEL, plot_bgcolor=DARK_PANEL, font=dict(color=DARK_TEXT),
+            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
+        )
+        fig_ab_test.add_annotation(text="No game data found.", xref="paper", yref="paper", showarrow=False, font=dict(size=16, color=DARK_TEXT))
+        move_metrics_details_components.append(html.P("No game data found.", style={"color": DARK_TEXT}))
+        return fig_ab_test, move_metrics_details_components
+    
+    # Find games where exactly "v7p3r" played (not v7p3r_nn, v7p3r_ga, etc.)
+    v7p3r_games = df_games_raw[
+        (df_games_raw['white_player'] == 'v7p3r') | 
+        (df_games_raw['black_player'] == 'v7p3r')
+    ]
+    
+    if v7p3r_games.empty:
+        fig_ab_test.update_layout(
+            title=f"No V7P3R Games Found",
+            paper_bgcolor=DARK_PANEL, plot_bgcolor=DARK_PANEL, font=dict(color=DARK_TEXT),
+            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
+        )
+        fig_ab_test.add_annotation(text="No games found where v7p3r played.", xref="paper", yref="paper", showarrow=False, font=dict(size=16, color=DARK_TEXT))
+        move_metrics_details_components.append(html.P("No games found where v7p3r played.", style={"color": DARK_TEXT}))
+        return fig_ab_test, move_metrics_details_components
+    
+    # Get move metrics for all v7p3r games
+    v7p3r_game_ids = v7p3r_games['game_id'].tolist()
+    
+    # Get all move metrics for these games directly from the database
+    # Handle the case where move_metrics.game_id might have .pgn extension but game_results.game_id doesn't
+    connection = metrics_store._get_connection()
+    placeholders = ','.join(['?'] * len(v7p3r_game_ids))
+    # Create a list with both original game_ids and with .pgn extension
+    extended_game_ids = v7p3r_game_ids + [gid + '.pgn' for gid in v7p3r_game_ids]
+    extended_placeholders = ','.join(['?'] * len(extended_game_ids))
+    query = f"""
+    SELECT mm.*, gr.white_player, gr.black_player, gr.winner
+    FROM move_metrics mm
+    JOIN game_results gr ON (mm.game_id = gr.game_id OR mm.game_id = gr.game_id || '.pgn')
+    WHERE mm.game_id IN ({extended_placeholders})
+    AND mm.{selected_metric} IS NOT NULL
+    ORDER BY mm.created_at
+    """
+    
+    try:
+        with connection:
+            cursor = connection.cursor()
+            cursor.execute(query, extended_game_ids)
+            cols = [description[0] for description in cursor.description]
+            all_v7p3r_moves_raw = []
+            for row in cursor.fetchall():
+                all_v7p3r_moves_raw.append(dict(zip(cols, row)))
+    except Exception as e:
+        print(f"Error querying move metrics: {e}")
+        all_v7p3r_moves_raw = []
     if not all_v7p3r_moves_raw:
         fig_ab_test.update_layout(
             title=f"No '{selected_metric}' Data for v7p3r Engine",
@@ -271,20 +331,13 @@ def update_ab_testing_section(_, selected_metric):
         return fig_ab_test, move_metrics_details_components
 
     df_all_v7p3r_moves = pd.DataFrame(all_v7p3r_moves_raw)
-    df_games_raw = metrics_store.get_all_game_results_df()
-
-    if df_games_raw is None or df_games_raw.empty:
-        # Handle case where there are no game results to filter by
-        fig_ab_test.update_layout(title="No Game Results Available for Context", paper_bgcolor=DARK_PANEL, plot_bgcolor=DARK_PANEL, font=dict(color=DARK_TEXT))
-        move_metrics_details_components.append(html.P("No game results found to provide context for V7P3R's moves.", style={"color": DARK_TEXT}))
-        return fig_ab_test, move_metrics_details_components
 
     # Determine which V7P3R moves to analyze based on game context
     v7p3r_perspectives = []
-    for _, game_row in df_games_raw.iterrows():
+    for _, game_row in v7p3r_games.iterrows():
         game_id = game_row['game_id']
-        white_is_v7p3r = game_row.get('white_search_algorithm') == 'v7p3r'
-        black_is_v7p3r = game_row.get('black_search_algorithm') == 'v7p3r'
+        white_is_v7p3r = game_row.get('white_player') == 'v7p3r'
+        black_is_v7p3r = game_row.get('black_player') == 'v7p3r'
         exclude_white = game_row.get('exclude_white_from_metrics', False)
         exclude_black = game_row.get('exclude_black_from_metrics', False)
         winner = game_row.get('winner')
@@ -327,7 +380,7 @@ def update_ab_testing_section(_, selected_metric):
         return fig_ab_test, move_metrics_details_components
 
     df_final_moves = df_final_moves.copy() # Avoid SettingWithCopyWarning
-    df_final_moves['created_at_dt'] = pd.to_datetime(df_final_moves['created_at'])
+    df_final_moves['created_at_dt'] = pd.to_datetime(df_final_moves['created_at'], errors='coerce')
     df_final_moves = df_final_moves.sort_values('created_at_dt')
 
     fig_ab_test.add_trace(go.Scatter(
@@ -426,11 +479,11 @@ def update_static_metrics(_):
         fig_static_trend.add_annotation(text="No game data for V7P3R to display.", xref="paper", yref="paper", showarrow=False, font=dict(size=16, color=DARK_TEXT))
         return metrics_display, fig_static_trend
 
-    # Filter games relevant to V7P3R and respect exclusion flags
+    # Filter games relevant to exactly "v7p3r" (not v7p3r_nn, v7p3r_ga, etc.) and respect exclusion flags
     v7p3r_games_data = []
     for _, row in df_games_raw.iterrows():
-        white_is_v7p3r = row.get('white_search_algorithm') == 'v7p3r'
-        black_is_v7p3r = row.get('black_search_algorithm') == 'v7p3r'
+        white_is_v7p3r = row.get('white_player') == 'v7p3r'
+        black_is_v7p3r = row.get('black_player') == 'v7p3r'
         exclude_white = row.get('exclude_white_from_metrics', False)
         exclude_black = row.get('exclude_black_from_metrics', False)
         
@@ -464,8 +517,8 @@ def update_static_metrics(_):
 
     for _, row in df_v7p3r_games.iterrows():
         winner = row.get('winner')
-        white_is_v7p3r_and_included = row.get('white_engine') == 'v7p3r' and not row.get('exclude_white_from_metrics', False)
-        black_is_v7p3r_and_included = row.get('black_engine') == 'v7p3r' and not row.get('exclude_black_from_metrics', False)
+        white_is_v7p3r_and_included = row.get('white_player') == 'v7p3r' and not row.get('exclude_white_from_metrics', False)
+        black_is_v7p3r_and_included = row.get('black_player') == 'v7p3r' and not row.get('exclude_black_from_metrics', False)
 
         if winner == '1-0':
             if white_is_v7p3r_and_included: v7p3r_wins +=1
@@ -488,10 +541,37 @@ def update_static_metrics(_):
     # Trend graph for V7P3R game results
     if not df_v7p3r_games.empty:
         df_v7p3r_games = df_v7p3r_games.copy() # Avoid SettingWithCopyWarning
-        try:
-            df_v7p3r_games['timestamp_dt'] = pd.to_datetime(df_v7p3r_games['timestamp'])
-        except Exception: 
-             df_v7p3r_games['timestamp_dt'] = pd.to_datetime(df_v7p3r_games['timestamp'], format="%Y%m%d_%H%M%S", errors='coerce')
+        
+        # Handle mixed timestamp formats (ISO and YYYYMMDD_HHMMSS)
+        # Use a more robust approach to handle both formats without warnings
+        def parse_mixed_timestamps(series):
+            result = pd.Series(index=series.index, dtype='datetime64[ns]')
+            for idx, ts in series.items():
+                if pd.isna(ts):
+                    result[idx] = pd.NaT
+                    continue
+                ts_str = str(ts)
+                # Try ISO format first (has 'T' and length > 15)
+                if 'T' in ts_str:
+                    try:
+                        result[idx] = pd.to_datetime(ts_str, format='%Y-%m-%dT%H:%M:%S.%f')
+                    except:
+                        try:
+                            result[idx] = pd.to_datetime(ts_str, format='%Y-%m-%dT%H:%M:%S')
+                        except:
+                            result[idx] = pd.to_datetime(ts_str, errors='coerce')
+                # Try custom format YYYYMMDD_HHMMSS
+                elif '_' in ts_str and len(ts_str) == 15:
+                    try:
+                        result[idx] = pd.to_datetime(ts_str, format="%Y%m%d_%H%M%S")
+                    except:
+                        result[idx] = pd.NaT
+                else:
+                    # Fallback for any other format
+                    result[idx] = pd.to_datetime(ts_str, errors='coerce')
+            return result
+        
+        df_v7p3r_games['timestamp_dt'] = parse_mixed_timestamps(df_v7p3r_games['timestamp'])
         
         df_v7p3r_games = df_v7p3r_games.sort_values('timestamp_dt').reset_index(drop=True)
         
@@ -505,8 +585,8 @@ def update_static_metrics(_):
         
         for index, row in df_v7p3r_games.iterrows():
             winner = row.get('winner')
-            white_is_v7p3r_and_included = row.get('white_engine') == 'v7p3r' and not row.get('exclude_white_from_metrics', False)
-            black_is_v7p3r_and_included = row.get('black_engine') == 'v7p3r' and not row.get('exclude_black_from_metrics', False)
+            white_is_v7p3r_and_included = row.get('white_player') == 'v7p3r' and not row.get('exclude_white_from_metrics', False)
+            black_is_v7p3r_and_included = row.get('black_player') == 'v7p3r' and not row.get('exclude_black_from_metrics', False)
 
             if winner == '1-0':
                 if white_is_v7p3r_and_included: current_wins += 1
