@@ -32,20 +32,26 @@ def resource_path(relative_path):
     if base:
         return os.path.join(base, relative_path)
     return os.path.join(os.path.abspath("."), relative_path)
+# =====================================
+# ========== LOGGING SETUP ============
 def get_timestamp():
     return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-def get_log_file_path():
-    # Optional timestamp for log file name
-    timestamp = get_timestamp()
-    log_dir = "logging"
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir, exist_ok=True)
-    return os.path.join(log_dir, f"v7p3r_evaluation_engine.log")
-v7p3r_engine_logger = logging.getLogger("v7p3r_evaluation_engine")
-v7p3r_engine_logger.setLevel(logging.DEBUG)
-_init_status = globals().get("_init_status", {})
-if not _init_status.get("initialized", False):
-    log_file_path = get_log_file_path()
+
+# Create logging directory relative to project root
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+log_dir = os.path.join(project_root, 'logging')
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir, exist_ok=True)
+
+# Setup individual logger for this file
+timestamp = get_timestamp()
+log_filename = f"v7p3r_config_gui_{timestamp}.log"
+log_file_path = os.path.join(log_dir, log_filename)
+
+v7p3r_config_gui_logger = logging.getLogger(f"v7p3r_config_gui_{timestamp}")
+v7p3r_config_gui_logger.setLevel(logging.DEBUG)
+
+if not v7p3r_config_gui_logger.handlers:
     from logging.handlers import RotatingFileHandler
     file_handler = RotatingFileHandler(
         log_file_path,
@@ -58,17 +64,14 @@ if not _init_status.get("initialized", False):
         datefmt='%H:%M:%S'
     )
     file_handler.setFormatter(formatter)
-    v7p3r_engine_logger.addHandler(file_handler)
-    v7p3r_engine_logger.propagate = False
-    _init_status["initialized"] = True
-    # Store the log file path for later use (e.g., to match with PGN/config)
-    _init_status["log_file_path"] = log_file_path
+    v7p3r_config_gui_logger.addHandler(file_handler)
+    v7p3r_config_gui_logger.propagate = False
 
 # Import the ChessGame class from play_v7p3r
 try:
-    from v7p3r_engine.v7p3r_play import ChessGame  # Try local import first
+    from v7p3r_play import ChessGame  # Try local import first
 except ImportError:
-    from v7p3r_engine.v7p3r_play import ChessGame  # Fallback to package import
+    from v7p3r_play import ChessGame  # Fallback to package import
 
 # Default values used for new configurations
 DEFAULT_CONFIG = {
@@ -1244,7 +1247,7 @@ class ConfigGUI:
                 # Import ChessGame here to avoid circular imports
                 try:
                     # Try local import first
-                    from v7p3r_engine.v7p3r_play import ChessGame
+                    from v7p3r_play import ChessGame
                 except ImportError:
                     # Fallback to package import
                     from v7p3r_engine.v7p3r_play import ChessGame

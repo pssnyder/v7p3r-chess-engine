@@ -4,6 +4,7 @@ import os
 import sys
 import datetime
 import chess
+from typing import Optional
 import logging
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -15,20 +16,26 @@ def resource_path(relative_path):
     if base:
         return os.path.join(base, relative_path)
     return os.path.join(os.path.abspath("."), relative_path)
+# =====================================
+# ========== LOGGING SETUP ============
 def get_timestamp():
     return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-def get_log_file_path():
-    # Optional timestamp for log file name
-    timestamp = get_timestamp()
-    log_dir = "logging"
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir, exist_ok=True)
-    return os.path.join(log_dir, f"v7p3r_evaluation_engine.log")
-v7p3r_engine_logger = logging.getLogger("v7p3r_evaluation_engine")
-v7p3r_engine_logger.setLevel(logging.DEBUG)
-_init_status = globals().get("_init_status", {})
-if not _init_status.get("initialized", False):
-    log_file_path = get_log_file_path()
+
+# Create logging directory relative to project root
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+log_dir = os.path.join(project_root, 'logging')
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir, exist_ok=True)
+
+# Setup individual logger for this file
+timestamp = get_timestamp()
+log_filename = f"v7p3r_pst_{timestamp}.log"
+log_file_path = os.path.join(log_dir, log_filename)
+
+v7p3r_pst_logger = logging.getLogger(f"v7p3r_pst_{timestamp}")
+v7p3r_pst_logger.setLevel(logging.DEBUG)
+
+if not v7p3r_pst_logger.handlers:
     from logging.handlers import RotatingFileHandler
     file_handler = RotatingFileHandler(
         log_file_path,
@@ -41,16 +48,13 @@ if not _init_status.get("initialized", False):
         datefmt='%H:%M:%S'
     )
     file_handler.setFormatter(formatter)
-    v7p3r_engine_logger.addHandler(file_handler)
-    v7p3r_engine_logger.propagate = False
-    _init_status["initialized"] = True
-    # Store the log file path for later use (e.g., to match with PGN/config)
-    _init_status["log_file_path"] = log_file_path
+    v7p3r_pst_logger.addHandler(file_handler)
+    v7p3r_pst_logger.propagate = False
 
 class v7p3rPST:
     """ Piece-Square Tables for chess position evaluation. """
-    def __init__(self, logger: logging.Logger = logging.getLogger("v7p3r_engine_logger")):
-        self.logger = logger
+    def __init__(self, logger: Optional[logging.Logger] = None):
+        self.logger = logger if logger else v7p3r_pst_logger
         # Initialize piece-square tables
         self.tables = self._create_tables()
         # Default Piece Values

@@ -25,13 +25,14 @@ config = {
         "name": "v7p3r",                     # Name of the engine, used for identification and logging
         "version": "1.0.0",                  # Version of the engine, used for identification and logging
         "color": "white",                    # Color of the engine, either 'white' or 'black'
-        "ruleset": "default_evaluation",    # Name of the evaluation rule set to use, see below for available options
+        "ruleset": "default_evaluation",     # Name of the evaluation rule set to use, see below for available options
         "search_algorithm": "minimax",       # Move search type for White (see search_algorithms for options)
         "depth": 3,                          # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
         "max_depth": 4,                      # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
+        "max_moves": 5,                      # Maximum number of moves to consider after ordering (truncates move list to top N moves)
         "use_game_phase": False,             # Use game phase evaluation
         "monitoring_enabled": True,          # Enable or disable monitoring features
-        "verbose_output": True,             # Enable or disable verbose output for debugging
+        "verbose_output": True,              # Enable or disable verbose output for debugging
         "logger": "v7p3r_engine_logger",     # Logger name for the engine, used for logging engine-specific events
     },
     "stockfish_config": {
@@ -56,26 +57,34 @@ NN_ENGINE_AVAILABLE = False
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
+
 def resource_path(relative_path):
     """Get absolute path to resource, works for dev and for PyInstaller"""
     base = getattr(sys, '_MEIPASS', None)
     if base:
         return os.path.join(base, relative_path)
     return os.path.join(os.path.abspath("."), relative_path)
+
+# =====================================
+# ========== LOGGING SETUP ============
 def get_timestamp():
     return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-def get_log_file_path():
-    # Optional timestamp for log file name
-    timestamp = get_timestamp()
-    log_dir = "logging"
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir, exist_ok=True)
-    return os.path.join(log_dir, f"v7p3r_evaluation_engine.log")
-v7p3r_engine_logger = logging.getLogger("v7p3r_evaluation_engine")
-v7p3r_engine_logger.setLevel(logging.DEBUG)
-_init_status = globals().get("_init_status", {})
-if not _init_status.get("initialized", False):
-    log_file_path = get_log_file_path()
+
+# Create logging directory relative to project root
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+log_dir = os.path.join(project_root, 'logging')
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir, exist_ok=True)
+
+# Setup individual logger for this file
+timestamp = get_timestamp()
+log_filename = f"v7p3r_play_{timestamp}.log"
+log_file_path = os.path.join(log_dir, log_filename)
+
+v7p3r_play_logger = logging.getLogger(f"v7p3r_play_{timestamp}")
+v7p3r_play_logger.setLevel(logging.DEBUG)
+
+if not v7p3r_play_logger.handlers:
     from logging.handlers import RotatingFileHandler
     file_handler = RotatingFileHandler(
         log_file_path,
@@ -88,11 +97,8 @@ if not _init_status.get("initialized", False):
         datefmt='%H:%M:%S'
     )
     file_handler.setFormatter(formatter)
-    v7p3r_engine_logger.addHandler(file_handler)
-    v7p3r_engine_logger.propagate = False
-    _init_status["initialized"] = True
-    # Store the log file path for later use (e.g., to match with PGN/config)
-    _init_status["log_file_path"] = log_file_path
+    v7p3r_play_logger.addHandler(file_handler)
+    v7p3r_play_logger.propagate = False
 
 # Import necessary modules from v7p3r_engine
 from v7p3r_engine.v7p3r import v7p3rEngine # Corrected import for v7p3rEngine
@@ -109,7 +115,7 @@ class ChessGame:
         self.clock = pygame.time.Clock()
 
         # Enable logging
-        self.logger = v7p3r_engine_logger
+        self.logger = v7p3r_play_logger
         
         # Initialize Engines
         self.engine_config = config.get("engine_config", {})
@@ -452,11 +458,26 @@ class ChessGame:
             # Handle different engine types
             if current_engine_name == 'v7p3r':
                 try:
+                    # Debug logging to track the issue (always log this)
+                    if self.logger and self.monitoring_enabled:
+                        self.logger.debug(f"Engine type: {type(self.engine)}")
+                        self.logger.debug(f"Search engine type: {type(self.engine.search_engine)}")
+                        self.logger.debug(f"Search method type: {type(self.engine.search_engine.search)}")
+                        self.logger.debug(f"Search method is callable: {callable(getattr(self.engine.search_engine, 'search', None))}")
+                        if hasattr(self.engine.search_engine, 'search'):
+                            search_attr = getattr(self.engine.search_engine, 'search')
+                            if isinstance(search_attr, dict):
+                                self.logger.error(f"FOUND THE ISSUE! search attribute is a dict: {search_attr}")
+                            self.logger.debug(f"Search attribute: {search_attr}")
+                    
                     # Use the v7p3r engine for the current player
                     engine_move = self.engine.search_engine.search(self.board, current_player_color)
                 except Exception as e:
                     if self.logger and self.monitoring_enabled:
                         self.logger.error(f"[HARDSTOP Error] Cannot find move via v7p3rSearch: {e}. | FEN: {self.board.fen()}")
+                        self.logger.error(f"Engine type: {type(self.engine)}")
+                        self.logger.error(f"Search engine type: {type(self.engine.search_engine)}")
+                        self.logger.error(f"Search engine search attr: {type(getattr(self.engine.search_engine, 'search', 'NOT_FOUND'))}")
                     print(f"HARDSTOP ERROR: Cannot find move via v7p3rSearch: {e}. | FEN: {self.board.fen()}")
                     return
                     
@@ -465,8 +486,7 @@ class ChessGame:
                     # Use the Stockfish engine for the current player
                     if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
                         self.logger.info("Using Stockfish engine for move processing.")
-                    stockfish_handler = StockfishHandler(self.stockfish_config)
-                    engine_move = stockfish_handler.search(self.board, current_player_color, self.stockfish_config)
+                    engine_move = self.stockfish.search(self.board, current_player_color, self.stockfish_config)
                 except Exception as e:
                     if self.logger and self.monitoring_enabled:
                         self.logger.error(f"[HARDSTOP Error] Cannot find move via Stockfish: {e}. | FEN: {self.board.fen()}")
@@ -507,6 +527,7 @@ class ChessGame:
                     if self.logger and self.monitoring_enabled:
                         self.logger.error(f"[HARDSTOP Error] Cannot find move via v7p3rNeuralNetwork: {e}. | FEN: {self.board.fen()}")
                     print(f"HARDSTOP ERROR: Cannot find move via v7p3rNeuralNetwork: {e}. | FEN: {self.board.fen()}")
+                    return
             else:
                 if self.logger and self.monitoring_enabled:
                     self.logger.error(f"[HARDSTOP Error] No valid engine in configuration: {current_engine_name}. | FEN: {self.board.fen()}")
@@ -624,8 +645,10 @@ class ChessGame:
             return False
             
         except Exception as e:
-            print(f"Failed to create GA engine wrapper: {e}")
-            return None
+            if self.logger and self.monitoring_enabled:
+                self.logger.error(f"[Error] Exception pushing move {move}: {e}. Dumping PGN to error_dump.pgn")
+            self.quick_save_pgn("games/game_error_dump.pgn")
+            return False
     
     def _create_nn_engine_wrapper(self, nn_config_path):
         """Create a wrapper for NN engine if it doesn't have proper game interface."""
