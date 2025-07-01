@@ -1,16 +1,14 @@
 # v7p3r Chess Engine
 
-A sophisticated chess engine featuring multiple AI approaches including traditional search algorithms, neural networks, genetic algorithm optimization, reinforcement learning, and puzzle-solving capabilities.
+A sophisticated chess engine featuring advanced search algorithms, position evaluation, and opening book support.
 
 ## Core Engine Features
 
-- **Multiple AI Engines:** Traditional v7p3r engine, neural network (NN), genetic algorithm (GA), and reinforcement learning (RL) variants
 - **Advanced Search:** Alpha-beta pruning, move ordering, and time management
 - **Position Evaluation:** Multiple evaluation functions with piece-square tables
 - **Opening Book:** Built-in opening book support for improved early game play
-- **Puzzle Solver:** Dedicated puzzle-solving engine for tactical training
-- **Flexible Configuration:** YAML-based configuration for all engine components
-- **Performance Analytics:** Comprehensive metrics and benchmarking tools
+- **Interactive Play:** Play against the engine using a simple interface
+- **Flexible Configuration:** YAML-based configuration for engine components
 
 ## Quick Start
 
@@ -26,68 +24,70 @@ A sophisticated chess engine featuring multiple AI approaches including traditio
    python v7p3r_engine/play_v7p3r.py
    ```
 
-3. Run the web interface:
+3. Analyze a position:
    ```bash
-   python web_applications/v7p3r_webapp.py
+   python v7p3r_engine/v7p3r.py --analyze "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
    ```
 
-### Neural Network Engine
+---
 
-1. Train a new NN model:
-   ```bash
-   python v7p3r_nn_engine/v7p3r_nn_training.py
-   ```
+## Core Engine Components
 
-2. Validate NN performance:
-   ```bash
-   python v7p3r_nn_engine/v7p3r_nn_validation.py
-   ```
+### v7p3r_engine (Traditional Engine)
+- `v7p3r.py` — Main engine logic and UCI interface
+- `v7p3r_search.py` — Alpha-beta search implementation  
+- `v7p3r_score.py` — Position evaluation and scoring
+- `v7p3r_ordering.py` — Move ordering for search optimization
+- `v7p3r_book.py` — Opening book implementation
+- `v7p3r_time.py` — Time management for tournament play
+- `v7p3r_pst.py` — Piece-square tables for evaluation
+- `stockfish_handler.py` — Interface for Stockfish integration
+- `play_v7p3r.py` — Interactive play interface
+- `rulesets.yaml` — Configuration for different playing styles
 
-### Genetic Algorithm Engine
+---
 
-1. Run GA optimization:
-   ```bash
-   python v7p3r_ga_engine/ga_optimizer.py
-   ```
+## Testing
 
-2. Analyze GA performance:
-   ```bash
-   python v7p3r_ga_engine/performance_analyzer.py
-   ```
+Run comprehensive tests for engine components:
 
-### Reinforcement Learning Engine
+- **Unit Tests:** Each engine component has corresponding test files
+- **Integration Tests:** Full engine testing with various configurations
 
-1. Train RL models:
-   ```bash
-   python v7p3r_rl_engine/v7p3r_rl_training.py
-   ```
+Run individual component tests:
+```bash
+# Test traditional engine
+python -m pytest v7p3r_engine/ -v
+```
 
-2. Evaluate RL performance:
-   ```bash
-   python v7p3r_rl_engine/v7p3r_rl_evaluation.py
-   ```
+---
 
-### Puzzle Solver
+## Configuration
 
-1. Solve chess puzzles:
-   ```bash
-   python puzzles/puzzle_solver.py --input puzzles/sample_puzzles.yaml
-   ```
+The engine uses YAML-based configuration files in the `config/` directory:
 
-2. Generate new puzzles:
-   ```bash
-   python puzzles/puzzle_generator.py --output puzzles/generated_puzzles.yaml
-   ```
+- `rulesets.yaml` — Configuration for different playing styles
 
-### ELO Testing with Stockfish
+Customize engine behavior by editing the appropriate configuration files before running.
 
-Determine the ELO strength of your v7p3r configuration:
+---
 
-1. Quick run with default settings:
-   ```bash
-   python engine_utilities/run_elo_finder.py
-   ```
+## Example Usage
 
+### Traditional Engine
+```bash
+# Play a game against the traditional engine
+python v7p3r_engine/play_v7p3r.py
+
+# Analyze a position
+python v7p3r_engine/v7p3r.py --analyze "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+```
+
+---
+
+## License
+
+Open source — feel free to use and modify!
 2. Customize parameters:
    ```bash
    python engine_utilities/run_elo_finder.py --initial-elo 1500 --v7p3r-depth 4 --v7p3r-ruleset aggressive_evaluation
