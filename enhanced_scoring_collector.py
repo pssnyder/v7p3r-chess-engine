@@ -43,7 +43,7 @@ class EnhancedScoringCollector:
             'hanging_pieces_score',
             'undefended_pieces_score',
             'queen_capture_score',
-            'tempo_bonus_score',
+            'tempo_modifier_score',
             'en_passant_score',
             'open_files_score',
             'stalemate_score'
@@ -121,8 +121,8 @@ class EnhancedScoringCollector:
                 scoring_calculator._undefended_pieces, board, color)
             detailed_scores['queen_capture_score'] = self._safe_call(
                 scoring_calculator._queen_capture, board, color)
-            detailed_scores['tempo_bonus_score'] = self._safe_call(
-                scoring_calculator._tempo_bonus, board, color)
+            detailed_scores['tempo_modifier_score'] = self._safe_call(
+                scoring_calculator._tempo_modifier, board, color)
             detailed_scores['en_passant_score'] = self._safe_call(
                 scoring_calculator._en_passant, board, color)
             detailed_scores['open_files_score'] = self._safe_call(

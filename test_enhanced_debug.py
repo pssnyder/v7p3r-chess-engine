@@ -16,7 +16,7 @@ def test_enhanced_metrics_debug():
     # Setup logging to see all debug output
     logging.basicConfig(level=logging.DEBUG)
     
-    from v7p3r_play import ChessGame
+    from v7p3r_engine.v7p3r_play import ChessGame
     
     config = {
         "engine_config": {
@@ -35,7 +35,7 @@ def test_enhanced_metrics_debug():
     
     # Play a very short game with debug output
     try:
-        game.play("v7p3r", "stockfish", time_limit=0.1, verbose=True)
+        game.run()
         print("Game completed successfully")
     except Exception as e:
         print(f"Game failed: {e}")
