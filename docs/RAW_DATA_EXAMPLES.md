@@ -80,49 +80,44 @@ json_evaluation_example = {
 
 yaml_config_filepath = "games/eval_game_%d%Y%m%d_%H%M%S.yaml"  # Path to the YAML file containing game config
 evaluation_rules = {
-    "checkmate_bonus": 1000000.0,        # Bonus for checkmate threats
+    "checkmate_threats_modifier": 1000000.0,        # Bonus for checkmate threats
     "repetition_penalty": -100000.0,     # Penalty for threefold repetition
-    "center_control_bonus": 0.25,        # Bonus per center square controlled
-    "knight_activity_bonus": 0.1,        # Multiplier per square attacked by knight
-    "bishop_activity_bonus": 0.15,       # Multiplier per square attacked by bishop
-    "king_safety_bonus": 1.5,            # Bonus per pawn in king shield
+    "center_control_modifier": 0.25,        # Bonus per center square controlled
+    "knight_activity_modifier": 0.1,        # Multiplier per square attacked by knight
+    "bishop_activity_modifier": 0.15,       # Multiplier per square attacked by bishop
+    "king_safety_modifier": 1.5,            # Bonus per pawn in king shield
     "king_threat_penalty": -50.0,        # Penalty for being checked (increased for king safety)
-    "undeveloped_penalty": -0.5,         # Penalty for having under-developed minor pieces (increased)
-    "check_bonus": 50.0,                 # Bonus for giving check (reduced)
-    "in_check_penalty": -10.0,           # Penalty for being in check
+    "piece_development_modifier": -0.5,         # Penalty for having under-developed minor pieces (increased)
+    "check_modifier": 50.0,                 # Bonus for giving check (reduced)
     "capture_bonus": 15.0,               # Base bonus for captures (increased)
-    "castling_bonus": 5.0,               # Bonus for castling rights
-    "en_passant_bonus": 1.0,             # Bonus for en passant opportunity
-    "pawn_promotion_bonus": 5.0,         # Bonus for pawn promotion
+    "castling_modifier": 5.0,               # Bonus for castling rights
+    "en_passant_modifier": 1.0,             # Bonus for en passant opportunity
+    "pawn_promotion_modifier": 5.0,         # Bonus for pawn promotion
     "passed_pawn_bonus": 1.0,            # Bonus for having an un-opposed pawn (increased)
-    "hanging_piece_bonus": 2.0,          # Bonus for attacking hanging pieces
+    "piece_attacks_modifier": 2.0,          # Bonus for attacking hanging pieces
     "trapped_piece_penalty": -5.0,       # Penalty for trapped pieces
     "piece_development_bonus": 2.0,      # Bonus for developing minor pieces
     "piece_activity_bonus": 0.1,         # Bonus for activating minor pieces
-    "knight_pair_bonus": 1.0,            # Bonus for having knight pair
+    "knight_count_modifier": 1.0,            # Bonus for having knight pair
     "knight_vision_penalty": -0.25,      # Penalty for having the knight on a less active square
     "pawn_advancement_bonus": 0.25,      # Bonus for advancing pawns
     "rook_development_penalty": 0.2,     # Penalty for not developing rooks
-    "castling_protection_bonus": 3.0,    # Bonus for keeping the right to castle
+    "castling_protection_modifier": 3.0,    # Bonus for keeping the right to castle
     "castling_protection_penalty": -6.0, # Penalty for giving up castling rights without castling
     "material_weight": 0.8,              # Material calculation impact on eval
-    "piece_coordination_bonus": 0.5,     # Bonus for piece coordination
-    "doubled_pawn_penalty": -0.5,        # Penalty for having doubled pawns
-    "isolated_pawn_penalty": -0.5,       # Penalty for having isolated pawns
-    "backward_pawn_penalty": -0.5,       # Penalty for having backward pawns
-    "bishop_vision_bonus": 1.0,          # Bonus for the bishops having good board vision
-    "tempo_bonus": 0.1,                  # Bonus for having the right to move
-    "stacked_rooks_bonus": 0.5,          # Bonus for having the rooks on the same file
-    "coordinated_rooks_bonus": 0.25,     # Bonus for having the rooks on the same rank
-    "stalemate_penalty": -1000000.0,     # Penalty for stalemate situations
-    "draw_penalty": -500000.0,           # Penalty for draw situations
-    "undefended_piece_penalty": -2.0,    # Penalty for undefended pieces
+    "piece_coordination_modifier": 0.5,     # Bonus for piece coordination
+    "pawn_structure_modifier": -0.5,        # Penalty for having doubled pawns
+    "pawn_weaknesses_modifier": -0.5,       # Penalty for having backward pawns
+    "bishop_vision_modifier": 1.0,          # Bonus for the bishops having good board vision
+    "tempo_modifier": 0.1,                  # Bonus for having the right to move
+    "rook_coordination_modifier": 0.25,     # Bonus for having the rooks on the same rank
+    "stalemate_modifier": -1000000.0,     # Penalty for stalemate situations
+    "draw_modifier": -500000.0,           # Penalty for draw situations
+    "piece_protection_modifier": -2.0,    # Penalty for undefended pieces
     "pawn_structure_bonus": 0.1,         # Evaluate pawn structure
-    "file_control_bonus": 0.2,           # Bonus for controlling open files
-    "open_file_bonus": 0.3,              # Bonus for having rooks on open files
+    "open_files_modifier": 0.3,              # Bonus for having rooks on open files
     "rook_position_bonus": 0.4,          # Bonus for rooks on the 7th rank
-    "exposed_king_penalty": -10.0,       # Penalty for having the king on an open file
-    "piece_mobility_bonus": 0.1,         # Bonus for piece mobility
+    "board_coverage_modifier": 0.1,         # Bonus for piece mobility
     "checkmate_move_bonus": 1000000,     # Bonus for finding a checkmate during move ordering scoring
     "check_move_bonus": 10000,           # Bonus for finding a check move during move ordering scoring
     "hash_move_bonus": 5000,             # Bonus for finding a hash move during move ordering scoring

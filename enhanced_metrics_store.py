@@ -198,7 +198,7 @@ class EnhancedMetricsStore:
                 'castling_protection_score', 'castling_sacrifice_score', 'piece_activity_score',
                 'improved_minor_piece_activity_score', 'mobility_score', 'undeveloped_pieces_score',
                 'hanging_pieces_score', 'undefended_pieces_score', 'queen_capture_score',
-                'tempo_bonus_score', 'en_passant_score', 'open_files_score', 'stalemate_score',
+                'tempo_modifier_score', 'en_passant_score', 'open_files_score', 'stalemate_score',
                 # Metadata
                 'engine_config_id', 'exclude_from_analysis', 'notes'
             ]
