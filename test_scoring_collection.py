@@ -9,7 +9,7 @@ import os
 # Add the v7p3r_engine path to import modules
 sys.path.append(os.path.join(os.path.dirname(__file__), 'v7p3r_engine'))
 
-from v7p3r_play import v7p3rEngine
+from v7p3r_engine.v7p3r_play import v7p3rEngine
 from enhanced_scoring_collector import EnhancedScoringCollector
 
 def test_scoring_collection():

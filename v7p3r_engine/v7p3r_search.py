@@ -77,7 +77,7 @@ class v7p3rSearch:
             'random',                        # Random move selection
         ]
     
-    def search(self, board: chess.Board, player: chess.Color):
+    def search(self, board: chess.Board, color: chess.Color):
         """Perform a search for the best move for the given player."""
         try:
             if self.monitoring_enabled and self.logger:
@@ -86,12 +86,12 @@ class v7p3rSearch:
                 self.logger.debug(f"SEARCH START: move_organizer type={type(self.move_organizer)}")
                 self.logger.debug(f"SEARCH START: time_manager type={type(self.time_manager)}")
                 self.logger.debug(f"SEARCH START: opening_book type={type(self.opening_book)}")
-            
-            self.current_player = player
+
+            self.current_player = color
             root_board = board.copy()
             self.board = root_board
             self.nodes_searched = 0  # Reset nodes searched for this search
-
+            color_name = 'White' if color == chess.WHITE else 'Black'
             # Check for book moves
             try:
                 if self.monitoring_enabled and self.logger:
@@ -110,7 +110,7 @@ class v7p3rSearch:
                 return book_move
 
             if self.monitoring_enabled and self.logger:
-                self.logger.debug(f"== EVALUATION (Player: {'White' if player == chess.WHITE else 'Black'}) == | Search Type: {self.search_algorithm} | Depth: {self.depth} | Max Depth: {self.max_depth} == ")
+                self.logger.debug(f"== EVALUATION (Player: {color_name}) == | Search Type: {self.search_algorithm} | Depth: {self.depth} | Max Depth: {self.max_depth} == ")
 
             legal_moves = list(root_board.legal_moves)
             if self.monitoring_enabled and self.logger:
@@ -122,7 +122,7 @@ class v7p3rSearch:
                 
             if not legal_moves:
                 if self.monitoring_enabled and self.logger:
-                    self.logger.error(f"[Error] No legal moves found for player: {'White' if player == chess.WHITE else 'Black'} | FEN: {root_board.fen()}")
+                    self.logger.error(f"[Error] No legal moves found for player: {color_name} | FEN: {root_board.fen()}")
                 return chess.Move.null()
 
             best_score_overall = -float('inf')
@@ -162,9 +162,9 @@ class v7p3rSearch:
                         current_move_score = self._negamax_search(temp_board, self.depth, -float('inf'), float('inf'))
                     elif self.search_algorithm == 'simple':
                         if self.monitoring_enabled and self.logger:
-                            self.logger.debug(f"SEARCH: Calling scoring_calculator.evaluate_position")
+                            self.logger.debug(f"SEARCH: Calling scoring_calculator.evaluate_position_from_position")
                             self.logger.debug(f"SEARCH: scoring_calculator={self.scoring_calculator}, type={type(self.scoring_calculator)}")
-                        current_move_score = self.scoring_calculator.evaluate_position(temp_board)
+                        current_move_score = self.scoring_calculator.evaluate_position_from_perspective(temp_board, color)
                     elif self.search_algorithm == 'quiescence':
                         if self.monitoring_enabled and self.logger:
                             self.logger.debug(f"SEARCH: Calling _quiescence_search")
@@ -203,7 +203,7 @@ class v7p3rSearch:
                 import traceback
                 self.logger.error(f"Full traceback: {traceback.format_exc()}")
                 self.logger.error(f"Board FEN: {board.fen()}")
-                self.logger.error(f"Player: {'White' if player == chess.WHITE else 'Black'}")
+                self.logger.error(f"Player: {color_name}")
                 self.logger.error(f"Search algorithm: {self.search_algorithm}")
             # Return a random legal move as fallback
             legal_moves = list(board.legal_moves)
@@ -217,13 +217,13 @@ class v7p3rSearch:
     def _minimax_search(self, board: chess.Board, depth: int, alpha: float, beta: float, maximizing_player: bool):
         """Minimax search with alpha-beta pruning. Returns score (float)."""
         if depth <= 0 or board.is_game_over():
-            # eval_result = self.scoring_calculator.evaluate_position(board)
+            # eval_result = self.scoring_calculator.evaluate_position_from_perspective(board, board.turn)
             eval_result = self._quiescence_search(board, -float('inf'), float('inf'), True)
             if self.monitoring_enabled and self.logger:
-                self.logger.debug(f"MINIMAX: evaluate_position returned: {eval_result} (type: {type(eval_result)})")
+                self.logger.debug(f"MINIMAX: evaluate_position_from_perspective returned: {eval_result} (type: {type(eval_result)})")
             if not isinstance(eval_result, (int, float)):
                 if self.monitoring_enabled and self.logger:
-                    self.logger.error(f"ERROR: evaluate_position returned non-numeric value: {eval_result} (type: {type(eval_result)})")
+                    self.logger.error(f"ERROR: evaluate_position_from_perspective returned non-numeric value: {eval_result} (type: {type(eval_result)})")
                 return 0.0
             return eval_result
         best_score = -float('inf') if maximizing_player else float('inf')
@@ -275,7 +275,8 @@ class v7p3rSearch:
             self.logger.debug(f"NEGAMAX: Starting search at depth {depth}, alpha={alpha:.2f}, beta={beta:.2f}")
         
         if depth <= 0 or board.is_game_over():
-            eval_result = self.scoring_calculator.evaluate_position(board)
+            #eval_result = self.scoring_calculator.evaluate_position_from_perspective(board, board.turn)
+            eval_result = self._quiescence_search(board, -float('inf'), float('inf'), True)
             if self.monitoring_enabled and self.logger:
                 self.logger.debug(f"NEGAMAX: Leaf node evaluation: {eval_result:.2f} (type: {type(eval_result)})")
             return eval_result
@@ -475,8 +476,8 @@ class v7p3rSearch:
                     self.logger.debug(f"DEEPSEARCH: Updated root best move: {best_move_root} with score {best_score_root:.2f}")
             
             # If checkmate or mate-in-N is found, stop early
-            checkmate_bonus = self.scoring_calculator.rules.get('checkmate_bonus', 1000000.0)
-            if abs(best_score_root) > checkmate_bonus / 2:
+            checkmate_threats_modifier = self.scoring_calculator.rules.get('checkmate_threats_modifier', 1000000.0)
+            if abs(best_score_root) > checkmate_threats_modifier / 2:
                 if self.monitoring_enabled and self.logger:
                     self.logger.info(f"DEEPSEARCH: Found potential checkmate at depth {iterative_depth} (score: {best_score_root:.2f}). Stopping early.")
                 break
@@ -495,7 +496,7 @@ class v7p3rSearch:
         
         # Get a static evaluation first
         temp_board = board.copy()
-        stand_pat_score = self.scoring_calculator.evaluate_position(temp_board)
+        stand_pat_score = self.scoring_calculator.evaluate_position_from_perspective(temp_board, board.turn)
         if self.monitoring_enabled and self.logger:
             self.logger.debug(f"QUIESCENCE: Stand pat score: {stand_pat_score:.2f} (type: {type(stand_pat_score)})")
         
