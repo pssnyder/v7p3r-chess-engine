@@ -126,6 +126,31 @@ CREATE TABLE IF NOT EXISTS move_metrics (
     open_files_score REAL,
     stalemate_score REAL,
     
+    -- V7P3R Scoring Dictionary Fields (from self.scoring in v7p3r_score.py)
+    scoring_fen TEXT, -- FEN from scoring dictionary
+    scoring_move TEXT, -- Move from scoring dictionary (string representation)
+    scoring_score REAL, -- Score from scoring dictionary
+    scoring_game_phase TEXT, -- Game phase from scoring dictionary
+    scoring_endgame_factor REAL, -- Endgame factor from scoring dictionary
+    scoring_checkmate_threats REAL, -- Individual scoring components
+    scoring_king_safety REAL,
+    scoring_king_attack REAL,
+    scoring_draw_scenarios REAL,
+    scoring_material_score REAL,
+    scoring_piece_coordination REAL,
+    scoring_center_control REAL,
+    scoring_pawn_structure REAL,
+    scoring_pawn_weaknesses REAL,
+    scoring_passed_pawns REAL,
+    scoring_pawn_count REAL,
+    scoring_pawn_promotion REAL,
+    scoring_bishop_count REAL,
+    scoring_knight_count REAL,
+    scoring_bishop_vision REAL,
+    scoring_rook_coordination REAL,
+    scoring_castling REAL,
+    scoring_castling_protection REAL,
+    
     -- Technical metadata
     engine_config_id TEXT,
     exclude_from_analysis BOOLEAN DEFAULT FALSE,

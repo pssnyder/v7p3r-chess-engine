@@ -75,6 +75,7 @@ class v7p3rScore:
         self.game_factor = 0.0  # Default game factor for endgame awareness
         self.fallback_modifier = 100
         self.scoring = {
+            'fen': '',
             'move': chess.Move.null(),
             'score': 0.0,
             'game_phase': 'opening',
@@ -100,6 +101,13 @@ class v7p3rScore:
 
     # =================================
     # ===== EVALUATION FUNCTIONS ======
+
+    def set_current_move(self, move: chess.Move):
+        """
+        Set the current move being evaluated in the scoring dictionary
+        This should be called before move evaluation to capture which move is being scored
+        """
+        self.scoring['move'] = move
 
     def evaluate_position(self, board: chess.Board) -> float:
         """Calculate position evaluation from general perspective by delegating to scoring_calculator."""
@@ -210,6 +218,10 @@ class v7p3rScore:
         """
         score = 0.0
         
+        # Update scoring dictionary with current position information
+        self.scoring['fen'] = board.fen()
+        self.scoring['score'] = 0.0  # Will be updated at the end
+        
         # Helper for consistent color display in logs
         color_name = "White" if color == chess.WHITE else "Black"
         current_player_name = self.engine_config.get('white_player','') if color == chess.WHITE else self.engine_config.get('black_player','')
@@ -220,7 +232,7 @@ class v7p3rScore:
             if self.print_scoring:
                 print(f"[Scoring Calc] Starting score calculation for {current_player_name} engine as {color_name} | Ruleset: {self.ruleset_name} | FEN: {board.fen()}")
         
-        # CHECKMATE THREATS (BONUS)
+        # CHECKMATE THREATS
         checkmate_threats_score = 1.0 * (self._checkmate_threats(board, color) or 0.0)
         if v7p3r_thinking:
             if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
@@ -541,6 +553,8 @@ class v7p3rScore:
             self.game_factor = 0.0
         
         # FINAL SCORE
+        self.scoring['score'] = score  # Update final score in scoring dictionary
+        
         if v7p3r_thinking:
             if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
                 self.logger.info(f"[Scoring Calc] Final score for {current_player_name} as {color_name}: {score:.3f} | Ruleset: {self.ruleset_name} | FEN: {board.fen()}")
@@ -1083,7 +1097,7 @@ class v7p3rScore:
                     p = board.piece_at(chess.square(file - 1, r))
                     if p and p.piece_type == chess.PAWN and p.color == color:
                         is_isolated = False
-                        score += pawn_structure_modifier
+                        score += pawn_structure_modifier  # Pawn is defended, not isolated
                         break
             # Check right file
             if is_isolated and file < 7:
@@ -1091,7 +1105,7 @@ class v7p3rScore:
                     p = board.piece_at(chess.square(file + 1, r))
                     if p and p.piece_type == chess.PAWN and p.color == color:
                         is_isolated = False
-                        score += pawn_structure_modifier
+                        score += pawn_structure_modifier  # Pawn is defended, not isolated
                         break
             if is_isolated:
                 score -= pawn_structure_modifier
@@ -1174,8 +1188,8 @@ class v7p3rScore:
     def _passed_pawns(self, board: chess.Board, color: chess.Color) -> float:
         """Evaluate passed pawns for the given color."""
         score = 0.0
-        passed_pawn_bonus = self.rules.get('passed_pawn_bonus', self.fallback_modifier)
-        if passed_pawn_bonus == 0.0:
+        passed_pawns_modifier = self.rules.get('passed_pawns_modifier', self.fallback_modifier)
+        if passed_pawns_modifier == 0.0:
             return score
 
         opponent_color = not color
@@ -1192,7 +1206,7 @@ class v7p3rScore:
                         is_passed = False
                         break
             if is_passed:
-                score += passed_pawn_bonus
+                score += passed_pawns_modifier
         return score
 
     def _knight_count(self, board: chess.Board, color: chess.Color) -> float:

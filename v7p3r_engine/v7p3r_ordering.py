@@ -76,7 +76,6 @@ class v7p3rOrdering:
         
         # Get max_moves setting from engine config and truncate if needed
         max_moves = self.engine_config.get('max_moves', 5)
-        max_moves = depth - 1 if max_moves >= depth and depth - 1 > 0 else max_moves
         if max_moves is not None and max_moves > 0 and len(move_scores) > max_moves:
             original_count = len(move_scores)
             move_scores = move_scores[:max_moves]

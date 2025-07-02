@@ -199,6 +199,13 @@ class EnhancedMetricsStore:
                 'improved_minor_piece_activity_score', 'mobility_score', 'undeveloped_pieces_score',
                 'hanging_pieces_score', 'undefended_pieces_score', 'queen_capture_score',
                 'tempo_modifier_score', 'en_passant_score', 'open_files_score', 'stalemate_score',
+                # V7P3R Scoring Dictionary Fields
+                'scoring_fen', 'scoring_move', 'scoring_score', 'scoring_game_phase', 'scoring_endgame_factor',
+                'scoring_checkmate_threats', 'scoring_king_safety', 'scoring_king_attack', 'scoring_draw_scenarios',
+                'scoring_material_score', 'scoring_piece_coordination', 'scoring_center_control', 
+                'scoring_pawn_structure', 'scoring_pawn_weaknesses', 'scoring_passed_pawns', 'scoring_pawn_count',
+                'scoring_pawn_promotion', 'scoring_bishop_count', 'scoring_knight_count', 'scoring_bishop_vision',
+                'scoring_rook_coordination', 'scoring_castling', 'scoring_castling_protection',
                 # Metadata
                 'engine_config_id', 'exclude_from_analysis', 'notes'
             ]

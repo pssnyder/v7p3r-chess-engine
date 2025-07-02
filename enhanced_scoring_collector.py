@@ -129,6 +129,13 @@ class EnhancedScoringCollector:
                 scoring_calculator._open_files, board, color)
             detailed_scores['stalemate_score'] = self._safe_call(
                 scoring_calculator._stalemate, board)
+            
+            # Extract the detailed scoring dictionary from the scoring calculator
+            scoring_dict = self.extract_scoring_dictionary(scoring_calculator)
+            detailed_scores.update(scoring_dict)
+            
+            if self.logger:
+                self.logger.debug(f"Enhanced scoring collection complete. Total components: {len(detailed_scores)}")
                 
         except Exception as e:
             if self.logger:
@@ -303,3 +310,39 @@ class EnhancedScoringCollector:
             metrics['branching_factor'] = 0.0
         
         return metrics
+    
+    def extract_scoring_dictionary(self, scoring_calculator) -> Dict[str, Any]:
+        """
+        Extract the detailed scoring dictionary from the v7p3r scoring calculator
+        This captures the per-move scoring breakdown that's collected during evaluation
+        """
+        scoring_dict = {}
+        
+        try:
+            if hasattr(scoring_calculator, 'scoring') and isinstance(scoring_calculator.scoring, dict):
+                # Copy the scoring dictionary with proper type conversion
+                for key, value in scoring_calculator.scoring.items():
+                    if key == 'move':
+                        # Convert chess.Move to string representation
+                        if value and value != chess.Move.null():
+                            scoring_dict[f'scoring_{key}'] = str(value)
+                        else:
+                            scoring_dict[f'scoring_{key}'] = None
+                    elif key == 'fen':
+                        scoring_dict[f'scoring_{key}'] = str(value) if value else None
+                    elif isinstance(value, (int, float)):
+                        scoring_dict[f'scoring_{key}'] = float(value)
+                    else:
+                        scoring_dict[f'scoring_{key}'] = str(value) if value is not None else None
+                        
+                if self.logger:
+                    self.logger.debug(f"Extracted scoring dictionary with {len(scoring_dict)} components")
+            else:
+                if self.logger:
+                    self.logger.warning("No scoring dictionary found in scoring calculator")
+                    
+        except Exception as e:
+            if self.logger:
+                self.logger.error(f"Error extracting scoring dictionary: {e}")
+                
+        return scoring_dict

@@ -2,11 +2,9 @@ aggressive_evaluation:
   pawn_weaknesses_modifier: 0.0
   bishop_activity_modifier: 0.5
   bishop_vision_modifier: 0.0
-  capture_bonus: 50.0
   capture_move_bonus: 4000
   castling_modifier: 1.0
   castling_protection_modifier: 3.0
-  castling_protection_penalty: -6.0
   center_control_modifier: 0.0
   check_modifier: 100.0
   check_move_bonus: 10000
@@ -22,41 +20,28 @@ aggressive_evaluation:
   history_move_bonus: 1000
   killer_move_bonus: 2000
   king_safety_modifier: 0.5
-  king_safety_penalty: 0.0
-  king_threat_penalty: -10.0
   knight_activity_modifier: 0.25
   knight_count_modifier: 0.0
-  knight_vision_penalty: -1.0
   material_weight: 1.0
   open_files_modifier: 1.0
-  passed_pawn_bonus: 0.0
-  pawn_advancement_bonus: 1.0
+  passed_pawns_modifier: 0.0
   pawn_promotion_modifier: 5.0
-  pawn_structure_bonus: 0.0
-  piece_activity_bonus: 5.0
   piece_coordination_modifier: 0.25
-  piece_development_bonus: 10.0
   board_coverage_modifier: 5.0
   promotion_move_bonus: 3000
   queen_attack_modifier: 5000.0
   piece_capture_modifier: 1000.0
-  repetition_penalty: -100000.0
-  rook_development_penalty: 0.5
-  rook_position_bonus: 2.0
   stalemate_modifier: -1000000.0
   tempo_modifier: 0.0
-  trapped_piece_penalty: 0.0
   piece_protection_modifier: -2.0
   piece_development_modifier: -5.0
 best_evaluation:
   pawn_weaknesses_modifier: -1.0
   bishop_activity_modifier: 1.0
   bishop_vision_modifier: 1.0
-  capture_bonus: 1.0
   capture_move_bonus: 4000
   castling_modifier: 1.0
   castling_protection_modifier: 1.0
-  castling_protection_penalty: -1.0
   center_control_modifier: 1.0
   check_modifier: 1.0
   check_move_bonus: 10000
@@ -72,41 +57,28 @@ best_evaluation:
   history_move_bonus: 1000
   killer_move_bonus: 2000
   king_safety_modifier: 1.0
-  king_safety_penalty: -1.0
-  king_threat_penalty: -1.0
   knight_activity_modifier: 1.0
   knight_count_modifier: 1.0
-  knight_vision_penalty: -1.0
   material_weight: 1.0
   open_files_modifier: 1.0
-  passed_pawn_bonus: 1.0
-  pawn_advancement_bonus: 1.0
+  passed_pawns_modifier: 1.0
   pawn_promotion_modifier: 1.0
-  pawn_structure_bonus: 1.0
-  piece_activity_bonus: 1.0
   piece_coordination_modifier: 1.0
-  piece_development_bonus: 1.0
   board_coverage_modifier: 1.0
   promotion_move_bonus: 3000
   queen_attack_modifier: 1.0
   piece_capture_modifier: 1.0
-  repetition_penalty: -1.0
-  rook_development_penalty: -1.0
-  rook_position_bonus: 1.0
   stalemate_modifier: -1.0
   tempo_modifier: 1.0
-  trapped_piece_penalty: -1.0
   piece_protection_modifier: -1.0
   piece_development_modifier: -1.0
 balanced_evaluation:
   pawn_weaknesses_modifier: -1.0
   bishop_activity_modifier: 1.0
   bishop_vision_modifier: 1.0
-  capture_bonus: 1.0
   capture_move_bonus: 10
   castling_modifier: 1.0
   castling_protection_modifier: 1.0
-  castling_protection_penalty: -1.0
   center_control_modifier: 1.0
   check_modifier: 1.0
   check_move_bonus: 10
@@ -122,41 +94,28 @@ balanced_evaluation:
   history_move_bonus: 10
   killer_move_bonus: 10
   king_safety_modifier: 1.0
-  king_safety_penalty: -1.0
-  king_threat_penalty: -1.0
   knight_activity_modifier: 1.0
   knight_count_modifier: 1.0
-  knight_vision_penalty: -1.0
   material_weight: 1.0
   open_files_modifier: 1.0
-  passed_pawn_bonus: 1.0
-  pawn_advancement_bonus: 1.0
+  passed_pawns_modifier: 1.0
   pawn_promotion_modifier: 1.0
-  pawn_structure_bonus: 1.0
-  piece_activity_bonus: 1.0
   piece_coordination_modifier: 1.0
-  piece_development_bonus: 1.0
   board_coverage_modifier: 1.0
   promotion_move_bonus: 1
   queen_attack_modifier: 1.0
   piece_capture_modifier: 1.0
-  repetition_penalty: -1.0
-  rook_development_penalty: -1.0
-  rook_position_bonus: 1.0
   stalemate_modifier: -1.0
   tempo_modifier: 1.0
-  trapped_piece_penalty: -1.0
   piece_protection_modifier: -1.0
   piece_development_modifier: -1.0
 conservative_evaluation:
   pawn_weaknesses_modifier: -0.5
   bishop_activity_modifier: 0.075
   bishop_vision_modifier: 1.0
-  capture_bonus: 1.0
   capture_move_bonus: 4000
   castling_modifier: 15.0
   castling_protection_modifier: 3.0
-  castling_protection_penalty: -6.0
   center_control_modifier: 0.1
   check_modifier: 50.0
   check_move_bonus: 10000
@@ -172,41 +131,28 @@ conservative_evaluation:
   history_move_bonus: 1000
   killer_move_bonus: 2000
   king_safety_modifier: 10.0
-  king_safety_penalty: -500.0
-  king_threat_penalty: -50.0
   knight_activity_modifier: 0.05
   knight_count_modifier: 1.0
-  knight_vision_penalty: -0.25
   material_weight: 0.8
   open_files_modifier: 0.3
-  passed_pawn_bonus: 1.0
-  pawn_advancement_bonus: 0.25
+  passed_pawns_modifier: 1.0
   pawn_promotion_modifier: 5.0
-  pawn_structure_bonus: 0.1
-  piece_activity_bonus: 0.1
   piece_coordination_modifier: 0.5
-  piece_development_bonus: 2.0
   board_coverage_modifier: 0.1
   promotion_move_bonus: 3000
   queen_attack_modifier: 10.0
   piece_capture_modifier: 2.0
-  repetition_penalty: -100000.0
-  rook_development_penalty: 0.2
-  rook_position_bonus: 0.4
   stalemate_modifier: -1000000.0
   tempo_modifier: 0.1
-  trapped_piece_penalty: -5.0
   piece_protection_modifier: -2.0
   piece_development_modifier: -0.5
 default_evaluation:
   pawn_weaknesses_modifier: -0.5
   bishop_activity_modifier: 0.15
   bishop_vision_modifier: 1.0
-  capture_bonus: 15.0
   capture_move_bonus: 4000
   castling_modifier: 5.0
   castling_protection_modifier: 3.0
-  castling_protection_penalty: -6.0
   center_control_modifier: 0.25
   check_modifier: 50.0
   check_move_bonus: 10000
@@ -222,41 +168,28 @@ default_evaluation:
   history_move_bonus: 1000
   killer_move_bonus: 2000
   king_safety_modifier: 1.5
-  king_safety_penalty: -100.0
-  king_threat_penalty: -50.0
   knight_activity_modifier: 0.1
   knight_count_modifier: 1.0
-  knight_vision_penalty: -0.25
   material_weight: 0.8
   open_files_modifier: 0.3
-  passed_pawn_bonus: 1.0
-  pawn_advancement_bonus: 0.25
+  passed_pawns_modifier: 1.0
   pawn_promotion_modifier: 5.0
-  pawn_structure_bonus: 0.1
-  piece_activity_bonus: 0.1
   piece_coordination_modifier: 0.5
-  piece_development_bonus: 2.0
   board_coverage_modifier: 0.1
   promotion_move_bonus: 3000
   queen_attack_modifier: 1000.0
   piece_capture_modifier: 100.0
-  repetition_penalty: -9999999999.0
-  rook_development_penalty: 0.2
-  rook_position_bonus: 0.4
   stalemate_modifier: -9999999999.0
   tempo_modifier: 0.1
-  trapped_piece_penalty: -5.0
   piece_protection_modifier: -2.0
   piece_development_modifier: -0.5
 ga_optimized_cuda:
   pawn_weaknesses_modifier: -0.5
   bishop_activity_modifier: 0.15
   bishop_vision_modifier: 1.0
-  capture_bonus: 15.0
   capture_move_bonus: 4000
   castling_modifier: 5.0
   castling_protection_modifier: 3.0
-  castling_protection_penalty: -6.0
   center_control_modifier: 0.25
   check_modifier: 50.0
   check_move_bonus: 10000
@@ -272,41 +205,28 @@ ga_optimized_cuda:
   history_move_bonus: 1000
   killer_move_bonus: 2000
   king_safety_modifier: 1.5
-  king_safety_penalty: -100.0
-  king_threat_penalty: -50.0
   knight_activity_modifier: 0.1
   knight_count_modifier: 1.0
-  knight_vision_penalty: -0.25
   material_weight: 0.8
   open_files_modifier: 0.3
-  passed_pawn_bonus: 1.0
-  pawn_advancement_bonus: 0.25
+  passed_pawns_modifier: 1.0
   pawn_promotion_modifier: 5.0
-  pawn_structure_bonus: 0.1
-  piece_activity_bonus: 0.1
   piece_coordination_modifier: 0.5
-  piece_development_bonus: 2.0
   board_coverage_modifier: 0.1
   promotion_move_bonus: 3000
   queen_attack_modifier: 1000.0
   piece_capture_modifier: 100.0
-  repetition_penalty: -9999999999.0
-  rook_development_penalty: 0.2
-  rook_position_bonus: 0.4
   stalemate_modifier: -9999999999.0
   tempo_modifier: 0.1
-  trapped_piece_penalty: -5.0
   piece_protection_modifier: -2.0
   piece_development_modifier: -0.5
 null_evaluation:
   pawn_weaknesses_modifier: 0.0
   bishop_activity_modifier: 0.0
   bishop_vision_modifier: 0.0
-  capture_bonus: 0.0
   capture_move_bonus: 4000
   castling_modifier: 0.0
   castling_protection_modifier: 0.0
-  castling_protection_penalty: 0.0
   center_control_modifier: 0.0
   check_modifier: 0.0
   check_move_bonus: 10000
@@ -322,41 +242,28 @@ null_evaluation:
   history_move_bonus: 1000
   killer_move_bonus: 2000
   king_safety_modifier: 0.0
-  king_safety_penalty: 0.0
-  king_threat_penalty: 0.0
   knight_activity_modifier: 0.0
   knight_count_modifier: 0.0
-  knight_vision_penalty: 0.0
   material_weight: 0.0
   open_files_modifier: 0.0
-  passed_pawn_bonus: 0.0
-  pawn_advancement_bonus: 0.0
+  passed_pawns_modifier: 0.0
   pawn_promotion_modifier: 0.0
-  pawn_structure_bonus: 0.0
-  piece_activity_bonus: 0.0
   piece_coordination_modifier: 0.0
-  piece_development_bonus: 0.0
   board_coverage_modifier: 0.0
   promotion_move_bonus: 3000
   queen_attack_modifier: 0.0
   piece_capture_modifier: 100.0
-  repetition_penalty: 0.0
-  rook_development_penalty: 0.0
-  rook_position_bonus: 0.0
   stalemate_modifier: 0.0
   tempo_modifier: 0.0
-  trapped_piece_penalty: 0.0
   piece_protection_modifier: 0.0
   piece_development_modifier: 0.0
 simple_evaluation:
   pawn_weaknesses_modifier: 0.0
   bishop_activity_modifier: 0.0
   bishop_vision_modifier: 0.0
-  capture_bonus: 15.0
   capture_move_bonus: 4000
   castling_modifier: 0.0
   castling_protection_modifier: 0.0
-  castling_protection_penalty: 0.0
   center_control_modifier: 0.0
   check_modifier: 50.0
   check_move_bonus: 10000
@@ -372,64 +279,42 @@ simple_evaluation:
   history_move_bonus: 1000
   killer_move_bonus: 2000
   king_safety_modifier: 1.5
-  king_safety_penalty: -100.0
-  king_threat_penalty: -50.0
   knight_activity_modifier: 0.0
   knight_count_modifier: 0.0
-  knight_vision_penalty: 0.0
   material_weight: 0.0
   open_files_modifier: 0.0
-  passed_pawn_bonus: 0.0
-  pawn_advancement_bonus: 0.0
+  passed_pawns_modifier: 0.0
   pawn_promotion_modifier: 0.0
-  pawn_structure_bonus: 0.0
-  piece_activity_bonus: 0.0
   piece_coordination_modifier: 0.0
-  piece_development_bonus: 0.0
   board_coverage_modifier: 0.0
   promotion_move_bonus: 3000
   queen_attack_modifier: 0.0
   piece_capture_modifier: 100.0
-  repetition_penalty: -100000.0
-  rook_development_penalty: 0.0
-  rook_position_bonus: 0.0
   stalemate_modifier: -1000000.0
   tempo_modifier: 0.0
-  trapped_piece_penalty: 0.0
   piece_protection_modifier: 0.0
   piece_development_modifier: 0.0
 survival_evaluation:
   material_weight: 1.0
   pawn_weaknesses_modifier: 0.0
   pawn_structure_modifier: 0.0
-  passed_pawn_bonus: 0.0
-  pawn_advancement_bonus: 0.0
+  passed_pawns_modifier: 0.0
   pawn_promotion_modifier: 0.0
-  pawn_structure_bonus: 0.0
   en_passant_modifier: 0.0
   bishop_activity_modifier: 0.0
   bishop_vision_modifier: 0.0
   knight_activity_modifier: 0.0
   knight_count_modifier: 0.0
-  knight_vision_penalty: 0.0
-  piece_activity_bonus: 0.0
   piece_coordination_modifier: 0.0
-  piece_development_bonus: 0.0
   board_coverage_modifier: 0.0
   piece_development_modifier: 0.0
   center_control_modifier: 0.0
   open_files_modifier: 0.0
   rook_coordination_modifier: 0.0
-  rook_development_penalty: 0.0
-  rook_position_bonus: 0.0
   tempo_modifier: 0.0
   castling_modifier: 0.0
   castling_protection_modifier: 0.0
-  castling_protection_penalty: 0.0
   king_safety_modifier: 0.0
-  king_safety_penalty: 0.0
-  king_threat_penalty: 0.0
-  capture_bonus: 1000.0
   capture_move_bonus: 0
   check_modifier: 10000.0
   check_move_bonus: 0
@@ -444,42 +329,29 @@ survival_evaluation:
   promotion_move_bonus: 0
   queen_attack_modifier: 0.0
   piece_capture_modifier: 0.0
-  repetition_penalty: -9999999999.0
   stalemate_modifier: -9999999999.0
-  trapped_piece_penalty: 0.0
   piece_protection_modifier: 0.0
 test_evaluation_20250628_2228:
   material_weight: 1.0
   pawn_weaknesses_modifier: 0.0
   pawn_structure_modifier: 0.0
-  passed_pawn_bonus: 0.0
-  pawn_advancement_bonus: 0.0
+  passed_pawns_modifier: 0.0
   pawn_promotion_modifier: 0.0
-  pawn_structure_bonus: 0.0
   en_passant_modifier: 0.0
   bishop_activity_modifier: 0.0
   bishop_vision_modifier: 0.0
   knight_activity_modifier: 0.0
   knight_count_modifier: 0.0
-  knight_vision_penalty: 0.0
-  piece_activity_bonus: 10.0
   piece_coordination_modifier: 0.0
-  piece_development_bonus: 10.0
   board_coverage_modifier: 0.0
   piece_development_modifier: 0.0
   center_control_modifier: 10.0
   open_files_modifier: 0.0
   rook_coordination_modifier: 0.0
-  rook_development_penalty: 0.0
-  rook_position_bonus: 0.0
   tempo_modifier: 0.0
   castling_modifier: 10.0
   castling_protection_modifier: 100.0
-  castling_protection_penalty: -100.0
   king_safety_modifier: 100.0
-  king_safety_penalty: -100.0
-  king_threat_penalty: -1000.0
-  capture_bonus: 10000.0
   capture_move_bonus: 4000
   check_modifier: 1000.0
   check_move_bonus: 10000
@@ -494,19 +366,15 @@ test_evaluation_20250628_2228:
   promotion_move_bonus: 3000
   queen_attack_modifier: 100.0
   piece_capture_modifier: 100.0
-  repetition_penalty: -999999999.0
   stalemate_modifier: -999999999.0
-  trapped_piece_penalty: 0.0
   piece_protection_modifier: -1000.0
 tuned_ga_gen1:
   pawn_weaknesses_modifier: -0.5
   bishop_activity_modifier: 0.15
   bishop_vision_modifier: 1.0
-  capture_bonus: 15.0
   capture_move_bonus: 4000
   castling_modifier: 5.0
   castling_protection_modifier: 3.0
-  castling_protection_penalty: -6.0
   center_control_modifier: 0.25
   check_modifier: 50.0
   check_move_bonus: 10000
@@ -522,41 +390,28 @@ tuned_ga_gen1:
   history_move_bonus: 1000
   killer_move_bonus: 2000
   king_safety_modifier: 1.5
-  king_safety_penalty: -100.0
-  king_threat_penalty: -50.0
   knight_activity_modifier: 0.1
   knight_count_modifier: 1.0
-  knight_vision_penalty: -0.25
   material_weight: 0.8
   open_files_modifier: 0.3
-  passed_pawn_bonus: 1.0
-  pawn_advancement_bonus: 0.25
+  passed_pawns_modifier: 1.0
   pawn_promotion_modifier: 5.0
-  pawn_structure_bonus: 0.1
-  piece_activity_bonus: 0.1
   piece_coordination_modifier: 0.5
-  piece_development_bonus: 2.0
   board_coverage_modifier: 0.1
   promotion_move_bonus: 3000
   queen_attack_modifier: 1000.0
   piece_capture_modifier: 100.0
-  repetition_penalty: -9999999999.0
-  rook_development_penalty: 0.2
-  rook_position_bonus: 0.4
   stalemate_modifier: -9999999999.0
   tempo_modifier: 0.1
-  trapped_piece_penalty: -5.0
   piece_protection_modifier: -2.0
   piece_development_modifier: -0.5
 tuned_ga_gen2:
   pawn_weaknesses_modifier: -0.5
   bishop_activity_modifier: 0.1406516470173155
   bishop_vision_modifier: 1.0
-  capture_bonus: 15.0
   capture_move_bonus: 4000
   castling_modifier: 5.0
   castling_protection_modifier: 3.0
-  castling_protection_penalty: -6.515832069117992
   center_control_modifier: 0.25
   check_modifier: 50.0
   check_move_bonus: 10000
@@ -572,29 +427,18 @@ tuned_ga_gen2:
   history_move_bonus: 963.4327226962881
   killer_move_bonus: 2000
   king_safety_modifier: 1.5
-  king_safety_penalty: -100.0
-  king_threat_penalty: -50.0
   knight_activity_modifier: 0.1
   knight_count_modifier: 1.0863547772925224
-  knight_vision_penalty: -0.25
   material_weight: 0.8
   open_files_modifier: 0.3
-  passed_pawn_bonus: 1.0
-  pawn_advancement_bonus: 0.24416573917539725
+  passed_pawns_modifier: 1.0
   pawn_promotion_modifier: 5.0
-  pawn_structure_bonus: 0.1
-  piece_activity_bonus: 0.1
   piece_coordination_modifier: 0.5
-  piece_development_bonus: 2.0
   board_coverage_modifier: 0.1
   promotion_move_bonus: 3000
   queen_attack_modifier: 1000.0
   piece_capture_modifier: 100.0
-  repetition_penalty: -9999999999.0
-  rook_development_penalty: 0.2
-  rook_position_bonus: 0.4
   stalemate_modifier: -9999999999.0
   tempo_modifier: 0.10235624914576001
-  trapped_piece_penalty: -5.0
   piece_protection_modifier: -2.0
   piece_development_modifier: -0.4814735397654215

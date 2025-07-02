@@ -289,11 +289,9 @@ def get_default_ruleset_values():
         "pawn_weaknesses_modifier": -0.5,
         "bishop_activity_modifier": 0.15,
         "bishop_vision_modifier": 1.0,
-        "capture_bonus": 15.0,
         "capture_move_bonus": 4000,
         "castling_modifier": 5.0,
         "castling_protection_modifier": 3.0,
-        "castling_protection_penalty": -6.0,
         "center_control_modifier": 0.25,
         "check_modifier": 50.0,
         "check_move_bonus": 10000,
@@ -309,30 +307,21 @@ def get_default_ruleset_values():
         "history_move_bonus": 1000,
         "killer_move_bonus": 2000,
         "king_safety_modifier": 1.5,
-        "king_safety_penalty": -100.0,
-        "king_threat_penalty": -50.0,
         "knight_activity_modifier": 0.1,
         "knight_count_modifier": 1.0,
-        "knight_vision_penalty": -0.25,
         "material_weight": 0.8,
         "open_files_modifier": 0.3,
-        "passed_pawn_bonus": 1.0,
-        "pawn_advancement_bonus": 0.25,
+        "passed_pawns_modifier": 1.0,
         "pawn_promotion_modifier": 5.0,
-        "pawn_structure_bonus": 0.1,
-        "piece_activity_bonus": 0.1,
         "piece_coordination_modifier": 0.5,
-        "piece_development_bonus": 2.0,
         "board_coverage_modifier": 0.1,
         "promotion_move_bonus": 3000,
         "queen_attack_modifier": 1000.0,
         "piece_capture_modifier": 100.0,
         "repetition_penalty": -9999999999.0,
         "rook_development_penalty": 0.2,
-        "rook_position_bonus": 0.4,
         "stalemate_modifier": -9999999999.0,
         "tempo_modifier": 0.1,
-        "trapped_piece_penalty": -5.0,
         "piece_protection_modifier": -2.0,
         "piece_development_modifier": -0.5
     }
@@ -815,32 +804,29 @@ class ConfigGUI:
             ],
             "Pawn Structure": [
                 "pawn_weaknesses_modifier", "pawn_structure_modifier",
-                "passed_pawn_bonus", "pawn_advancement_bonus", "pawn_promotion_modifier",
-                "pawn_structure_bonus", "en_passant_modifier"
+                "passed_pawns_modifier", "pawn_promotion_modifier",
+                "en_passant_modifier"
             ],
             "Piece Activity": [
                 "bishop_activity_modifier", "bishop_vision_modifier", "knight_activity_modifier",
-                "knight_count_modifier", "knight_vision_penalty", "piece_activity_bonus",
-                "piece_coordination_modifier", "piece_development_bonus", "board_coverage_modifier",
+                "knight_count_modifier", "piece_coordination_modifier", "board_coverage_modifier",
                 "piece_development_modifier"
             ],
             "Board Control": [
                 "center_control_modifier", "open_files_modifier",
-                "rook_coordination_modifier", "rook_development_penalty", "rook_position_bonus",
-                 "tempo_modifier"
+                "rook_coordination_modifier", "tempo_modifier"
             ],
             "King Safety": [
-                "castling_modifier", "castling_protection_modifier", "castling_protection_penalty",
-                "king_safety_modifier", "king_safety_penalty",
-                "king_threat_penalty"
+                "castling_modifier", "castling_protection_modifier",
+                "king_safety_modifier", "king_threat_penalty"
             ],
             "Tactical Elements": [
-                "capture_bonus", "capture_move_bonus", "check_modifier", "check_move_bonus",
+                "capture_move_bonus", "check_modifier", "check_move_bonus",
                 "checkmate_threats_modifier", "checkmate_move_bonus", "counter_move_bonus",
                 "draw_modifier", "piece_attacks_modifier", "hash_move_bonus",
                 "history_move_bonus", "killer_move_bonus", "piece_capture_modifier",
-                "promotion_move_bonus", "queen_attack_modifier", "repetition_penalty",
-                "stalemate_modifier", "trapped_piece_penalty", "piece_protection_modifier"
+                "promotion_move_bonus", "queen_attack_modifier",
+                "stalemate_modifier", "piece_protection_modifier"
             ]
         }
         
@@ -849,34 +835,23 @@ class ConfigGUI:
             "material_weight": "Weight of material value in the evaluation (0-10)",
             "pawn_weaknesses_modifier": "Penalty for pawns that are behind friendly pawns and difficult to advance",
             "pawn_structure_modifier": "Penalty for having two pawns on the same file",
-            "passed_pawn_bonus": "Bonus for pawns with no opposing pawns blocking promotion path",
-            "pawn_advancement_bonus": "Bonus for pawns that have advanced far into enemy territory",
+            "passed_pawns_modifier": "Bonus for pawns with no opposing pawns blocking promotion path",
             "pawn_promotion_modifier": "Bonus for pawns close to promotion",
-            "pawn_structure_bonus": "Bonus for strong pawn structure (chains, defended pawns)",
             "en_passant_modifier": "Bonus for en passant capture opportunities",
             "bishop_activity_modifier": "Bonus for active bishops controlling many squares",
             "bishop_vision_modifier": "Bonus for bishops with clear diagonals",
             "knight_activity_modifier": "Bonus for knights in central/active positions",
             "knight_count_modifier": "Bonus for having both knights",
-            "knight_vision_penalty": "Penalty for knights with restricted movement",
-            "piece_activity_bonus": "General bonus for active pieces",
             "piece_coordination_modifier": "Bonus for pieces supporting each other",
-            "piece_development_bonus": "Bonus for developed pieces in the opening",
             "board_coverage_modifier": "Bonus for pieces with many available moves",
             "piece_development_modifier": "Penalty for pieces not yet developed",
             "center_control_modifier": "Bonus for controlling central squares",
             "open_files_modifier": "Bonus for rooks on open files",
             "rook_coordination_modifier": "Bonus for connected rooks",
-            "rook_development_penalty": "Penalty for undeveloped rooks",
-            "rook_position_bonus": "Bonus for rooks in strong positions",
             "tempo_modifier": "Bonus for the side to move",
             "castling_modifier": "Bonus for having castled",
             "castling_protection_modifier": "Bonus for protection after castling",
-            "castling_protection_penalty": "Penalty for exposed king after castling",
             "king_safety_modifier": "Bonus for having a protected king",
-            "king_safety_penalty": "Penalty for unsafe king position",
-            "king_threat_penalty": "Penalty for direct threats to the king",
-            "capture_bonus": "Bonus for capturing pieces",
             "capture_move_bonus": "Bonus for moves that capture pieces",
             "check_modifier": "Bonus for giving check",
             "check_move_bonus": "Bonus for moves that give check",
@@ -891,9 +866,7 @@ class ConfigGUI:
             "promotion_move_bonus": "Bonus for moves that promote pawns",
             "queen_attack_modifier": "Bonus for capturing the opponent's queen",
             "piece_capture_modifier": "Bonus for capturing opponent's pieces",
-            "repetition_penalty": "Penalty for move repetition",
             "stalemate_modifier": "Penalty for stalemate positions",
-            "trapped_piece_penalty": "Penalty for pieces with limited mobility",
             "piece_protection_modifier": "Penalty for pieces not defended"
         }
         

@@ -16,7 +16,7 @@ import hashlib
 
 config = {
     "game_config": {
-        "game_count": 100,                     # Number of games to play
+        "game_count": 1,                     # Number of games to play
         "starting_position": "default",      # Default starting position name (or FEN string)
         "white_player": "v7p3r",             # Name of the engine being used (e.g., 'v7p3r', 'stockfish'), this value is a direct reference to the engine configuration values in their respective config files
         "black_player": "stockfish",         # sets this colors engine configuration name, same as above, important note that if the engines are set the same then only whites metrics will be collected to prevent negation in win loss metrics
@@ -24,11 +24,11 @@ config = {
     "engine_config": {
         "name": "v7p3r",                     # Name of the engine, used for identification and logging
         "version": "1.0.0",                  # Version of the engine, used for identification and logging
-        "ruleset": "tuned_ga_gen2",          # Name of the evaluation rule set to use, see below for available options
-        "search_algorithm": "minimax",    # Move search type for White (see search_algorithms for options)
-        "depth": 3,                          # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
-        "max_depth": 3,                      # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
-        "max_moves": 4,                      # Maximum number of moves to consider after ordering (truncates move list to top N moves)
+        "ruleset": "balanced_evaluation",          # Name of the evaluation rule set to use
+        "search_algorithm": "minimax",       # Move search type for White (see search_algorithms for options)
+        "depth": 3,                          # Depth of search for the engine, 1 for random, 2 for simple search, 3+ for more complex searches
+        "max_depth": 5,                      # Max depth of search for engine, 1 for random, 2 for simple search, 3+ for more complex searches
+        "max_moves": 5,                      # Maximum number of moves to consider after ordering (truncates move list to top N moves)
         "use_game_phase": True,              # Use game phase evaluation
         "monitoring_enabled": True,          # Enable or disable monitoring features
         "verbose_output": True,              # Enable or disable verbose output for debugging
@@ -39,9 +39,9 @@ config = {
         "elo_rating": 100,
         "skill_level": 1,
         "debug_mode": False,
-        "depth": 2,
-        "max_depth": 2,
-        "movetime": 500,  # Time in milliseconds for Stockfish to think
+        "depth": 1,
+        "max_depth": 1,
+        "movetime": 100,  # Time in milliseconds for Stockfish to think
     },
 }
 
@@ -674,11 +674,8 @@ class ChessGame:
         if not self.use_enhanced_metrics:
             print(f"DEBUG: Enhanced metrics not enabled, returning")
             return
-            
-        print(f"DEBUG: Collecting enhanced metrics for move {move_number}: {engine_move.uci()}")
 
         current_engine_name = self.white_player.lower() if self.current_player == chess.WHITE else self.black_player.lower()
-        print(f"DEBUG: Current engine: {current_engine_name}")
         
         # Base metrics
         enhanced_metric = {
