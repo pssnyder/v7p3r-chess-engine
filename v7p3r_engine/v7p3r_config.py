@@ -1,6 +1,7 @@
 import json
 import os
 from typing import Optional
+
 class v7p3rConfig:
     """
     Configuration class for the v7p3r chess engine.
@@ -16,9 +17,11 @@ class v7p3rConfig:
         self.engine_config = {}
         self.stockfish_config = {}
         self.puzzle_config = {}
+        self.rulesets = {}
         self.ruleset_name = "default_ruleset"
         self.ruleset = {}
 
+        # Load the default configuration
         self._load_config()
 
     def _load_config(self):
@@ -26,23 +29,21 @@ class v7p3rConfig:
         Load the default configuration from a JSON file.
         The default configuration is stored in 'saved_configs/default_config.json'.
         """
-    
         try:
             # Open the default configuration file and load its contents
             with open(self.config_path, 'r') as config_path:
                 self.config = json.load(config_path)
+                if isinstance(self.config, dict):
+                    # Load module-specific configurations
+                    self._load_module_configs()
         except FileNotFoundError:
             raise FileNotFoundError(f"Configuration file not found: {self.config_path}")
         except json.JSONDecodeError as e:
             raise ValueError(f"Error decoding JSON from configuration file: {e}")
-        
-        # Load module-specific configurations
-        self._load_module_configs()
 
     def _load_module_configs(self):
         """
         Load module-specific configurations from the main configuration.
-        
         :param config: The main configuration dictionary.
         """
         if hasattr(self.config, 'game_config'):
@@ -53,6 +54,10 @@ class v7p3rConfig:
             self.stockfish_config = self.config.get('stockfish_config', {})
         if hasattr(self.config, 'puzzle_config'):
             self.puzzle_config = self.config.get('puzzle_config', {})
+        if hasattr(self.config, 'logging_config'):
+            self.logging_config = self.config.get('logging_config', {})
+        if hasattr(self.config, 'metrics_config'):
+            self.metrics_config = self.config.get('metrics_config', {})
         if hasattr(self.engine_config, 'ruleset'):
             self.ruleset_name = self.engine_config.get('ruleset', "default_ruleset")
             self.ruleset = self._load_ruleset()
@@ -62,12 +67,11 @@ class v7p3rConfig:
         Load the default ruleset configuration.
         The default ruleset is stored in 'saved_configs/rulesets/default_ruleset.json'.
         """
-
-        ruleset_path = os.path.join(os.path.dirname(__file__), 'saved_configs', 'rulesets', f"{self.ruleset_name}.json")
-
+        ruleset_path = os.path.join(os.path.dirname(__file__), 'saved_configs', 'rulesets', f"custom_rulesets.json")
         try:
             with open(ruleset_path, 'r') as file:
-                self.ruleset = json.load(file)
+                self.rulesets = json.load(file)
+                self.ruleset = self.rulesets.get(self.ruleset_name, {})
         except FileNotFoundError:
             raise FileNotFoundError(f"Ruleset file not found: {ruleset_path}")
         except json.JSONDecodeError as e:
@@ -88,6 +92,12 @@ class v7p3rConfig:
     
     def get_puzzle_config(self):
         return self.puzzle_config
+    
+    def get_logging_config(self):
+        return self.logging_config
+    
+    def get_metrics_config(self):
+        return self.metrics_config
     
     def get_ruleset(self):
         return self.ruleset
