@@ -73,7 +73,7 @@ class v7p3rEngine:
         else:
             self.engine_config = self.config_manager.get_engine_config()  # Ensure it's always a dictionary
             if self.logger:
-                self.logger.info("No engine configuration provided, using v7p3r's inbuilt configuration.")
+                self.logger.info("No engine configuration provided, using v7p3r's default_config.")
 
         # Load engine config and default values
         self.name = self.engine_config.get("name", "v7p3r")
@@ -99,15 +99,15 @@ class v7p3rEngine:
         # Required Engine Modules
         self.pst = v7p3rPST(self.logger)
         self.rules_manager = v7p3rRules(ruleset=self.ruleset, pst=self.pst)
-        self.scoring_calculator = v7p3rScore(engine_config=self.engine_config, rules_manager=self.rules_manager, pst=self.pst)
-        self.move_organizer = v7p3rOrdering(self.engine_config, self.scoring_calculator)
+        self.scoring_calculator = v7p3rScore(rules_manager=self.rules_manager, pst=self.pst)
+        self.move_organizer = v7p3rOrdering(self.scoring_calculator)
         self.time_manager = v7p3rTime()
         self.opening_book = v7p3rBook()
-        self.search_engine = v7p3rSearch(self.engine_config, self.scoring_calculator, self.move_organizer, self.time_manager, self.opening_book)
+        self.search_engine = v7p3rSearch(self.scoring_calculator, self.move_organizer, self.time_manager, self.opening_book)
 
         # Debug: Check if all components are properly initialized
         if self.logger:
-            self.logger.debug(f"pst: {type(self.pst)} | scoring: {type(self.scoring_calculator)} | ordering: {type(self.move_organizer)} | time: {type(self.time_manager)} | book: {type(self.opening_book)} | search: {type(self.search_engine)}")
-            self.logger.debug(f"search_engine.search method: {type(getattr(self.search_engine, 'search', 'NOT_FOUND'))}")
+            self.logger.info(f"pst: {type(self.pst)} | scoring: {type(self.scoring_calculator)} | ordering: {type(self.move_organizer)} | time: {type(self.time_manager)} | book: {type(self.opening_book)} | search: {type(self.search_engine)}")
+            self.logger.info(f"search_engine.search method: {type(getattr(self.search_engine, 'search', 'NOT_FOUND'))}")
             
         print(f"pst: {type(self.pst)} | scoring: {type(self.scoring_calculator)} | ordering: {type(self.move_organizer)} | time: {type(self.time_manager)} | book: {type(self.opening_book)} | search: {type(self.search_engine)}")

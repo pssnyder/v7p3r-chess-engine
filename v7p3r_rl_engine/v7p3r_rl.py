@@ -393,7 +393,7 @@ class V7P3RRLAgent:
         if hasattr(self, 'reward_ruleset') and self.reward_ruleset:
             try:
                 # Apply ruleset-based rewards/penalties
-                for rule_name, rule_config in self.reward_ruleset.get('rules', {}).items():
+                for rule_name, rule_config in self.reward_ruleset.get('ruleset', {}).items():
                     if rule_config.get('enabled', False):
                         rule_reward = self._apply_rule_reward(board, move, rule_name, rule_config)
                         reward += rule_reward

@@ -383,7 +383,7 @@ class v7p3rNeuralNetwork:
                 optimizer.step()
                 running_loss += loss.item()
                 batch_count += 1
-                logger.debug(f"Epoch {epoch+1} Batch {i+1} Loss: {loss.item():.4f}")
+                logger.info(f"Epoch {epoch+1} Batch {i+1} Loss: {loss.item():.4f}")
                 if i % 10 == 9:
                     logger.info(f"Epoch {epoch+1} [{i+1}/{len(dataloader)}] avg loss: {running_loss / (i+1):.4f}")
             avg_loss = running_loss / batch_count if batch_count else 0.0

@@ -6,6 +6,7 @@ import sys
 import chess
 import logging
 import datetime
+from v7p3r_config import v7p3rConfig
 
 # Ensure the parent directory is in sys.path for imports
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -54,14 +55,22 @@ if not v7p3r_ordering_logger.handlers:
 
 class v7p3rOrdering:
     """Class for move ordering in the V7P3R chess engine."""
-    def __init__(self, engine_config: dict, scoring_calculator):
-        self.engine_config = engine_config
+    def __init__(self, scoring_calculator):
+        # Engine Configuration
+        self.config_manager = v7p3rConfig()
+        self.engine_config = self.config_manager.get_engine_config()  # Ensure it's always a dictionary
+        
+        # Required Engine Modules
         self.scoring_calculator = scoring_calculator
+        
+        # Logging Setup
         self.logger = v7p3r_ordering_logger
-        self.monitoring_enabled = engine_config.get('monitoring_enabled', True)
-        self.verbose_output_enabled = engine_config.get('verbose_output', True)
-        self.move_ordering_enabled = engine_config.get('move_ordering_enabled', True)
-        self.max_moves = engine_config.get('max_moves', 10)  # Default to 10 moves if not set
+        self.monitoring_enabled = self.engine_config.get('monitoring_enabled', True)
+        self.verbose_output_enabled = self.engine_config.get('verbose_output', True)
+        
+        # Move Ordering Settings
+        self.move_ordering_enabled = self.engine_config.get('move_ordering_enabled', True)
+        self.max_moves = self.engine_config.get('max_moves', 10)  # Default to 10 moves if not set
 
     def order_moves(self, board: chess.Board, moves, depth: int = 0, cutoff: int = 0) -> list:
         """Order moves for better alpha-beta pruning efficiency"""
@@ -103,21 +112,21 @@ class v7p3rOrdering:
         if temp_board.is_checkmate():
             temp_board.pop()
             # Get checkmate move bonus from the current ruleset
-            return self.scoring_calculator.rules.get('checkmate_move_bonus', 999999999.0)
+            return self.scoring_calculator.ruleset.get('checkmate_move_bonus', 999999999.0)
         
         if temp_board.is_check(): # Check after move is made
-            score += self.scoring_calculator.rules.get('check_move_bonus', 99999.0)
+            score += self.scoring_calculator.ruleset.get('check_move_bonus', 99999.0)
 
         temp_board.pop()
         if temp_board.is_capture(move):
-            score += self.scoring_calculator.rules.get('capture_move_bonus', 5000.0)
+            score += self.scoring_calculator.ruleset.get('capture_move_bonus', 5000.0)
             victim_type = temp_board.piece_type_at(move.to_square)
             aggressor_type = temp_board.piece_type_at(move.from_square)
             if victim_type and aggressor_type:
                 score += (self.engine_config.get('piece_values', {}).get(victim_type, 0) * 10) - self.engine_config.get('piece_values', {}).get(aggressor_type, 0)
 
         if move.promotion:
-            score += self.scoring_calculator.rules.get('promotion_move_bonus', 3000.0)
+            score += self.scoring_calculator.ruleset.get('promotion_move_bonus', 3000.0)
             if move.promotion == chess.QUEEN:
                 score += self.engine_config.get('piece_values', {}).get(chess.QUEEN, 9.0) * 100 # Ensure piece_values is used
         return score

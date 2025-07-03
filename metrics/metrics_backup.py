@@ -2,7 +2,7 @@ import shutil
 import os
 from datetime import datetime
 
-def backup_metrics_db(db_path='metrics/chess_metrics.db', backup_dir='metrics/db_backups'):
+def backup_metrics_db(db_path='chess_metrics.db', backup_dir='db_backups'):
     os.makedirs(backup_dir, exist_ok=True)
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     backup_path = os.path.join(backup_dir, f'chess_metrics_{timestamp}.db')

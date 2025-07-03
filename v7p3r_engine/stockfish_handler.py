@@ -16,6 +16,9 @@ if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 def resource_path(relative_path):
     """Get absolute path to resource, works for dev and for PyInstaller"""
+    if relative_path is None:
+        raise ValueError("relative_path cannot be None")
+    
     base = getattr(sys, '_MEIPASS', None)
     if base:
         return os.path.join(base, relative_path)
@@ -80,7 +83,7 @@ class StockfishHandler:
         self.logger = stockfish_handler_logger
 
         if self.debug_mode:
-            self.logger.debug(f"Initializing StockfishHandler from {self.stockfish_path}")
+            self.logger.info(f"Initializing StockfishHandler from {self.stockfish_path}")
         else:
             self.logger.disabled = True
 
@@ -161,7 +164,7 @@ class StockfishHandler:
                 self.process.stdin.write(command + "\n")
                 self.process.stdin.flush()
                 if self.debug_mode:
-                    self.logger.debug(f"Sent: {command}")
+                    self.logger.info(f"Sent: {command}")
             except BrokenPipeError:
                 self.logger.error(f"Failed to send command '{command}': Pipe to Stockfish is broken. Engine might have crashed.")
                 self.process = None # Mark process as broken
@@ -175,7 +178,7 @@ class StockfishHandler:
         try:
             line = self.stdout_queue.get(timeout=timeout)
             if self.debug_mode:
-                self.logger.debug(f"Received: {line.strip()}")
+                self.logger.info(f"Received: {line.strip()}")
             return line
         except queue.Empty:
             # This is a common case if engine is thinking or done. Not necessarily an error.
@@ -235,7 +238,7 @@ class StockfishHandler:
             self.logger.warning("Stockfish process not running, cannot set position.")
             return
         self._send_command(f"position fen {board.fen()}")
-        self.logger.debug(f"Set position: {board.fen()}")
+        self.logger.info(f"Set position: {board.fen()}")
 
     def search(self, board: chess.Board, player: chess.Color, engine_config: Dict[str, Any], stop_callback: Optional[Callable[[], bool]] = None):
         """
@@ -294,7 +297,7 @@ class StockfishHandler:
                 parts = line.split()
                 best_move_uci = parts[1]
                 if self.debug_mode:
-                    self.logger.debug(f"Stockfish bestmove: {best_move_uci}")
+                    self.logger.info(f"Stockfish bestmove: {best_move_uci}")
                 break
         
         if best_move_uci:

@@ -98,7 +98,7 @@ class v7p3rGeneticAlgorithm:
 
     def _evaluate(self, ruleset):
         # Override ruleset directly in scorer
-        self.scorer.rules = ruleset
+        self.scorer.ruleset = ruleset
         # Optional: update ruleset_name for logging
         self.scorer.ruleset_name = 'GA_Tuning'
         error = 0.0

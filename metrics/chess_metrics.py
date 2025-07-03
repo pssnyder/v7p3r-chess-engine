@@ -1,7 +1,7 @@
 # metrics/chess_metrics.py
 """ A locally running dashboard to visualize chess engine tuning metrics.
 This dashboard uses Dash and Plotly to display metrics from chess games played by the V7P3R chess engine.
-It includes static metrics, A/B testing for dynamic metrics, and a dark mode theme. 
+Updated to use the refactored enhanced metrics system with search_dataset and score_dataset integration.
 """
 
 import dash
@@ -10,6 +10,8 @@ import plotly.graph_objs as go
 import pandas as pd
 import numpy as np
 from metrics_store import MetricsStore
+from refactored_analytics_processor import RefactoredAnalyticsProcessor
+from enhanced_metrics_store import EnhancedMetricsStore
 from metrics_backup import backup_metrics_db
 import yaml
 import atexit
@@ -21,9 +23,12 @@ import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ANALYTICS_DB_PATH = os.path.join(BASE_DIR, "chess_analytics.db")
 RAW_DB_PATH = os.path.join(BASE_DIR, "chess_metrics.db")
+ENHANCED_DB_PATH = os.path.join(BASE_DIR, "chess_metrics_v2.db")
 
-# Initialize the metrics store globally
-metrics_store = MetricsStore(db_path=ANALYTICS_DB_PATH)
+# Initialize the metrics systems
+metrics_store = MetricsStore(db_path=ANALYTICS_DB_PATH)  # Legacy system
+enhanced_store = EnhancedMetricsStore()  # Enhanced system
+analytics_processor = RefactoredAnalyticsProcessor()  # Refactored analytics
 
 # --- DARK MODE COLORS ---
 DARK_BG = "#18191A"

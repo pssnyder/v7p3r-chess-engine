@@ -78,11 +78,14 @@ from v7p3r_engine.stockfish_handler import StockfishHandler
 
 # Import enhanced metrics system
 try:
-    from enhanced_metrics_store import EnhancedMetricsStore
-    from enhanced_scoring_collector import EnhancedScoringCollector
+    from metrics.enhanced_metrics_store import EnhancedMetricsStore
+    from metrics.enhanced_scoring_collector import EnhancedScoringCollector
+    from metrics.refactored_enhanced_metrics_collector import RefactoredEnhancedMetricsCollector
     ENHANCED_METRICS_AVAILABLE = True
+    REFACTORED_METRICS_AVAILABLE = True
 except ImportError:
     ENHANCED_METRICS_AVAILABLE = False
+    REFACTORED_METRICS_AVAILABLE = False
     print("Warning: Enhanced metrics system not available, using legacy system")
 
 class v7p3rChess:
@@ -122,6 +125,12 @@ class v7p3rChess:
 
         # Initialize Engines
         self.engine = v7p3rEngine()
+        
+        # Debug stockfish config before passing to handler
+        if self.logger:
+            self.logger.info(f"Stockfish config being passed to handler: {self.stockfish_config}")
+            self.logger.info(f"Stockfish path in config: {self.stockfish_config.get('stockfish_path', 'NOT_FOUND')}")
+        
         self.stockfish = StockfishHandler(stockfish_config=self.stockfish_config)
         
         # Initialize enhanced metrics system
@@ -473,7 +482,7 @@ class v7p3rChess:
                 yaml.dump(config_data, f, default_flow_style=False)
             
             if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
-                self.logger.debug(f"Saved local files: {pgn_path}, {yaml_path}")
+                self.logger.info(f"Saved local files: {pgn_path}, {yaml_path}")
                 
         except Exception as e:
             if self.logger and self.monitoring_enabled:
@@ -535,15 +544,15 @@ class v7p3rChess:
                 try:
                     # Debug logging to track the issue (always log this)
                     if self.logger and self.monitoring_enabled:
-                        self.logger.debug(f"Engine type: {type(self.engine)}")
-                        self.logger.debug(f"Search engine type: {type(self.engine.search_engine)}")
-                        self.logger.debug(f"Search method type: {type(self.engine.search_engine.search)}")
-                        self.logger.debug(f"Search method is callable: {callable(getattr(self.engine.search_engine, 'search', None))}")
+                        self.logger.info(f"Engine type: {type(self.engine)}")
+                        self.logger.info(f"Search engine type: {type(self.engine.search_engine)}")
+                        self.logger.info(f"Search method type: {type(self.engine.search_engine.search)}")
+                        self.logger.info(f"Search method is callable: {callable(getattr(self.engine.search_engine, 'search', None))}")
                         if hasattr(self.engine.search_engine, 'search'):
                             search_attr = getattr(self.engine.search_engine, 'search')
                             if isinstance(search_attr, dict):
                                 self.logger.error(f"FOUND THE ISSUE! search attribute is a dict: {search_attr}")
-                            self.logger.debug(f"Search attribute: {search_attr}")
+                            self.logger.info(f"Search attribute: {search_attr}")
                     
                     # Use the v7p3r engine for the current player
                     engine_move = self.engine.search_engine.search(self.board, self.current_player)
@@ -725,7 +734,7 @@ class v7p3rChess:
             raise
         
         if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
-            self.logger.debug(f"Enhanced metrics collected for move {engine_move.uci()}")
+            self.logger.info(f"Enhanced metrics collected for move {engine_move.uci()}")
     
     def _collect_v7p3r_metrics(self, fen_before_move: str) -> dict:
         """
@@ -916,7 +925,7 @@ class v7p3rChess:
             self._move_metrics_batch.append(metric)
             
             if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
-                self.logger.debug(f"Legacy metrics for {engine_move.uci()} added to MetricsStore.")
+                self.logger.info(f"Legacy metrics for {engine_move.uci()} added to MetricsStore.")
                 
         except Exception as e:
             if self.logger and self.monitoring_enabled:

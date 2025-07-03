@@ -11,10 +11,8 @@ import sys
 import os
 import logging
 import datetime
-import json
 from typing import Optional
 from v7p3r_config import v7p3rConfig
-from v7p3r_rules import v7p3rRules
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if parent_dir not in sys.path:
@@ -62,24 +60,26 @@ if not v7p3r_score_logger.handlers:
     v7p3r_score_logger.propagate = False
 
 class v7p3rScore:
-    def __init__(self, engine_config: dict, rules_manager, pst):
+    def __init__(self, rules_manager, pst):
         """ Initialize the scoring calculation engine with configuration settings.  """
         # Engine Configuration
         self.config_manager = v7p3rConfig()
-        if engine_config is not None:
-            self.engine_config = engine_config
-        else:
-            self.engine_config = self.config_manager.get_engine_config()  # Ensure it's always a dictionary
-            if self.logger:
-                self.logger.info("No engine configuration provided, using v7p3r's inbuilt configuration.")
-
-        # Scoring Config
-        self.logger = v7p3r_score_logger
-        self.ruleset_name = self.engine_config.get('ruleset', 'default_ruleset')
-        self.use_game_phase = self.engine_config.get('use_game_phase', True)
-        self.monitoring_enabled = engine_config.get('monitoring_enabled', True)
-        self.verbose_output_enabled = engine_config.get('verbose_output', True)
+        self.engine_config = self.config_manager.get_engine_config()  # Ensure it's always a dictionary
         
+        # Logging Setup
+        self.logger = v7p3r_score_logger
+        self.monitoring_enabled = self.engine_config.get('monitoring_enabled', True)
+        self.verbose_output_enabled = self.engine_config.get('verbose_output', True)
+
+        # Required Scoring Modules
+        self.pst = pst
+        self.rules_manager = rules_manager
+
+        # Scoring Setup
+        self.ruleset_name = self.engine_config.get('ruleset', 'default_ruleset')
+        self.ruleset = self.config_manager.get_ruleset()
+        self.use_game_phase = self.engine_config.get('use_game_phase', True)
+
         # Initialize scoring parameters
         self.root_board = chess.Board()
         self.game_phase = 'opening'  # Default game phase
@@ -90,23 +90,34 @@ class v7p3rScore:
         self.root_move = chess.Move.null()
         self.score = 0.0
         
-        # Initialize scoring dataset
-        self.scoring = {
-            'score_id': self.score_id,
+        # Initialize score dataset
+        self.score_dataset = {
             'fen': self.fen,
             'move': self.root_move,
-            'score': self.score,
+            'piece': None,
+            'color': None,
+            'current_player': None,
+            'v7p3r_thinking': False,
+            'evaluation': 0.0,
             'game_phase': self.game_phase,
             'endgame_factor': self.endgame_factor,
-            'rule_scores': {}
+            'material': 0,
+            'checkmate_threats': 0.0,
+            'king_safety': 0.0,
+            'king_attack': 0.0,
+            'draw_scenarios': 0.0,
+            'material_score': 0.0,
+            'piece_square_table_score': 0.0,
+            'piece_coordination': 0.0,
+            'center_control': 0.0,
+            'pawn_structure': 0.0,
+            'pawn_weaknesses': 0.0,
+            'passed_pawns': 0.0,
+            'pawn_count': 0.0,
+            'pawn_promotion': 0.0,
+            'bishop_count': 0.0,
+            'knight_count': 0.0
         }
-        
-        # Required Scoring Modules
-        self.pst = pst
-        self.rules_manager = rules_manager
-
-        # Ruleset Loading
-        self.ruleset = self.config_manager.get_ruleset()
 
     # =================================
     # ===== EVALUATION FUNCTIONS ======
@@ -130,8 +141,8 @@ class v7p3rScore:
         # Return the score from whites persective, inverted if blacks turn
         score = white_score - black_score if board.turn else -1 * (white_score - black_score)
         if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
-            self.logger.debug(f"Evaluation: {score:.3f} | FEN: {board.fen()}")
-        self.scoring['evaluation'] = score
+            self.logger.info(f"Evaluation: {score:.3f} | FEN: {board.fen()}")
+        self.score_dataset['evaluation'] = score
         return score
     
     def evaluate_position_from_perspective(self, board: chess.Board, color: Optional[chess.Color] = chess.WHITE) -> float:
@@ -147,8 +158,8 @@ class v7p3rScore:
         score = self.calculate_score(board=board,color=color)
 
         if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
-            self.logger.debug(f"{color_name}'s perspective: {score:.3f} | FEN: {board.fen()}")
-        self.scoring['evaluation'] = self.evaluate_position(board)
+            self.logger.info(f"{color_name}'s perspective: {score:.3f} | FEN: {board.fen()}")
+        self.score_dataset['evaluation'] = self.evaluate_position(board)
         return score
     
     # ==========================================
@@ -209,11 +220,11 @@ class v7p3rScore:
             
         self.game_phase = phase
         self.endgame_factor = endgame_factor
-        self.scoring['game_phase'] = phase
-        self.scoring['endgame_factor'] = endgame_factor
-        self.scoring['material'] = material
+        self.score_dataset['game_phase'] = phase
+        self.score_dataset['endgame_factor'] = endgame_factor
+        self.score_dataset['material'] = material
         if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
-            self.logger.debug(f"[Game Phase] Current phase: {self.game_phase} | Endgame factor: {self.endgame_factor:.2f} | FEN: {board.fen()}")
+            self.logger.info(f"[Game Phase] Current phase: {self.game_phase} | Endgame factor: {self.endgame_factor:.2f} | FEN: {board.fen()}")
         return
     
     # ==========================================
@@ -227,17 +238,18 @@ class v7p3rScore:
         score = 0.0
         
         # Update scoring dictionary with current position information
-        self.scoring['fen'] = board.fen()
-        self.scoring['move'] = board.peek()
-        self.scoring['piece'] = board.piece_type_at(board.peek().to_square)
-        
+        self.score_dataset['fen'] = board.fen()
+        last_move = board.peek() if board.move_stack else chess.Move.null()
+        self.score_dataset['move'] = last_move
+        self.score_dataset['piece'] = board.piece_type_at(last_move.to_square) if last_move else None
+
         # Helper for consistent color display in logs
         color_name = "White" if color == chess.WHITE else "Black"
-        self.scoring['color'] = color_name
+        self.score_dataset['color'] = color_name
         current_player_name = self.engine_config.get('white_player','') if color == chess.WHITE else self.engine_config.get('black_player','')
-        self.scoring['current_player'] = current_player_name
+        self.score_dataset['current_player'] = current_player_name
         v7p3r_thinking = (color == chess.WHITE and self.engine_config.get('white_player','') == 'v7p3r') or (color == chess.BLACK and self.engine_config.get('black_player', '') == 'v7p3r')
-        self.scoring['v7p3r_thinking'] = v7p3r_thinking
+        self.score_dataset['v7p3r_thinking'] = v7p3r_thinking
         if v7p3r_thinking:
             if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
                 self.logger.info(f"[Scoring Calc] Starting score calculation for {current_player_name} engine as {color_name} | Ruleset: {self.ruleset_name} | FEN: {board.fen()}")
@@ -252,7 +264,7 @@ class v7p3rScore:
             if self.verbose_output_enabled:
                 print(f"[Scoring Calc] Checkmate threats score for {color_name}: {checkmate_threats_score:.3f} (Ruleset: {self.ruleset_name})")
         score += checkmate_threats_score
-        self.scoring['checkmate_threats'] = checkmate_threats_score
+        self.score_dataset['checkmate_threats'] = checkmate_threats_score
 
         # KING SAFETY
         king_safety_score = 1.0 * (self.rules_manager._king_safety(board, color) or 0.0)
@@ -262,7 +274,7 @@ class v7p3rScore:
             if self.verbose_output_enabled:
                 print(f"[Scoring Calc] King safety score for {color_name}: {king_safety_score:.3f} (Ruleset: {self.ruleset_name})")
         score += king_safety_score
-        self.scoring['king_safety'] = king_safety_score
+        self.score_dataset['king_safety'] = king_safety_score
 
         # KING ATTACK
         king_attack_score = 1.0 * (self.rules_manager._king_attack(board, color) or 0.0)
@@ -272,7 +284,7 @@ class v7p3rScore:
             if self.verbose_output_enabled:
                 print(f"[Scoring Calc] King attack score for {color_name}: {king_attack_score:.3f} (Ruleset: {self.ruleset_name})")
         score += king_attack_score
-        self.scoring['king_attack'] = king_attack_score
+        self.score_dataset['king_attack'] = king_attack_score
 
         # DRAW SCENARIOS
         draw_scenarios_score = 1.0 * (self.rules_manager._draw_scenarios(board) or 0.0)
@@ -282,7 +294,7 @@ class v7p3rScore:
             if self.verbose_output_enabled:
                 print(f"[Scoring Calc] Draw scenarios score for {color_name}: {draw_scenarios_score:.3f} (Ruleset: {self.ruleset_name})")
         score += draw_scenarios_score
-        self.scoring['draw_scenarios'] = draw_scenarios_score
+        self.score_dataset['draw_scenarios'] = draw_scenarios_score
 
         # MATERIAL SCORE AND PST
         score += 1.0 * self.rules_manager._material_score(board, color)
@@ -295,7 +307,7 @@ class v7p3rScore:
             if self.verbose_output_enabled:
                 print(f"[Scoring Calc] Piece-square table score for {color_name}: {pst_board_score:.3f} (Ruleset: {self.ruleset_name})")
         score += 1.0 * pst_board_score
-        self.scoring['material_score'] = 1.0 * self.rules_manager._material_score(board, color)
+        self.score_dataset['material_score'] = 1.0 * self.rules_manager._material_score(board, color)
 
         # PIECE COORDINATION
         piece_coordination_score = 1.0 * (self.rules_manager._piece_coordination(board, color) or 0.0)
@@ -305,7 +317,7 @@ class v7p3rScore:
             if self.verbose_output_enabled:
                 print(f"[Scoring Calc] Piece coordination score for {color_name}: {piece_coordination_score:.3f} (Ruleset: {self.ruleset_name})")
         score += piece_coordination_score
-        self.scoring['piece_coordination'] = piece_coordination_score
+        self.score_dataset['piece_coordination'] = piece_coordination_score
         
         # CENTER CONTROL
         center_control_score = 1.0 * (self.rules_manager._center_control(board, color) or 0.0)
@@ -315,7 +327,7 @@ class v7p3rScore:
             if self.verbose_output_enabled:
                 print(f"[Scoring Calc] Center control score for {color_name}: {center_control_score:.3f} (Ruleset: {self.ruleset_name})")
         score += center_control_score
-        self.scoring['center_control'] = center_control_score
+        self.score_dataset['center_control'] = center_control_score
         
         # PAWN STRUCTURE
         pawn_structure_score = 1.0 * (self.rules_manager._pawn_structure(board, color) or 0.0)
@@ -325,7 +337,7 @@ class v7p3rScore:
             if self.verbose_output_enabled:
                 print(f"[Scoring Calc] Pawn structure score for {color_name}: {pawn_structure_score:.3f} (Ruleset: {self.ruleset_name})")
         score += pawn_structure_score
-        self.scoring['pawn_structure'] = pawn_structure_score
+        self.score_dataset['pawn_structure'] = pawn_structure_score
         
         # PAWN WEAKNESSES
         pawn_weaknesses_score = 1.0 * (self.rules_manager._pawn_weaknesses(board, color) or 0.0)
@@ -335,7 +347,7 @@ class v7p3rScore:
             if self.verbose_output_enabled:
                 print(f"[Scoring Calc] Pawn weaknesses score for {color_name}: {pawn_weaknesses_score:.3f} (Ruleset: {self.ruleset_name})")
         score += pawn_weaknesses_score
-        self.scoring['pawn_weaknesses'] = pawn_weaknesses_score
+        self.score_dataset['pawn_weaknesses'] = pawn_weaknesses_score
         
         # PASSED PAWNS
         passed_pawns_score = 1.0 * (self.rules_manager._passed_pawns(board, color) or 0.0)
@@ -345,7 +357,7 @@ class v7p3rScore:
             if self.verbose_output_enabled:
                 print(f"[Scoring Calc] Passed pawns score for {color_name}: {passed_pawns_score:.3f} (Ruleset: {self.ruleset_name})")
         score += passed_pawns_score
-        self.scoring['passed_pawns'] = passed_pawns_score
+        self.score_dataset['passed_pawns'] = passed_pawns_score
         
         # PAWN COUNT
         pawn_count_score = 1.0 * (self.rules_manager._pawn_count(board, color) or 0.0)
@@ -355,7 +367,7 @@ class v7p3rScore:
             if self.verbose_output_enabled:
                 print(f"[Scoring Calc] Pawn count score for {color_name}: {pawn_count_score:.3f} (Ruleset: {self.ruleset_name})")
         score += pawn_count_score
-        self.scoring['pawn_count'] = pawn_count_score
+        self.score_dataset['pawn_count'] = pawn_count_score
 
         # PAWN PROMOTION
         pawn_promotion_score = 1.0 * (self.rules_manager._pawn_promotion(board, color) or 0.0)
@@ -365,7 +377,7 @@ class v7p3rScore:
             if self.verbose_output_enabled:
                 print(f"[Scoring Calc] Pawn promotion score for {color_name}: {pawn_promotion_score:.3f} (Ruleset: {self.ruleset_name})")
         score += pawn_promotion_score
-        self.scoring['pawn_promotion'] = pawn_promotion_score
+        self.score_dataset['pawn_promotion'] = pawn_promotion_score
 
         # BISHOP COUNT
         bishop_count_score = 1.0 * (self.rules_manager._bishop_count(board, color) or 0.0)
@@ -375,7 +387,7 @@ class v7p3rScore:
             if self.verbose_output_enabled:
                 print(f"[Scoring Calc] Bishop count score for {color_name}: {bishop_count_score:.3f} (Ruleset: {self.ruleset_name})")
         score += bishop_count_score
-        self.scoring['bishop_count'] = bishop_count_score
+        self.score_dataset['bishop_count'] = bishop_count_score
 
         # KNIGHT COUNT
         knight_count_score = 1.0 * (self.rules_manager._knight_count(board, color) or 0.0)
@@ -385,7 +397,7 @@ class v7p3rScore:
             if self.verbose_output_enabled:
                 print(f"[Scoring Calc] Knight count score for {color_name}: {knight_count_score:.3f} (Ruleset: {self.ruleset_name})")
         score += knight_count_score
-        self.scoring['knight_count'] = knight_count_score
+        self.score_dataset['knight_count'] = knight_count_score
 
         # BISHOP VISION
         bishop_vision_score = 1.0 * (self.rules_manager._bishop_vision(board, color) or 0.0)
@@ -395,7 +407,7 @@ class v7p3rScore:
             if self.verbose_output_enabled:
                 print(f"[Scoring Calc] Bishop vision score for {color_name}: {bishop_vision_score:.3f} (Ruleset: {self.ruleset_name})")
         score += bishop_vision_score
-        self.scoring['bishop_vision'] = bishop_vision_score
+        self.score_dataset['bishop_vision'] = bishop_vision_score
 
         # ROOK COORDINATION
         rook_coordination_score = 1.0 * (self.rules_manager._rook_coordination(board, color) or 0.0)
@@ -405,7 +417,7 @@ class v7p3rScore:
             if self.verbose_output_enabled:
                 print(f"[Scoring Calc] Rook coordination score for {color_name}: {rook_coordination_score:.3f} (Ruleset: {self.ruleset_name})")
         score += rook_coordination_score
-        self.scoring['rook_coordination'] = rook_coordination_score
+        self.score_dataset['rook_coordination'] = rook_coordination_score
 
         # CASTLING
         castling_score = 1.0 * (self.rules_manager._castling(board, color) or 0.0)
@@ -415,7 +427,7 @@ class v7p3rScore:
             if self.verbose_output_enabled:
                 print(f"[Scoring Calc] Castling score for {color_name}: {castling_score:.3f} (Ruleset: {self.ruleset_name})")
         score += castling_score
-        self.scoring['castling'] = castling_score
+        self.score_dataset['castling'] = castling_score
 
         # CASTLING PROTECTION
         castling_protection_score = 1.0 * (self.rules_manager._castling_protection(board, color) or 0.0)
@@ -425,7 +437,7 @@ class v7p3rScore:
             if self.verbose_output_enabled:
                 print(f"[Scoring Calc] Castling protection score for {color_name}: {castling_protection_score:.3f} (Ruleset: {self.ruleset_name})")
         score += castling_protection_score
-        self.scoring['castling_protection'] = castling_protection_score
+        self.score_dataset['castling_protection'] = castling_protection_score
 
         # PIECE ACTIVITY
         piece_activity_score = 1.0 * (self.rules_manager._piece_activity(board, color) or 0.0)
@@ -435,7 +447,7 @@ class v7p3rScore:
             if self.verbose_output_enabled:
                 print(f"[Scoring Calc] Piece activity score for {color_name}: {piece_activity_score:.3f} (Ruleset: {self.ruleset_name})")
         score += piece_activity_score
-        self.scoring['piece_activity'] = piece_activity_score
+        self.score_dataset['piece_activity'] = piece_activity_score
         
         # KNIGHT ACTIVITY
         knight_activity_score = 1.0 * (self.rules_manager._knight_activity(board, color) or 0.0)
@@ -445,7 +457,7 @@ class v7p3rScore:
             if self.verbose_output_enabled:
                 print(f"[Scoring Calc] Knight activity score for {color_name}: {knight_activity_score:.3f} (Ruleset: {self.ruleset_name})")
         score += knight_activity_score
-        self.scoring['knight_activity'] = knight_activity_score
+        self.score_dataset['knight_activity'] = knight_activity_score
 
         # BISHOP ACTIVITY
         bishop_activity_score = 1.0 * (self.rules_manager._bishop_activity(board, color) or 0.0)
@@ -455,7 +467,7 @@ class v7p3rScore:
             if self.verbose_output_enabled:
                 print(f"[Scoring Calc] Bishop activity score for {color_name}: {bishop_activity_score:.3f} (Ruleset: {self.ruleset_name})")
         score += bishop_activity_score
-        self.scoring['bishop_activity'] = bishop_activity_score
+        self.score_dataset['bishop_activity'] = bishop_activity_score
 
         # PIECE MOBILITY
         mobility_score = 1.0 * (self.rules_manager._board_coverage(board, color) or 0.0)
@@ -465,7 +477,7 @@ class v7p3rScore:
             if self.verbose_output_enabled:
                 print(f"[Scoring Calc] Mobility score for {color_name}: {mobility_score:.3f} (Ruleset: {self.ruleset_name})")
         score += mobility_score
-        self.scoring['mobility'] = mobility_score
+        self.score_dataset['mobility'] = mobility_score
         
         # PIECE DEVELOPMENT
         piece_development_score = 1.0 * (self.rules_manager._piece_development(board, color) or 0.0)
@@ -475,7 +487,7 @@ class v7p3rScore:
             if self.verbose_output_enabled:
                 print(f"[Scoring Calc] Piece development score for {color_name}: {piece_development_score:.3f} (Ruleset: {self.ruleset_name})")
         score += piece_development_score
-        self.scoring['piece_development'] = piece_development_score
+        self.score_dataset['piece_development'] = piece_development_score
 
         # PIECE ATTACKS
         piece_attacks_score = 1.0 * (self.rules_manager._piece_attacks(board, color) or 0.0)
@@ -485,7 +497,7 @@ class v7p3rScore:
             if self.verbose_output_enabled:
                 print(f"[Scoring Calc] Piece attacks score for {color_name}: {piece_attacks_score:.3f} (Ruleset: {self.ruleset_name})")
         score += piece_attacks_score
-        self.scoring['piece_attacks'] = piece_attacks_score
+        self.score_dataset['piece_attacks'] = piece_attacks_score
 
         # PIECE PROTECTION
         piece_protection_score = 1.0 * (self.rules_manager._piece_protection(board, color) or 0.0)
@@ -495,7 +507,7 @@ class v7p3rScore:
             if self.verbose_output_enabled:
                 print(f"[Scoring Calc] Piece protection score for {color_name}: {piece_protection_score:.3f} (Ruleset: {self.ruleset_name})")
         score += piece_protection_score
-        self.scoring['piece_protection'] = piece_protection_score
+        self.score_dataset['piece_protection'] = piece_protection_score
 
         # QUEEN ATTACK
         queen_attack_score = 1.0 * (self.rules_manager._queen_attack(board, color) or 0.0)
@@ -505,7 +517,7 @@ class v7p3rScore:
             if self.verbose_output_enabled:
                 print(f"[Scoring Calc] Queen attack score for {color_name}: {queen_attack_score:.3f} (Ruleset: {self.ruleset_name})")
         score += queen_attack_score
-        self.scoring['queen_attack'] = queen_attack_score
+        self.score_dataset['queen_attack'] = queen_attack_score
 
         # PIECE CAPTURES
         piece_captures_score = 1.0 * (self.rules_manager._piece_captures(board, color) or 0.0)
@@ -515,7 +527,7 @@ class v7p3rScore:
             if self.verbose_output_enabled:
                 print(f"[Scoring Calc] Piece captures score for {color_name}: {piece_captures_score:.3f} (Ruleset: {self.ruleset_name})")
         score += piece_captures_score
-        self.scoring['piece_captures'] = piece_captures_score
+        self.score_dataset['piece_captures'] = piece_captures_score
 
         # TEMPO
         tempo_score = 1.0 * (self.rules_manager._tempo(board, color) or 0.0)
@@ -525,7 +537,7 @@ class v7p3rScore:
             if self.verbose_output_enabled:
                 print(f"[Scoring Calc] Tempo score for {color_name}: {tempo_score:.3f} (Ruleset: {self.ruleset_name})")
         score += tempo_score
-        self.scoring['tempo'] = tempo_score
+        self.score_dataset['tempo'] = tempo_score
 
         # EN PASSANT
         en_passant_score = 1.0 * (self.rules_manager._en_passant(board, color) or 0.0) # Pass color
@@ -535,7 +547,7 @@ class v7p3rScore:
             if self.verbose_output_enabled:
                 print(f"[Scoring Calc] En passant score for {color_name}: {en_passant_score:.3f} (Ruleset: {self.ruleset_name})")
         score += en_passant_score
-        self.scoring['en_passant'] = en_passant_score
+        self.score_dataset['en_passant'] = en_passant_score
 
         # OPEN FILES
         open_files_score = 1.0 * (self.rules_manager._open_files(board, color) or 0.0)
@@ -545,7 +557,7 @@ class v7p3rScore:
             if self.verbose_output_enabled:
                 print(f"[Scoring Calc] Open files score for {color_name}: {open_files_score:.3f} (Ruleset: {self.ruleset_name})")
         score += open_files_score
-        self.scoring['open_files'] = open_files_score
+        self.score_dataset['open_files'] = open_files_score
         
         # STALEMATE
         stalemate_score = 1.0 * (self.rules_manager._stalemate(board) or 0.0)
@@ -555,7 +567,7 @@ class v7p3rScore:
             if self.verbose_output_enabled:
                 print(f"[Scoring Calc] Stalemate score for {color_name}: {stalemate_score:.3f} (Ruleset: {self.ruleset_name})")
         score += stalemate_score
-        self.scoring['stalemate'] = stalemate_score
+        self.score_dataset['stalemate'] = stalemate_score
 
         # GAME PHASE
         if self.use_game_phase:
@@ -565,7 +577,7 @@ class v7p3rScore:
             self.endgame_factor = 0.0
         
         # FINAL SCORE
-        self.scoring['score'] = score  # Update final score in scoring dictionary
+        self.score_dataset['score'] = score  # Update final score in scoring dictionary
         
         if v7p3r_thinking:
             if self.logger and self.monitoring_enabled and self.verbose_output_enabled:

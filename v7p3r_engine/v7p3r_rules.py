@@ -470,8 +470,8 @@ class v7p3rRules:
                 score += promotion_modifier
         
         # check the board for recent promotions
-        last_move = board.peek()
-        if last_move.promotion is not None:
+        last_move = board.peek() if board.move_stack else chess.Move.null()
+        if last_move is not chess.Move.null() and last_move.promotion is not None:
             # If the last move was a promotion, give an increased bonus to prevent stalling
             if board.turn == color:
                 score += promotion_modifier * 10 # ensure the bonus for actually promoting is always higher than the bonus for being able to promote

@@ -44,20 +44,14 @@ class v7p3rConfig:
     def _load_module_configs(self):
         """
         Load module-specific configurations from the main configuration.
-        :param config: The main configuration dictionary.
         """
-        if hasattr(self.config, 'game_config'):
-            self.game_config = self.config.get('game_config', {})
-        if hasattr(self.config, 'engine_config'):
-            self.engine_config = self.config.get('engine_config', {})
-        if hasattr(self.config, 'stockfish_config'):
-            self.stockfish_config = self.config.get('stockfish_config', {})
-        if hasattr(self.config, 'puzzle_config'):
-            self.puzzle_config = self.config.get('puzzle_config', {})
-        if hasattr(self.config, 'logging_config'):
-            self.logging_config = self.config.get('logging_config', {})
-        if hasattr(self.config, 'metrics_config'):
-            self.metrics_config = self.config.get('metrics_config', {})
+        # Load module-specific configurations directly from the config dictionary
+        self.game_config = self.config.get('game_config', {})
+        self.engine_config = self.config.get('engine_config', {})
+        self.stockfish_config = self.config.get('stockfish_config', {})
+        self.puzzle_config = self.config.get('puzzle_config', {})
+        self.logging_config = self.config.get('logging_config', {})
+        self.metrics_config = self.config.get('metrics_config', {})
         if hasattr(self.engine_config, 'ruleset'):
             self.ruleset_name = self.engine_config.get('ruleset', "default_ruleset")
             self.ruleset = self._load_ruleset()
