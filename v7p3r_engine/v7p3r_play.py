@@ -83,10 +83,10 @@ try:
     from metrics.refactored_enhanced_metrics_collector import RefactoredEnhancedMetricsCollector
     ENHANCED_METRICS_AVAILABLE = True
     REFACTORED_METRICS_AVAILABLE = True
-except ImportError:
+except ImportError as e:
     ENHANCED_METRICS_AVAILABLE = False
     REFACTORED_METRICS_AVAILABLE = False
-    print("Warning: Enhanced metrics system not available, using legacy system")
+    print(f"Warning: Enhanced metrics system not available: {e}, using legacy system")
 
 class v7p3rChess:
     def __init__(self, config: Optional[dict] = None):
@@ -135,11 +135,17 @@ class v7p3rChess:
         
         # Initialize enhanced metrics system
         if ENHANCED_METRICS_AVAILABLE:
-            self.enhanced_metrics_store = EnhancedMetricsStore(logger=self.logger)
-            self.scoring_collector = EnhancedScoringCollector(logger=self.logger)
-            self.use_enhanced_metrics = True
-            if self.logger:
-                self.logger.info("Enhanced metrics system initialized")
+            try:
+                self.enhanced_metrics_store = EnhancedMetricsStore(logger=self.logger)
+                self.scoring_collector = EnhancedScoringCollector(logger=self.logger)
+                self.use_enhanced_metrics = True
+                if self.logger:
+                    self.logger.info("Enhanced metrics system initialized")
+            except Exception as e:
+                self.use_enhanced_metrics = False
+                if self.logger:
+                    self.logger.error(f"Failed to initialize enhanced metrics: {e}")
+                print(f"Failed to initialize enhanced metrics: {e}")
         else:
             self.use_enhanced_metrics = False
             if self.logger:
@@ -263,12 +269,31 @@ class v7p3rChess:
         # Initialize enhanced metrics for this game
         if self.use_enhanced_metrics:
             try:
+                # Create simplified configs that are guaranteed to be JSON serializable
+                simple_white_config = {
+                    'name': str(self.white_engine_config.get('name', 'unknown')),
+                    'version': str(self.white_engine_config.get('version', 'unknown')),
+                    'search_algorithm': str(self.white_engine_config.get('search_algorithm', 'unknown')),
+                    'depth': int(self.white_engine_config.get('depth', 0)),
+                    'max_depth': int(self.white_engine_config.get('max_depth', 0)),
+                    'ruleset': str(self.white_engine_config.get('ruleset', 'standard'))
+                }
+                
+                simple_black_config = {
+                    'name': str(self.black_engine_config.get('name', 'unknown')),
+                    'version': str(self.black_engine_config.get('version', 'unknown')),
+                    'search_algorithm': str(self.black_engine_config.get('search_algorithm', 'unknown')),
+                    'depth': int(self.black_engine_config.get('depth', 0)),
+                    'max_depth': int(self.black_engine_config.get('max_depth', 0)),
+                    'ruleset': str(self.black_engine_config.get('ruleset', 'standard'))
+                }
+                
                 self.enhanced_metrics_store.start_game(
                     game_id=self.current_game_db_id,
                     white_player=self.white_player,
                     black_player=self.black_player,
-                    white_config=self.white_engine_config,
-                    black_config=self.black_engine_config,
+                    white_config=simple_white_config,
+                    black_config=simple_black_config,
                     pgn_filename=f"{self.current_game_db_id}.pgn"
                 )
                 if self.logger and self.monitoring_enabled:
@@ -673,7 +698,6 @@ class v7p3rChess:
         Collect and store comprehensive metrics using the enhanced system
         """
         if not self.use_enhanced_metrics:
-            print(f"DEBUG: Enhanced metrics not enabled, returning")
             return
 
         current_engine_name = self.white_player.lower() if self.current_player == chess.WHITE else self.black_player.lower()
@@ -1038,14 +1062,13 @@ class v7p3rChess:
         
         if player_lower == 'v7p3r':
             return {
-                'name': self.engine.name,
-                'version': self.engine.version,
-                'search_algorithm': self.engine.search_algorithm,
-                'depth': self.engine.depth,
-                'max_depth': self.engine.max_depth,
-                'ruleset': self.config_manager.ruleset,
-                'use_game_phase': self.engine.use_game_phase,
-                'piece_values': self.engine.piece_values
+                'name': getattr(self.engine, 'name', 'v7p3r'),
+                'version': getattr(self.engine, 'version', 'unknown'),
+                'search_algorithm': getattr(self.engine, 'search_algorithm', 'minimax'),
+                'depth': getattr(self.engine, 'depth', 2),
+                'max_depth': getattr(self.engine, 'max_depth', 2),
+                'ruleset': getattr(self.config_manager, 'ruleset', 'standard') if hasattr(self, 'config_manager') else 'standard',
+                'use_game_phase': getattr(self.engine, 'use_game_phase', True)
             }
         elif player_lower == 'stockfish':
             return {
