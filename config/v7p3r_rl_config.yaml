@@ -17,7 +17,7 @@ batch_size: 16
 episodes_per_validation: 50
 
 # Ruleset Integration
-reward_ruleset: 'default_evaluation'  # Ruleset to use for reward shaping
+reward_ruleset: 'default_ruleset'  # Ruleset to use for reward shaping
 
 # Stockfish Configuration for validation
 stockfish_config:

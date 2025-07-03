@@ -7,7 +7,7 @@ engine_settings:
   max_game_count: 1
   monitoring_enabled: true
   name: v7p3r
-  ruleset: default_evaluation
+  ruleset: default_ruleset
   search_algorithm: lookahead
   starting_position: default
   verbose_output: true

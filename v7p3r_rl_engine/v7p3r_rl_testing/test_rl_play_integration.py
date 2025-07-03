@@ -15,7 +15,7 @@ def test_rl_vs_stockfish():
     
     try:
         # Import the updated play_v7p3r
-        from v7p3r_engine.v7p3r_play import ChessGame
+        from v7p3r_engine.v7p3r_play import v7p3rChess
         
         # Configuration for RL vs Stockfish
         config = {
@@ -28,7 +28,7 @@ def test_rl_vs_stockfish():
                 "name": "v7p3r_rl",
                 "version": "1.0.0",
                 "color": "white",
-                "ruleset": "default_evaluation",
+                "ruleset": "default_ruleset",
                 "search_algorithm": "neural_rl",
                 "depth": 3,
                 "max_depth": 5,
@@ -52,7 +52,7 @@ def test_rl_vs_stockfish():
         }
         
         print("1. Creating chess game with RL engine...")
-        game = ChessGame(config)
+        game = v7p3rChess()
         
         print("2. Available engines:")
         for engine_name in game.engines.keys():

@@ -16,7 +16,7 @@ def test_enhanced_metrics_debug():
     # Setup logging to see all debug output
     logging.basicConfig(level=logging.DEBUG)
     
-    from v7p3r_engine.v7p3r_play import ChessGame
+    from v7p3r_engine.v7p3r_play import v7p3rChess
     
     config = {
         "engine_config": {
@@ -29,7 +29,7 @@ def test_enhanced_metrics_debug():
         }
     }
     
-    game = ChessGame(config)
+    game = v7p3rChess()
     
     print(f"Enhanced metrics enabled: {game.use_enhanced_metrics}")
     

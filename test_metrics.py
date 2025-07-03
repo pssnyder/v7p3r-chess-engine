@@ -5,7 +5,7 @@ Quick test to verify move metrics are being properly collected
 import sys
 import os
 sys.path.insert(0, os.path.abspath('.'))
-from v7p3r_engine.v7p3r_play import ChessGame
+from v7p3r_engine.v7p3r_play import v7p3rChess
 
 # Test configuration with just a few moves
 test_config = {
@@ -41,7 +41,7 @@ test_config = {
 
 if __name__ == "__main__":
     print("Starting test game with updated metrics collection...")
-    game = ChessGame(config=test_config)
+    game = v7p3rChess(config=test_config)
     # Run for a few moves to test metrics
     try:
         game.run(debug_mode=False)

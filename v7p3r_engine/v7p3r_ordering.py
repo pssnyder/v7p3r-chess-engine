@@ -7,6 +7,7 @@ import chess
 import logging
 import datetime
 
+# Ensure the parent directory is in sys.path for imports
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
@@ -16,6 +17,7 @@ def resource_path(relative_path):
     if base:
         return os.path.join(base, relative_path)
     return os.path.join(os.path.abspath("."), relative_path)
+
 # =====================================
 # ========== LOGGING SETUP ============
 def get_timestamp():
@@ -31,7 +33,6 @@ if not os.path.exists(log_dir):
 timestamp = get_timestamp()
 log_filename = f"v7p3r_ordering_{timestamp}.log"
 log_file_path = os.path.join(log_dir, log_filename)
-
 v7p3r_ordering_logger = logging.getLogger(f"v7p3r_ordering_{timestamp}")
 v7p3r_ordering_logger.setLevel(logging.DEBUG)
 
@@ -44,7 +45,7 @@ if not v7p3r_ordering_logger.handlers:
         delay=True
     )
     formatter = logging.Formatter(
-        '%(asctime)s | %(funcName)-15s | %(message)s',
+        '%(asctime)s | %(levelname)s from %(funcName)-15s : %(message)s',
         datefmt='%H:%M:%S'
     )
     file_handler.setFormatter(formatter)
@@ -53,14 +54,16 @@ if not v7p3r_ordering_logger.handlers:
 
 class v7p3rOrdering:
     """Class for move ordering in the V7P3R chess engine."""
-    def __init__(self, engine_config: dict, scoring_calculator, logger: logging.Logger):
+    def __init__(self, engine_config: dict, scoring_calculator):
         self.engine_config = engine_config
         self.scoring_calculator = scoring_calculator
-        self.logger = logger or logging.getLogger('v7p3r_engine_logger')
-        self.monitoring_enabled = engine_config.get('monitoring_enabled', False)
-        self.verbose_output_enabled = engine_config.get('verbose_output', False)
+        self.logger = v7p3r_ordering_logger
+        self.monitoring_enabled = engine_config.get('monitoring_enabled', True)
+        self.verbose_output_enabled = engine_config.get('verbose_output', True)
+        self.move_ordering_enabled = engine_config.get('move_ordering_enabled', True)
+        self.max_moves = engine_config.get('max_moves', 10)  # Default to 10 moves if not set
 
-    def order_moves(self, board: chess.Board, moves, depth: int = 0) -> list:
+    def order_moves(self, board: chess.Board, moves, depth: int = 0, cutoff: int = 0) -> list:
         """Order moves for better alpha-beta pruning efficiency"""
         move_scores = []
         for move in moves:
@@ -69,13 +72,15 @@ class v7p3rOrdering:
                     self.logger.error(f"[Error] Illegal move passed to order_moves: {move} | FEN: {board.fen()}")
                 continue
             
-            score = self._order_move_score(board, move, depth)
+            score = self._order_move_score(board, move)
             move_scores.append((move, score))
+            if score > 1000000: # shortcut to instantly return a move that scores over 1 Mil
+                return [move]
 
         move_scores.sort(key=lambda x: x[1], reverse=True)
         
         # Get max_moves setting from engine config and truncate if needed
-        max_moves = self.engine_config.get('max_moves', 5)
+        max_moves = cutoff
         if max_moves is not None and max_moves > 0 and len(move_scores) > max_moves:
             original_count = len(move_scores)
             move_scores = move_scores[:max_moves]
@@ -89,7 +94,7 @@ class v7p3rOrdering:
         
         return [move for move, _ in move_scores]
 
-    def _order_move_score(self, board: chess.Board, move: chess.Move, depth: int = 0) -> float:
+    def _order_move_score(self, board: chess.Board, move: chess.Move) -> float:
         """Calculate a score for a move for ordering purposes."""
         score = 0.0
 

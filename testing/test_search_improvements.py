@@ -65,7 +65,7 @@ def test_checkmate_detection():
         'depth': 5,
         'max_depth': 8,
         'verbose_output': False,
-        'engine_ruleset': 'default_evaluation'
+        'engine_ruleset': 'default_ruleset'
     }
     
     pst = v7p3rPST()

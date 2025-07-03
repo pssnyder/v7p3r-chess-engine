@@ -33,7 +33,7 @@
     "knight_activity_modifier": 0.1,
     "knight_count_modifier": 1.0863547772925224,
     "knight_vision_penalty": -0.25,
-    "material_weight": 0.8,
+    "material_weight_modifier": 0.8,
     "open_files_modifier": 0.3,
     "passed_pawns_modifier": 1.0,
     "pawn_promotion_modifier": 5.0,

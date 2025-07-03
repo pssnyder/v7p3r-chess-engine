@@ -31,7 +31,7 @@ simulations:
         engine: v7p3r_opponent
     v7p3r:
       v7p3r: # Corresponds to the engine name key in v7p3r_config.yaml
-        ruleset: default_evaluation         # Name of the evaluation rule set to use, see below for available options
+        ruleset: default_ruleset         # Name of the evaluation rule set to use, see below for available options
         search_algorithm: deepsearch        # Move search type for White (see search_algorithms for options)
         depth: 5                            # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
         max_depth: 8                        # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
@@ -44,7 +44,7 @@ simulations:
         scoring_modifier: 1.2               # Optional overall scoring multiplier/divider
         game_phase_awareness: true          # Enable/disable game phase-specific evaluation (opening, middlegame, endgame)
       v7p3r_opponent: # Corresponds to the opponent engine name key in v7p3r_config.yaml
-        ruleset: null_evaluation         # Name of the evaluation rule set to use, see below for available options
+        ruleset: null_ruleset         # Name of the evaluation rule set to use, see below for available options
         search_algorithm: random        # Move search type for White (see search_algorithms for options)
         depth: 0                            # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
         max_depth: 1                        # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
@@ -68,7 +68,7 @@ simulations:
         # Stockfish settings are inside stockfish_config.yaml, but can be overridden
     v7p3r:
       v7p3r: # Corresponds to the engine name key in v7p3r_config.yaml
-        ruleset: default_evaluation         # Name of the evaluation rule set to use, see below for available options
+        ruleset: default_ruleset         # Name of the evaluation rule set to use, see below for available options
         search_algorithm: deepsearch        # Move search type for White (see search_algorithms for options)
         depth: 5                            # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
         max_depth: 8                        # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
@@ -93,7 +93,7 @@ simulations:
         engine: v7p3r_opponent
     v7p3r:
       v7p3r: # Corresponds to the engine name key in v7p3r_config.yaml
-        ruleset: default_evaluation         # Name of the evaluation rule set to use, see below for available options
+        ruleset: default_ruleset         # Name of the evaluation rule set to use, see below for available options
         search_algorithm: deepsearch        # Move search type for White (see search_algorithms for options)
         depth: 5                            # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
         max_depth: 8                        # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
@@ -106,7 +106,7 @@ simulations:
         scoring_modifier: 1.2               # Optional overall scoring multiplier/divider
         game_phase_awareness: true          # Enable/disable game phase-specific evaluation (opening, middlegame, endgame)
       v7p3r_opponent: # Corresponds to the opponent engine name key in v7p3r_config.yaml
-        ruleset: aggressive_evaluation         # Name of the evaluation rule set to use, see below for available options
+        ruleset: aggressive_ruleset         # Name of the evaluation rule set to use, see below for available options
         search_algorithm: deepsearch        # Move search type for White (see search_algorithms for options)
         depth: 3                            # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
         max_depth: 4                        # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
@@ -129,7 +129,7 @@ simulations:
         engine: v7p3r_opponent
     v7p3r: # Corresponds to the engine name key in v7p3r_config.yaml
       v7p3r: # Corresponds to the engine name key in v7p3r_config.yaml
-        ruleset: default_evaluation         # Name of the evaluation rule set to use, see below for available options
+        ruleset: default_ruleset         # Name of the evaluation rule set to use, see below for available options
         search_algorithm: deepsearch        # Move search type for White (see search_algorithms for options)
         depth: 5                            # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
         max_depth: 8                        # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
@@ -142,7 +142,7 @@ simulations:
         scoring_modifier: 1.2               # Optional overall scoring multiplier/divider
         game_phase_awareness: true          # Enable/disable game phase-specific evaluation (opening, middlegame, endgame)
       v7p3r_opponent: # Corresponds to the opponent engine name key in v7p3r_config.yaml
-        ruleset: conservative_evaluation         # Name of the evaluation rule set to use, see below for available options
+        ruleset: conservative_ruleset         # Name of the evaluation rule set to use, see below for available options
         search_algorithm: deepsearch        # Move search type for White (see search_algorithms for options)
         depth: 3                            # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
         max_depth: 4                        # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
@@ -166,7 +166,7 @@ simulations:
         engine: v7p3r_opponent
     v7p3r:
       v7p3r: # Corresponds to the engine name key in v7p3r_config.yaml
-        ruleset: default_evaluation         # Name of the evaluation rule set to use, see below for available options
+        ruleset: default_ruleset         # Name of the evaluation rule set to use, see below for available options
         search_algorithm: deepsearch        # Move search type for White (see search_algorithms for options)
         depth: 5                            # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
         max_depth: 8                        # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
@@ -179,7 +179,7 @@ simulations:
         scoring_modifier: 1.2               # Optional overall scoring multiplier/divider
         game_phase_awareness: true          # Enable/disable game phase-specific evaluation (opening, middlegame, endgame)
       v7p3r_opponent: # Corresponds to the opponent engine name key in v7p3r_config.yaml
-        ruleset: simple_evaluation         # Name of the evaluation rule set to use, see below for available options
+        ruleset: simple_ruleset         # Name of the evaluation rule set to use, see below for available options
         search_algorithm: deepsearch        # Move search type for White (see search_algorithms for options)
         depth: 3                            # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
         max_depth: 4                        # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
@@ -202,7 +202,7 @@ simulations:
         engine: v7p3r_opponent
     v7p3r:
       v7p3r: # Corresponds to the engine name key in v7p3r_config.yaml
-        ruleset: default_evaluation         # Name of the evaluation rule set to use, see below for available options
+        ruleset: default_ruleset         # Name of the evaluation rule set to use, see below for available options
         search_algorithm: deepsearch        # Move search type for White (see search_algorithms for options)
         depth: 5                            # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
         max_depth: 8                        # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
@@ -215,7 +215,7 @@ simulations:
         scoring_modifier: 1.2               # Optional overall scoring multiplier/divider
         game_phase_awareness: true          # Enable/disable game phase-specific evaluation (opening, middlegame, endgame)
       v7p3r_opponent: # Corresponds to the opponent engine name key in v7p3r_config.yaml
-        ruleset: default_evaluation         # Name of the evaluation rule set to use, see below for available options
+        ruleset: default_ruleset         # Name of the evaluation rule set to use, see below for available options
         search_algorithm: deepsearch        # Move search type for White (see search_algorithms for options)
         depth: 3                            # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
         max_depth: 4                        # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
@@ -240,7 +240,7 @@ simulations:
         # Stockfish settings are inside stockfish_config.yaml, but can be overridden
     v7p3r:
       v7p3r: # Corresponds to the engine name key in v7p3r_config.yaml
-        ruleset: default_evaluation         # Name of the evaluation rule set to use, see below for available options
+        ruleset: default_ruleset         # Name of the evaluation rule set to use, see below for available options
         search_algorithm: deepsearch        # Move search type for White (see search_algorithms for options)
         depth: 5                            # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
         max_depth: 8                        # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
@@ -265,7 +265,7 @@ simulations:
         engine: v7p3r
     v7p3r:
       v7p3r: # Corresponds to the engine name key in v7p3r_config.yaml
-        ruleset: default_evaluation         # Name of the evaluation rule set to use, see below for available options
+        ruleset: default_ruleset         # Name of the evaluation rule set to use, see below for available options
         search_algorithm: deepsearch        # Move search type for White (see search_algorithms for options)
         depth: 5                            # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
         max_depth: 8                        # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
@@ -278,7 +278,7 @@ simulations:
         scoring_modifier: 1.2               # Optional overall scoring multiplier/divider
         game_phase_awareness: true          # Enable/disable game phase-specific evaluation (opening, middlegame, endgame)
       v7p3r_opponent: # Corresponds to the opponent engine name key in v7p3r_config.yaml
-        ruleset: aggressive_evaluation         # Name of the evaluation rule set to use, see below for available options
+        ruleset: aggressive_ruleset         # Name of the evaluation rule set to use, see below for available options
         search_algorithm: deepsearch        # Move search type for White (see search_algorithms for options)
         depth: 3                            # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
         max_depth: 4                        # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
@@ -301,7 +301,7 @@ simulations:
         engine: v7p3r
     v7p3r: # Corresponds to the engine name key in v7p3r_config.yaml
       v7p3r: # Corresponds to the engine name key in v7p3r_config.yaml
-        ruleset: default_evaluation         # Name of the evaluation rule set to use, see below for available options
+        ruleset: default_ruleset         # Name of the evaluation rule set to use, see below for available options
         search_algorithm: deepsearch        # Move search type for White (see search_algorithms for options)
         depth: 5                            # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
         max_depth: 8                        # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
@@ -314,7 +314,7 @@ simulations:
         scoring_modifier: 1.2               # Optional overall scoring multiplier/divider
         game_phase_awareness: true          # Enable/disable game phase-specific evaluation (opening, middlegame, endgame)
       v7p3r_opponent: # Corresponds to the opponent engine name key in v7p3r_config.yaml
-        ruleset: conservative_evaluation         # Name of the evaluation rule set to use, see below for available options
+        ruleset: conservative_ruleset         # Name of the evaluation rule set to use, see below for available options
         search_algorithm: deepsearch        # Move search type for White (see search_algorithms for options)
         depth: 3                            # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
         max_depth: 4                        # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
@@ -338,7 +338,7 @@ simulations:
         engine: v7p3r
     v7p3r:
       v7p3r: # Corresponds to the engine name key in v7p3r_config.yaml
-        ruleset: default_evaluation         # Name of the evaluation rule set to use, see below for available options
+        ruleset: default_ruleset         # Name of the evaluation rule set to use, see below for available options
         search_algorithm: deepsearch        # Move search type for White (see search_algorithms for options)
         depth: 5                            # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
         max_depth: 8                        # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
@@ -351,7 +351,7 @@ simulations:
         scoring_modifier: 1.2               # Optional overall scoring multiplier/divider
         game_phase_awareness: true          # Enable/disable game phase-specific evaluation (opening, middlegame, endgame)
       v7p3r_opponent: # Corresponds to the opponent engine name key in v7p3r_config.yaml
-        ruleset: simple_evaluation         # Name of the evaluation rule set to use, see below for available options
+        ruleset: simple_ruleset         # Name of the evaluation rule set to use, see below for available options
         search_algorithm: deepsearch        # Move search type for White (see search_algorithms for options)
         depth: 3                            # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
         max_depth: 4                        # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
@@ -374,7 +374,7 @@ simulations:
         engine: v7p3r
     v7p3r:
       v7p3r: # Corresponds to the engine name key in v7p3r_config.yaml
-        ruleset: default_evaluation         # Name of the evaluation rule set to use, see below for available options
+        ruleset: default_ruleset         # Name of the evaluation rule set to use, see below for available options
         search_algorithm: deepsearch        # Move search type for White (see search_algorithms for options)
         depth: 5                            # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
         max_depth: 8                        # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
@@ -387,7 +387,7 @@ simulations:
         scoring_modifier: 1.2               # Optional overall scoring multiplier/divider
         game_phase_awareness: true          # Enable/disable game phase-specific evaluation (opening, middlegame, endgame)
       v7p3r_opponent: # Corresponds to the opponent engine name key in v7p3r_config.yaml
-        ruleset: default_evaluation         # Name of the evaluation rule set to use, see below for available options
+        ruleset: default_ruleset         # Name of the evaluation rule set to use, see below for available options
         search_algorithm: deepsearch        # Move search type for White (see search_algorithms for options)
         depth: 3                            # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
         max_depth: 4                        # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches

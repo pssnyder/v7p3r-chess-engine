@@ -482,7 +482,7 @@ if __name__ == "__main__":
         'search_algorithm': 'minimax',
         'depth': 3,
         'max_depth': 5,
-        'ruleset': 'enhanced_evaluation'
+        'ruleset': 'enhanced_ruleset'
     }
     
     config_id = store.add_engine_config(test_config)

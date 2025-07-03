@@ -11,7 +11,7 @@ import chess
 sys.path.insert(0, os.path.abspath('.'))
 
 # Import the enhanced v7p3r_play module
-from v7p3r_engine.v7p3r_play import ChessGame
+from v7p3r_engine.v7p3r_play import v7p3rChess
 
 # Test configuration with enhanced features
 test_config = {
@@ -79,7 +79,7 @@ if __name__ == "__main__":
     
     try:
         # Create game instance
-        game = ChessGame(config=test_config)
+        game = v7p3rChess(config=test_config)
         
         # Check if enhanced metrics are enabled
         if hasattr(game, 'use_enhanced_metrics') and game.use_enhanced_metrics:

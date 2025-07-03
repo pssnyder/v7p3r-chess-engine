@@ -58,7 +58,7 @@ simulations:
     v7p3r:
       v7p3r:
         depth: 4
-        ruleset: "aggressive_evaluation"
+        ruleset: "aggressive_ruleset"
 ```
 
 3. Run the simulation manager:
@@ -122,12 +122,12 @@ simulations:
     template: "stockfish_elo_finder"
     v7p3r:
       v7p3r:
-        ruleset: "aggressive_evaluation"
+        ruleset: "aggressive_ruleset"
   - name: "v7p3r Conservative ELO Finder"
     template: "stockfish_elo_finder"
     v7p3r:
       v7p3r:
-        ruleset: "conservative_evaluation"
+        ruleset: "conservative_ruleset"
 ```
 
 ### Understanding Results

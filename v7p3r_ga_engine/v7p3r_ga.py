@@ -55,7 +55,7 @@ class v7p3rGeneticAlgorithm:
 
         # Load base ruleset
         all_rulesets = self.ruleset_manager.load_all_rulesets()
-        base_name = self.config.get('base_ruleset', 'default_evaluation')
+        base_name = self.config.get('base_ruleset', 'default_ruleset')
         self.base_ruleset = copy.deepcopy(all_rulesets.get(base_name, {}))
 
         # Initialize population

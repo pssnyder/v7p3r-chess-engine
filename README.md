@@ -90,7 +90,7 @@ python v7p3r_engine/v7p3r.py --analyze "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK
 Open source — feel free to use and modify!
 2. Customize parameters:
    ```bash
-   python engine_utilities/run_elo_finder.py --initial-elo 1500 --v7p3r-depth 4 --v7p3r-ruleset aggressive_evaluation
+   python engine_utilities/run_elo_finder.py --initial-elo 1500 --v7p3r-depth 4 --v7p3r-ruleset aggressive_ruleset
    ```
 
 3. For more options and advanced usage:

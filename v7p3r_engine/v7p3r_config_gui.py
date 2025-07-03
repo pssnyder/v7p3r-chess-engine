@@ -22,6 +22,7 @@ import yaml
 from tkinter.font import Font
 import copy
 import logging
+from v7p3r_config import v7p3rConfig
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if parent_dir not in sys.path:
@@ -69,44 +70,19 @@ if not v7p3r_config_gui_logger.handlers:
 
 # Import the ChessGame class from v7p3r_play
 try:
-    from .v7p3r_play import ChessGame  # Try relative import first
+    from v7p3r_play import v7p3rChess  # Try relative import first
 except ImportError:
     try:
-        from v7p3r_engine.v7p3r_play import ChessGame  # Try package import
+        from v7p3r_engine.v7p3r_play import v7p3rChess  # Try package import
     except ImportError:
         import sys
         import os
         sys.path.insert(0, os.path.dirname(__file__))
-        from v7p3r_play import ChessGame  # Direct import from same directory
+        from v7p3r_play import v7p3rChess  # Direct import from same directory
 
 # Default values used for new configurations
-DEFAULT_CONFIG = {
-    "engine_config": {
-        "name": "v7p3r",
-        "version": "1.0.0",
-        "color": "white",
-        "ruleset": "default_evaluation",
-        "search_algorithm": "lookahead",
-        "depth": 2,
-        "max_depth": 3,
-        "monitoring_enabled": True,
-        "verbose_output": False,
-        "logger": "v7p3r_engine_logger",
-        "game_count": 1,
-        "starting_position": "default",
-        "white_player": "v7p3r",
-        "black_player": "stockfish"
-    },
-    "stockfish_config": {
-        "stockfish_path": "engine_utilities/external_engines/stockfish/stockfish-windows-x86-64-avx2.exe",
-        "elo_rating": 400,
-        "skill_level": 1,
-        "debug_mode": False,
-        "depth": 2,
-        "max_depth": 2,
-        "movetime": 1000
-    }
-}
+config_manager = v7p3rConfig()
+DEFAULT_CONFIG = config_manager.get_config()
 
 # Path for saved configurations
 CONFIG_DIR = os.path.join(parent_dir, "v7p3r_engine", "saved_configs")
@@ -122,7 +98,7 @@ def ensure_rulesets_yaml_exists():
     if not os.path.exists(RULESET_PATH):
         # Create with default ruleset
         default_ruleset = {
-            "default_evaluation": get_default_ruleset_values()
+            "default_ruleset": get_default_ruleset_values()
         }
         try:
             with open(RULESET_PATH, 'w') as f:
@@ -139,10 +115,10 @@ def load_rulesets():
     try:
         with open(RULESET_PATH, 'r') as file:
             rulesets = yaml.safe_load(file)
-            return list(rulesets.keys()) if rulesets else ["default_evaluation"]
+            return list(rulesets.keys()) if rulesets else ["default_ruleset"]
     except Exception as e:
         print(f"Error loading rulesets: {e}")
-        return ["default_evaluation"]
+        return ["default_ruleset"]
 # Get available engine options
 def get_engine_options():
     # Default engines always available
@@ -262,7 +238,7 @@ def save_ruleset(ruleset_name, ruleset_data, all_rulesets=None):
     # If no name provided, generate timestamped name
     if not ruleset_name:
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
-        ruleset_name = f"custom_evaluation_{timestamp}"
+        ruleset_name = f"custom_ruleset_{timestamp}"
     
     # Ensure the ruleset name has no spaces or special characters
     ruleset_name = "".join(c if c.isalnum() or c in "_-" else "_" for c in ruleset_name)
@@ -309,7 +285,7 @@ def get_default_ruleset_values():
         "king_safety_modifier": 1.5,
         "knight_activity_modifier": 0.1,
         "knight_count_modifier": 1.0,
-        "material_weight": 0.8,
+        "material_weight_modifier": 0.8,
         "open_files_modifier": 0.3,
         "passed_pawns_modifier": 1.0,
         "pawn_promotion_modifier": 5.0,
@@ -798,77 +774,23 @@ class ConfigGUI:
     def _create_ruleset_editor_fields(self):
         """Create the form fields for ruleset parameters"""
         # Define parameter categories for better organization
-        categories = {
-            "Piece Values": [
-                "material_weight",
-            ],
-            "Pawn Structure": [
-                "pawn_weaknesses_modifier", "pawn_structure_modifier",
-                "passed_pawns_modifier", "pawn_promotion_modifier",
-                "en_passant_modifier"
-            ],
-            "Piece Activity": [
-                "bishop_activity_modifier", "bishop_vision_modifier", "knight_activity_modifier",
-                "knight_count_modifier", "piece_coordination_modifier", "board_coverage_modifier",
-                "piece_development_modifier"
-            ],
-            "Board Control": [
-                "center_control_modifier", "open_files_modifier",
-                "rook_coordination_modifier", "tempo_modifier"
-            ],
-            "King Safety": [
-                "castling_modifier", "castling_protection_modifier",
-                "king_safety_modifier", "king_threat_penalty"
-            ],
-            "Tactical Elements": [
-                "capture_move_bonus", "check_modifier", "check_move_bonus",
-                "checkmate_threats_modifier", "checkmate_move_bonus", "counter_move_bonus",
-                "draw_modifier", "piece_attacks_modifier", "hash_move_bonus",
-                "history_move_bonus", "killer_move_bonus", "piece_capture_modifier",
-                "promotion_move_bonus", "queen_attack_modifier",
-                "stalemate_modifier", "piece_protection_modifier"
-            ]
-        }
-        
-        # Parameter descriptions
-        descriptions = {
-            "material_weight": "Weight of material value in the evaluation (0-10)",
-            "pawn_weaknesses_modifier": "Penalty for pawns that are behind friendly pawns and difficult to advance",
-            "pawn_structure_modifier": "Penalty for having two pawns on the same file",
-            "passed_pawns_modifier": "Bonus for pawns with no opposing pawns blocking promotion path",
-            "pawn_promotion_modifier": "Bonus for pawns close to promotion",
-            "en_passant_modifier": "Bonus for en passant capture opportunities",
-            "bishop_activity_modifier": "Bonus for active bishops controlling many squares",
-            "bishop_vision_modifier": "Bonus for bishops with clear diagonals",
-            "knight_activity_modifier": "Bonus for knights in central/active positions",
-            "knight_count_modifier": "Bonus for having both knights",
-            "piece_coordination_modifier": "Bonus for pieces supporting each other",
-            "board_coverage_modifier": "Bonus for pieces with many available moves",
-            "piece_development_modifier": "Penalty for pieces not yet developed",
-            "center_control_modifier": "Bonus for controlling central squares",
-            "open_files_modifier": "Bonus for rooks on open files",
-            "rook_coordination_modifier": "Bonus for connected rooks",
-            "tempo_modifier": "Bonus for the side to move",
-            "castling_modifier": "Bonus for having castled",
-            "castling_protection_modifier": "Bonus for protection after castling",
-            "king_safety_modifier": "Bonus for having a protected king",
-            "capture_move_bonus": "Bonus for moves that capture pieces",
-            "check_modifier": "Bonus for giving check",
-            "check_move_bonus": "Bonus for moves that give check",
-            "checkmate_threats_modifier": "Bonus for checkmate position",
-            "checkmate_move_bonus": "Bonus for moves that give checkmate",
-            "counter_move_bonus": "Bonus for counter moves",
-            "draw_modifier": "Penalty for drawing positions",
-            "piece_attacks_modifier": "Bonus for attacking hanging pieces",
-            "hash_move_bonus": "Bonus for hash table moves",
-            "history_move_bonus": "Bonus for historically good moves",
-            "killer_move_bonus": "Bonus for killer moves in search",
-            "promotion_move_bonus": "Bonus for moves that promote pawns",
-            "queen_attack_modifier": "Bonus for capturing the opponent's queen",
-            "piece_capture_modifier": "Bonus for capturing opponent's pieces",
-            "stalemate_modifier": "Penalty for stalemate positions",
-            "piece_protection_modifier": "Penalty for pieces not defended"
-        }
+        config_path = os.path.join(os.path.dirname(__file__), 'saved_configs', 'default_rulset.json')
+        categories = {}
+        descriptions = {}
+        try:
+            with open(config_path, 'r') as config_path:
+                # Set categories
+                ruleset_config = json.load(config_path)
+                for rule in ruleset_config:
+                    category = rule.get("modifier_category", "Uncategorized")
+                    if category not in categories:
+                        categories[category] = []
+                    categories[category].append(rule["modifier_id"])
+                    descriptions[rule["modifier_id"]] = rule.get("modifier_desc", " for unknown reasons")
+        except FileNotFoundError:
+            raise FileNotFoundError(f"Configuration file not found: {config_path}")
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Error decoding JSON from configuration file: {e}")
         
         # Get default values
         default_values = self.current_ruleset
@@ -960,11 +882,11 @@ class ConfigGUI:
             self.ruleset_preview.insert(tk.END, "No rulesets found.")
             self.ruleset_preview.config(state=tk.DISABLED)
     
-    def _on_config_selected(self, event):
+    def _on_config_selected(self, config_manager):
         """Handle configuration selection from dropdown"""
         selected = self.config_var.get()
         if selected:
-            config_data, error = load_config(selected)
+            config_data, error = config_manager.load_config_from_file(selected)
             if config_data:
                 self.preview_text.config(state=tk.NORMAL)
                 self.preview_text.delete(1.0, tk.END)
@@ -1058,7 +980,7 @@ class ConfigGUI:
         if not ruleset_name:
             # Generate timestamp name if none provided
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
-            ruleset_name = f"custom_evaluation_{timestamp}"
+            ruleset_name = f"custom_ruleset_{timestamp}"
             self.ruleset_name_var.set(ruleset_name)
         
         # Collect values from form
@@ -1179,16 +1101,16 @@ class ConfigGUI:
                 return
 
             # Check if the selected ruleset exists before running
-            ruleset_name = config_data.get("engine_config", {}).get("ruleset", "default_evaluation")
+            ruleset_name = config_data.get("engine_config", {}).get("ruleset", "default_ruleset")
             ruleset_data = load_ruleset_data()
             
             if ruleset_name not in ruleset_data:
                 result = messagebox.askyesno(
                     "Ruleset Not Found", 
-                    f"The selected ruleset '{ruleset_name}' was not found. Do you want to use 'default_evaluation' instead?"
+                    f"The selected ruleset '{ruleset_name}' was not found. Do you want to use 'default_ruleset' instead?"
                 )
                 if result:
-                    config_data["engine_config"]["ruleset"] = "default_evaluation"
+                    config_data["engine_config"]["ruleset"] = "default_ruleset"
                 else:
                     return
             
@@ -1218,12 +1140,12 @@ class ConfigGUI:
                 # Import ChessGame here to avoid circular imports
                 try:
                     # Try local import first
-                    from v7p3r_play import ChessGame
+                    from v7p3r_play import v7p3rChess
                 except ImportError:
                     # Fallback to package import
-                    from v7p3r_engine.v7p3r_play import ChessGame
+                    from v7p3r_engine.v7p3r_play import v7p3rChess
                 
-                game = ChessGame(config_data)
+                game = v7p3rChess(config_data)
                 game.run()
                 
                 # Close metrics store if it exists
@@ -1307,7 +1229,7 @@ class ConfigGUI:
             self.engine_name_var.set(engine_config.get("name", "v7p3r"))
             self.engine_version_var.set(engine_config.get("version", "1.0.0"))
             self.engine_color_var.set(engine_config.get("color", "white"))
-            self.ruleset_var.set(engine_config.get("ruleset", "default_evaluation"))
+            self.ruleset_var.set(engine_config.get("ruleset", "default_ruleset"))
             self.search_algorithm_var.set(engine_config.get("search_algorithm", "lookahead"))
             self.depth_var.set(engine_config.get("depth", 5))
             self.max_depth_var.set(engine_config.get("max_depth", 8))

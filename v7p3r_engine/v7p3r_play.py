@@ -13,37 +13,9 @@ from typing import Optional
 import time # Import time for measuring move duration
 from io import StringIO
 import hashlib
+from v7p3r_config import v7p3rConfig
 
-config = {
-    "game_config": {
-        "game_count": 1,                     # Number of games to play
-        "starting_position": "default",      # Default starting position name (or FEN string)
-        "white_player": "v7p3r",             # Name of the engine being used (e.g., 'v7p3r', 'stockfish'), this value is a direct reference to the engine configuration values in their respective config files
-        "black_player": "stockfish",         # sets this colors engine configuration name, same as above, important note that if the engines are set the same then only whites metrics will be collected to prevent negation in win loss metrics
-    },
-    "engine_config": {
-        "name": "v7p3r",                     # Name of the engine, used for identification and logging
-        "version": "1.0.0",                  # Version of the engine, used for identification and logging
-        "ruleset": "balanced_evaluation",          # Name of the evaluation rule set to use
-        "search_algorithm": "minimax",       # Move search type for White (see search_algorithms for options)
-        "depth": 3,                          # Depth of search for the engine, 1 for random, 2 for simple search, 3+ for more complex searches
-        "max_depth": 5,                      # Max depth of search for engine, 1 for random, 2 for simple search, 3+ for more complex searches
-        "max_moves": 5,                      # Maximum number of moves to consider after ordering (truncates move list to top N moves)
-        "use_game_phase": True,              # Use game phase evaluation
-        "monitoring_enabled": True,          # Enable or disable monitoring features
-        "verbose_output": True,              # Enable or disable verbose output for debugging
-        "logger": "v7p3r_engine_logger",     # Logger name for the engine, used for logging engine-specific events
-    },
-    "stockfish_config": {
-        "stockfish_path": "v7p3r_engine/external_engines/stockfish/stockfish-windows-x86-64-avx2.exe",
-        "elo_rating": 100,
-        "skill_level": 1,
-        "debug_mode": False,
-        "depth": 1,
-        "max_depth": 1,
-        "movetime": 100,  # Time in milliseconds for Stockfish to think
-    },
-}
+CONFIG_NAME = "default_config"
 
 # Define the maximum frames per second for the game loop
 MAX_FPS = 60
@@ -113,8 +85,8 @@ except ImportError:
     ENHANCED_METRICS_AVAILABLE = False
     print("Warning: Enhanced metrics system not available, using legacy system")
 
-class ChessGame:
-    def __init__(self, config):
+class v7p3rChess:
+    def __init__(self, config: Optional[dict] = None):
         """
         config: ChessGameConfig object containing all configuration parameters.
         """
@@ -124,12 +96,33 @@ class ChessGame:
 
         # Enable logging
         self.logger = v7p3r_play_logger
-        
+
+        # Load configuration
+        try:
+            if config is None:
+                self.config_manager = v7p3rConfig()
+                self.config = self.config_manager.get_config()
+                self.game_config = self.config_manager.get_game_config()
+                self.engine_config = self.config_manager.get_engine_config()
+                self.stockfish_config = self.config_manager.get_stockfish_config()
+                self.puzzle_config = self.config_manager.get_puzzle_config()
+                if self.logger:
+                    self.logger.info("No configuration provided, using default v7p3r configuration.")
+            else:
+                self.config = config
+                self.game_config = self.config.get("game_config", {})
+                self.engine_config = self.config.get("engine_config", {})
+                self.stockfish_config = self.config.get("stockfish_config", {})
+                if self.logger:
+                    self.logger.info("Configuration provided, using custom settings.")
+        except Exception as e:
+            if self.logger:
+                self.logger.error(f"Error loading configuration: {e}")
+            raise
+
         # Initialize Engines
-        self.engine_config = config.get("engine_config", {})
-        self.engine = v7p3rEngine(self.engine_config)
-        self.stockfish_config = config.get("stockfish_config", {})
-        self.stockfish = StockfishHandler(self.stockfish_config)
+        self.engine = v7p3rEngine()
+        self.stockfish = StockfishHandler(stockfish_config=self.stockfish_config)
         
         # Initialize enhanced metrics system
         if ENHANCED_METRICS_AVAILABLE:
@@ -157,7 +150,6 @@ class ChessGame:
         }
         
         # Game Settings
-        self.game_config = config.get("game_config", {})
         self.game_count = self.game_config.get("game_count", 1)
         self.white_player = self.game_config.get("white_player", "v7p3r")
         self.black_player = self.game_config.get("black_player", "stockfish")
@@ -199,7 +191,7 @@ class ChessGame:
         # Initialize RL engine if available
         if RL_ENGINE_AVAILABLE and 'v7p3r_rl' in self.engines:
             try:
-                rl_config_path = config.get('rl_config_path', 'config/v7p3r_rl_config.yaml')
+                rl_config_path = self.config.get('rl_config_path', 'config/v7p3r_rl_config.yaml')
                 self.rl_engine = v7p3rRLEngine(rl_config_path)
                 self.engines['v7p3r_rl'] = self.rl_engine
                 print("✓ v7p3r RL engine initialized")
@@ -210,7 +202,7 @@ class ChessGame:
         if GA_ENGINE_AVAILABLE and 'v7p3r_ga' in self.engines:
             try:
                 from v7p3r_ga_engine.v7p3r_ga import v7p3rGeneticAlgorithm
-                ga_config_path = config.get('ga_config_path', 'config/v7p3r_ga_config.yaml')
+                ga_config_path = self.config.get('ga_config_path', 'config/v7p3r_ga_config.yaml')
                 self.ga_engine = v7p3rGeneticAlgorithm(ga_config_path)
                 self.engines['v7p3r_ga'] = self.ga_engine
                 print("✓ v7p3r GA engine initialized for gameplay")
@@ -220,7 +212,7 @@ class ChessGame:
         # Initialize NN engine if available
         if NN_ENGINE_AVAILABLE and 'v7p3r_nn' in self.engines:
             try:
-                nn_config_path = config.get('nn_config_path', 'config/v7p3r_nn_config.yaml')
+                nn_config_path = self.config.get('nn_config_path', 'config/v7p3r_nn_config.yaml')
                 self.nn_engine = self._create_nn_engine_wrapper(nn_config_path)
                 if self.nn_engine:
                     self.engines['v7p3r_nn'] = self.nn_engine
@@ -1042,7 +1034,7 @@ class ChessGame:
                 'search_algorithm': self.engine.search_algorithm,
                 'depth': self.engine.depth,
                 'max_depth': self.engine.max_depth,
-                'ruleset': self.engine.ruleset,
+                'ruleset': self.config_manager.ruleset,
                 'use_game_phase': self.engine.use_game_phase,
                 'piece_values': self.engine.piece_values
             }
@@ -1157,6 +1149,8 @@ class ChessGame:
             pass
 
 if __name__ == "__main__":
-    game = ChessGame(config)
+    
+    # Set up and start the game
+    game = v7p3rChess()
     game.run()
     game.metrics_store.close()

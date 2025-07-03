@@ -7,7 +7,7 @@ engine_settings:
   max_depth: 3
   monitoring_enabled: true
   name: v7p3r
-  ruleset: survival_evaluation
+  ruleset: survival_ruleset
   search_algorithm: negamax
   starting_position: default
   verbose_output: false

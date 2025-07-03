@@ -5,30 +5,18 @@ import logging
 import datetime
 import sqlite3
 import chess
-from v7p3r_engine.v7p3r import v7p3rEngine
+from v7p3r import v7p3rEngine
+from v7p3r_config import v7p3rConfig
 
 DEBUG_MODE = False  # Set to True to enable debugging features, such as pausing after each position
 position_config = {
-    "rating": 3000, # Max rating for starting positions
-    "themes": ["mate", "endgame"], # Themes to filter by, e.g., 'mate', 'tactics'
+    "rating": 2000, # Max rating for starting positions
+    "themes": ["mateIn1", "mateIn2","mateIn3"], # Themes to filter by, e.g., 'mate', 'tactics'
     "max_moves": 10, # Max moves in the position
     "limit": 25, # Limit the number of starting positions returned
-    "query_type": "strict" # 'strict' uses 'AND' logic, 'loose' uses 'OR' logic, when querying themes
+    "query_type": "loose" # 'strict' uses 'AND' logic, 'loose' uses 'OR' logic, when querying themes
 }
-config = {
-    "engine_config": {
-        "name": "v7p3r",                     # Name of the engine, used for identification and logging
-        "version": "1.0.0",                  # Version of the engine, used for identification and logging
-        "ruleset": "default_evaluation",    # Name of the evaluation rule set to use, see below for available options
-        "search_algorithm": "lookahead",       # Move search type for White (see search_algorithms for options)
-        "depth": 3,                          # Depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
-        "max_depth": 4,                      # Max depth of search for AI, 1 for random, 2 for simple search, 3+ for more complex searches
-        "use_game_phase": False,             # Use game phase evaluation
-        "monitoring_enabled": True,          # Enable or disable monitoring features
-        "verbose_output": True,              # Enable or disable verbose output for debugging
-        "logger": "v7p3r_tuning_logger",     # Logger name for the engine, used for logging engine-specific events
-    }
-}
+config = v7p3rConfig()
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if parent_dir not in sys.path:
@@ -88,8 +76,8 @@ class v7p3rTuner:
         self.logger = v7p3r_live_tuner_logger
         self.current_position = 0
         self.engine_config = config.get("engine_config", {})
-        self.monitoring_enabled = self.engine_config.get("monitoring_enabled", False)
-        self.verbose_output_enabled = self.engine_config.get("verbose_output", False)
+        self.monitoring_enabled = self.engine_config.get("monitoring_enabled", True)
+        self.verbose_output_enabled = self.engine_config.get("verbose_output", True)
         
         # Initialize the engine with the loaded config
         self.engine = v7p3rEngine(self.engine_config)
@@ -110,39 +98,72 @@ class v7p3rTuner:
             raise ValueError("query_type must be 'strict' or 'loose'")
         if not isinstance(themes, list):
             themes = [themes]
+        
+        # Build theme filtering clause correctly
         if themes:
             theme_clauses = ["themes LIKE ?" for _ in themes]
             joiner = " AND " if query_type == 'strict' else " OR "
-            where_themes = f"({' '.join([joiner.join(theme_clauses)])})"
+            where_themes = f"({joiner.join(theme_clauses)})"
             theme_params = [f"%{theme}%" for theme in themes]
         else:
-            where_themes = "(1)"  # Always true if no themes specified
+            where_themes = "1=1"  # Always true if no themes specified
             theme_params = []
+        
+        # Build the complete query
         query = f"""
             SELECT fen, moves 
             FROM puzzles 
-            WHERE rating < ? 
-            AND LENGTH(moves) < ? 
+            WHERE rating <= ? 
+            AND (LENGTH(moves) - LENGTH(REPLACE(moves, ' ', '')) + 1) <= ? 
             AND {where_themes}
+            ORDER BY rating ASC
             LIMIT ?
         """
-        params = [criteria.get('rating', 3000), criteria.get('max_moves', 2)] + theme_params + [criteria.get('limit', 10)]
+        
+        # Prepare parameters in correct order
+        rating_limit = criteria.get('rating', 3000)
+        max_moves = criteria.get('max_moves', 10)
+        limit = criteria.get('limit', 25)
+        params = [rating_limit, max_moves] + theme_params + [limit]
+        
+        # Debug output
+        if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
+            self.logger.info(f"Database query: {query}")
+            self.logger.info(f"Query parameters: {params}")
+            self.logger.info(f"Criteria: rating <= {rating_limit}, max_moves <= {max_moves}, themes: {themes} ({query_type}), limit: {limit}")
         with sqlite3.connect(db_path) as conn:
             cursor = conn.cursor()
             cursor.execute(query, params)
             results = cursor.fetchall()
+            
+            if self.logger and self.monitoring_enabled:
+                self.logger.info(f"Database returned {len(results)} raw results")
+            
             if results:
                 # Extract FEN and moves from results
                 starting_positions = []
-                for row in results:
+                for i, row in enumerate(results):
                     fen = row[0]  # FEN is in the first column
                     moves = row[1]  # Moves are in the second column, a space-separated string of UCI moves
                     if moves:
-                        moves = moves.split(' ')
-                    starting_positions.append({fen: moves})
-                logging.info(f"Found {len(starting_positions)} starting positions matching criteria: {criteria}")
+                        moves_list = moves.strip().split(' ')
+                        # Filter out empty strings
+                        moves_list = [move for move in moves_list if move.strip()]
+                    else:
+                        moves_list = []
+                    
+                    if self.logger and self.monitoring_enabled and self.verbose_output_enabled and i < 3:
+                        self.logger.info(f"Sample position {i+1}: FEN={fen[:50]}..., moves={moves_list}")
+                    
+                    starting_positions.append({fen: moves_list})
+                
+                if self.logger and self.monitoring_enabled:
+                    self.logger.info(f"Successfully processed {len(starting_positions)} starting positions matching criteria: {criteria}")
+                print(f"Found {len(starting_positions)} starting positions matching criteria")
             else:
-                logging.warning(f"No starting positions found matching criteria: {criteria}")
+                if self.logger and self.monitoring_enabled:
+                    self.logger.warning(f"No starting positions found matching criteria: {criteria}")
+                print(f"No starting positions found matching criteria: {criteria}")
                 starting_positions = []
         return starting_positions
     

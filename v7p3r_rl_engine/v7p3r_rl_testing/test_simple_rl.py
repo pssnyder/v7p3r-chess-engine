@@ -11,7 +11,7 @@ def simple_test():
     print("Simple RL engine integration test...")
     
     try:
-        from v7p3r_engine.v7p3r_play import ChessGame
+        from v7p3r_engine.v7p3r_play import v7p3rChess
         
         config = {
             'game_count': 1,
@@ -25,7 +25,7 @@ def simple_test():
         }
         
         print("Creating game...")
-        game = ChessGame(config)
+        game = v7p3rChess()
         
         print(f"Available engines: {list(game.engines.keys())}")
         

@@ -4,7 +4,7 @@
 import sys
 sys.path.insert(0, '.')
 
-from v7p3r_engine.v7p3r_play import ChessGame
+from v7p3r_engine.v7p3r_play import v7p3rChess
 
 # Test basic config
 config = {
@@ -21,7 +21,7 @@ config = {
 }
 
 print('Creating ChessGame with RL vs Stockfish...')
-game = ChessGame(config)
+game = v7p3rChess()
 print(f'Available engines: {list(game.engines.keys())}')
 print('✓ v7p3r_rl' if 'v7p3r_rl' in game.engines else '✗ v7p3r_rl')
 print('✓ v7p3r_ga' if 'v7p3r_ga' in game.engines else '✗ v7p3r_ga') 

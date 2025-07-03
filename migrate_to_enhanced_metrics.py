@@ -121,7 +121,7 @@ def test_enhanced_system():
             'search_algorithm': 'minimax',
             'depth': 3,
             'max_depth': 5,
-            'ruleset': 'enhanced_evaluation',
+            'ruleset': 'enhanced_ruleset',
             'use_game_phase': True
         }
         

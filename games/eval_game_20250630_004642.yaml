@@ -5,7 +5,7 @@ engine_settings:
   max_depth: 4
   monitoring_enabled: true
   name: v7p3r
-  ruleset: default_evaluation
+  ruleset: default_ruleset
   search_algorithm: minimax
   use_game_phase: false
   verbose_output: true

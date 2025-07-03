@@ -25,7 +25,7 @@ def test_fixed_scoring_functions():
         # Setup
         engine_config = {
             'verbose_output': False,
-            'engine_ruleset': 'default_evaluation'
+            'engine_ruleset': 'default_ruleset'
         }
         pst = v7p3rPST()
         logger = logging.getLogger("test_logger")

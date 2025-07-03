@@ -94,7 +94,7 @@ evaluation_rules = {
     "piece_attacks_modifier": 2.0,          # Bonus for attacking hanging pieces
     "knight_count_modifier": 1.0,            # Bonus for having knight pair
     "castling_protection_modifier": 3.0,    # Bonus for keeping the right to castle
-    "material_weight": 0.8,              # Material calculation impact on eval
+    "material_weight_modifier": 0.8,              # Material calculation impact on eval
     "piece_coordination_modifier": 0.5,     # Bonus for piece coordination
     "pawn_structure_modifier": -0.5,        # Penalty for having doubled pawns
     "pawn_weaknesses_modifier": -0.5,       # Penalty for having backward pawns
