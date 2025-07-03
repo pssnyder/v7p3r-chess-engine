@@ -296,14 +296,14 @@ class v7p3rChess:
                     black_config=simple_black_config,
                     pgn_filename=f"{self.current_game_db_id}.pgn"
                 )
-                if self.logger and self.monitoring_enabled:
+                if self.monitoring_enabled and self.logger:
                     self.logger.info(f"Enhanced metrics initialized for game: {self.current_game_db_id}")
             except Exception as e:
                 if self.logger:
                     self.logger.error(f"Error initializing enhanced metrics: {e}")
                 self.use_enhanced_metrics = False
         
-        if self.logger and self.monitoring_enabled:
+        if self.monitoring_enabled and self.logger:
             self.logger.info(f"Starting new game: {self.current_game_db_id}.")
 
     def set_headers(self):
@@ -405,7 +405,7 @@ class v7p3rChess:
                     game_duration=game_duration
                 )
                 
-                if self.logger and self.monitoring_enabled:
+                if self.monitoring_enabled and self.logger:
                     self.logger.info(f"Enhanced metrics game completion recorded for: {game_id}")
                     
             except Exception as e:
@@ -433,7 +433,7 @@ class v7p3rChess:
             # Always append the result string at the end for compatibility
             if result != "*":
                 f.write(f"\n{result}\n")
-        if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
+        if self.monitoring_enabled and self.logger:
             self.logger.info(f"Game PGN saved to {pgn_filepath}")
 
         # Save YAML config file for metrics processing
@@ -446,7 +446,7 @@ class v7p3rChess:
         }
         with open(config_filepath, "w") as f:
             yaml.dump(game_specific_config, f)
-        if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
+        if self.monitoring_enabled and self.logger:
             self.logger.info(f"Game-specific combined configuration saved to {config_filepath}")
 
         # Save the game result to a file for instant analysis
@@ -479,7 +479,7 @@ class v7p3rChess:
                 self.game.accept(exporter)
                 f.write(buf.getvalue())
         except Exception as e:
-            if self.logger and self.monitoring_enabled:
+            if self.monitoring_enabled and self.logger:
                 self.logger.error(f"[Error] Failed to save PGN to {filename}: {e}")
 
     def save_local_game_files(self, game_id, pgn_text):
@@ -506,11 +506,11 @@ class v7p3rChess:
             with open(yaml_path, 'w', encoding='utf-8') as f:
                 yaml.dump(config_data, f, default_flow_style=False)
             
-            if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
+            if self.monitoring_enabled and self.logger:
                 self.logger.info(f"Saved local files: {pgn_path}, {yaml_path}")
                 
         except Exception as e:
-            if self.logger and self.monitoring_enabled:
+            if self.monitoring_enabled and self.logger:
                 self.logger.error(f"[Error] Failed to save local game files for {game_id}: {e}")
 
     def import_fen(self, fen_string):
@@ -519,7 +519,7 @@ class v7p3rChess:
             new_board = chess.Board(fen_string)
             
             if not new_board.is_valid():
-                if self.logger and self.monitoring_enabled:
+                if self.monitoring_enabled and self.logger:
                     self.logger.error(f"[Error] Invalid FEN position: {fen_string}")
                 return False
 
@@ -530,12 +530,12 @@ class v7p3rChess:
             self.selected_square = None
             self.game.headers["FEN"] = fen_string
 
-            if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
+            if self.monitoring_enabled and self.logger:
                 self.logger.info(f"Successfully imported FEN: {fen_string}")
             return True
 
         except Exception as e:
-            if self.logger and self.monitoring_enabled:
+            if self.monitoring_enabled and self.logger:
                 self.logger.error(f"[Error] Unexpected problem importing FEN: {e}")
             return False
 
@@ -550,14 +550,14 @@ class v7p3rChess:
         self.move_start_time = time.time()  # Start timing the move
         self.move_end_time = 0
         self.move_duration = 0
-        if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
+        if self.monitoring_enabled and self.logger:
             self.logger.info(f"Processing move for {self.white_player if self.current_player == chess.WHITE else self.black_player} using {self.engine.name} engine.")
         print(f"{self.white_player if self.current_player == chess.WHITE else self.black_player} is thinking...")
 
         # Send the move request to the appropriate engine or human interface
         if (self.white_player.lower() == 'human' and self.current_player == chess.WHITE) or (self.black_player.lower() == 'human' and self.current_player == chess.BLACK):
             # Handle human player input (not implemented here, placeholder)
-            if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
+            if self.monitoring_enabled and self.logger:
                 self.logger.info("Waiting for human player input...")
             return
         else:
@@ -568,7 +568,7 @@ class v7p3rChess:
             if current_engine_name == 'v7p3r':
                 try:
                     # Debug logging to track the issue (always log this)
-                    if self.logger and self.monitoring_enabled:
+                    if self.monitoring_enabled and self.logger:
                         self.logger.info(f"Engine type: {type(self.engine)}")
                         self.logger.info(f"Search engine type: {type(self.engine.search_engine)}")
                         self.logger.info(f"Search method type: {type(self.engine.search_engine.search)}")
@@ -582,7 +582,7 @@ class v7p3rChess:
                     # Use the v7p3r engine for the current player
                     engine_move = self.engine.search_engine.search(self.board, self.current_player)
                 except Exception as e:
-                    if self.logger and self.monitoring_enabled:
+                    if self.monitoring_enabled and self.logger:
                         self.logger.error(f"[HARDSTOP Error] Cannot find move via v7p3rSearch: {e}. | FEN: {self.board.fen()}")
                         self.logger.error(f"Engine type: {type(self.engine)}")
                         self.logger.error(f"Search engine type: {type(self.engine.search_engine)}")
@@ -593,11 +593,11 @@ class v7p3rChess:
             elif current_engine_name == 'stockfish':
                 try:
                     # Use the Stockfish engine for the current player
-                    if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
+                    if self.monitoring_enabled and self.logger:
                         self.logger.info("Using Stockfish engine for move processing.")
                     engine_move = self.stockfish.search(self.board, self.current_player, self.stockfish_config)
                 except Exception as e:
-                    if self.logger and self.monitoring_enabled:
+                    if self.monitoring_enabled and self.logger:
                         self.logger.error(f"[HARDSTOP Error] Cannot find move via Stockfish: {e}. | FEN: {self.board.fen()}")
                     print(f"HARDSTOP ERROR: Cannot find move via Stockfish: {e}. | FEN: {self.board.fen()}")
                     return
@@ -605,11 +605,11 @@ class v7p3rChess:
             elif current_engine_name == 'v7p3r_rl' and 'v7p3r_rl' in self.engines:
                 try:
                     # Use the RL engine for the current player
-                    if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
+                    if self.monitoring_enabled and self.logger:
                         self.logger.info("Using v7p3r RL engine for move processing.")
                     engine_move = self.engines['v7p3r_rl'].search(self.board, self.current_player)
                 except Exception as e:
-                    if self.logger and self.monitoring_enabled:
+                    if self.monitoring_enabled and self.logger:
                         self.logger.error(f"[HARDSTOP Error] Cannot find move via v7p3rReinforcementLearning: {e}. | FEN: {self.board.fen()}")
                     print(f"HARDSTOP ERROR: Cannot find move via v7p3rReinforcementLearning: {e}. | FEN: {self.board.fen()}")
                     return
@@ -617,11 +617,11 @@ class v7p3rChess:
             elif current_engine_name == 'v7p3r_ga' and 'v7p3r_ga' in self.engines:
                 try:
                     # Use the GA engine
-                    if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
+                    if self.monitoring_enabled and self.logger:
                         self.logger.info("Using v7p3r GA engine for move processing.")
                     engine_move = self.engines['v7p3r_ga'].search(self.board, self.current_player)
                 except Exception as e:
-                    if self.logger and self.monitoring_enabled:
+                    if self.monitoring_enabled and self.logger:
                         self.logger.error(f"[HARDSTOP Error] Cannot find move via v7p3rGeneticAlgorithm: {e}. | FEN: {self.board.fen()}")
                     print(f"HARDSTOP ERROR: Cannot find move via v7p3r_ga: {e}. | FEN: {self.board.fen()}")
                     return
@@ -629,16 +629,16 @@ class v7p3rChess:
             elif current_engine_name == 'v7p3r_nn' and 'v7p3r_nn' in self.engines:
                 try:
                     # Use the NN engine
-                    if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
+                    if self.monitoring_enabled and self.logger:
                         self.logger.info("Using v7p3r NN engine for move processing.")
                     engine_move = self.engines['v7p3r_nn'].search(self.board, self.current_player)
                 except Exception as e:
-                    if self.logger and self.monitoring_enabled:
+                    if self.monitoring_enabled and self.logger:
                         self.logger.error(f"[HARDSTOP Error] Cannot find move via v7p3rNeuralNetwork: {e}. | FEN: {self.board.fen()}")
                     print(f"HARDSTOP ERROR: Cannot find move via v7p3rNeuralNetwork: {e}. | FEN: {self.board.fen()}")
                     return
             else:
-                if self.logger and self.monitoring_enabled:
+                if self.monitoring_enabled and self.logger:
                     self.logger.error(f"[HARDSTOP Error] No valid engine in configuration: {current_engine_name}. | FEN: {self.board.fen()}")
                 print(f"HARDSTOP ERROR: No valid engine in configuration: {current_engine_name}. | FEN: {self.board.fen()}")
                 return
@@ -656,7 +656,7 @@ class v7p3rChess:
                     self.move_duration = self.move_end_time - self.move_start_time
                     self.pv_line = ""
             except Exception as e:
-                if self.logger and self.monitoring_enabled:
+                if self.monitoring_enabled and self.logger:
                     self.logger.error(f"[HARDSTOP Error] Move Invalid: {e}. | Move: {engine_move} | FEN: {self.board.fen()}")
                 print(f"HARDSTOP ERROR: Move Invalid: {e}. | Move: {engine_move} | FEN: {self.board.fen()}")
                 return
@@ -668,7 +668,7 @@ class v7p3rChess:
                     engine_move, fen_before_move, move_number
                 )
             except Exception as e:
-                if self.logger and self.monitoring_enabled:
+                if self.monitoring_enabled and self.logger:
                     self.logger.error(f"[Error] Enhanced metrics collection failed: {e}")
                 # Fall back to legacy metrics collection
                 self._collect_legacy_metrics(
@@ -680,7 +680,7 @@ class v7p3rChess:
             # Initialize logged_nodes
             logged_nodes = 0
             
-            if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
+            if self.monitoring_enabled and self.logger:
                 # Use the nodes_searched from the appropriate engine
                 current_engine_name = self.white_player.lower() if self.current_player == chess.WHITE else self.black_player.lower()
                 try:
@@ -757,7 +757,7 @@ class v7p3rChess:
             traceback.print_exc()
             raise
         
-        if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
+        if self.monitoring_enabled and self.logger:
             self.logger.info(f"Enhanced metrics collected for move {engine_move.uci()}")
     
     def _collect_v7p3r_metrics(self, fen_before_move: str) -> dict:
@@ -900,7 +900,7 @@ class v7p3rChess:
                     engine_version = self.engine.version
                     engine_id = hashlib.md5(self.engine.name.encode()).hexdigest()
                 except AttributeError as e:
-                    if self.logger and self.monitoring_enabled:
+                    if self.monitoring_enabled and self.logger:
                         self.logger.warning(f"Could not access v7p3r engine metrics: {e}")
                     nodes_searched = 0
                     
@@ -922,7 +922,7 @@ class v7p3rChess:
                     engine_version = getattr(engine_obj, 'version', "unknown")
                     engine_id = hashlib.md5(engine_name.encode()).hexdigest()
                 except AttributeError as e:
-                    if self.logger and self.monitoring_enabled:
+                    if self.monitoring_enabled and self.logger:
                         self.logger.warning(f"Could not access {current_engine_name} engine metrics: {e}")
                     nodes_searched = 0
             
@@ -948,47 +948,47 @@ class v7p3rChess:
             self.metrics_store.add_move_metric(**metric)
             self._move_metrics_batch.append(metric)
             
-            if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
+            if self.monitoring_enabled and self.logger:
                 self.logger.info(f"Legacy metrics for {engine_move.uci()} added to MetricsStore.")
                 
         except Exception as e:
-            if self.logger and self.monitoring_enabled:
+            if self.monitoring_enabled and self.logger:
                 self.logger.error(f"[Error] Legacy metrics collection failed: {e}")
             return
 
     def push_move(self, move):
         """ Test and push a move to the board and game node """
         if not self.board.is_valid():
-            if self.logger and self.monitoring_enabled:
+            if self.monitoring_enabled and self.logger:
                 self.logger.error(f"[Error] Invalid board state detected! | FEN: {self.board.fen()}")
             return False
         
-        if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
+        if self.monitoring_enabled and self.logger:
             self.logger.info(f"Attempting to push move from {'White Engine' if self.board.turn == chess.WHITE else 'Black Engine'}: {move} | FEN: {self.board.fen()}")
 
         if isinstance(move, str):
             try:
                 move = chess.Move.from_uci(move)
-                if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
+                if self.monitoring_enabled and self.logger:
                     self.logger.info(f"Converted to chess.Move move from UCI string before push: {move}")
             except ValueError:
-                if self.logger and self.monitoring_enabled:
+                if self.monitoring_enabled and self.logger:
                     self.logger.error(f"[Error] Invalid UCI string received: {move}")
                 return False
         
         if not self.board.is_legal(move):
-            if self.logger and self.monitoring_enabled:
+            if self.monitoring_enabled and self.logger:
                 self.logger.info(f"[Error] Illegal move blocked from being pushed: {move}")
             return False
         
         try:
-            if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
+            if self.monitoring_enabled and self.logger:
                 self.logger.info(f"No remaining checks, pushing move: {move} | FEN: {self.board.fen()}")
             
             self.board.push(move)
             self.game_node = self.game_node.add_variation(move)
             self.last_move = move
-            if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
+            if self.monitoring_enabled and self.logger:
                 self.logger.info(f"Move pushed successfully: {move} | FEN: {self.board.fen()}")
             
             self.current_player = self.board.turn
@@ -1008,13 +1008,13 @@ class v7p3rChess:
             
             return True
         except ValueError as e:
-            if self.logger and self.monitoring_enabled:
+            if self.monitoring_enabled and self.logger:
                 self.logger.error(f"[Error] ValueError pushing move {move}: {e}. Dumping PGN to error_dump.pgn")
             self.quick_save_pgn("games/game_error_dump.pgn")
             return False
             
         except Exception as e:
-            if self.logger and self.monitoring_enabled:
+            if self.monitoring_enabled and self.logger:
                 self.logger.error(f"[Error] Exception pushing move {move}: {e}. Dumping PGN to error_dump.pgn")
             self.quick_save_pgn("games/game_error_dump.pgn")
             return False
@@ -1109,7 +1109,7 @@ class v7p3rChess:
         game_count_remaining = self.game_count
         
         print(f"White: {self.white_player} vs Black: {self.black_player}")
-        if self.logger and self.monitoring_enabled:
+        if self.monitoring_enabled and self.logger:
             self.logger.info(f"White: {self.white_player} vs Black: {self.black_player}")
 
         while running and game_count_remaining >= 1:
@@ -1124,11 +1124,11 @@ class v7p3rChess:
                     game_count_remaining -= 1
                     if game_count_remaining == 0:
                         running = False
-                        if self.logger and self.monitoring_enabled:
+                        if self.monitoring_enabled and self.logger:
                             self.logger.info(f'All {self.game_count} games complete, exiting...')
                         print(f'All {self.game_count} games complete, exiting...')
                     else:
-                        if self.logger and self.monitoring_enabled:
+                        if self.monitoring_enabled and self.logger:
                             self.logger.info(f'Game {self.game_count - game_count_remaining}/{self.game_count} complete, starting next...')
                         print(f'Game {self.game_count - game_count_remaining}/{self.game_count} complete, starting next...')
                         self.game_start_timestamp = get_timestamp()
@@ -1168,7 +1168,7 @@ class v7p3rChess:
                 self.stockfish.quit()
                 
         except Exception as e:
-            if self.logger and self.monitoring_enabled:
+            if self.monitoring_enabled and self.logger:
                 self.logger.error(f"[Error] Failed during engine cleanup: {e}")
             else:
                 print(f"Error during engine cleanup: {e}")

@@ -30,7 +30,7 @@ def test_game_with_refactored_metrics():
             },
             "engine_config": {
                 "monitoring_enabled": True,
-                "verbose_output": True,
+                "verbose_output": False,
                 "depth": 2,
                 "max_depth": 3
             },

@@ -61,7 +61,7 @@ class v7p3rSearch:
         # Logging Setup
         self.logger = v7p3r_search_logger
         self.monitoring_enabled = self.engine_config.get('monitoring_enabled', True)
-        self.verbose_output_enabled = self.engine_config.get('verbose_output', True)
+        self.verbose_output_enabled = self.engine_config.get('verbose_output', False)
 
         # Required Search Modules
         self.scoring_calculator = scoring_calculator
@@ -299,13 +299,13 @@ class v7p3rSearch:
         self.current_turn = board.turn
         if depth <= 0 or board.is_game_over():
             if self.quiescence_enabled:
-                eval_result = self._quiescence_search(board, -float('inf'), float('inf'), True)
+                eval_result = self._quiescence_search(board, -float('inf'), float('inf'), maximizing_player)
                 if self.monitoring_enabled and self.logger:
                     self.logger.info(f"MINIMAX: Quiescence search returned: {eval_result} (type: {type(eval_result)})")
             else:
                 eval_result = self.scoring_calculator.evaluate_position_from_perspective(board, board.turn)
                 if self.monitoring_enabled and self.logger:
-                    self.logger.info(f"MINIMAX: Evaluated position from {self.color_name} perspective returned: {eval_result} | FEN: {board.fen()}")
+                    self.logger.info(f"MINIMAX: Evaluation from {self.color_name}'s perspective returned: {eval_result} | FEN: {board.fen()}")
             
             if not isinstance(eval_result, (int, float)):
                 if self.monitoring_enabled and self.logger:
@@ -326,7 +326,7 @@ class v7p3rSearch:
             # Order moves for better alpha-beta pruning efficiency
             legal_moves = self.move_organizer.order_moves(board, legal_moves, depth=self.depth, cutoff=self.max_moves)
             if self.monitoring_enabled and self.logger:
-                self.logger.info(f"MINIMAX: Ordered moves, first few: {legal_moves[:3] if len(legal_moves) >= 3 else legal_moves}")
+                self.logger.info(f"MINIMAX: Received {len(legal_moves)} ordered moves, first few: {legal_moves[:3] if len(legal_moves) >= 3 else legal_moves}")
         else:
             if self.monitoring_enabled and self.logger:
                 self.logger.info(f"MINIMAX: Using unordered moves for depth {depth}")
@@ -365,10 +365,14 @@ class v7p3rSearch:
             self.logger.info(f"NEGAMAX: Starting search at depth {depth}, alpha={alpha:.2f}, beta={beta:.2f}")
         
         if depth <= 0 or board.is_game_over():
-            #eval_result = self.scoring_calculator.evaluate_position_from_perspective(board, board.turn)
-            eval_result = self._quiescence_search(board, -float('inf'), float('inf'), True)
-            if self.monitoring_enabled and self.logger:
-                self.logger.info(f"NEGAMAX: Leaf node evaluation: {eval_result:.2f} (type: {type(eval_result)})")
+            if self.quiescence_enabled:
+                eval_result = self._quiescence_search(board, -float('inf'), float('inf'), True)
+                if self.monitoring_enabled and self.logger:
+                    self.logger.info(f"NEGAMAX: Quiescence search returned: {eval_result:.2f} (type: {type(eval_result)})")
+            else:
+                eval_result = self.scoring_calculator.evaluate_position_from_perspective(board, board.turn)
+                if self.monitoring_enabled and self.logger:
+                    self.logger.info(f"NEGAMAX: Leaf node evaluation: {eval_result:.2f} (type: {type(eval_result)})")
             return eval_result
             
         # Internal node: explore moves
@@ -383,12 +387,13 @@ class v7p3rSearch:
                 self.logger.info(f"NEGAMAX: Ordering moves for depth {depth}")
             # Order moves for better alpha-beta pruning efficiency   
             legal_moves = self.move_organizer.order_moves(board, legal_moves, depth=self.depth, cutoff=self.max_moves)
+            if self.monitoring_enabled and self.logger:
+                self.logger.info(f"NEGAMAX: Received {len(legal_moves)} ordered moves, first few: {legal_moves[:3] if len(legal_moves) >= 3 else legal_moves}")
         else:
             if self.monitoring_enabled and self.logger:
                 self.logger.info(f"NEGAMAX: Using unordered moves for depth {depth}")
             legal_moves = list(board.legal_moves)
             
-
         moves_evaluated = 0
         for move in legal_moves:
             moves_evaluated += 1
@@ -603,7 +608,7 @@ class v7p3rSearch:
         
         # Check for immediate game-ending conditions with huge scores
         if temp_board.is_checkmate():
-            checkmate_score = -999999999 if maximizing_player else 999999999
+            checkmate_score = 999999999 if maximizing_player else -999999999
             if self.monitoring_enabled and self.logger:
                 self.logger.info(f"QUIESCENCE: Checkmate detected, returning: {checkmate_score}")
             return checkmate_score
@@ -623,7 +628,7 @@ class v7p3rSearch:
             beta = min(beta, stand_pat_score)
             
         # Depth control
-        max_q_depth = self.depth  # Increased from 3 for better tactical vision
+        max_q_depth = self.depth if self.depth <= 3 else 3 # Limit quiescence search depth to 3 if depth is greater than 3
         if current_ply >= self.depth + max_q_depth:
             if self.monitoring_enabled and self.logger:
                 self.logger.info(f"QUIESCENCE: Max depth reached (ply {current_ply} >= {self.depth + max_q_depth}), returning stand pat: {stand_pat_score:.2f}")

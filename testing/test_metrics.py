@@ -27,7 +27,7 @@ test_config = {
         "max_moves": 4,
         "use_game_phase": True,
         "monitoring_enabled": True,
-        "verbose_output": True,
+        "verbose_output": False,
         "logger": "v7p3r_engine_logger",
     },
     "stockfish_config": {

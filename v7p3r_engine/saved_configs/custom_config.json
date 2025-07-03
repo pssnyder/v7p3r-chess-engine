@@ -18,7 +18,7 @@
         "max_moves": 5,
         "strict_draw_prevention": true,
         "monitoring_enabled": true,
-        "verbose_output": true,
+        "verbose_output": false,
         "logger": "v7p3r_engine_logger"
     },
     "stockfish_config": {

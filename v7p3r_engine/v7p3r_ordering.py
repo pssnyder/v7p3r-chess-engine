@@ -66,7 +66,7 @@ class v7p3rOrdering:
         # Logging Setup
         self.logger = v7p3r_ordering_logger
         self.monitoring_enabled = self.engine_config.get('monitoring_enabled', True)
-        self.verbose_output_enabled = self.engine_config.get('verbose_output', True)
+        self.verbose_output_enabled = self.engine_config.get('verbose_output', False)
         
         # Move Ordering Settings
         self.move_ordering_enabled = self.engine_config.get('move_ordering_enabled', True)
@@ -77,7 +77,7 @@ class v7p3rOrdering:
         move_scores = []
         for move in moves:
             if not board.is_legal(move):
-                if self.logger and self.monitoring_enabled:
+                if self.monitoring_enabled and self.logger:
                     self.logger.error(f"[Error] Illegal move passed to order_moves: {move} | FEN: {board.fen()}")
                 continue
             
@@ -95,10 +95,10 @@ class v7p3rOrdering:
             move_scores = move_scores[:max_moves]
             # Log to both ordering logger and print to console for visibility
             log_msg = f"MOVE_TRUNCATION: Truncated move list from {original_count} to {max_moves} moves at depth {depth}"
-            if self.logger and self.monitoring_enabled:
+            if self.monitoring_enabled and self.logger:
                 self.logger.info(log_msg)
         
-        if self.logger and self.monitoring_enabled and self.verbose_output_enabled:
+        if self.monitoring_enabled and self.logger:
             self.logger.info(f"Ordered moves at depth {depth}: {[f'{move} ({score:.2f})' for move, score in move_scores]} | FEN: {board.fen()}")
         
         return [move for move, _ in move_scores]

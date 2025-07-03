@@ -38,7 +38,7 @@ def test_checkmate_detection():
             "search_algorithm": "negamax",
             "depth": 5,
             "max_depth": 8,
-            "verbose_output": True,
+            "verbose_output": False,
             "logger": "test_logger"
         }
         

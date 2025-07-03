@@ -35,7 +35,7 @@ def test_rl_integration():
             "depth": 3,
             "max_depth": 5,
             "monitoring_enabled": True,
-            "verbose_output": True,
+            "verbose_output": False,
             "logger": "v7p3r_engine_logger",
             "game_count": 1,
             "starting_position": "default"
