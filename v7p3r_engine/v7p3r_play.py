@@ -675,7 +675,8 @@ class v7p3rChess:
                     engine_move, self.current_player, fen_before_move, move_number
                 )
 
-            print(f"{self.white_player if self.current_player == chess.WHITE else self.black_player} played: {engine_move} after {self.move_duration:.4f}s (Eval: {self.current_eval:.2f})")
+            # Print the move and eval for the watcher, it will now be Black's turn so invert the colors when determining who just played
+            print(f"{self.white_player if self.current_player == chess.BLACK else self.black_player} played: {engine_move} after {self.move_duration:.4f}s (Eval: {self.current_eval:.2f})")
             
             # Initialize logged_nodes
             logged_nodes = 0
