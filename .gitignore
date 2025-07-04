@@ -12,16 +12,16 @@
 templates/
 .db-shm
 .db-wal
-#games/
-#logging/
+games/
+logging/
 db_backups/
-#training_data/
+training_data/
 #*/external_engines/*
 chatfish/
 codebullet/
-#v7p3r_nn_models/
-#v7p3r_ga_models/
-#v7p3r_rl_models/
+v7p3r_nn_models/
+v7p3r_ga_models/
+v7p3r_rl_models/
 venv/
 .history/
 
@@ -31,6 +31,8 @@ venv/
 #*.db
 #*.db-*
 #*.sqlite
+*.log
+*eval_game_*.pgn
 
 # Model files
 #*.pt
