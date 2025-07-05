@@ -1,0 +1,40 @@
+{
+  "training": {
+    "batch_size": 64,
+    "learning_rate": 0.001,
+    "weight_decay": 0.0001,
+    "epochs": 50,
+    "model": {
+      "hidden_layers": [256, 128, 64],
+      "dropout_rate": 0.3,
+      "activation": "relu"
+    },
+    "data": {
+      "validation_split": 0.2,
+      "augmentation": true,
+      "normalize": true
+    },
+    "storage": {
+      "enabled": true,
+      "save_model": true,
+      "save_metrics": true,
+      "model_path": "v7p3r_nn_engine/v7p3r_nn_models",
+      "metrics_path": "metrics",
+      "store_checkpoints": true,
+      "checkpoint_frequency": 5
+    },
+    "stockfish": {
+      "enabled": true,
+      "depth": 15,
+      "positions_per_game": 20,
+      "time_per_position": 5
+    }
+  },
+  "move_library": {
+    "enabled": true,
+    "db_path": "v7p3r_nn_engine/v7p3r_nn_move_vocab/move_library.db",
+    "confidence_threshold": 0.7,
+    "prune_old_evaluations": true,
+    "max_positions": 1000000
+  }
+}
