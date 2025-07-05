@@ -2,13 +2,16 @@
 v7p3r Genetic Algorithm Ruleset Manager
 """
 import os
-import yaml
-from v7p3r_engine.v7p3r_config_gui import RULESET_PATH
+import json
+from v7p3r_config import v7p3rConfig
+
+# Path to the rulesets JSON file
+RULESET_PATH = os.path.join(os.path.dirname(__file__), 'configs', 'rulesets', 'custom_rulesets.json')
 
 
 class v7p3rGARulesetManager:
     """
-    Manages the rulesets.yaml file for the GA tuner.
+    Manages the custom_rulesets.json file for the GA tuner.
     """
     def __init__(self):
         # Ensure the rulesets directory exists
@@ -16,12 +19,12 @@ class v7p3rGARulesetManager:
 
     def load_all_rulesets(self) -> dict:
         """
-        Loads all rulesets from the YAML file.
+        Loads all rulesets from the JSON file.
         Returns an empty dict if the file does not exist.
         """
         try:
             with open(RULESET_PATH, 'r') as f:
-                return yaml.safe_load(f) or {}
+                return json.load(f) or {}
         except FileNotFoundError:
             return {}
 
@@ -33,9 +36,9 @@ class v7p3rGARulesetManager:
 
     def save_ruleset(self, name: str, ruleset: dict):
         """
-        Saves or updates a ruleset in the YAML file.
+        Saves or updates a ruleset in the JSON file.
         """
         data = self.load_all_rulesets()
         data[name] = ruleset
         with open(RULESET_PATH, 'w') as f:
-            yaml.dump(data, f, default_flow_style=False, sort_keys=False)
+            json.dump(data, f, indent=4)

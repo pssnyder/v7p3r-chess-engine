@@ -4,7 +4,6 @@ Orchestrates the GA training process.
 
 import os
 import sys
-import yaml
 import json
 import logging
 import copy
@@ -16,23 +15,21 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from v7p3r_ga import v7p3rGeneticAlgorithm
 from v7p3r_ga_ruleset_manager import v7p3rGARulesetManager
 from puzzles.puzzle_db_manager import PuzzleDBManager
+from v7p3r_config import v7p3rConfig
 
 def main():
-    # Load config
-    config_path = os.path.join(os.path.dirname(__file__), 'ga_config.yaml')
-    with open(config_path, 'r') as f:
-        config = yaml.safe_load(f)
+    # Load config from centralized config manager
+    config_manager = v7p3rConfig()
+    config = config_manager.get_v7p3r_ga_config()
 
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
 
     # Initialize managers
     ruleset_manager = v7p3rGARulesetManager()
-    # Pass the path to a YAML config file or None for default
-    puzzle_db_config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'config', 'puzzle_config.yaml'))
-    print(f"[DEBUG] Using puzzle DB config: {puzzle_db_config_path}")
-    puzzle_db = PuzzleDBManager(puzzle_db_config_path)
-    ga = v7p3rGeneticAlgorithm(config_path)
+    # Use the centralized config manager instead of separate config file
+    puzzle_db = PuzzleDBManager(config_manager)
+    ga = v7p3rGeneticAlgorithm(config_manager)
 
     # Debug: check if test_positions were loaded with fallback
     if hasattr(ga, 'test_positions') and ga.test_positions:

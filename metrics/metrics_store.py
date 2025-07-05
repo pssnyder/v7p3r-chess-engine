@@ -13,7 +13,6 @@ import pandas as pd
 import re
 import time
 from datetime import datetime
-import yaml
 
 """
 Database Schema Documentation:
@@ -306,7 +305,7 @@ class MetricsStore:
                 black_player = headers.get("Black", "Unknown")
                   # Retrieve AI config data that should have been collected by collect_config_data
                 # We need to link by game_id which is based on timestamp
-                config_id = game_id.replace('.pgn', '.yaml')
+                config_id = game_id.replace('.pgn', '.json')
                 
                 # Try to get config data, handle missing columns gracefully
                 try:
@@ -378,16 +377,16 @@ class MetricsStore:
             print(f"Error processing PGN file {pgn_file}: {e}")
 
     def collect_config_data(self, games_dir="games"):
-        """Parse and store configuration data from YAML files."""
-        yaml_files = glob.glob(os.path.join(games_dir, "eval_game_*.yaml"))
-        for yaml_file in yaml_files:
-            self._process_config_file(yaml_file)
+        """Parse and store configuration data from JSON files."""
+        json_files = glob.glob(os.path.join(games_dir, "eval_game_*.json"))
+        for json_file in json_files:
+            self._process_config_file(json_file)
     
-    def _process_config_file(self, yaml_file):
+    def _process_config_file(self, json_file):
         """Process a single config file and store its data in the database."""
         try:
             # Create a config ID from the filename
-            config_id = os.path.basename(yaml_file)
+            config_id = os.path.basename(json_file)
             
             # Check if this config is already in the database
             connection = self._get_connection()
@@ -396,9 +395,9 @@ class MetricsStore:
                 self._execute_with_retry(cursor, "SELECT COUNT(*) FROM config_settings WHERE config_id = ?", (config_id,))
                 if cursor.fetchone()[0] > 0:
                     return  # Already processed
-              # Parse the YAML file
-            with open(yaml_file, 'r') as f:
-                config_data = yaml.safe_load(f)
+              # Parse the JSON file
+            with open(json_file, 'r') as f:
+                config_data = json.load(f)
                 
             # Extract key configuration details
             white_engine_config = config_data.get('white_engine_config', {})
@@ -415,11 +414,11 @@ class MetricsStore:
             black_depth = black_engine_config.get('depth', 0)
             
             # Match with corresponding game
-            game_id = config_id.replace('.yaml', '.pgn')
+            game_id = config_id.replace('.json', '.pgn')
             
             # Extract timestamp from filename
             timestamp = None
-            match = re.search(r'eval_game_(\d{8}_\d{6})\.yaml', config_id)
+            match = re.search(r'eval_game_(\d{8}_\d{6})\.json', config_id)
             if match:
                 timestamp = match.group(1)
             
@@ -447,7 +446,7 @@ class MetricsStore:
                 connection.commit()
         
         except Exception as e:
-            print(f"Error processing config file {yaml_file}: {e}")
+            print(f"Error processing config file {json_file}: {e}")
     
     def compute_metrics(self):
         """Compute derived metrics from the raw data and store them."""
@@ -841,17 +840,17 @@ class MetricsStore:
             cursor.execute('DELETE FROM config_settings')
             connection.commit()
 
-        # Find all games (assume .pgn, .yaml, .log triplets)
+        # Find all games (assume .pgn, .json, .log triplets)
         pgn_files = glob.glob(os.path.join(games_dir, '*.pgn'))
         for pgn_file in pgn_files:
             base = os.path.splitext(pgn_file)[0]
-            yaml_file = base + '.yaml'
+            json_file = base + '.json'
             log_file = base + '.log'
-            # Parse YAML config
-            if not os.path.exists(yaml_file):
+            # Parse JSON config
+            if not os.path.exists(json_file):
                 continue
-            with open(yaml_file, 'r') as f:
-                config_data = yaml.safe_load(f)
+            with open(json_file, 'r') as f:
+                config_data = json.load(f)
             # Extract engine configs and exclusion flags
             white_cfg = config_data.get('white_engine_config', {})
             black_cfg = config_data.get('black_engine_config', {})

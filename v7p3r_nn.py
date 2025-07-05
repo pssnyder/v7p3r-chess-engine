@@ -12,7 +12,6 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 from datetime import datetime
-import yaml
 import logging
 import random
 from io import StringIO
@@ -21,7 +20,8 @@ from typing import List, Dict, Tuple, Optional, Union
 
 # Add the project root to the Python path to allow imports from anywhere in the project
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from v7p3r_engine.stockfish_handler import StockfishHandler
+from v7p3r_config import v7p3rConfig
+from stockfish_handler import StockfishHandler
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, 
@@ -284,9 +284,11 @@ class MoveLibrary:
 class v7p3rNeuralNetwork:
     """Neural network-based chess engine for v7p3r"""
     
-    def __init__(self, config_path="config/v7p3r_nn_config.yaml"):
+    def __init__(self, config_overrides=None):
         """Initialize the neural network engine with configuration"""
-        self.config = self._load_config(config_path)
+        # Use centralized configuration manager
+        self.config_manager = v7p3rConfig(overrides=config_overrides)
+        self.config = self.config_manager.get_v7p3r_nn_config()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
         # Initialize move library with config
@@ -297,12 +299,9 @@ class v7p3rNeuralNetwork:
         self.model = self._create_model()
         
     def _load_config(self, config_path):
-        """Load configuration from YAML file"""
-        if os.path.exists(config_path):
-            with open(config_path, 'r') as f:
-                return yaml.safe_load(f)
-        logger.warning(f"Config file {config_path} not found. Using default configuration.")
-        return {}
+        """Load configuration from centralized config manager (deprecated - keeping for compatibility)"""
+        logger.warning("_load_config is deprecated. Using centralized configuration manager.")
+        return self.config
         
     def _create_model(self):
         """Create and initialize the neural network model"""
@@ -607,9 +606,8 @@ class v7p3rNeuralNetwork:
         # Get stockfish path from config if not provided
         if not stockfish_path:
             try:
-                with open("config/stockfish_handler.yaml", 'r') as f:
-                    stockfish_config = yaml.safe_load(f)
-                    stockfish_path = stockfish_config.get('stockfish_path', '')
+                stockfish_config = self.config_manager.get_stockfish_config()
+                stockfish_path = stockfish_config.get('stockfish_path', '')
             except Exception as e:
                 logger.error(f"Failed to load stockfish config: {e}")
                 return False

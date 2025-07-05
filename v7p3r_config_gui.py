@@ -18,7 +18,6 @@ import json
 import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext, filedialog
 import datetime
-import yaml
 from tkinter.font import Font
 import copy
 import logging
@@ -73,7 +72,7 @@ try:
     from v7p3r_play import v7p3rChess  # Try relative import first
 except ImportError:
     try:
-        from v7p3r_engine.v7p3r_play import v7p3rChess  # Try package import
+        from v7p3r_play import v7p3rChess  # Try package import
     except ImportError:
         import sys
         import os
@@ -89,11 +88,11 @@ CONFIG_DIR = os.path.join(parent_dir, "v7p3r_engine", "configs")
 os.makedirs(CONFIG_DIR, exist_ok=True)
 
 # Path for rulesets file
-RULESET_PATH = os.path.join(parent_dir, "v7p3r_engine", "rulesets", "rulesets.yaml")
+RULESET_PATH = os.path.join(parent_dir, "configs", "rulesets", "custom_rulesets.json")
 
-# Check if rulesets.yaml exists, if not create it with default values
-def ensure_rulesets_yaml_exists():
-    """Ensure that rulesets.yaml exists with at least a default evaluation ruleset"""
+# Check if custom_rulesets.json exists, if not create it with default values
+def ensure_rulesets_json_exists():
+    """Ensure that custom_rulesets.json exists with at least a default evaluation ruleset"""
     os.makedirs(os.path.dirname(RULESET_PATH), exist_ok=True)
     if not os.path.exists(RULESET_PATH):
         # Create with default ruleset
@@ -102,19 +101,19 @@ def ensure_rulesets_yaml_exists():
         }
         try:
             with open(RULESET_PATH, 'w') as f:
-                yaml.dump(default_ruleset, f, default_flow_style=False, sort_keys=False)
-            print(f"Created default rulesets.yaml at {RULESET_PATH}")
+                json.dump(default_ruleset, f, indent=4)
+            print(f"Created default custom_rulesets.json at {RULESET_PATH}")
         except Exception as e:
-            print(f"Error creating default rulesets.yaml: {e}")
+            print(f"Error creating default custom_rulesets.json: {e}")
 
 # Call to ensure the rulesets file exists
-ensure_rulesets_yaml_exists()
+ensure_rulesets_json_exists()
 
-# Load ruleset options from rulesets.yaml
+# Load ruleset options from custom_rulesets.json
 def load_rulesets():
     try:
         with open(RULESET_PATH, 'r') as file:
-            rulesets = yaml.safe_load(file)
+            rulesets = json.load(file)
             return list(rulesets.keys()) if rulesets else ["default_ruleset"]
     except Exception as e:
         print(f"Error loading rulesets: {e}")
@@ -126,21 +125,21 @@ def get_engine_options():
     
     # Check for RL engine
     try:
-        from v7p3r_rl_engine.v7p3r_rl import v7p3rRLEngine
+        from v7p3r_rl import v7p3rRLEngine
         engines.append("v7p3r_rl")
     except ImportError:
         pass
     
     # Check for GA engine
     try:
-        from v7p3r_ga_engine.v7p3r_ga import v7p3rGeneticAlgorithm
+        from v7p3r_ga import v7p3rGeneticAlgorithm
         engines.append("v7p3r_ga")
     except ImportError:
         pass
     
     # Check for NN engine
     try:
-        from v7p3r_nn_engine.v7p3r_nn import v7p3rNeuralNetwork
+        from v7p3r_nn import v7p3rNeuralNetwork
         engines.append("v7p3r_nn")
     except ImportError:
         pass
@@ -222,10 +221,10 @@ def validate_config(config_data):
 
 # Ruleset management functions
 def load_ruleset_data():
-    """Load all rulesets from rulesets.yaml"""
+    """Load all rulesets from custom_rulesets.json"""
     try:
         with open(RULESET_PATH, 'r') as file:
-            rulesets = yaml.safe_load(file)
+            rulesets = json.load(file)
             return rulesets or {}
     except FileNotFoundError:
         return {}
@@ -234,7 +233,7 @@ def load_ruleset_data():
         return {}
 
 def save_ruleset(ruleset_name, ruleset_data, all_rulesets=None):
-    """Save a ruleset to rulesets.yaml"""
+    """Save a ruleset to custom_rulesets.json"""
     # If no name provided, generate timestamped name
     if not ruleset_name:
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
@@ -253,7 +252,7 @@ def save_ruleset(ruleset_name, ruleset_data, all_rulesets=None):
         
         # Save all rulesets back to file
         with open(RULESET_PATH, 'w') as f:
-            yaml.dump(all_rulesets, f, default_flow_style=False, sort_keys=False)
+            json.dump(all_rulesets, f, indent=4)
         return True, ruleset_name
     except Exception as e:
         return False, str(e)
@@ -907,8 +906,8 @@ class ConfigGUI:
             self.ruleset_preview.delete(1.0, tk.END)
             
             # Format the ruleset for display
-            yaml_text = yaml.dump({selected: ruleset_data}, default_flow_style=False, sort_keys=False)
-            self.ruleset_preview.insert(tk.END, yaml_text)
+            json_text = json.dumps({selected: ruleset_data}, indent=4)
+            self.ruleset_preview.insert(tk.END, json_text)
             self.ruleset_preview.config(state=tk.DISABLED)
             
             # Status message removed - using messagebox for important notifications only
@@ -1143,7 +1142,7 @@ class ConfigGUI:
                     from v7p3r_play import v7p3rChess
                 except ImportError:
                     # Fallback to package import
-                    from v7p3r_engine.v7p3r_play import v7p3rChess
+                    from v7p3r_play import v7p3rChess
                 
                 game = v7p3rChess(config_data)
                 game.run()

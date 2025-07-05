@@ -7,31 +7,29 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-import os
-import sys
-import yaml
 import random
 import copy
 import logging
+import json
 
 # Ensure parent path for engine imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+from v7p3r_config import v7p3rConfig
 from v7p3r_ga_ruleset_manager import v7p3rGARulesetManager
-from v7p3r_engine.v7p3r_score import v7p3rScore
-from v7p3r_engine.v7p3r_pst import v7p3rPST
-from v7p3r_engine.stockfish_handler import StockfishHandler
+from v7p3r_score import v7p3rScore
+from v7p3r_pst import v7p3rPST
+from stockfish_handler import StockfishHandler
 from puzzles.puzzle_db_manager import PuzzleDBManager
 
 class v7p3rGeneticAlgorithm:
     """
     Genetic Algorithm for tuning v7p3r evaluation rulesets.
     """
-    def __init__(self, config_path=None):
-        # Load GA configuration
-        cfg_path = config_path or os.path.join(os.path.dirname(__file__), 'ga_config.yaml')
-        with open(cfg_path, 'r') as f:
-            self.config = yaml.safe_load(f)
+    def __init__(self, config_overrides=None):
+        # Use centralized configuration manager
+        self.config_manager = v7p3rConfig(overrides=config_overrides)
+        self.config = self.config_manager.get_v7p3r_ga_config()
 
         # Setup logger
         self.logger = logging.getLogger(__name__)
@@ -39,8 +37,10 @@ class v7p3rGeneticAlgorithm:
 
         # Managers
         self.ruleset_manager = v7p3rGARulesetManager()
-        self.stockfish = StockfishHandler(self.config['stockfish_config'])
-        self.puzzle_db = PuzzleDBManager(self.config.get('puzzle_db_config', {}))
+        stockfish_config = self.config_manager.get_stockfish_config()
+        self.stockfish = StockfishHandler(stockfish_config)
+        puzzle_config = self.config_manager.get_puzzle_config()
+        self.puzzle_db = PuzzleDBManager(puzzle_config)
 
         # Add evaluation cache for efficiency
         self.evaluation_cache = {}
@@ -51,7 +51,7 @@ class v7p3rGeneticAlgorithm:
         engine_cfg = {'verbose_output': False}
         # Initialize PST with default piece values and logger
         pst = v7p3rPST(self.logger)
-        self.scorer = v7p3rScore(engine_cfg, pst, self.logger)
+        self.scorer = v7p3rScore(engine_cfg, pst)
 
         # Load base ruleset
         all_rulesets = self.ruleset_manager.load_all_rulesets()
@@ -179,11 +179,11 @@ class v7p3rGeneticAlgorithm:
     def _save_best(self, ruleset, generation):
         out_dir = os.path.join(os.path.dirname(__file__), 'ga_results')
         os.makedirs(out_dir, exist_ok=True)
-        name = f'generation_{generation+1}_best.yaml'
+        name = f'generation_{generation+1}_best.json'
         path = os.path.join(out_dir, name)
         with open(path, 'w') as f:
-            yaml.dump(ruleset, f)
-        # also update main rulesets.yaml
+            json.dump(ruleset, f, indent=4)
+        # also update main custom_rulesets.json
         self.ruleset_manager.save_ruleset(f'tuned_ga_gen{generation+1}', ruleset)
         self.logger.info(f'Saved best ruleset for gen {generation+1} to {path}')
 

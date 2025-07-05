@@ -5,7 +5,6 @@ import sys
 import pygame
 import chess
 import chess.pgn
-import yaml
 import datetime
 import logging
 import socket
@@ -72,9 +71,9 @@ if not v7p3r_play_logger.handlers:
     v7p3r_play_logger.propagate = False
 
 # Import necessary modules from v7p3r_engine
-from v7p3r_engine.v7p3r import v7p3rEngine # Corrected import for v7p3rEngine
+from v7p3r import v7p3rEngine # Corrected import for v7p3rEngine
 from metrics.metrics_store import MetricsStore # Import MetricsStore (legacy)
-from v7p3r_engine.stockfish_handler import StockfishHandler
+from stockfish_handler import StockfishHandler
 
 # Import enhanced metrics system
 try:
@@ -181,7 +180,7 @@ class v7p3rChess:
         if 'v7p3r_rl' in self.engines:
             # Import new engines
             try:
-                from v7p3r_rl_engine.v7p3r_rl import v7p3rRLEngine
+                from v7p3r_rl import v7p3rRLEngine
                 RL_ENGINE_AVAILABLE = True
             except ImportError:
                 RL_ENGINE_AVAILABLE = False
@@ -189,7 +188,7 @@ class v7p3rChess:
         
         if 'v7p3r_ga' in self.engines:
             try:
-                from v7p3r_ga_engine.v7p3r_ga import v7p3rGeneticAlgorithm
+                from v7p3r_ga import v7p3rGeneticAlgorithm
                 GA_ENGINE_AVAILABLE = True
             except ImportError:
                 GA_ENGINE_AVAILABLE = False
@@ -197,7 +196,7 @@ class v7p3rChess:
 
         if 'v7p3r_nn' in self.engines:
             try:
-                from v7p3r_nn_engine.v7p3r_nn import v7p3rNeuralNetwork
+                from v7p3r_nn import v7p3rNeuralNetwork
                 NN_ENGINE_AVAILABLE = True
             except ImportError:
                 NN_ENGINE_AVAILABLE = False
@@ -206,8 +205,8 @@ class v7p3rChess:
         # Initialize RL engine if available
         if RL_ENGINE_AVAILABLE and 'v7p3r_rl' in self.engines:
             try:
-                rl_config_path = self.config.get('rl_config_path', 'config/v7p3r_rl_config.yaml')
-                self.rl_engine = v7p3rRLEngine(rl_config_path)
+                # Use centralized config instead of separate config file
+                self.rl_engine = v7p3rRLEngine(self.config_manager)
                 self.engines['v7p3r_rl'] = self.rl_engine
                 print("✓ v7p3r RL engine initialized")
             except Exception as e:
@@ -216,9 +215,9 @@ class v7p3rChess:
         # Initialize GA engine if available
         if GA_ENGINE_AVAILABLE and 'v7p3r_ga' in self.engines:
             try:
-                from v7p3r_ga_engine.v7p3r_ga import v7p3rGeneticAlgorithm
-                ga_config_path = self.config.get('ga_config_path', 'config/v7p3r_ga_config.yaml')
-                self.ga_engine = v7p3rGeneticAlgorithm(ga_config_path)
+                from v7p3r_ga import v7p3rGeneticAlgorithm
+                # Use centralized config instead of separate config file
+                self.ga_engine = v7p3rGeneticAlgorithm(self.config_manager)
                 self.engines['v7p3r_ga'] = self.ga_engine
                 print("✓ v7p3r GA engine initialized for gameplay")
             except Exception as e:
@@ -227,8 +226,8 @@ class v7p3rChess:
         # Initialize NN engine if available
         if NN_ENGINE_AVAILABLE and 'v7p3r_nn' in self.engines:
             try:
-                nn_config_path = self.config.get('nn_config_path', 'config/v7p3r_nn_config.yaml')
-                self.nn_engine = self._create_nn_engine_wrapper(nn_config_path)
+                # Use centralized config instead of separate config file
+                self.nn_engine = self._create_nn_engine_wrapper(self.config_manager)
                 if self.nn_engine:
                     self.engines['v7p3r_nn'] = self.nn_engine
                     print("✓ v7p3r NN engine wrapper initialized")
@@ -436,8 +435,8 @@ class v7p3rChess:
         if self.monitoring_enabled and self.logger:
             self.logger.info(f"Game PGN saved to {pgn_filepath}")
 
-        # Save YAML config file for metrics processing
-        config_filepath = f"games/eval_game_{timestamp}.yaml"
+        # Save JSON config file for metrics processing
+        config_filepath = f"games/eval_game_{timestamp}.json"
         
         # Save a combined config for this specific game, including relevant parts of all loaded configs
         game_specific_config = {
@@ -445,7 +444,8 @@ class v7p3rChess:
             "engine_settings": self.engine.engine_config,
         }
         with open(config_filepath, "w") as f:
-            yaml.dump(game_specific_config, f)
+            import json
+            json.dump(game_specific_config, f, indent=4)
         if self.monitoring_enabled and self.logger:
             self.logger.info(f"Game-specific combined configuration saved to {config_filepath}")
 
@@ -483,10 +483,10 @@ class v7p3rChess:
                 self.logger.error(f"[Error] Failed to save PGN to {filename}: {e}")
 
     def save_local_game_files(self, game_id, pgn_text):
-        """Save both PGN and YAML config files locally for metrics processing."""
+        """Save both PGN and JSON config files locally for metrics processing."""
         try:
             import os
-            import yaml
+            import json
             
             # Ensure games directory exists
             os.makedirs("games", exist_ok=True)
@@ -496,18 +496,18 @@ class v7p3rChess:
             with open(pgn_path, 'w', encoding='utf-8') as f:
                 f.write(pgn_text)
             
-            # Save YAML config file for metrics processing
-            yaml_path = f"games/{game_id}.yaml"
+            # Save JSON config file for metrics processing
+            json_path = f"games/{game_id}.json"
             config_data = {
                 'game_id': game_id,
                 'timestamp': self.game_start_timestamp,
                 'engine_config': self.engine.engine_config,
             }
-            with open(yaml_path, 'w', encoding='utf-8') as f:
-                yaml.dump(config_data, f, default_flow_style=False)
+            with open(json_path, 'w', encoding='utf-8') as f:
+                json.dump(config_data, f, indent=4)
             
             if self.monitoring_enabled and self.logger:
-                self.logger.info(f"Saved local files: {pgn_path}, {yaml_path}")
+                self.logger.info(f"Saved local files: {pgn_path}, {json_path}")
                 
         except Exception as e:
             if self.monitoring_enabled and self.logger:
@@ -1024,7 +1024,7 @@ class v7p3rChess:
         """Create a wrapper for NN engine if it doesn't have proper game interface."""
         try:
             # Import the NN engine class here to avoid undefined reference
-            from v7p3r_nn_engine.v7p3r_nn import v7p3rNeuralNetwork
+            from v7p3r_nn import v7p3rNeuralNetwork
             
             # Try to create NN engine, but it might not have search interface
             nn_engine = v7p3rNeuralNetwork(nn_config_path)

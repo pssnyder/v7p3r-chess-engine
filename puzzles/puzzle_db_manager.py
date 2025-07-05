@@ -18,9 +18,9 @@ import csv
 import json
 import logging
 from datetime import datetime
-import yaml
 import random
 from pathlib import Path
+from v7p3r_config import v7p3rConfig
 
 
 
@@ -40,16 +40,20 @@ class PuzzleDBManager:
     import, query, and test set generation functionality.
     """
     
-    def __init__(self, config_path=None):
+    def __init__(self, config_manager=None):
         """
         Initialize the puzzle database manager.
         
         Args:
-            config_path (str): Path to the configuration file. If None, 
-                               uses default config/puzzle_config.yaml.
+            config_manager (v7p3rConfig): Configuration manager instance. If None, 
+                                        creates a new one with default config.
         """
         # Load configuration
-        self.config = self._load_config(config_path)
+        if config_manager is None:
+            self.config_manager = v7p3rConfig()
+        else:
+            self.config_manager = config_manager
+        self.config = self.config_manager.get_puzzle_config()
         
         # Set up paths
         db_dir = os.path.dirname(self.config['puzzle_database']['db_path'])
@@ -69,57 +73,6 @@ class PuzzleDBManager:
         
         # Set up logging
         self._setup_logging()
-        
-    def _load_config(self, config_path):
-        """
-        Load configuration from YAML file.
-        
-        Args:
-            config_path (str): Path to the config file.
-            
-        Returns:
-            dict: Configuration dictionary.
-        """
-        if config_path is None:
-            # Try to find the default config location
-            possible_locations = [
-                "config/puzzle_config.yaml",
-                "../config/puzzle_config.yaml",
-                os.path.join(os.path.dirname(__file__), "../config/puzzle_config.yaml"),
-            ]
-            
-            for loc in possible_locations:
-                if os.path.exists(loc):
-                    config_path = loc
-                    break
-        
-        if not config_path or not os.path.exists(config_path):
-            # Use default configuration
-            return {
-                "puzzle_database": {
-                    "db_path": "training_data/fen_data_lichess_puzzles_db/lichess_puzzles.db",
-                    "selection": {
-                        "min_rating": 800,
-                        "max_rating": 3000,
-                        "batch_size": 50,
-                        "themes": []
-                    }
-                },
-                "test_set_output": {
-                    "directory": "training_data/fen_data_puzzle_lists/",
-                    "format": "json"
-                },
-                "logging": {
-                    "level": "INFO",
-                    "file": "logging/puzzle_db_manager.log"
-                }
-            }
-        
-        # Load from file
-        with open(config_path, 'r') as f:
-            config = yaml.safe_load(f)
-            
-        return config
         
     def _setup_logging(self):
         """Configure logging for the puzzle database manager."""

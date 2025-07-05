@@ -6,33 +6,32 @@
 *.do-not-push
 *.wip*
 
-# Project-specific resource files and directories
-.v7p3r_chess_engine_project_files/
-.product_management/
-templates/
-.db-shm
-.db-wal
-games/
-logging/
-db_backups/
-training_data/
+# Project-specific directories
+*/.v7p3r_chess_engine_project_files/
+*/.product_management/
+*/templates/*
+*/games/*
+*/logging/*
+*/db_backups/*
+*/training_data/*
 #*/external_engines/*
-chatfish/
-codebullet/
-v7p3r_nn_models/
-v7p3r_ga_models/
-v7p3r_rl_models/
-venv/
-.history/
+*/chatfish/*
+*/codebullet/*
+*/v7p3r_nn_models/*
+*/v7p3r_ga_models/*
+*/v7p3r_rl_models/*
+*/venv/
+*/.history/
 
 # Data files
-#*.csv
-#*.jsonl
+*.csv
+*.jsonl
 #*.db
 #*.db-*
+.db-shm
+.db-wal
 #*.sqlite
 *.log
-*eval_game_*.pgn
 
 # Model files
 #*.pt

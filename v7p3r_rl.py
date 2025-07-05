@@ -17,7 +17,6 @@ Date: 2025-06-27
 
 import os
 import sys
-import yaml
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -35,6 +34,8 @@ import time
 # Add paths for v7p3r engine integration
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../v7p3r_engine')))
+
+from v7p3r_config import v7p3rConfig
 
 class ChessPositionEncoder:
     """Enhanced position encoding for chess positions."""
@@ -195,8 +196,10 @@ class PPOTrainer:
 class V7P3RRLAgent:
     """Enhanced RL agent using v7p3r scoring system and modern RL techniques."""
     
-    def __init__(self, config_path: str = "config/v7p3r_rl_config.yaml"):
-        self.config = self._load_config(config_path)
+    def __init__(self, config_overrides=None):
+        # Use centralized configuration manager
+        self.config_manager = v7p3rConfig(overrides=config_overrides)
+        self.config = self.config_manager.get_v7p3r_rl_config()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
         # Initialize components
@@ -238,18 +241,16 @@ class V7P3RRLAgent:
             print(f"[RL] GPU: {torch.cuda.get_device_name()}")
     
     def _load_config(self, config_path: str) -> dict:
-        """Load configuration from YAML file."""
-        if os.path.exists(config_path):
-            with open(config_path, 'r') as f:
-                return yaml.safe_load(f)
-        return {}
+        """Load configuration from centralized config manager (deprecated - keeping for compatibility)"""
+        logging.warning("_load_config is deprecated. Using centralized configuration manager.")
+        return self.config
     
     def _init_v7p3r_scoring(self):
         """Initialize v7p3r scoring system with ruleset."""
         try:
-            from v7p3r_engine.v7p3r_score import v7p3rScore
-            from v7p3r_engine.v7p3r_pst import v7p3rPST
-            from v7p3r_ga_engine.v7p3r_ga_ruleset_manager import v7p3rGARulesetManager
+            from v7p3r_score import v7p3rScore
+            from v7p3r_pst import v7p3rPST
+            from v7p3r_ga_ruleset_manager import v7p3rGARulesetManager
             
             # Load ruleset for rewards
             self.ruleset_manager = v7p3rGARulesetManager()
@@ -265,7 +266,7 @@ class V7P3RRLAgent:
             
             logger = logging.getLogger("v7p3r_rl")
             pst = v7p3rPST()
-            self.scorer = v7p3rScore(engine_config, pst, logger)
+            self.scorer = v7p3rScore(engine_config, pst)
             
             print(f"[RL] v7p3r scoring initialized with ruleset: {self.reward_ruleset.get('name', 'unknown')}")
             
@@ -276,14 +277,9 @@ class V7P3RRLAgent:
     def _init_stockfish(self):
         """Initialize Stockfish for validation."""
         try:
-            from v7p3r_engine.stockfish_handler import StockfishHandler
+            from stockfish_handler import StockfishHandler
             
-            stockfish_config = self.config.get('stockfish_config', {
-                'stockfish_path': 'engine_utilities/external_engines/stockfish/stockfish-windows-x86-64-avx2.exe',
-                'depth': 3,
-                'movetime': 100,
-                'elo_rating': 1500
-            })
+            stockfish_config = self.config_manager.get_stockfish_config()
             
             self.stockfish = StockfishHandler(stockfish_config)
             print(f"[RL] Stockfish initialized for validation")
@@ -697,8 +693,8 @@ class V7P3RRLAgent:
 class v7p3rRLEngine:
     """Wrapper class for compatibility with chess_game.py."""
     
-    def __init__(self, config_path="config/v7p3r_rl_config.yaml"):
-        self.agent = V7P3RRLAgent(config_path)
+    def __init__(self, config_overrides=None):
+        self.agent = V7P3RRLAgent(config_overrides)
         self.config = self.agent.config
         
         # Load model if specified
