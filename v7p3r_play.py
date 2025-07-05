@@ -14,7 +14,7 @@ from io import StringIO
 import hashlib
 from v7p3r_config import v7p3rConfig
 
-CONFIG_NAME = "default_config"
+CONFIG_NAME = "custom_config"
 
 # Define the maximum frames per second for the game loop
 MAX_FPS = 60
@@ -72,23 +72,10 @@ if not v7p3r_play_logger.handlers:
 
 # Import necessary modules from v7p3r_engine
 from v7p3r import v7p3rEngine # Corrected import for v7p3rEngine
-from metrics.metrics_store import MetricsStore # Import MetricsStore (legacy)
-from stockfish_handler import StockfishHandler
-
-# Import enhanced metrics system
-try:
-    from metrics.enhanced_metrics_store import EnhancedMetricsStore
-    from metrics.enhanced_scoring_collector import EnhancedScoringCollector
-    from metrics.refactored_enhanced_metrics_collector import RefactoredEnhancedMetricsCollector
-    ENHANCED_METRICS_AVAILABLE = True
-    REFACTORED_METRICS_AVAILABLE = True
-except ImportError as e:
-    ENHANCED_METRICS_AVAILABLE = False
-    REFACTORED_METRICS_AVAILABLE = False
-    print(f"Warning: Enhanced metrics system not available: {e}, using legacy system")
+from v7p3r_stockfish_handler import StockfishHandler
 
 class v7p3rChess:
-    def __init__(self, config: Optional[dict] = None):
+    def __init__(self, config_name: Optional[str] = None):
         """
         config: ChessGameConfig object containing all configuration parameters.
         """
@@ -101,7 +88,7 @@ class v7p3rChess:
 
         # Load configuration
         try:
-            if config is None:
+            if config_name is None:
                 self.config_manager = v7p3rConfig()
                 self.config = self.config_manager.get_config()
                 self.game_config = self.config_manager.get_game_config()
@@ -111,10 +98,11 @@ class v7p3rChess:
                 if self.logger:
                     self.logger.info("No configuration provided, using default v7p3r configuration.")
             else:
-                self.config = config
-                self.game_config = self.config.get("game_config", {})
-                self.engine_config = self.config.get("engine_config", {})
-                self.stockfish_config = self.config.get("stockfish_config", {})
+                self.config_name = config_name
+                self.config_manager = v7p3rConfig(config_path=os.path.join('configs',f"{self.config_name}.json"))
+                self.game_config = self.config_manager.get_game_config()
+                self.engine_config = self.config_manager.get_engine_config()
+                self.stockfish_config = self.config_manager.get_stockfish_config()
                 if self.logger:
                     self.logger.info("Configuration provided, using custom settings.")
         except Exception as e:
@@ -130,28 +118,39 @@ class v7p3rChess:
             self.logger.info(f"Stockfish config being passed to handler: {self.stockfish_config}")
             self.logger.info(f"Stockfish path in config: {self.stockfish_config.get('stockfish_path', 'NOT_FOUND')}")
         
-        self.stockfish = StockfishHandler(stockfish_config=self.stockfish_config)
-        
-        # Initialize enhanced metrics system
-        if ENHANCED_METRICS_AVAILABLE:
-            try:
-                self.enhanced_metrics_store = EnhancedMetricsStore(logger=self.logger)
-                self.scoring_collector = EnhancedScoringCollector(logger=self.logger)
-                self.use_enhanced_metrics = True
-                if self.logger:
-                    self.logger.info("Enhanced metrics system initialized")
-            except Exception as e:
-                self.use_enhanced_metrics = False
-                if self.logger:
-                    self.logger.error(f"Failed to initialize enhanced metrics: {e}")
-                print(f"Failed to initialize enhanced metrics: {e}")
-        else:
-            self.use_enhanced_metrics = False
+        try:
+            self.stockfish = StockfishHandler(stockfish_config=self.stockfish_config)
             if self.logger:
-                self.logger.warning("Using legacy metrics system")
+                self.logger.info("StockfishHandler initialized successfully")
+        except Exception as e:
+            if self.logger:
+                self.logger.error(f"Failed to initialize StockfishHandler: {e}")
+            print(f"Error initializing Stockfish: {e}")
+            # Create a dummy stockfish handler that always returns null moves
+            class DummyStockfish:
+                def __init__(self):
+                    self.process = None
+                    self.nodes_searched = 0
+                    self.last_search_info = {}
+                
+                def search(self, board, player, config):
+                    print("DummyStockfish: returning null move due to initialization failure")
+                    return chess.Move.null()
+                
+                def cleanup(self):
+                    pass
+                    
+                def quit(self):
+                    pass
+                    
+                def get_last_search_info(self):
+                    return {}
+            
+            self.stockfish = DummyStockfish()
         
-        # Initialize legacy metrics store (for compatibility)
-        self.metrics_store = MetricsStore()
+        # Check if stockfish process is running
+        if hasattr(self.stockfish, 'process') and self.stockfish.process is None:
+            print("WARNING: Stockfish process is None - engine failed to start!")
         
         # Set logging level
         self.monitoring_enabled = self.engine_config.get("monitoring_enabled", True)
@@ -169,10 +168,9 @@ class v7p3rChess:
         self.black_player = self.game_config.get("black_player", "stockfish")
         self.starting_position = self.game_config.get("starting_position", "default")
         
-        # Prepare engine configurations for enhanced metrics
-        if self.use_enhanced_metrics:
-            self.white_engine_config = self._get_engine_config_for_player(self.white_player)
-            self.black_engine_config = self._get_engine_config_for_player(self.black_player)
+        # Prepare engine configurations for metrics
+        self.white_engine_config = self._get_engine_config_for_player(self.white_player)
+        self.black_engine_config = self._get_engine_config_for_player(self.black_player)
 
         # Access global engine availability variables
         global RL_ENGINE_AVAILABLE, GA_ENGINE_AVAILABLE, NN_ENGINE_AVAILABLE
@@ -234,12 +232,6 @@ class v7p3rChess:
             except Exception as e:
                 print(f"Warning: Failed to initialize NN engine: {e}")
 
-        # Initialize MetricsStore
-        self.metrics_store = MetricsStore()
-        self._move_metrics_batch = []  # in-memory store of move metrics
-        self.game_start_timestamp = get_timestamp()
-        self.current_game_db_id = f"eval_game_{self.game_start_timestamp}.pgn"
-        
         # Initialize board and new game
         self.new_game()
     
@@ -264,43 +256,6 @@ class v7p3rChess:
         # Reset PGN headers and file
         self.set_headers()
         self.quick_save_pgn("logging/active_game.pgn")
-        
-        # Initialize enhanced metrics for this game
-        if self.use_enhanced_metrics:
-            try:
-                # Create simplified configs that are guaranteed to be JSON serializable
-                simple_white_config = {
-                    'name': str(self.white_engine_config.get('name', 'unknown')),
-                    'version': str(self.white_engine_config.get('version', 'unknown')),
-                    'search_algorithm': str(self.white_engine_config.get('search_algorithm', 'unknown')),
-                    'depth': int(self.white_engine_config.get('depth', 0)),
-                    'max_depth': int(self.white_engine_config.get('max_depth', 0)),
-                    'ruleset': str(self.white_engine_config.get('ruleset', 'standard'))
-                }
-                
-                simple_black_config = {
-                    'name': str(self.black_engine_config.get('name', 'unknown')),
-                    'version': str(self.black_engine_config.get('version', 'unknown')),
-                    'search_algorithm': str(self.black_engine_config.get('search_algorithm', 'unknown')),
-                    'depth': int(self.black_engine_config.get('depth', 0)),
-                    'max_depth': int(self.black_engine_config.get('max_depth', 0)),
-                    'ruleset': str(self.black_engine_config.get('ruleset', 'standard'))
-                }
-                
-                self.enhanced_metrics_store.start_game(
-                    game_id=self.current_game_db_id,
-                    white_player=self.white_player,
-                    black_player=self.black_player,
-                    white_config=simple_white_config,
-                    black_config=simple_black_config,
-                    pgn_filename=f"{self.current_game_db_id}.pgn"
-                )
-                if self.monitoring_enabled and self.logger:
-                    self.logger.info(f"Enhanced metrics initialized for game: {self.current_game_db_id}")
-            except Exception as e:
-                if self.logger:
-                    self.logger.error(f"Error initializing enhanced metrics: {e}")
-                self.use_enhanced_metrics = False
         
         if self.monitoring_enabled and self.logger:
             self.logger.info(f"Starting new game: {self.current_game_db_id}.")
@@ -374,56 +329,10 @@ class v7p3rChess:
         exporter = chess.pgn.FileExporter(buf)
         self.game.accept(exporter)
         pgn_text = buf.getvalue()
-
-        # Enhanced metrics game completion
-        if self.use_enhanced_metrics:
-            try:
-                # Determine termination reason
-                termination = "unknown"
-                if self.board.is_checkmate():
-                    termination = "checkmate"
-                elif self.board.is_stalemate():
-                    termination = "stalemate"
-                elif self.board.is_insufficient_material():
-                    termination = "insufficient_material"
-                elif self.board.can_claim_fifty_moves():
-                    termination = "fifty_moves"
-                elif self.board.can_claim_threefold_repetition():
-                    termination = "threefold_repetition"
-                
-                # Calculate total game duration if available
-                game_duration = 0.0
-                if hasattr(self, 'game_start_time') and hasattr(self, 'move_end_time'):
-                    game_duration = max(0.0, self.move_end_time - self.game_start_time)
-                
-                self.enhanced_metrics_store.finish_game(
-                    game_id=game_id,
-                    result=result,
-                    termination=termination,
-                    total_moves=self.board.fullmove_number,
-                    game_duration=game_duration
-                )
-                
-                if self.monitoring_enabled and self.logger:
-                    self.logger.info(f"Enhanced metrics game completion recorded for: {game_id}")
-                    
-            except Exception as e:
-                if self.logger:
-                    self.logger.error(f"Error recording enhanced game completion: {e}")
-
-        # Prepare game result data for legacy metrics_store (ensure all fields are present)
-        metrics_data = {
-            "game_id": game_id,
-            "timestamp": timestamp,
-            "winner": result,
-            "game_pgn": pgn_text,
-            "white_player": self.game.headers.get("White"),
-            "black_player": self.game.headers.get("Black"),
-            "game_length": self.board.fullmove_number,
-        }
-        # Save to legacy metrics store
-        self.metrics_store.add_game_result(**metrics_data)
         
+        # Save PGN data to metrics
+        # TODO Add code
+
         # Save locally into pgn file
         pgn_filepath = f"games/eval_game_{timestamp}.pgn"
         with open(pgn_filepath, "w") as f:
@@ -442,6 +351,11 @@ class v7p3rChess:
         game_specific_config = {
             "game_settings": self.game_config,
             "engine_settings": self.engine.engine_config,
+            "stockfish_settings": self.stockfish_config,
+            "white_player": self.white_player,
+            "black_player": self.black_player,
+            "game_id": game_id,
+            "ruleset": self.config_manager.ruleset
         }
         with open(config_filepath, "w") as f:
             import json
@@ -592,10 +506,14 @@ class v7p3rChess:
                     
             elif current_engine_name == 'stockfish':
                 try:
+                    # Debug: Check if Stockfish process is running
+                    if self.stockfish.process is None:
+                        print("DEBUG: Stockfish process is None! Cannot search.")
+                        return
                     # Use the Stockfish engine for the current player
                     if self.monitoring_enabled and self.logger:
                         self.logger.info("Using Stockfish engine for move processing.")
-                    engine_move = self.stockfish.search(self.board, self.current_player, self.stockfish_config)
+                    engine_move = self.stockfish.search(self.board, chess.WHITE, self.stockfish_config)
                 except Exception as e:
                     if self.monitoring_enabled and self.logger:
                         self.logger.error(f"[HARDSTOP Error] Cannot find move via Stockfish: {e}. | FEN: {self.board.fen()}")
@@ -646,34 +564,28 @@ class v7p3rChess:
             # Check and Push the move
             if not isinstance(engine_move, chess.Move):
                 return # Move invalid
+                
+            # Initialize variables before try block to ensure they're always defined
+            fen_before_move = self.board.fen()
+            move_number = self.board.fullmove_number
+            
             try:
                 if self.board.is_legal(engine_move):
-                    fen_before_move = self.board.fen()
-                    move_number = self.board.fullmove_number
                     self.push_move(engine_move)
                     self.last_engine_move = engine_move
                     self.move_end_time = time.time()  # End timing the move
                     self.move_duration = self.move_end_time - self.move_start_time
                     self.pv_line = ""
+                else:
+                    if self.monitoring_enabled and self.logger:
+                        self.logger.error(f"[HARDSTOP Error] Illegal move: {engine_move} | FEN: {self.board.fen()}")
+                    print(f"HARDSTOP ERROR: Illegal move: {engine_move} | FEN: {self.board.fen()}")
+                    return
             except Exception as e:
                 if self.monitoring_enabled and self.logger:
                     self.logger.error(f"[HARDSTOP Error] Move Invalid: {e}. | Move: {engine_move} | FEN: {self.board.fen()}")
                 print(f"HARDSTOP ERROR: Move Invalid: {e}. | Move: {engine_move} | FEN: {self.board.fen()}")
                 return
-            
-            
-            # Enhanced metrics collection
-            try:
-                self._collect_and_store_enhanced_metrics(
-                    engine_move, fen_before_move, move_number
-                )
-            except Exception as e:
-                if self.monitoring_enabled and self.logger:
-                    self.logger.error(f"[Error] Enhanced metrics collection failed: {e}")
-                # Fall back to legacy metrics collection
-                self._collect_legacy_metrics(
-                    engine_move, self.current_player, fen_before_move, move_number
-                )
 
             # Print the move and eval for the watcher, it will now be Black's turn so invert the colors when determining who just played
             print(f"{self.white_player if self.current_player == chess.BLACK else self.black_player} played: {engine_move} after {self.move_duration:.4f}s (Eval: {self.current_eval:.2f})")
@@ -693,269 +605,6 @@ class v7p3rChess:
                     logged_nodes = 0
                     
                 self.logger.info(f"{self.white_player if self.current_player == chess.WHITE else self.black_player} played: {engine_move} (Eval: {self.current_eval:.2f}) | Time: {self.move_duration:.4f}s | Nodes: {logged_nodes}")
-
-    def _collect_and_store_enhanced_metrics(self, engine_move: chess.Move, fen_before_move: str, move_number: int):
-        """
-        Collect and store comprehensive metrics using the enhanced system
-        """
-        if not self.use_enhanced_metrics:
-            return
-
-        current_engine_name = self.white_player.lower() if self.current_player == chess.WHITE else self.black_player.lower()
-        
-        # Base metrics
-        enhanced_metric = {
-            'game_id': self.current_game_db_id,
-            'move_number': move_number,
-            'player_color': 'white' if self.current_player == chess.WHITE else 'black',
-            'move_san': self.board.san(engine_move),
-            'move_uci': engine_move.uci(),
-            'fen_before': fen_before_move,
-            'fen_after': self.board.fen(),
-            'time_taken': self.move_duration,
-            'evaluation': self.current_eval,
-            'best_line': self.pv_line
-        }
-        
-        print(f"DEBUG: Base metrics created, game_id: {self.current_game_db_id}")
-        
-        # Engine-specific metrics
-        try:
-            if current_engine_name == 'v7p3r':
-                print(f"DEBUG: Collecting v7p3r specific metrics")
-                enhanced_metric.update(self._collect_v7p3r_metrics(fen_before_move))
-            elif current_engine_name == 'stockfish':
-                print(f"DEBUG: Collecting stockfish specific metrics")
-                enhanced_metric.update(self._collect_stockfish_metrics())
-            elif current_engine_name in ['v7p3r_rl', 'v7p3r_ga', 'v7p3r_nn'] and current_engine_name in self.engines:
-                enhanced_metric.update(self._collect_specialized_engine_metrics(current_engine_name))
-            else:
-                enhanced_metric.update(self._collect_default_metrics(current_engine_name))
-        except Exception as e:
-            print(f"DEBUG ERROR: Failed to collect engine-specific metrics: {e}")
-            import traceback
-            traceback.print_exc()
-        
-        # Game and position analysis
-        try:
-            print(f"DEBUG: Collecting position analysis")
-            enhanced_metric.update(self._collect_position_analysis(fen_before_move, engine_move))
-        except Exception as e:
-            print(f"DEBUG ERROR: Failed to collect position analysis: {e}")
-            import traceback
-            traceback.print_exc()
-        
-        # Store the enhanced metrics
-        try:
-            print(f"DEBUG: About to call enhanced_metrics_store.add_enhanced_move_metric")
-            print(f"DEBUG: enhanced_metric keys: {list(enhanced_metric.keys())}")
-            print(f"DEBUG: enhanced_metrics_store object: {self.enhanced_metrics_store}")
-            self.enhanced_metrics_store.add_enhanced_move_metric(**enhanced_metric)
-            print(f"DEBUG: Enhanced metrics stored successfully")
-        except Exception as e:
-            print(f"DEBUG ERROR: Failed to store enhanced metrics: {e}")
-            import traceback
-            traceback.print_exc()
-            raise
-        
-        if self.monitoring_enabled and self.logger:
-            self.logger.info(f"Enhanced metrics collected for move {engine_move.uci()}")
-    
-    def _collect_v7p3r_metrics(self, fen_before_move: str) -> dict:
-        """
-        Collect detailed metrics from v7p3r engine including scoring breakdown
-        """
-        metrics = {
-            'search_algorithm': self.engine.search_algorithm,
-            'depth_reached': self.engine.depth,
-            'nodes_searched': getattr(self.engine.search_engine, 'nodes_searched', 0),
-            'engine_config_id': hashlib.md5(self.engine.name.encode()).hexdigest()
-        }
-        
-        # Calculate search efficiency
-        if metrics['nodes_searched'] > 0 and self.move_duration > 0:
-            efficiency = self.scoring_collector.calculate_search_efficiency_metrics(
-                metrics['nodes_searched'], self.move_duration, metrics['depth_reached']
-            )
-            metrics.update(efficiency)
-        
-        # Get detailed scoring breakdown
-        try:
-            # Create a board state before the move for scoring analysis
-            temp_board = chess.Board(fen_before_move)
-            current_color = temp_board.turn
-            
-            detailed_scores = self.scoring_collector.collect_detailed_scoring(
-                self.engine.scoring_calculator, temp_board, current_color
-            )
-            metrics.update(detailed_scores)
-        except Exception as e:
-            if self.logger:
-                self.logger.warning(f"Could not collect detailed scoring: {e}")
-        
-        return metrics
-    
-    def _collect_stockfish_metrics(self) -> dict:
-        """
-        Collect metrics from Stockfish engine
-        """
-        return {
-            'search_algorithm': 'stockfish',
-            'depth_reached': self.stockfish_config.get('depth', 2),
-            'nodes_searched': 0,  # Stockfish doesn't expose this in our interface
-            'engine_config_id': hashlib.md5("stockfish".encode()).hexdigest(),
-            'nps': 0.0,
-            'branching_factor': 0.0
-        }
-    
-    def _collect_specialized_engine_metrics(self, engine_name: str) -> dict:
-        """
-        Collect metrics from specialized engines (RL, GA, NN)
-        """
-        engine_obj = self.engines[engine_name]
-        return {
-            'search_algorithm': getattr(engine_obj, 'search_algorithm', engine_name),
-            'depth_reached': getattr(engine_obj, 'depth', 0),
-            'nodes_searched': getattr(engine_obj, 'nodes_searched', 0),
-            'engine_config_id': hashlib.md5(getattr(engine_obj, 'name', engine_name).encode()).hexdigest(),
-            'nps': 0.0,
-            'branching_factor': 0.0
-        }
-    
-    def _collect_default_metrics(self, engine_name: str) -> dict:
-        """
-        Collect default metrics for unknown engines
-        """
-        return {
-            'search_algorithm': 'unknown',
-            'depth_reached': 0,
-            'nodes_searched': 0,
-            'engine_config_id': hashlib.md5(engine_name.encode()).hexdigest(),
-            'nps': 0.0,
-            'branching_factor': 0.0
-        }
-    
-    def _collect_position_analysis(self, fen_before: str, move: chess.Move) -> dict:
-        """
-        Collect game phase and position analysis
-        """
-        try:
-            temp_board = chess.Board(fen_before)
-            
-            analysis = {
-                'game_phase': self.scoring_collector.analyze_game_phase(temp_board),
-                'position_type': self.scoring_collector.classify_position_type(temp_board),
-                'material_balance': self.scoring_collector.calculate_material_balance(temp_board),
-                'piece_count': self.scoring_collector.count_pieces(temp_board),
-                'move_type': self.scoring_collector.classify_move_type(temp_board, move),
-                'is_check': temp_board.is_check(),
-                'is_checkmate': temp_board.is_checkmate(),
-                'from_opening_book': False,  # TODO: Integrate with opening book detection
-                'opening_book_name': None
-            }
-            
-            # Check if move gives check
-            temp_board.push(move)
-            analysis['gives_check'] = temp_board.is_check()
-            
-            return analysis
-            
-        except Exception as e:
-            if self.logger:
-                self.logger.warning(f"Error in position analysis: {e}")
-            return {
-                'game_phase': 'unknown',
-                'position_type': 'unknown',
-                'material_balance': 0.0,
-                'piece_count': 0,
-                'move_type': 'unknown',
-                'is_check': False,
-                'is_checkmate': False,
-                'gives_check': False,
-                'from_opening_book': False,
-                'opening_book_name': None
-            }
-    
-    def _collect_legacy_metrics(self, engine_move: chess.Move, current_player_color: chess.Color, fen_before_move: str, move_number: int):
-        """
-        Fallback to legacy metrics collection if enhanced system fails
-        """
-        try: 
-            # Determine which engine actually made the move
-            current_engine_name = self.white_player.lower() if current_player_color == chess.WHITE else self.black_player.lower()
-            
-            # Get engine-specific metrics
-            nodes_searched = 0
-            search_algorithm = "unknown"
-            depth = 0
-            engine_name = current_engine_name
-            engine_version = "unknown"
-            engine_id = ""
-            
-            if current_engine_name == 'v7p3r':
-                try:
-                    nodes_searched = self.engine.search_engine.nodes_searched if hasattr(self.engine.search_engine, 'nodes_searched') else 0
-                    search_algorithm = self.engine.search_algorithm
-                    depth = self.engine.depth
-                    engine_name = self.engine.name
-                    engine_version = self.engine.version
-                    engine_id = hashlib.md5(self.engine.name.encode()).hexdigest()
-                except AttributeError as e:
-                    if self.monitoring_enabled and self.logger:
-                        self.logger.warning(f"Could not access v7p3r engine metrics: {e}")
-                    nodes_searched = 0
-                    
-            elif current_engine_name == 'stockfish':
-                search_algorithm = "stockfish"
-                depth = self.stockfish_config.get('depth', 2)
-                engine_name = "stockfish"
-                engine_version = "unknown"
-                engine_id = hashlib.md5("stockfish".encode()).hexdigest()
-                nodes_searched = 0
-                
-            elif current_engine_name in ['v7p3r_rl', 'v7p3r_ga', 'v7p3r_nn'] and current_engine_name in self.engines:
-                engine_obj = self.engines[current_engine_name]
-                try:
-                    nodes_searched = getattr(engine_obj, 'nodes_searched', 0)
-                    search_algorithm = getattr(engine_obj, 'search_algorithm', current_engine_name)
-                    depth = getattr(engine_obj, 'depth', 0)
-                    engine_name = getattr(engine_obj, 'name', current_engine_name)
-                    engine_version = getattr(engine_obj, 'version', "unknown")
-                    engine_id = hashlib.md5(engine_name.encode()).hexdigest()
-                except AttributeError as e:
-                    if self.monitoring_enabled and self.logger:
-                        self.logger.warning(f"Could not access {current_engine_name} engine metrics: {e}")
-                    nodes_searched = 0
-            
-            # Legacy metric format
-            metric = {
-                'game_id': self.current_game_db_id,
-                'move_number': move_number,
-                'player_color': 'w' if current_player_color == chess.WHITE else 'b',
-                'move_uci': engine_move.uci(),
-                'fen_before': fen_before_move,
-                'evaluation': self.current_eval,
-                'search_algorithm': search_algorithm,
-                'depth': depth,
-                'engine_id': engine_id,
-                'engine_name': engine_name,
-                'engine_version': engine_version,
-                'nodes_searched': nodes_searched,
-                'time_taken': self.move_duration,
-                'pv_line': self.pv_line
-            }
-            
-            # Add to legacy metrics store
-            self.metrics_store.add_move_metric(**metric)
-            self._move_metrics_batch.append(metric)
-            
-            if self.monitoring_enabled and self.logger:
-                self.logger.info(f"Legacy metrics for {engine_move.uci()} added to MetricsStore.")
-                
-        except Exception as e:
-            if self.monitoring_enabled and self.logger:
-                self.logger.error(f"[Error] Legacy metrics collection failed: {e}")
-            return
 
     def push_move(self, move):
         """ Test and push a move to the board and game node """
@@ -1184,6 +833,10 @@ class v7p3rChess:
 if __name__ == "__main__":
     
     # Set up and start the game
-    game = v7p3rChess()
+    if CONFIG_NAME == "default_config":
+        print("Using default configuration for v7p3rChess.")
+        game = v7p3rChess(config_name=CONFIG_NAME)
+    else:
+        print(f"Using custom configuration: {CONFIG_NAME} for v7p3rChess.")
+        game = v7p3rChess(config_name=CONFIG_NAME)
     game.run()
-    game.metrics_store.close()

@@ -9,26 +9,18 @@ from dash import dcc, html, Output, Input
 import plotly.graph_objs as go
 import pandas as pd
 import numpy as np
-from metrics_store import MetricsStore
-from refactored_analytics_processor import RefactoredAnalyticsProcessor
-from enhanced_metrics_store import EnhancedMetricsStore
-from metrics_backup import backup_metrics_db
-import yaml
 import atexit
 from datetime import datetime # Import datetime for parsing timestamps
 import sqlite3
 import os
+import shutil
+from datetime import datetime
 
 # Use absolute paths to avoid nested directory issues
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ANALYTICS_DB_PATH = os.path.join(BASE_DIR, "chess_analytics.db")
 RAW_DB_PATH = os.path.join(BASE_DIR, "chess_metrics.db")
 ENHANCED_DB_PATH = os.path.join(BASE_DIR, "chess_metrics_v2.db")
-
-# Initialize the metrics systems
-metrics_store = MetricsStore(db_path=ANALYTICS_DB_PATH)  # Legacy system
-enhanced_store = EnhancedMetricsStore()  # Enhanced system
-analytics_processor = RefactoredAnalyticsProcessor()  # Refactored analytics
 
 # --- DARK MODE COLORS ---
 DARK_BG = "#18191A"
@@ -41,6 +33,99 @@ DARK_HIGHLIGHT = "#4A90E2"
 DARK_ERROR = "#FF5252"
 DARK_WARNING = "#FFB300"
 DARK_SUCCESS = "#00C853"
+
+
+class v7p3rMetrics:
+    """ A class to handle metrics storage and retrieval for the V7P3R chess engine.
+    This class abstracts the database operations for storing and retrieving game results and move metrics.
+    """
+    
+    def __init__(self, db_path=ENHANCED_DB_PATH):
+        self.db_path = db_path
+        self._ensure_tables_exist()
+        atexit.register(self.close)
+
+    def _get_connection(self):
+        return sqlite3.connect(self.db_path)
+
+    def close(self):
+        """ Closes the database connection if it exists. """
+        pass  # No persistent connection, so nothing to close
+
+    def _ensure_tables_exist(self):
+        """ Ensures that the necessary tables exist in the database. """
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS game_results (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    game_id TEXT UNIQUE NOT NULL,
+                    timestamp TEXT NOT NULL,
+                    winner TEXT,
+                    game_pgn TEXT,
+                    white_player TEXT,
+                    black_player TEXT,
+                    game_length INTEGER,
+                    white_engine_config TEXT,
+                    black_engine_config TEXT
+                )
+            """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS move_metrics (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    game_id TEXT NOT NULL,
+                    move_number INTEGER NOT NULL,
+                    player_color TEXT NOT NULL,
+                    move_uci TEXT NOT NULL,
+                    fen_before TEXT NOT NULL,
+                    evaluation REAL NOT NULL,
+                    search_algorithm TEXT NOT NULL,
+                    depth INTEGER NOT NULL,
+                    nodes_searched INTEGER NOT NULL,
+                    time_taken REAL NOT NULL,
+                    pv_line TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            conn.commit()
+
+    def add_game_result(self, game_id, timestamp, winner, game_pgn, white_player, black_player, game_length, white_engine_config, black_engine_config):
+        """ Adds a new game result to the database. """
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT OR IGNORE INTO game_results (game_id, timestamp, winner, game_pgn, white_player, black_player, game_length, white_engine_config, black_engine_config)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (game_id, timestamp, winner, game_pgn, white_player, black_player, game_length, white_engine_config, black_engine_config))
+
+            conn.commit()
+    
+    def add_move_metric(self, game_id, move_number, player_color, move_uci, fen_before, evaluation, search_algorithm, depth, nodes_searched, time_taken, pv_line):
+        """ Adds a new move metric to the database. """
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO move_metrics (game_id, move_number, player_color, move_uci, fen_before, evaluation, search_algorithm, depth, nodes_searched, time_taken, pv_line)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (game_id, move_number, player_color, move_uci, fen_before, evaluation, search_algorithm, depth, nodes_searched, time_taken, pv_line))
+
+            conn.commit()
+
+    def get_all_game_results_df(self):
+        """ Retrieves all game results as a pandas DataFrame. """
+        with self._get_connection() as conn:
+            df = pd.read_sql_query("SELECT * FROM game_results", conn)
+        return df
+
+# Initialize v7p3r Metrics
+metrics_store = v7p3rMetrics()
+
+def backup_metrics_db(db_path='chess_metrics.db', backup_dir='db_backups'):
+    os.makedirs(backup_dir, exist_ok=True)
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    backup_path = os.path.join(backup_dir, f'chess_metrics_{timestamp}.db')
+    shutil.copy2(db_path, backup_path)
+    return backup_path
 
 # --- Metrics Dashboard Initialization: Backup, Cleanup, and Test Data ---
 def initialize_metrics_dashboard():

@@ -21,7 +21,7 @@ from typing import List, Dict, Tuple, Optional, Union
 # Add the project root to the Python path to allow imports from anywhere in the project
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from v7p3r_config import v7p3rConfig
-from stockfish_handler import StockfishHandler
+from v7p3r_stockfish_handler import StockfishHandler
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, 

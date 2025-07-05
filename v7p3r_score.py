@@ -140,9 +140,9 @@ class v7p3rScore:
             board=board,
             color=chess.BLACK,
         )
-        
-        # Return the score from whites persective, inverted if blacks turn
-        score = white_score - black_score if board.turn else -1 * (white_score - black_score)
+
+        # Return the score from whites perspective
+        score = white_score - black_score
         if self.monitoring_enabled and self.logger:
             self.logger.info(f"Evaluation: {score:.3f} | FEN: {board.fen()}")
         self.score_dataset['evaluation'] = score

@@ -19,7 +19,7 @@ from v7p3r_config import v7p3rConfig
 from v7p3r_ga_ruleset_manager import v7p3rGARulesetManager
 from v7p3r_score import v7p3rScore
 from v7p3r_pst import v7p3rPST
-from stockfish_handler import StockfishHandler
+from v7p3r_stockfish_handler import StockfishHandler
 from puzzles.puzzle_db_manager import PuzzleDBManager
 
 class v7p3rGeneticAlgorithm:

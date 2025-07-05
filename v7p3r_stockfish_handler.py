@@ -127,10 +127,13 @@ class StockfishHandler:
             self.logger.info("Stockfish engine started successfully.")
             
             self._send_command("uci")
-            self._wait_for_response("uciok")
+            uci_response = self._wait_for_response("uciok")
+            
             self._set_options()
+            
             self._send_command("isready")
-            self._wait_for_response("readyok")
+            ready_response = self._wait_for_response("readyok")
+            
             self.logger.info("Stockfish engine ready.")
         except FileNotFoundError:
             self.logger.error(f"Stockfish executable not found at: {self.stockfish_path}")
@@ -160,9 +163,24 @@ class StockfishHandler:
         """Sends a command to the Stockfish engine."""
         # Pylance error fix: Check self.process and self.process.stdin explicitly
         if self.process and self.process.stdin:
+            # Check if process has terminated before sending
+            if self.process and hasattr(self.process, 'poll'):
+                poll_result = self.process.poll()
+                if poll_result is not None:
+                    self.process = None
+                    return
+                
             try:
                 self.process.stdin.write(command + "\n")
                 self.process.stdin.flush()
+                
+                # Check if process has terminated after sending
+                if self.process and hasattr(self.process, 'poll'):
+                    poll_result = self.process.poll()
+                    if poll_result is not None:
+                        self.process = None
+                    return
+                    
                 if self.debug_mode:
                     self.logger.info(f"Sent: {command}")
             except BrokenPipeError:
@@ -210,9 +228,11 @@ class StockfishHandler:
                 break
         else: # This else block executes if the while loop completes without a 'break' (i.e., it timed out)
             self.logger.warning(f"Timed out waiting for Stockfish response '{expected_end_string}'. Current response: {''.join(full_response).strip()[:100]}...")
-            if self.process.poll() is not None: # Check if process died during timeout
-                self.logger.error(f"Stockfish process terminated during timeout while waiting for '{expected_end_string}'.")
-                self.process = None
+            if self.process and hasattr(self.process, 'poll'):
+                poll_result = self.process.poll()
+                if poll_result is not None: # Check if process died during timeout
+                    self.logger.error(f"Stockfish process terminated during timeout while waiting for '{expected_end_string}'.")
+                    self.process = None
 
         return "".join(full_response)
 
@@ -230,14 +250,26 @@ class StockfishHandler:
             self._send_command(f"setoption name Skill Level value {self.skill_level}")
             self._send_command(f"setoption name UCI_LimitStrength value true") # Enable limiting for skill level
             self.logger.info(f"Set Stockfish Skill Level to {self.skill_level}")
-        self._send_command(f"setoption name Use NNUE value true")
+        # Note: Removed "Use NNUE" option as it's not supported in this Stockfish version
 
     def set_position(self, board: chess.Board):
         """Sets the current board position for the engine."""
         if self.process is None:
             self.logger.warning("Stockfish process not running, cannot set position.")
             return
+        
+        # Check if process has crashed
+        if self.process and hasattr(self.process, 'poll') and self.process.poll() is not None:
+            self.process = None
+            return
+            
         self._send_command(f"position fen {board.fen()}")
+        
+        # Check if process crashed after sending command
+        if self.process and hasattr(self.process, 'poll') and self.process.poll() is not None:
+            self.process = None
+            return
+            
         self.logger.info(f"Set position: {board.fen()}")
 
     def search(self, board: chess.Board, player: chess.Color, engine_config: Dict[str, Any], stop_callback: Optional[Callable[[], bool]] = None):
@@ -249,11 +281,16 @@ class StockfishHandler:
             self.logger.error("Stockfish process not running, cannot perform search. Returning null move.")
             return chess.Move.null()
 
+        if self.process and hasattr(self.process, 'poll') and self.process.poll() is not None:
+            self.process = None
+        
         self.set_position(board)
+        
         self.nodes_searched = 0
         self.last_search_info = {'score': 0.0, 'nodes': 0, 'pv': ''}
 
-        move_time_limit_ms = engine_config.get('time_limit', 0)
+        # Handle both 'time_limit' (expected) and 'movetime' (config) field names
+        move_time_limit_ms = engine_config.get('time_limit', engine_config.get('movetime', 0))
         depth_limit = engine_config.get('depth', 0)
 
         command = "go"
@@ -283,10 +320,12 @@ class StockfishHandler:
             line = self._read_response(timeout=0.1)
             if not line:
                 # If no line for a short period, and we haven't received bestmove, check if process died
-                if self.process.poll() is not None:
-                    self.logger.error("Stockfish process terminated during search. Cannot get bestmove.")
-                    self.process = None
-                    break
+                if self.process and hasattr(self.process, 'poll'):
+                    poll_result = self.process.poll()
+                    if poll_result is not None:
+                        self.logger.error("Stockfish process terminated during search. Cannot get bestmove.")
+                        self.process = None
+                        break
                 if best_move_uci: # If we have a bestmove from a previous 'info' line (rare but possible)
                     break
                 continue # Keep waiting for more output
@@ -411,7 +450,8 @@ class StockfishHandler:
     def __del__(self):
         """Destructor to ensure Stockfish process is terminated when object is destroyed."""
         try:
-            self.close()
+            # Only quit the process, don't reset the singleton instance
+            self.quit()
         except Exception:
             pass
 

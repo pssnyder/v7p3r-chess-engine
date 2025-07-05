@@ -277,7 +277,7 @@ class V7P3RRLAgent:
     def _init_stockfish(self):
         """Initialize Stockfish for validation."""
         try:
-            from stockfish_handler import StockfishHandler
+            from v7p3r_stockfish_handler import StockfishHandler
             
             stockfish_config = self.config_manager.get_stockfish_config()
             

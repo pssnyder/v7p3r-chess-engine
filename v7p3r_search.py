@@ -133,7 +133,7 @@ class v7p3rSearch:
 
 
             # Check for checkmates
-            checkmate_move = self._checkmate_search(self.root_board, self.depth)
+            checkmate_move = self._checkmate_search(self.root_board, self.depth if self.depth >= 5 else 5)
             if checkmate_move != chess.Move.null() and board.is_legal(checkmate_move):
                 self.pv_move_stack = [{ # Initialize principal variation with the checkmate move
                     'move_number': 1,
@@ -703,7 +703,7 @@ class v7p3rSearch:
         return final_score
 
     def _checkmate_search(self, board: chess.Board, ply: int = 5, first_move: chess.Move = chess.Move.null(), potential_checkmate_moves: list[chess.Move] = []) -> chess.Move:
-        """Identify forced checkmate patterns within the given depth (interpreted as ply)."""
+        """Identify forced checkmate patterns within the given depth if greater than 5 otherwise (interpreted as 5 ply search)."""
         # Base cases
         if ply <= 0:
             return chess.Move.null()

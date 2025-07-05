@@ -1,6 +1,6 @@
 {
     "game_config": {
-        "game_count": 10,
+        "game_count": 1,
         "starting_position": "default",
         "white_player": "v7p3r",
         "black_player": "stockfish"
@@ -10,19 +10,19 @@
         "version": "0.0.8",
         "ruleset": "default_ruleset",
         "search_algorithm": "minimax",
-        "depth": 5,
+        "depth": 3,
         "max_depth": 5,
         "use_game_phase": true,
         "use_quiescence": false,
         "order_moves": true,
-        "max_moves": 5,
+        "max_moves": 3,
         "strict_draw_prevention": false,
         "monitoring_enabled": true,
         "verbose_output": false,
         "logger": "v7p3r_engine_logger"
     },
     "stockfish_config": {
-        "stockfish_path": "v7p3r_engine/external_engines/stockfish/stockfish-windows-x86-64-avx2.exe",
+        "stockfish_path": "stockfish/stockfish-windows-x86-64-avx2.exe",
         "elo_rating": 100,
         "skill_level": 1,
         "debug_mode": false,
@@ -129,7 +129,7 @@
             "enabled": true,
             "save_model": true,
             "save_metrics": true,
-            "model_path": "v7p3r_nn_engine/v7p3r_nn_models",
+            "model_path": "v7p3r_nn_models",
             "metrics_path": "metrics",
             "store_checkpoints": true,
             "checkpoint_frequency": 5
@@ -143,7 +143,7 @@
         },
         "move_library": {
             "enabled": true,
-            "db_path": "v7p3r_nn_engine/v7p3r_nn_move_vocab",
+            "db_path": "v7p3r_nn_move_vocab",
             "confidence_threshold": 0.7,
             "prune_old_evaluations": true,
             "max_positions": 1000000
@@ -179,7 +179,7 @@
         "batch_size": 16,
         "episodes_per_validation": 50,
         "reward_ruleset": "default_ruleset",
-        "model_path": "v7p3r_rl_engine/v7p3r_rl_models",
+        "model_path": "v7p3r_rl_models",
         "save_frequency": 100,
         "use_cuda": true,
         "device": "auto",
