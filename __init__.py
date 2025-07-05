@@ -1,1 +1,1 @@
-# V7P3R Chess Engine Package
+# V7P3R Engine Package
