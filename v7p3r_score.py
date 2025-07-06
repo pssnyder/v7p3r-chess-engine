@@ -37,10 +37,12 @@ if not os.path.exists(log_dir):
 
 # Setup individual logger for this file
 timestamp = get_timestamp()
-log_filename = f"v7p3r_score_{timestamp}.log"
+#log_filename = f"v7p3r_score_{timestamp}.log"
+log_filename = f"v7p3r_score.log"  # Use a fixed log filename for simplicity
 log_file_path = os.path.join(log_dir, log_filename)
 
-v7p3r_score_logger = logging.getLogger(f"v7p3r_score_{timestamp}")
+#v7p3r_score_logger = logging.getLogger(f"v7p3r_score_{timestamp}")
+v7p3r_score_logger = logging.getLogger("v7p3r_score")
 v7p3r_score_logger.setLevel(logging.DEBUG)
 
 if not v7p3r_score_logger.handlers:
