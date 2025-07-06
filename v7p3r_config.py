@@ -38,22 +38,65 @@ class v7p3rConfig:
 
     def _load_config(self):
         """
-        Load the default configuration from a JSON file.
-        The default configuration is stored in 'configs/default_config.json'.
+        Load configuration with layered override system.
+        
+        1. First loads default_config.json as the base layer (REQUIRED)
+        2. Then overlays custom config values (if custom config specified)
+        3. Custom values override defaults, everything else inherits
+        4. Fails fast if default_config.json cannot be loaded
         """
+        # STEP 1: Load default configuration as base layer (REQUIRED)
+        default_config_path = os.path.join(os.path.dirname(__file__), 'configs', 'default_config.json')
+        
         try:
-            # Open the default configuration file and load its contents
-            with open(self.config_path, 'r') as config_file:
+            with open(default_config_path, 'r') as config_file:
                 self.config = json.load(config_file)
-                if isinstance(self.config, dict):
-                    # Load module-specific configurations
-                    self._load_module_configs()
-                    # Apply any overrides
-                    self._apply_overrides()
+                
+                if not isinstance(self.config, dict):
+                    raise ValueError("default_config.json does not contain a valid configuration dictionary")
+                    
         except FileNotFoundError:
-            raise FileNotFoundError(f"Configuration file not found: {self.config_path}")
+            raise FileNotFoundError(f"CRITICAL ERROR: default_config.json not found at {default_config_path}. Engine cannot start without default configuration.")
         except json.JSONDecodeError as e:
-            raise ValueError(f"Error decoding JSON from configuration file: {e}")
+            raise ValueError(f"CRITICAL ERROR: Invalid JSON in default_config.json: {e}. Engine cannot start.")
+        
+        # STEP 2: If custom config specified, overlay custom values
+        if self.config_path != default_config_path:
+            try:
+                with open(self.config_path, 'r') as custom_file:
+                    custom_config = json.load(custom_file)
+                    
+                    if isinstance(custom_config, dict):
+                        # Recursively overlay custom values onto default base
+                        self._deep_update(self.config, custom_config)
+                    else:
+                        print(f"WARNING: Custom config file {self.config_path} does not contain valid dictionary. Using defaults only.")
+                        
+            except FileNotFoundError:
+                print(f"WARNING: Custom config file {self.config_path} not found. Using default_config.json only.")
+            except json.JSONDecodeError as e:
+                raise ValueError(f"Invalid JSON in custom config file {self.config_path}: {e}")
+        
+        # Load module-specific configurations
+        self._load_module_configs()
+        
+        # Apply any runtime overrides
+        self._apply_overrides()
+        
+        # Validate that we have required configuration values
+        if not self.config:
+            raise ValueError("CRITICAL ERROR: No valid configuration loaded. Engine cannot start.")
+    
+    def _deep_update(self, target: dict, source: dict):
+        """
+        Recursively update target dict with source dict.
+        Source values override target values, but preserve nested structure.
+        """
+        for key, value in source.items():
+            if key in target and isinstance(target[key], dict) and isinstance(value, dict):
+                self._deep_update(target[key], value)
+            else:
+                target[key] = value
 
     def _load_module_configs(self):
         """
@@ -83,36 +126,79 @@ class v7p3rConfig:
         if not self.overrides:
             return
 
-        def deep_update(target: dict, override: dict):
-            """Recursively update target dict with override dict"""
-            for key, value in override.items():
-                if key in target and isinstance(target[key], dict) and isinstance(value, dict):
-                    deep_update(target[key], value)
-                else:
-                    target[key] = value
-
-        # Apply overrides to main config
-        deep_update(self.config, self.overrides)
+        # Apply overrides to main config using the new deep_update method
+        self._deep_update(self.config, self.overrides)
         
         # Reload module configs to reflect overrides
         self._load_module_configs()
 
     def _load_ruleset(self):
         """
-        Load the ruleset configuration.
-        The rulesets are stored in 'configs/rulesets/custom_rulesets.json'.
+        Load the ruleset configuration with layered override system.
+        
+        1. First loads default_ruleset.json as the base layer
+        2. Then overlays custom ruleset values (if specified and exists)
+        3. Custom values override defaults, everything else inherits
+        4. Fails fast if default_ruleset.json cannot be loaded
         """
-        ruleset_path = os.path.join(os.path.dirname(__file__), 'configs', 'rulesets', 'custom_rulesets.json')
+        # STEP 1: Load default ruleset as base layer (REQUIRED)
+        default_ruleset_path = os.path.join(os.path.dirname(__file__), 'configs', 'rulesets', 'default_ruleset.json')
+        
         try:
-            with open(ruleset_path, 'r') as file:
-                self.rulesets = json.load(file)
-                self.ruleset = self.rulesets.get(self.ruleset_name, {})
+            with open(default_ruleset_path, 'r') as file:
+                default_data = json.load(file)
+                self.ruleset = default_data.get('default_ruleset', {})
+                
+                if not self.ruleset:
+                    raise ValueError("default_ruleset.json exists but does not contain 'default_ruleset' key")
+                    
         except FileNotFoundError:
-            # If no custom rulesets file exists, create default structure
-            self.rulesets = {"default_ruleset": {}}
-            self.ruleset = {}
+            raise FileNotFoundError(f"CRITICAL ERROR: default_ruleset.json not found at {default_ruleset_path}. Engine cannot start without default configuration.")
         except json.JSONDecodeError as e:
-            raise ValueError(f"Error decoding JSON from ruleset file: {e}")
+            raise ValueError(f"CRITICAL ERROR: Invalid JSON in default_ruleset.json: {e}. Engine cannot start.")
+        
+        # STEP 2: If custom ruleset specified, overlay custom values
+        if self.ruleset_name != 'default_ruleset':
+            # Try individual custom ruleset file first
+            custom_individual_path = os.path.join(os.path.dirname(__file__), 'configs', 'rulesets', f'{self.ruleset_name}.json')
+            custom_found = False
+            
+            try:
+                with open(custom_individual_path, 'r') as file:
+                    custom_data = json.load(file)
+                    custom_ruleset = custom_data.get(self.ruleset_name, {})
+                    if custom_ruleset:
+                        # Overlay custom values onto default base
+                        self.ruleset.update(custom_ruleset)
+                        custom_found = True
+            except FileNotFoundError:
+                pass  # Try custom_rulesets.json next
+            except json.JSONDecodeError as e:
+                raise ValueError(f"Invalid JSON in custom ruleset file {custom_individual_path}: {e}")
+            
+            # If not found in individual file, try custom_rulesets.json
+            if not custom_found:
+                custom_rulesets_path = os.path.join(os.path.dirname(__file__), 'configs', 'rulesets', 'custom_rulesets.json')
+                try:
+                    with open(custom_rulesets_path, 'r') as file:
+                        custom_data = json.load(file)
+                        custom_ruleset = custom_data.get(self.ruleset_name, {})
+                        if custom_ruleset:
+                            # Overlay custom values onto default base
+                            self.ruleset.update(custom_ruleset)
+                            custom_found = True
+                except FileNotFoundError:
+                    pass  # Custom ruleset not found, use defaults
+                except json.JSONDecodeError as e:
+                    raise ValueError(f"Invalid JSON in custom_rulesets.json: {e}")
+            
+            # Log if custom ruleset was requested but not found
+            if not custom_found:
+                print(f"WARNING: Custom ruleset '{self.ruleset_name}' not found. Using default_ruleset values only.")
+        
+        # Validate that we have required ruleset values
+        if not self.ruleset:
+            raise ValueError("CRITICAL ERROR: No valid ruleset configuration loaded. Engine cannot start.")
 
     def get_config(self):
         """Get the complete configuration dictionary"""

@@ -1,4 +1,4 @@
-# # v7p3r_engine/v7p3r_ordering.py
+# v7p3r_ordering.py
 """ Move ordering for the V7P3R chess engine.
 This module provides functionality to order moves based on their potential effectiveness"""
 import os
@@ -25,16 +25,19 @@ def get_timestamp():
     return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
 # Create logging directory relative to project root
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
 log_dir = os.path.join(project_root, 'logging')
 if not os.path.exists(log_dir):
     os.makedirs(log_dir, exist_ok=True)
 
 # Setup individual logger for this file
 timestamp = get_timestamp()
-log_filename = f"v7p3r_ordering_{timestamp}.log"
+#log_filename = f"v7p3r_ordering_{timestamp}.log"
+log_filename = "v7p3r_ordering.log"  # Use a single log file for simplicity
 log_file_path = os.path.join(log_dir, log_filename)
-v7p3r_ordering_logger = logging.getLogger(f"v7p3r_ordering_{timestamp}")
+
+#v7p3r_ordering_logger = logging.getLogger(f"v7p3r_ordering_{timestamp}")
+v7p3r_ordering_logger = logging.getLogger("v7p3r_ordering")
 v7p3r_ordering_logger.setLevel(logging.DEBUG)
 
 if not v7p3r_ordering_logger.handlers:

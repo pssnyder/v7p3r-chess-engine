@@ -3,8 +3,15 @@
         "modifier_id": "material_score_modifier",
         "modifier_value": 0.0,
         "modifier_name": "Material Weight",
-        "modifier_desc": "for material value",
+        "modifier_desc": " for material value",
         "modifier_catagory": "material"
+    },
+    "pst_score_modifier": {
+        "modifier_id": "pst_score_modifier",
+        "modifier_value": 1.0,
+        "modifier_name": "Piece-Square Table Weight",
+        "modifier_desc": " for piece-square table values",
+        "modifier_catagory": "pst"
     },
     "pawn_weaknesses_modifier": {
         "modifier_id": "pawn_weaknesses_modifier",

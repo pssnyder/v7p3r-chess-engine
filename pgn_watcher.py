@@ -36,17 +36,19 @@ def get_timestamp():
     return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
 # Create logging directory relative to project root
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
 log_dir = os.path.join(project_root, 'logging')
 if not os.path.exists(log_dir):
     os.makedirs(log_dir, exist_ok=True)
 
 # Setup individual logger for this file
 timestamp = get_timestamp()
-log_filename = f"pgn_watcher_{timestamp}.log"
+#log_filename = f"pgn_watcher_{timestamp}.log"
+log_filename = f"pgn_watcher.log"  # Use a single log file for simplicity
 log_file_path = os.path.join(log_dir, log_filename)
 
-pgn_watcher_logger = logging.getLogger(f"pgn_watcher_{timestamp}")
+#pgn_watcher_logger = logging.getLogger(f"pgn_watcher_{timestamp}")
+pgn_watcher_logger = logging.getLogger("pgn_watcher")
 pgn_watcher_logger.setLevel(logging.DEBUG)
 
 if not pgn_watcher_logger.handlers:

@@ -1,4 +1,4 @@
-# v7p3r_engine/stockfish_handler.py
+# v7p3r_stockfish_handler.py
 
 import subprocess
 import threading
@@ -29,20 +29,21 @@ def get_timestamp():
     return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
 # Create logging directory relative to project root
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
 log_dir = os.path.join(project_root, 'logging')
 if not os.path.exists(log_dir):
     os.makedirs(log_dir, exist_ok=True)
 
 # Setup individual logger for this file
 timestamp = get_timestamp()
-log_filename = f"stockfish_handler_{timestamp}.log"
+#log_filename = f"v7p3r_stockfish_handler_{timestamp}.log"
+log_filename = "v7p3r_stockfish_handler.log"  # Use a single log file for simplicity
 log_file_path = os.path.join(log_dir, log_filename)
 
-stockfish_handler_logger = logging.getLogger(f"stockfish_handler_{timestamp}")
-stockfish_handler_logger.setLevel(logging.DEBUG)
+v7p3r_stockfish_handler_logger = logging.getLogger("v7p3r_stockfish_handler")
+v7p3r_stockfish_handler_logger.setLevel(logging.DEBUG)
 
-if not stockfish_handler_logger.handlers:
+if not v7p3r_stockfish_handler_logger.handlers:
     from logging.handlers import RotatingFileHandler
     file_handler = RotatingFileHandler(
         log_file_path,
@@ -55,8 +56,8 @@ if not stockfish_handler_logger.handlers:
         datefmt='%H:%M:%S'
     )
     file_handler.setFormatter(formatter)
-    stockfish_handler_logger.addHandler(file_handler)
-    stockfish_handler_logger.propagate = False
+    v7p3r_stockfish_handler_logger.addHandler(file_handler)
+    v7p3r_stockfish_handler_logger.propagate = False
 
 class StockfishHandler:
     _instance = None
@@ -80,7 +81,7 @@ class StockfishHandler:
         self.stdout_queue = queue.Queue()
         self.stdout_thread = None
         self.debug_mode = stockfish_config.get('debug_mode', False)
-        self.logger = stockfish_handler_logger
+        self.logger = v7p3r_stockfish_handler_logger
 
         if self.debug_mode:
             self.logger.info(f"Initializing StockfishHandler from {self.stockfish_path}")

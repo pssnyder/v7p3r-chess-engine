@@ -104,22 +104,17 @@ class v7p3rScore:
             'evaluation': 0.0,
             'game_phase': self.game_phase,
             'endgame_factor': self.endgame_factor,
-            'material': 0,
             'checkmate_threats': 0.0,
-            'king_safety': 0.0,
-            'king_attack': 0.0,
-            'draw_scenarios': 0.0,
             'material_score': 0.0,
-            'piece_square_table_score': 0.0,
-            'piece_coordination': 0.0,
+            'pst_score': 0.0,
+            'piece_captures': 0.0,
             'center_control': 0.0,
-            'pawn_structure': 0.0,
-            'pawn_weaknesses': 0.0,
-            'passed_pawns': 0.0,
-            'pawn_count': 0.0,
-            'pawn_promotion': 0.0,
-            'bishop_count': 0.0,
-            'knight_count': 0.0
+            'piece_development': 0.0,
+            'board_coverage': 0.0,
+            'castling': 0.0,
+            'castling_protection': 0.0,
+            'piece_coordination': 0.0,
+            'rook_coordination': 0.0
         }
 
     # =================================
@@ -162,7 +157,7 @@ class v7p3rScore:
 
         if self.monitoring_enabled and self.logger:
             self.logger.info(f"{self.color_name}'s perspective: {score:.3f} | FEN: {board.fen()}")
-        self.score_dataset['evaluation'] = self.evaluate_position(board)
+        self.score_dataset['evaluation'] = score
         return score
     
     # ==========================================
@@ -259,6 +254,13 @@ class v7p3rScore:
             if self.verbose_output_enabled:
                 print(f"[Scoring Calc] Starting score calculation for {self.current_player_name} engine as {self.color_name} | Ruleset: {self.ruleset_name} | FEN: {board.fen()}")
         
+        # GAME PHASE
+        if self.use_game_phase:
+            self.calculate_game_phase(board)
+        else:
+            self.game_phase = 'opening'
+            self.endgame_factor = 0.0
+
         # CHECKMATE THREATS
         checkmate_threats_score = 1.0 * (self.rules_manager._checkmate_threats(board, color) or 0.0)
         if self.v7p3r_thinking:
@@ -269,8 +271,19 @@ class v7p3rScore:
         score += checkmate_threats_score
         self.score_dataset['checkmate_threats'] = checkmate_threats_score
 
-        # MATERIAL SCORE AND PST
-        score += 1.0 * self.rules_manager._material_score(board, color)
+        # MATERIAL SCORE
+        material_score = self.pst.evaluate_board_position(board, endgame_factor)
+        if color == chess.BLACK:
+            material_score = -material_score
+        if self.v7p3r_thinking:
+            if self.monitoring_enabled and self.logger:
+                self.logger.info(f"[Scoring Calc] Material score for {self.color_name}: {material_score:.3f} (Ruleset: {self.ruleset_name})")
+            if self.verbose_output_enabled:
+                print(f"[Scoring Calc] Material score for {self.color_name}: {material_score:.3f} (Ruleset: {self.ruleset_name})")
+        score += 1.0 * material_score
+        self.score_dataset['material_score'] = 1.0 * self.rules_manager._material_score(board, color)
+        
+        # PIECE-SQUARE TABLE SCORE
         pst_board_score = self.pst.evaluate_board_position(board, endgame_factor)
         if color == chess.BLACK:
             pst_board_score = -pst_board_score
@@ -280,8 +293,8 @@ class v7p3rScore:
             if self.verbose_output_enabled:
                 print(f"[Scoring Calc] Piece-square table score for {self.color_name}: {pst_board_score:.3f} (Ruleset: {self.ruleset_name})")
         score += 1.0 * pst_board_score
-        self.score_dataset['material_score'] = 1.0 * self.rules_manager._material_score(board, color)
-        
+        self.score_dataset['pst_score'] = 1.0 * pst_board_score
+
         # PIECE CAPTURES
         piece_captures_score = 1.0 * (self.rules_manager._piece_captures(board, color) or 0.0)
         if self.v7p3r_thinking:
@@ -361,13 +374,6 @@ class v7p3rScore:
                 print(f"[Scoring Calc] Rook coordination score for {self.color_name}: {rook_coordination_score:.3f} (Ruleset: {self.ruleset_name})")
         score += rook_coordination_score
         self.score_dataset['rook_coordination'] = rook_coordination_score
-
-        # GAME PHASE
-        if self.use_game_phase:
-            self.calculate_game_phase(board)
-        else:
-            self.game_phase = 'opening'
-            self.endgame_factor = 0.0
         
         # FINAL SCORE
         self.score_dataset['score'] = score  # Update final score in scoring dictionary

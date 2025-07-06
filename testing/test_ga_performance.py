@@ -99,12 +99,12 @@ def test_stockfish_performance():
     print("\n=== Stockfish Performance Test ===")
     
     try:
-        from v7p3r_engine.stockfish_handler import StockfishHandler
+        from v7p3r_stockfish_handler import StockfishHandler
         import chess
         
         # Test config
         stockfish_config = {
-            "stockfish_path": "s:/Maker Stuff/Programming/V7P3R Chess Engine/viper_chess_engine/v7p3r_engine/external_engines/stockfish/stockfish-windows-x86-64-avx2.exe",
+            "stockfish_path": "stockfish/stockfish-windows-x86-64-avx2.exe",
             "elo_rating": 100,
             "skill_level": 1,
             "debug_mode": False,

@@ -8,11 +8,11 @@
     "engine_config": {
         "name": "v7p3r",
         "version": "0.1.1",
-        "ruleset": "default_ruleset",
+        "ruleset": "material_score_only_ruleset",
         "search_algorithm": "minimax",
         "depth": 5,
         "max_depth": 5,
-        "use_game_phase": true,
+        "use_game_phase": false,
         "use_quiescence": true,
         "order_moves": true,
         "max_moves": 5,
@@ -141,7 +141,7 @@
         },
         "move_library": {
             "enabled": true,
-            "db_path": "v7p3r_nn_move_vocab",
+            "db_path": "v7p3r_move_library.db",
             "confidence_threshold": 0.7,
             "prune_old_evaluations": true,
             "max_positions": 1000000

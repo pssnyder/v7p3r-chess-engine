@@ -13,7 +13,7 @@ from pathlib import Path
 # Add the project root to the path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from metrics.chess_metrics import (
+from metrics.v7p3r_chess_metrics import (
     v7p3rMetrics, GameMetric, MoveMetric, EngineConfig,
     get_metrics_instance, add_game_result, add_move_metric
 )

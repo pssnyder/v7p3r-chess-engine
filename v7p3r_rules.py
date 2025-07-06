@@ -28,17 +28,19 @@ def get_timestamp():
     return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
 # Create logging directory relative to project root
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
 log_dir = os.path.join(project_root, 'logging')
 if not os.path.exists(log_dir):
     os.makedirs(log_dir, exist_ok=True)
 
 # Setup individual logger for this file
 timestamp = get_timestamp()
-log_filename = f"v7p3r_rules_{timestamp}.log"
+#log_filename = f"v7p3r_rules_{timestamp}.log"
+log_filename = "v7p3r_rules.log"  # Use a single log file for simplicity
 log_file_path = os.path.join(log_dir, log_filename)
 
-v7p3r_rules_logger = logging.getLogger(f"v7p3r_rules_{timestamp}")
+#v7p3r_rules_logger = logging.getLogger(f"v7p3r_rules_{timestamp}")
+v7p3r_rules_logger = logging.getLogger("v7p3r_rules")
 v7p3r_rules_logger.setLevel(logging.DEBUG)
 
 if not v7p3r_rules_logger.handlers:
@@ -102,11 +104,35 @@ class v7p3rRules:
         if material_score_modifier == 0.0:
             return score
 
-        for piece_type, value in self.pst.piece_values.items():
-            score += len(board.pieces(piece_type, color)) * value * material_score_modifier
-        # Apply material weight from ruleset
+        # Iterate over all pieces of the given color
+        for square in chess.SQUARES:
+            piece = board.piece_at(square)
+            if piece and piece.color == color:
+                # Add the material value of this piece
+                score += self.pst.get_piece_value(piece, square, color) * material_score_modifier
+            elif piece and piece.color != color:
+                # Subtract the opponent's material value
+                score -= self.pst.get_piece_value(piece, square, piece.color) * material_score_modifier
         return score
 
+    def _pst_score(self, board: chess.Board, color: chess.Color) -> float:
+        """Calculate the score based on Piece-Square Tables (PST) for the given color."""
+        score = 0.0
+        pst_score_modifier = self.ruleset.get('pst_score_modifier', self.fallback_modifier)
+        if pst_score_modifier == 0.0:
+            return score
+
+        # Iterate over all pieces of the given color
+        for square in chess.SQUARES:
+            piece = board.piece_at(square)
+            if piece and piece.color == color:
+                # Add the PST value for this piece at its current square
+                score += self.pst.get_piece_square_value(piece.piece_type, square) * pst_score_modifier
+            elif piece and piece.color != color:
+                # Subtract the opponent's PST value
+                score -= self.pst.get_piece_square_value(piece.piece_type, square) * pst_score_modifier
+
+        return score
     def _piece_captures(self, board: chess.Board, color: chess.Color) -> float:
         """Calculate the score based on modern MVV-LVA (Most Valuable Victim - Least Valuable Attacker) evaluation."""
         score = 0.0

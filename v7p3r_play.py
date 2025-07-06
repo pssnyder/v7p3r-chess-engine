@@ -1,4 +1,4 @@
-# v7p3r_engine/play_v7p3r.py
+# v7p3r_play.py
 
 import os
 import sys
@@ -9,13 +9,10 @@ import datetime
 import logging
 import socket
 from typing import Optional
-import time # Import time for measuring move duration
+import time
 from io import StringIO
-import hashlib
 from v7p3r_config import v7p3rConfig
-# Add metrics import
-from metrics.chess_metrics import get_metrics_instance, GameMetric, MoveMetric, EngineConfig
-import asyncio
+from metrics.v7p3r_chess_metrics import get_metrics_instance, GameMetric
 
 CONFIG_NAME = "custom_config"
 
@@ -44,17 +41,19 @@ def get_timestamp():
     return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
 # Create logging directory relative to project root
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
 log_dir = os.path.join(project_root, 'logging')
 if not os.path.exists(log_dir):
     os.makedirs(log_dir, exist_ok=True)
 
 # Setup individual logger for this file
 timestamp = get_timestamp()
-log_filename = f"v7p3r_play_{timestamp}.log"
+#log_filename = f"v7p3r_play_{timestamp}.log"
+log_filename = "v7p3r_play.log"  # Use a single log file for simplicity
 log_file_path = os.path.join(log_dir, log_filename)
 
-v7p3r_play_logger = logging.getLogger(f"v7p3r_play_{timestamp}")
+#v7p3r_play_logger = logging.getLogger(f"v7p3r_play_{timestamp}")
+v7p3r_play_logger = logging.getLogger("v7p3r_play")
 v7p3r_play_logger.setLevel(logging.DEBUG)
 
 if not v7p3r_play_logger.handlers:
@@ -89,7 +88,7 @@ class v7p3rChess:
         # Enable logging
         self.logger = v7p3r_play_logger
 
-        # Load configuration
+        # Load configuration first
         try:
             if config_name is None:
                 self.config_manager = v7p3rConfig()
@@ -113,6 +112,10 @@ class v7p3rChess:
                 self.logger.error(f"Error loading configuration: {e}")
             raise
 
+        # Set logging and output levels after config is loaded
+        self.monitoring_enabled = self.engine_config.get("monitoring_enabled", True)
+        self.verbose_output_enabled = self.engine_config.get("verbose_output", False)
+
         # Initialize Engines
         self.engine = v7p3rEngine()
         
@@ -134,7 +137,9 @@ class v7p3rChess:
         except Exception as e:
             if self.logger:
                 self.logger.error(f"Failed to initialize StockfishHandler: {e}")
-            print(f"Error initializing Stockfish: {e}")
+            print(f"ERROR: Failed to initialize Stockfish: {e}")
+            if self.verbose_output_enabled:
+                print("Falling back to DummyStockfish for testing purposes")
             # Create a dummy stockfish handler that always returns null moves
             class DummyStockfish:
                 def __init__(self):
@@ -143,7 +148,6 @@ class v7p3rChess:
                     self.last_search_info = {}
                 
                 def search(self, board, player, config):
-                    print("DummyStockfish: returning null move due to initialization failure")
                     return chess.Move.null()
                 
                 def cleanup(self):
@@ -159,11 +163,8 @@ class v7p3rChess:
         
         # Check if stockfish process is running
         if hasattr(self.stockfish, 'process') and self.stockfish.process is None:
-            print("WARNING: Stockfish process is None - engine failed to start!")
-        
-        # Set logging level
-        self.monitoring_enabled = self.engine_config.get("monitoring_enabled", True)
-        self.verbose_output_enabled = self.engine_config.get("verbose_output", True)
+            if self.verbose_output_enabled:
+                print("WARNING: Stockfish process is None - engine failed to start!")
 
         # Initialize new engines based on availability and configuration
         self.engines = {
@@ -191,7 +192,8 @@ class v7p3rChess:
                 RL_ENGINE_AVAILABLE = True
             except ImportError:
                 RL_ENGINE_AVAILABLE = False
-                print("Warning: v7p3r_rl_engine not available")
+                if self.verbose_output_enabled:
+                    print("Warning: v7p3r_rl_engine not available")
         
         if 'v7p3r_ga' in self.engines:
             try:
@@ -199,7 +201,8 @@ class v7p3rChess:
                 GA_ENGINE_AVAILABLE = True
             except ImportError:
                 GA_ENGINE_AVAILABLE = False
-                print("Warning: v7p3r_ga_engine not available")
+                if self.verbose_output_enabled:
+                    print("Warning: v7p3r_ga_engine not available")
 
         if 'v7p3r_nn' in self.engines:
             try:
@@ -207,7 +210,8 @@ class v7p3rChess:
                 NN_ENGINE_AVAILABLE = True
             except ImportError:
                 NN_ENGINE_AVAILABLE = False
-                print("Warning: v7p3r_nn_engine not available")
+                if self.verbose_output_enabled:
+                    print("Warning: v7p3r_nn_engine not available")
 
         # Initialize RL engine if available
         if RL_ENGINE_AVAILABLE and 'v7p3r_rl' in self.engines:
@@ -215,9 +219,11 @@ class v7p3rChess:
                 # Use centralized config instead of separate config file
                 self.rl_engine = v7p3rRLEngine(self.config_manager)
                 self.engines['v7p3r_rl'] = self.rl_engine
-                print("✓ v7p3r RL engine initialized")
+                if self.verbose_output_enabled:
+                    print("✓ v7p3r RL engine initialized")
             except Exception as e:
-                print(f"Warning: Failed to initialize RL engine: {e}")
+                if self.verbose_output_enabled:
+                    print(f"Warning: Failed to initialize RL engine: {e}")
         
         # Initialize GA engine if available
         if GA_ENGINE_AVAILABLE and 'v7p3r_ga' in self.engines:
@@ -226,9 +232,11 @@ class v7p3rChess:
                 # Use centralized config instead of separate config file
                 self.ga_engine = v7p3rGeneticAlgorithm(self.config_manager)
                 self.engines['v7p3r_ga'] = self.ga_engine
-                print("✓ v7p3r GA engine initialized for gameplay")
+                if self.verbose_output_enabled:
+                    print("✓ v7p3r GA engine initialized for gameplay")
             except Exception as e:
-                print(f"Warning: Failed to initialize GA engine: {e}")
+                if self.verbose_output_enabled:
+                    print(f"Warning: Failed to initialize GA engine: {e}")
         
         # Initialize NN engine if available
         if NN_ENGINE_AVAILABLE and 'v7p3r_nn' in self.engines:
@@ -237,9 +245,11 @@ class v7p3rChess:
                 self.nn_engine = self._create_nn_engine_wrapper(self.config_manager)
                 if self.nn_engine:
                     self.engines['v7p3r_nn'] = self.nn_engine
-                    print("✓ v7p3r NN engine wrapper initialized")
+                    if self.verbose_output_enabled:
+                        print("✓ v7p3r NN engine wrapper initialized")
             except Exception as e:
-                print(f"Warning: Failed to initialize NN engine: {e}")
+                if self.verbose_output_enabled:
+                    print(f"Warning: Failed to initialize NN engine: {e}")
 
         # Initialize board and new game
         self.new_game()
@@ -282,7 +292,7 @@ class v7p3rChess:
                 game_duration=0.0
             )
             # Use legacy compatibility function to avoid async issues
-            from metrics.chess_metrics import add_game_result
+            from metrics.v7p3r_chess_metrics import add_game_result
             add_game_result(
                 game_id=self.current_game_id,
                 timestamp=datetime.datetime.now().isoformat(),
@@ -351,9 +361,19 @@ class v7p3rChess:
     
     def record_evaluation(self):
         """Record evaluation score in PGN comments"""
+        # Use standard white perspective evaluation (white_score - black_score)
         score = self.engine.scoring_calculator.evaluate_position(self.board)
         self.current_eval = score
-        self.game_node.comment = f"Eval: {score:.2f}"
+        self.game_node.comment = f"Eval: {score:+.2f}"
+        
+        # Display move with evaluation if verbose output is enabled
+        if self.verbose_output_enabled:
+            current_player = self.board.turn
+            player_name = "White" if current_player == chess.WHITE else "Black"
+            print(f"Position evaluation: {score:+.2f} (White perspective)")
+        
+        if self.monitoring_enabled and self.logger:
+            self.logger.info(f"Evaluation recorded: {score:+.2f} (White perspective)")
             
     def save_game_data(self):
         """Save the game data to local files and database only."""
@@ -381,7 +401,7 @@ class v7p3rChess:
                 total_moves = len(list(self.game.mainline_moves()))
                 
                 # Update database with final game result
-                from metrics.chess_metrics import get_metrics_instance
+                from metrics.v7p3r_chess_metrics import get_metrics_instance
                 metrics = get_metrics_instance()
                 
                 # Determine winner for database format
@@ -436,42 +456,36 @@ class v7p3rChess:
             except Exception as e:
                 if self.logger:
                     self.logger.warning(f"Failed to record game completion metrics: {e}")
+                # Fallback: Save JSON config file for metrics processing
+                config_filepath = f"games/eval_game_{timestamp}.json"
+                
+                # Save a combined config for this specific game, including relevant parts of all loaded configs
+                game_specific_config = {
+                    "game_settings": self.game_config,
+                    "engine_settings": self.engine.engine_config,
+                    "stockfish_settings": self.stockfish_config,
+                    "white_player": self.white_player,
+                    "black_player": self.black_player,
+                    "game_id": game_id,
+                    "ruleset": self.config_manager.ruleset
+                }
+                with open(config_filepath, "w") as f:
+                    import json
+                    json.dump(game_specific_config, f, indent=4)
+                if self.monitoring_enabled and self.logger:
+                    self.logger.info(f"Game-specific combined configuration saved to {config_filepath}")
         
-        # Save PGN data to metrics
-        # TODO Add code (now handled by new metrics system)
-
-        # Save locally into pgn file
-        pgn_filepath = f"games/eval_game_{timestamp}.pgn"
-        with open(pgn_filepath, "w") as f:
-            exporter = chess.pgn.FileExporter(f)
-            self.game.accept(exporter)
-            # Always append the result string at the end for compatibility
-            if result != "*":
-                f.write(f"\n{result}\n")
-        if self.monitoring_enabled and self.logger:
-            self.logger.info(f"Game PGN saved to {pgn_filepath}")
-
-        # Save JSON config file for metrics processing
-        config_filepath = f"games/eval_game_{timestamp}.json"
-        
-        # Save a combined config for this specific game, including relevant parts of all loaded configs
-        game_specific_config = {
-            "game_settings": self.game_config,
-            "engine_settings": self.engine.engine_config,
-            "stockfish_settings": self.stockfish_config,
-            "white_player": self.white_player,
-            "black_player": self.black_player,
-            "game_id": game_id,
-            "ruleset": self.config_manager.ruleset
-        }
-        with open(config_filepath, "w") as f:
-            import json
-            json.dump(game_specific_config, f, indent=4)
-        if self.monitoring_enabled and self.logger:
-            self.logger.info(f"Game-specific combined configuration saved to {config_filepath}")
-
-        # Save the game result to a file for instant analysis
-        self.quick_save_pgn(f"games/{game_id}.pgn")
+            # Save locally into pgn file
+            pgn_filepath = f"games/eval_game_{timestamp}.pgn"
+            with open(pgn_filepath, "w") as f:
+                exporter = chess.pgn.FileExporter(f)
+                self.game.accept(exporter)
+                # Always append the result string at the end for compatibility
+                if result != "*":
+                    f.write(f"\n{result}\n")
+            if self.monitoring_enabled and self.logger:
+                self.logger.info(f"Game PGN saved to {pgn_filepath}")
+            self.quick_save_pgn(f"games/{game_id}.pgn")
 
     def quick_save_pgn_to_file(self, filename):
         """Quick save the current game to a PGN file"""
@@ -488,11 +502,7 @@ class v7p3rChess:
 
     def quick_save_pgn(self, filename):
         """Save PGN to local file."""
-        try:
-            # Ensure games directory exists
-            import os
-            os.makedirs(os.path.dirname(filename), exist_ok=True)
-            
+        try:            
             with open(filename, 'w', encoding='utf-8') as f:
                 # Get PGN text
                 buf = StringIO()
@@ -574,6 +584,10 @@ class v7p3rChess:
         if self.monitoring_enabled and self.logger:
             self.logger.info(f"Processing move for {self.white_player if self.current_player == chess.WHITE else self.black_player} using {self.engine.name} engine.")
         print(f"{self.white_player if self.current_player == chess.WHITE else self.black_player} is thinking...")
+        
+        if self.monitoring_enabled and self.logger:
+            current_player_name = "White" if self.current_player == chess.WHITE else "Black"
+            self.logger.info(f"{current_player_name} ({self.white_player if self.current_player == chess.WHITE else self.black_player}) is thinking...")
 
         # Send the move request to the appropriate engine or human interface
         if (self.white_player.lower() == 'human' and self.current_player == chess.WHITE) or (self.black_player.lower() == 'human' and self.current_player == chess.BLACK):
@@ -608,14 +622,17 @@ class v7p3rChess:
                         self.logger.error(f"Engine type: {type(self.engine)}")
                         self.logger.error(f"Search engine type: {type(self.engine.search_engine)}")
                         self.logger.error(f"Search engine search attr: {type(getattr(self.engine.search_engine, 'search', 'NOT_FOUND'))}")
-                    print(f"HARDSTOP ERROR: Cannot find move via v7p3rSearch: {e}. | FEN: {self.board.fen()}")
+                    print(f"ERROR: v7p3rSearch failed")
+                    if self.verbose_output_enabled:
+                        print(f"HARDSTOP ERROR: Cannot find move via v7p3rSearch: {e}. | FEN: {self.board.fen()}")
                     return
                     
             elif current_engine_name == 'stockfish':
                 try:
                     # Debug: Check if Stockfish process is running
                     if self.stockfish.process is None:
-                        print("DEBUG: Stockfish process is None! Cannot search.")
+                        if self.verbose_output_enabled:
+                            print("DEBUG: Stockfish process is None! Cannot search.")
                         return
                     # Use the Stockfish engine for the current player
                     if self.monitoring_enabled and self.logger:
@@ -624,7 +641,9 @@ class v7p3rChess:
                 except Exception as e:
                     if self.monitoring_enabled and self.logger:
                         self.logger.error(f"[HARDSTOP Error] Cannot find move via Stockfish: {e}. | FEN: {self.board.fen()}")
-                    print(f"HARDSTOP ERROR: Cannot find move via Stockfish: {e}. | FEN: {self.board.fen()}")
+                    print(f"ERROR: Stockfish search failed")
+                    if self.verbose_output_enabled:
+                        print(f"HARDSTOP ERROR: Cannot find move via Stockfish: {e}. | FEN: {self.board.fen()}")
                     return
             
             elif current_engine_name == 'v7p3r_rl' and 'v7p3r_rl' in self.engines:
@@ -636,7 +655,9 @@ class v7p3rChess:
                 except Exception as e:
                     if self.monitoring_enabled and self.logger:
                         self.logger.error(f"[HARDSTOP Error] Cannot find move via v7p3rReinforcementLearning: {e}. | FEN: {self.board.fen()}")
-                    print(f"HARDSTOP ERROR: Cannot find move via v7p3rReinforcementLearning: {e}. | FEN: {self.board.fen()}")
+                    print(f"ERROR: RL engine search failed")
+                    if self.verbose_output_enabled:
+                        print(f"HARDSTOP ERROR: Cannot find move via v7p3rReinforcementLearning: {e}. | FEN: {self.board.fen()}")
                     return
                     
             elif current_engine_name == 'v7p3r_ga' and 'v7p3r_ga' in self.engines:
@@ -648,7 +669,9 @@ class v7p3rChess:
                 except Exception as e:
                     if self.monitoring_enabled and self.logger:
                         self.logger.error(f"[HARDSTOP Error] Cannot find move via v7p3rGeneticAlgorithm: {e}. | FEN: {self.board.fen()}")
-                    print(f"HARDSTOP ERROR: Cannot find move via v7p3r_ga: {e}. | FEN: {self.board.fen()}")
+                    print(f"ERROR: GA engine search failed")
+                    if self.verbose_output_enabled:
+                        print(f"HARDSTOP ERROR: Cannot find move via v7p3r_ga: {e}. | FEN: {self.board.fen()}")
                     return
                     
             elif current_engine_name == 'v7p3r_nn' and 'v7p3r_nn' in self.engines:
@@ -660,12 +683,16 @@ class v7p3rChess:
                 except Exception as e:
                     if self.monitoring_enabled and self.logger:
                         self.logger.error(f"[HARDSTOP Error] Cannot find move via v7p3rNeuralNetwork: {e}. | FEN: {self.board.fen()}")
-                    print(f"HARDSTOP ERROR: Cannot find move via v7p3rNeuralNetwork: {e}. | FEN: {self.board.fen()}")
+                    print(f"ERROR: NN engine search failed")
+                    if self.verbose_output_enabled:
+                        print(f"HARDSTOP ERROR: Cannot find move via v7p3rNeuralNetwork: {e}. | FEN: {self.board.fen()}")
                     return
             else:
                 if self.monitoring_enabled and self.logger:
                     self.logger.error(f"[HARDSTOP Error] No valid engine in configuration: {current_engine_name}. | FEN: {self.board.fen()}")
-                print(f"HARDSTOP ERROR: No valid engine in configuration: {current_engine_name}. | FEN: {self.board.fen()}")
+                print(f"ERROR: No valid engine configured: {current_engine_name}")
+                if self.verbose_output_enabled:
+                    print(f"HARDSTOP ERROR: No valid engine in configuration: {current_engine_name}. | FEN: {self.board.fen()}")
                 return
 
             # Check and Push the move
@@ -678,24 +705,30 @@ class v7p3rChess:
             
             try:
                 if self.board.is_legal(engine_move):
-                    self.push_move(engine_move)
-                    self.last_engine_move = engine_move
+                    # Calculate timing BEFORE push_move so it's available for display
                     self.move_end_time = time.time()  # End timing the move
                     self.move_duration = self.move_end_time - self.move_start_time
+                    
+                    self.push_move(engine_move)
+                    self.last_engine_move = engine_move
                     self.pv_line = ""
                 else:
                     if self.monitoring_enabled and self.logger:
                         self.logger.error(f"[HARDSTOP Error] Illegal move: {engine_move} | FEN: {self.board.fen()}")
-                    print(f"HARDSTOP ERROR: Illegal move: {engine_move} | FEN: {self.board.fen()}")
+                    print(f"ERROR: Illegal move attempted")
+                    if self.verbose_output_enabled:
+                        print(f"HARDSTOP ERROR: Illegal move: {engine_move} | FEN: {self.board.fen()}")
                     return
             except Exception as e:
                 if self.monitoring_enabled and self.logger:
                     self.logger.error(f"[HARDSTOP Error] Move Invalid: {e}. | Move: {engine_move} | FEN: {self.board.fen()}")
-                print(f"HARDSTOP ERROR: Move Invalid: {e}. | Move: {engine_move} | FEN: {self.board.fen()}")
+                print(f"ERROR: Move validation failed")
+                if self.verbose_output_enabled:
+                    print(f"HARDSTOP ERROR: Move Invalid: {e}. | Move: {engine_move} | FEN: {self.board.fen()}")
                 return
 
-            # Print the move and eval for the user, it will now be Black's turn so invert the colors when determining who just played
-            print(f"{self.white_player if self.current_player == chess.BLACK else self.black_player} played: {engine_move} after {self.move_duration:.4f}s (Eval: {self.current_eval:.2f})")
+            # Move display is now handled by display_move_made() in the push_move() method
+            # This old print statement is no longer needed
             
             # Record move metrics
             if self.current_game_id:
@@ -714,7 +747,7 @@ class v7p3rChess:
                         search_depth = getattr(self.stockfish, 'depth', 0)
                     
                     # Use legacy compatibility function to avoid async issues
-                    from metrics.chess_metrics import add_move_metric
+                    from metrics.v7p3r_chess_metrics import add_move_metric
                     add_move_metric(
                         game_id=self.current_game_id,
                         move_number=move_number,
@@ -750,7 +783,7 @@ class v7p3rChess:
                 except:
                     logged_nodes = 0
                     
-                self.logger.info(f"{self.white_player if self.current_player == chess.WHITE else self.black_player} played: {engine_move} (Eval: {self.current_eval:.2f}) | Time: {self.move_duration:.4f}s | Nodes: {logged_nodes}")
+                self.logger.info(f"{self.white_player if self.current_player == chess.WHITE else self.black_player} played: {engine_move} (Eval: {self.current_eval:.2f}) | Time: {self.move_duration:.6f}s | Nodes: {logged_nodes}")
 
     def push_move(self, move):
         """ Test and push a move to the board and game node """
@@ -788,6 +821,12 @@ class v7p3rChess:
                 self.logger.info(f"Move pushed successfully: {move} | FEN: {self.board.fen()}")
             
             self.current_player = self.board.turn
+            
+            # Calculate move time
+            move_time = self.move_duration if hasattr(self, 'move_duration') and self.move_duration > 0 else 0.0
+            
+            # Display the move that was made
+            self.display_move_made(move, move_time)
             
             if self.engine.name.lower() == 'v7p3r':
                 self.record_evaluation()
@@ -976,13 +1015,76 @@ class v7p3rChess:
         except:
             pass
 
-if __name__ == "__main__":
-    
-    # Set up and start the game
-    if CONFIG_NAME == "default_config":
-        print("Using default configuration for v7p3rChess.")
-        game = v7p3rChess(config_name=CONFIG_NAME)
-    else:
-        print(f"Using custom configuration: {CONFIG_NAME} for v7p3rChess.")
-        game = v7p3rChess(config_name=CONFIG_NAME)
-    game.run()
+    def _format_time_for_display(self, move_time: float) -> str:
+        """
+        Format move time for display with appropriate units.
+        
+        Args:
+            move_time: Time in seconds (stored with high precision)
+            
+        Returns:
+            Formatted time string with appropriate units (s or ms)
+        """
+        if move_time <= 0:
+            return "0.000s"
+        
+        # If time is less than 0.1 seconds (100ms), display in milliseconds
+        if move_time < 0.1:
+            time_ms = move_time * 1000
+            if time_ms < 1.0:
+                # For very fast moves, show microseconds with higher precision
+                return f"{time_ms:.3f}ms"
+            else:
+                # For sub-100ms moves, show milliseconds with 1 decimal place
+                return f"{time_ms:.1f}ms"
+        else:
+            # For moves 100ms and above, display in seconds
+            if move_time < 1.0:
+                # Sub-second but >= 100ms: show 3 decimal places
+                return f"{move_time:.3f}s"
+            elif move_time < 10.0:
+                # 1-10 seconds: show 2 decimal places
+                return f"{move_time:.2f}s"
+            else:
+                # 10+ seconds: show 1 decimal place
+                return f"{move_time:.1f}s"
+
+    def display_move_made(self, move: chess.Move, move_time: float = 0.0):
+        """Display a move with proper formatting and evaluation information."""
+        # Get the player who just made the move (before the move, it was the previous player's turn)
+        move_player = not self.board.turn  # Opposite of current turn since move was already made
+        player_name = "White" if move_player == chess.WHITE else "Black"
+        engine_name = self.white_player if move_player == chess.WHITE else self.black_player
+        
+        # Get evaluation from White's perspective (white_score - black_score)
+        try:
+            eval_score = self.engine.scoring_calculator.evaluate_position(self.board)
+        except:
+            eval_score = 0.0
+        
+        # Convert move time for appropriate display
+        time_display = self._format_time_for_display(move_time)
+        
+        # Essential output (always shown)
+        move_display = f"{player_name} ({engine_name}): {move}"
+        # Always show time if we have timing data
+        move_display += f" ({time_display})"
+        if eval_score != 0.0:
+            move_display += f" [Eval: {eval_score:+.2f}]"
+        
+        print(move_display)
+        
+        # Verbose output (only if verbose_output_enabled)
+        if self.verbose_output_enabled:
+            move_number = len(list(self.game.mainline_moves())) // 2 + 1
+            print(f"  Move #{move_number} | Position: {self.board.fen()}")
+            if eval_score > 0:
+                print(f"  Position favors White by {abs(eval_score):.2f}")
+            elif eval_score < 0:
+                print(f"  Position favors Black by {abs(eval_score):.2f}")
+            else:
+                print(f"  Position is balanced")
+        
+        # Logging (if monitoring enabled) - use high precision for storage
+        if self.monitoring_enabled and self.logger:
+            self.logger.info(f"Move made: {player_name} ({engine_name}) played {move} with eval {eval_score:+.2f} in {move_time:.6f}s")

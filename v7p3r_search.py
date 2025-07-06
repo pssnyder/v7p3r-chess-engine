@@ -1,4 +1,4 @@
-# v7p3r_engine/v7p3r_search.py
+# v7p3r_search.py
 
 import sys
 import os
@@ -23,17 +23,19 @@ def get_timestamp():
     return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
 # Create logging directory relative to project root
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
 log_dir = os.path.join(project_root, 'logging')
 if not os.path.exists(log_dir):
     os.makedirs(log_dir, exist_ok=True)
 
 # Setup individual logger for this file
 timestamp = get_timestamp()
-log_filename = f"v7p3r_search_{timestamp}.log"
+#log_filename = f"v7p3r_search_{timestamp}.log"
+log_filename = "v7p3r_search.log"  # Use a single log file for simplicity
 log_file_path = os.path.join(log_dir, log_filename)
 
-v7p3r_search_logger = logging.getLogger(f"v7p3r_search_{timestamp}")
+#v7p3r_search_logger = logging.getLogger(f"v7p3r_search_{timestamp}")
+v7p3r_search_logger = logging.getLogger("v7p3r_search")
 v7p3r_search_logger.setLevel(logging.DEBUG)
 
 if not v7p3r_search_logger.handlers:
@@ -138,8 +140,8 @@ class v7p3rSearch:
                 self.pv_move_stack = [{ # Initialize principal variation with the checkmate move
                     'move_number': 1,
                     'move': checkmate_move,
-                    'color': self.color_name,
-                    'evaluation': self.scoring_calculator.evaluate_position_from_perspective(self.root_board, color)
+                    'color': self.current_perspective,  # FIXED: Use consistent perspective
+                    'evaluation': self.scoring_calculator.evaluate_position_from_perspective(self.root_board, self.current_perspective)
                     }]
                 if self.monitoring_enabled and self.logger:
                     self.logger.info(f"SEARCH: Checkmate move found: {checkmate_move} | FEN: {board.fen()}")
@@ -163,8 +165,8 @@ class v7p3rSearch:
                 self.pv_move_stack = [{ # Initialize principal variation with the book move
                     'move_number': 1,
                     'move': book_move,
-                    'color': self.color_name,
-                    'evaluation': self.scoring_calculator.evaluate_position_from_perspective(self.root_board, color)
+                    'color': self.current_perspective,  # FIXED: Use consistent perspective
+                    'evaluation': self.scoring_calculator.evaluate_position_from_perspective(self.root_board, self.current_perspective)
                     }]
                 if self.monitoring_enabled and self.logger:
                     self.logger.info(f"Opening book move found: {book_move} | FEN: {self.root_board.fen()}")
@@ -202,11 +204,11 @@ class v7p3rSearch:
             best_move = chess.Move.null()
             for move in legal_moves:
                 self.root_move = move  # Set the root move for this search
-                self.pv_move_stack = [{ # Initialize principal variation with the book move
+                self.pv_move_stack = [{ # Initialize principal variation with the move
                     'move_number': 1,
                     'move': move,
-                    'color': self.color_name,
-                    'evaluation': self.scoring_calculator.evaluate_position_from_perspective(self.root_board, color)
+                    'color': self.current_perspective,  # FIXED: Use consistent perspective
+                    'evaluation': self.scoring_calculator.evaluate_position_from_perspective(self.root_board, self.current_perspective)
                     }]
                 if self.monitoring_enabled and self.logger:
                     self.logger.info(f"SEARCH: Examining move {move} | FEN: {self.root_board.fen()}")
@@ -303,9 +305,13 @@ class v7p3rSearch:
                 if self.monitoring_enabled and self.logger:
                     self.logger.info(f"MINIMAX: Quiescence search returned: {eval_result} (type: {type(eval_result)})")
             else:
-                eval_result = self.scoring_calculator.evaluate_position_from_perspective(board, board.turn)
+                # FIXED: Use consistent perspective (root player's perspective)
+                eval_result = self.scoring_calculator.evaluate_position_from_perspective(board, self.current_perspective)
+                # For minimax, if we're minimizing (opponent), negate the score
+                if not maximizing_player:
+                    eval_result = -eval_result
                 if self.monitoring_enabled and self.logger:
-                    self.logger.info(f"MINIMAX: Evaluation from {self.color_name}'s perspective returned: {eval_result} | FEN: {board.fen()}")
+                    self.logger.info(f"MINIMAX: Evaluation from root perspective ({self.color_name}) returned: {eval_result} | FEN: {board.fen()}")
             
             if not isinstance(eval_result, (int, float)):
                 if self.monitoring_enabled and self.logger:
@@ -370,7 +376,11 @@ class v7p3rSearch:
                 if self.monitoring_enabled and self.logger:
                     self.logger.info(f"NEGAMAX: Quiescence search returned: {eval_result:.2f} (type: {type(eval_result)})")
             else:
-                eval_result = self.scoring_calculator.evaluate_position_from_perspective(board, board.turn)
+                # FIXED: Use consistent perspective and apply negamax logic correctly
+                eval_result = self.scoring_calculator.evaluate_position_from_perspective(board, self.current_perspective)
+                # For negamax, negate if it's not the root player's turn
+                if board.turn != self.current_perspective:
+                    eval_result = -eval_result
                 if self.monitoring_enabled and self.logger:
                     self.logger.info(f"NEGAMAX: Leaf node evaluation: {eval_result:.2f} (type: {type(eval_result)})")
             return eval_result
@@ -418,8 +428,8 @@ class v7p3rSearch:
                     'move_number': depth - self.depth + 1,
                     'move': best_move,
                     'score': best_score,
-                    'color': self.color_name,
-                    'evaluation': self.scoring_calculator.evaluate_position_from_perspective(self.root_board, self.color_name)
+                    'color': self.current_perspective,  # FIXED: Use consistent perspective
+                    'evaluation': self.scoring_calculator.evaluate_position_from_perspective(self.root_board, self.current_perspective)
                     })
                 if self.monitoring_enabled and self.logger:
                     self.logger.info(f"NEGAMAX: New best score: {best_score:.2f}")
@@ -602,7 +612,11 @@ class v7p3rSearch:
         
         # Get a static evaluation first
         temp_board = board.copy()
-        stand_pat_score = self.scoring_calculator.evaluate_position_from_perspective(temp_board, board.turn)
+        # FIXED: Use consistent perspective (root player's perspective)
+        stand_pat_score = self.scoring_calculator.evaluate_position_from_perspective(temp_board, self.current_perspective)
+        # For quiescence, adjust score based on whose turn it is and the maximizing_player flag
+        if (temp_board.turn != self.current_perspective) != maximizing_player:
+            stand_pat_score = -stand_pat_score
         if self.monitoring_enabled and self.logger:
             self.logger.info(f"QUIESCENCE: Stand pat score: {stand_pat_score:.2f} (type: {type(stand_pat_score)})")
         

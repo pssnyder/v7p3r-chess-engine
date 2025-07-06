@@ -20,6 +20,14 @@ Coding standards, domain knowledge, and preferences that AI should follow.
 - Modular components are defined as those that have low couplings and high cohesion, they are performant, and each iteration is minimally impactful.
 - Prior to the introduction of any fundamentally new functionality that diverts from the users current code, always verify the changes in a project document that you will follow so the user can provide feedbakc priorit to implementation.
 
+## Change Management and Preparation
+- Before making substantial changes -- changes that impact multiple dependent files or introduce new functionality -- perform the following:
+    - create a singular project document in the 'docs/' directory outlining the changes and how they will be implemented.
+    - based on the dependency risk and overall manipulation level of the code, ask the user if they want to start with either/both of the following first:
+        - create a new branch in the repository for the changes, or create a rollback commit that can be used to revert the changes if necessary.
+        - run an 'engine_freeze', which will instantly save the current state of all engine files, configurations, active games, active test, active metrics, etc. (the same procedure used during new crash handling and user triggered engine freezes)
+    - obtain user feedback on the prep documentation, version control procedure, backup procedure, and any clarifying questions before proceeding with implementation.
+
 ## Housekeeping
 - Any and all "test_*.py" files should be stored in the "testing/" directory.
 - Any tests that need to be run that will similate a game can be done so with existing funtionality.

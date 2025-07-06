@@ -1,4 +1,4 @@
-# v7p3r_engine/v7p3r_book.py
+# v7p3r_book.py
 # Focused opening book for v7p3r chess engine
 # Contains manually curated mainlines for fast access
 

@@ -21,12 +21,12 @@ A sophisticated chess engine featuring advanced search algorithms, position eval
 
 2. Play against the engine:
    ```bash
-   python v7p3r_engine/v7p3r_play.py
+   python v7p3r_play.py
    ```
 
 3. Analyze a position:
    ```bash
-   python v7p3r_engine/v7p3r.py --analyze "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+   python v7p3r.py --analyze "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
    ```
 
 ---
@@ -57,7 +57,7 @@ Run comprehensive tests for engine components:
 Run individual component tests:
 ```bash
 # Test traditional engine
-python -m pytest v7p3r_engine/ -v
+python -m pytest ./ -v
 ```
 
 ---
@@ -77,10 +77,10 @@ Customize engine behavior by editing the appropriate configuration files before 
 ### Traditional Engine
 ```bash
 # Play a game against the traditional engine
-python v7p3r_engine/v7p3r_play.py
+python v7p3r_play.py
 
 # Analyze a position
-python v7p3r_engine/v7p3r.py --analyze "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+python v7p3r.py --analyze "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 ```
 
 ---
@@ -140,7 +140,7 @@ See [TEST_GUIDE.md](docs/TEST_GUIDE.md) for detailed instructions and interpreta
 - `v7p3r_rl_models/` — Trained RL models and configurations
 
 ### Metrics
-- `metrics/chess_metrics.py` — Engine performance metrics dashboard
+- `metrics/v7p3r_chess_metrics.py` — Engine performance metrics dashboard
 - `metrics/metrics_store.py` — Metrics database and storage
 - `metrics/elo_tracker.py` — ELO tracking and analysis tools
 
@@ -167,7 +167,7 @@ Run comprehensive tests for engine components:
 Run individual component tests:
 ```bash
 # Test traditional engine
-python -m pytest v7p3r_engine/ -v
+python -m pytest ./ -v
 
 # Test neural network engine  
 python -m pytest v7p3r_nn_engine/ -v
@@ -191,17 +191,7 @@ See [UNIT_TESTING_GUIDE.md](docs/UNIT_TESTING_GUIDE.md) for detailed testing pro
 
 ## Configuration
 
-The engine uses YAML-based configuration files in the `config/` directory:
-
-- `v7p3r_nn_config.yaml` — Neural network training and model parameters
-- `v7p3r_ga_config.yaml` — Genetic algorithm evolution settings  
-- `v7p3r_rl_config.yaml` — Reinforcement learning configuration
-- `stockfish_config.yaml` — Stockfish integration settings
-- `engine_utilities_config.yaml` — Benchmarking and utility settings
-- `chess_metrics_config.yaml` — Metrics collection and analysis
-- `puzzle_config.yaml` — Puzzle generation and solving settings
-
-Customize engine behavior by editing the appropriate configuration files before running.
+JSON config
 
 ---
 
@@ -246,10 +236,10 @@ The v7p3r engine offers four distinct approaches:
 ### Traditional Engine
 ```bash
 # Play a game against the traditional engine
-python v7p3r_engine/v7p3r_play.py
+python v7p3r_play.py
 
 # Analyze a position
-python v7p3r_engine/v7p3r.py --analyze "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+python v7p3r.py --analyze "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 ```
 
 ### Neural Network Engine  

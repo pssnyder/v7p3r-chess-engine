@@ -21,3 +21,23 @@ The token '&&' is not a valid statement separator in this version.
     + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
     + FullyQualifiedErrorId : InvalidEndOfLine
 ---
+
+### Additional Example
+#### DO NOT MAKE THIS MISTAKE
+```powershell
+PS S:\Maker Stuff\Programming\V7P3R Chess Engine\v7p3r_chess_engine> cd "s:\Maker Stuff\Programming\V7P3R Chess Engine\v7p3r_chess_engine" && "C:/Users/patss/AppData/Local/Programs/Python/Python312/python.exe" testing/test_phase5_final_polish.py
+At line:1 char:71
++ ... r Stuff\Programming\V7P3R Chess Engine\v7p3r_chess_engine" && "C:/Use ...
++                                                                ~~
+The token '&&' is not a valid statement separator in this version.
+At line:1 char:74
++ ... _engine" && "C:/Users/patss/AppData/Local/Programs/Python/Python312/p ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~    
+Expressions are only allowed as the first element of a pipeline.
+At line:1 char:142
++ ... rams/Python/Python312/python.exe" testing/test_phase5_final_polish.py    
++                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Unexpected token 'testing/test_phase5_final_polish.py' in expression or statement.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : InvalidEndOfLine
+```

@@ -1,4 +1,4 @@
-# metrics/chess_metrics.py
+# metrics/v7p3r_chess_metrics.py
 """
 V7P3R Chess Engine Metrics System
 A unified, modern metrics collection and analysis system for the V7P3R chess engine.
@@ -11,17 +11,53 @@ import json
 import logging
 import os
 import threading
-import time
-from dataclasses import dataclass, asdict
-from datetime import datetime
-from typing import Dict, List, Optional, Any, Tuple
+from dataclasses import dataclass
+import datetime
+from typing import Dict, Optional, Any
 from pathlib import Path
-import numpy as np
 import pandas as pd
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+
+# =====================================
+# ========== LOGGING SETUP ============
+def get_timestamp():
+    return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+
+# Create logging directory relative to project root
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
+log_dir = os.path.join(project_root, 'logging')
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir, exist_ok=True)
+
+# Setup individual logger for this file
+timestamp = get_timestamp()
+#log_filename = f"v7p3r_chess_metrics_{timestamp}.log"
+log_filename = "v7p3r_chess_metrics.log"  # Use a single log file for simplicity
+log_file_path = os.path.join(log_dir, log_filename)
+
+#v7p3r_chess_metrics_logger = logging.getLogger(f"v7p3r_chess_metrics_{timestamp}")
+v7p3r_chess_metrics_logger = logging.getLogger("v7p3r_chess_metrics")
+v7p3r_chess_metrics_logger.setLevel(logging.DEBUG)
+
+if not v7p3r_chess_metrics_logger.handlers:
+    from logging.handlers import RotatingFileHandler
+    file_handler = RotatingFileHandler(
+        log_file_path,
+        maxBytes=10*1024*1024,
+        backupCount=3,
+        delay=True
+    )
+    formatter = logging.Formatter(
+        '%(asctime)s | %(funcName)-15s | %(message)s',
+        datefmt='%H:%M:%S'
+    )
+    file_handler.setFormatter(formatter)
+    v7p3r_chess_metrics_logger.addHandler(file_handler)
+    v7p3r_chess_metrics_logger.propagate = False
+
+# Set the logger to be used throughout the module
+logger = v7p3r_chess_metrics_logger
 
 # Database path
 BASE_DIR = Path(__file__).parent

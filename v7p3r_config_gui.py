@@ -23,7 +23,7 @@ import copy
 import logging
 from v7p3r_config import v7p3rConfig
 
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 def resource_path(relative_path):
@@ -38,17 +38,19 @@ def get_timestamp():
     return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
 # Create logging directory relative to project root
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
 log_dir = os.path.join(project_root, 'logging')
 if not os.path.exists(log_dir):
     os.makedirs(log_dir, exist_ok=True)
 
 # Setup individual logger for this file
 timestamp = get_timestamp()
-log_filename = f"v7p3r_config_gui_{timestamp}.log"
+#log_filename = f"v7p3r_config_gui_{timestamp}.log"
+log_filename = "v7p3r_config_gui.log"  # Use a single log file for simplicity
 log_file_path = os.path.join(log_dir, log_filename)
 
-v7p3r_config_gui_logger = logging.getLogger(f"v7p3r_config_gui_{timestamp}")
+#v7p3r_config_gui_logger = logging.getLogger(f"v7p3r_config_gui_{timestamp}")
+v7p3r_config_gui_logger = logging.getLogger("v7p3r_config_gui")
 v7p3r_config_gui_logger.setLevel(logging.DEBUG)
 
 if not v7p3r_config_gui_logger.handlers:
@@ -285,6 +287,7 @@ def get_default_ruleset_values():
         "knight_activity_modifier": 0.1,
         "knight_count_modifier": 1.0,
         "material_score_modifier": 0.8,
+        "pst_score_modifier": 0.5,
         "open_files_modifier": 0.3,
         "passed_pawns_modifier": 1.0,
         "pawn_promotion_modifier": 5.0,

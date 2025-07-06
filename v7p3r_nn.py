@@ -19,7 +19,7 @@ from collections import defaultdict
 from typing import List, Dict, Tuple, Optional, Union
 
 # Add the project root to the Python path to allow imports from anywhere in the project
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
 from v7p3r_config import v7p3rConfig
 from v7p3r_stockfish_handler import StockfishHandler
 
@@ -160,8 +160,6 @@ class MoveLibrary:
     def __init__(self, db_path="v7p3r_move_library.db"):
         """Initialize the MoveLibrary and create the database and tables if they don't exist."""
         self.db_path = db_path
-        if db_path != ":memory:":
-            os.makedirs(os.path.dirname(db_path), exist_ok=True)
         self.conn = sqlite3.connect(db_path)
         self.conn.row_factory = sqlite3.Row
         self._create_tables()
@@ -293,7 +291,7 @@ class v7p3rNeuralNetwork:
         
         # Initialize move library with config
         move_library_config = self.config.get("move_library", {})
-        db_path = move_library_config.get("db_path", "v7p3r_nn_engine/v7p3r_nn_move_vocab/move_library.db")
+        db_path = move_library_config.get("db_path", "v7p3r_move_library.db")
         self.move_library = MoveLibrary(db_path=db_path)
         
         self.model = self._create_model()

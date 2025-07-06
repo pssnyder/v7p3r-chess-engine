@@ -35,7 +35,7 @@ test_config = {
         "logger": "v7p3r_engine_logger",
     },
     "stockfish_config": {
-        "stockfish_path": "v7p3r_engine/external_engines/stockfish/stockfish-windows-x86-64-avx2.exe",
+        "stockfish_path": "stockfish/stockfish-windows-x86-64-avx2.exe",
         "elo_rating": 100,
         "skill_level": 1,
         "debug_mode": False,
