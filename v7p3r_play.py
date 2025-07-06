@@ -1047,3 +1047,14 @@ class v7p3rChess:
         # Logging (if monitoring enabled) - use high precision for storage
         if self.monitoring_enabled and self.logger:
             self.logger.info(f"Move made: {player_name} ({engine_name}) played {move} with eval {eval_score:+.2f} in {move_time:.6f}s")
+
+
+if __name__ == "__main__":
+    # Set up and start the game
+    if CONFIG_NAME == "default_config":
+        print("Using default configuration for v7p3rChess.")
+        game = v7p3rChess(config_name=CONFIG_NAME)
+    else:
+        print(f"Using custom configuration: {CONFIG_NAME} for v7p3rChess.")
+        game = v7p3rChess(config_name=CONFIG_NAME)
+    game.run()
