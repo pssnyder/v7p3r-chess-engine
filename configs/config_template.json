@@ -36,7 +36,6 @@
         "hash": 64,
         "ponder": false,
         "multi_pv": 1,
-        "debug_stockfish": false,
         "syzygy_path": null,
         "syzygy_probe_depth": 1,
         "uci_chess960": false

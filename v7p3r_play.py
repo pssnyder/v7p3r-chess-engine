@@ -13,8 +13,11 @@ import time # Import time for measuring move duration
 from io import StringIO
 import hashlib
 from v7p3r_config import v7p3rConfig
+# Add metrics import
+from metrics.chess_metrics import get_metrics_instance, GameMetric, MoveMetric, EngineConfig
+import asyncio
 
-CONFIG_NAME = "custom_config"
+CONFIG_NAME = "speed_config"
 
 # Define the maximum frames per second for the game loop
 MAX_FPS = 60
@@ -112,6 +115,12 @@ class v7p3rChess:
 
         # Initialize Engines
         self.engine = v7p3rEngine()
+        
+        # Initialize metrics system
+        self.metrics = get_metrics_instance()
+        self.current_game_id = None
+        if self.logger:
+            self.logger.info("Metrics system initialized")
         
         # Debug stockfish config before passing to handler
         if self.logger:
@@ -252,13 +261,47 @@ class v7p3rChess:
         self.move_end_time = 0
         self.move_duration = 0
         self.game_start_time = time.time()  # Track overall game timing
+        self.game_start_timestamp = get_timestamp()
 
         # Reset PGN headers and file
         self.set_headers()
         self.quick_save_pgn("logging/active_game.pgn")
         
+        # Initialize metrics for new game
+        self.current_game_id = f"eval_game_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        
+        # Record game start in metrics (use a safer approach for async)
+        try:
+            game_metric = GameMetric(
+                game_id=self.current_game_id,
+                timestamp=datetime.datetime.now().isoformat(),
+                v7p3r_color='white' if self.white_player == 'v7p3r' else 'black',
+                opponent=self.black_player if self.white_player == 'v7p3r' else self.white_player,
+                result='pending',
+                total_moves=0,
+                game_duration=0.0
+            )
+            # Use legacy compatibility function to avoid async issues
+            from metrics.chess_metrics import add_game_result
+            add_game_result(
+                game_id=self.current_game_id,
+                timestamp=datetime.datetime.now().isoformat(),
+                winner='pending',
+                game_pgn='',
+                white_player=self.white_player,
+                black_player=self.black_player,
+                game_length=0,
+                white_engine_config=str(self.white_engine_config),
+                black_engine_config=str(self.black_engine_config)
+            )
+            if self.logger:
+                self.logger.info(f"Game metrics initialized for: {self.current_game_id}")
+        except Exception as e:
+            if self.logger:
+                self.logger.warning(f"Failed to initialize game metrics: {e}")
+        
         if self.monitoring_enabled and self.logger:
-            self.logger.info(f"Starting new game: {self.current_game_db_id}.")
+            self.logger.info(f"Starting new game: {self.current_game_id}.")
 
     def set_headers(self):
         self.game.headers["Event"] = "v7p3r Engine Chess Game"
@@ -330,8 +373,72 @@ class v7p3rChess:
         self.game.accept(exporter)
         pgn_text = buf.getvalue()
         
+        # Update game completion metrics
+        if self.current_game_id:
+            try:
+                # Calculate final game metrics
+                game_duration = time.time() - self.game_start_time
+                total_moves = len(list(self.game.mainline_moves()))
+                
+                # Update database with final game result
+                from metrics.chess_metrics import get_metrics_instance
+                metrics = get_metrics_instance()
+                
+                # Determine winner for database format
+                if result == "1-0":
+                    db_result = "white_win"
+                elif result == "0-1":
+                    db_result = "black_win"  
+                elif result == "1/2-1/2":
+                    db_result = "draw"
+                else:
+                    db_result = "incomplete"
+                
+                # Get final position
+                final_fen = self.board.fen()
+                
+                # Get termination reason
+                if self.board.is_checkmate():
+                    termination = "checkmate"
+                elif self.board.is_stalemate():
+                    termination = "stalemate"
+                elif self.board.is_insufficient_material():
+                    termination = "insufficient_material"
+                elif self.board.is_seventyfive_moves():
+                    termination = "75_move_rule"
+                elif self.board.is_fivefold_repetition():
+                    termination = "5_fold_repetition"
+                else:
+                    termination = "normal"
+                
+                # Update game result in database
+                try:
+                    import sqlite3
+                    with sqlite3.connect(metrics.db_path) as conn:
+                        cursor = conn.cursor()
+                        cursor.execute("""
+                            UPDATE games 
+                            SET result = ?, total_moves = ?, game_duration = ?,
+                                final_position_fen = ?, termination_reason = ?
+                            WHERE game_id = ?
+                        """, (db_result, total_moves, game_duration, final_fen, termination, self.current_game_id))
+                        conn.commit()
+                    if self.monitoring_enabled and self.logger:
+                        self.logger.info(f"Game {self.current_game_id} result updated in database: {db_result}")
+                except Exception as e:
+                    if self.logger:
+                        self.logger.error(f"Failed to update game result in database: {e}")
+                
+                # Log completion
+                if self.monitoring_enabled and self.logger:
+                    self.logger.info(f"Game {self.current_game_id} completed: {result} in {total_moves} moves ({game_duration:.1f}s)")
+                    
+            except Exception as e:
+                if self.logger:
+                    self.logger.warning(f"Failed to record game completion metrics: {e}")
+        
         # Save PGN data to metrics
-        # TODO Add code
+        # TODO Add code (now handled by new metrics system)
 
         # Save locally into pgn file
         pgn_filepath = f"games/eval_game_{timestamp}.pgn"
@@ -589,6 +696,45 @@ class v7p3rChess:
 
             # Print the move and eval for the watcher, it will now be Black's turn so invert the colors when determining who just played
             print(f"{self.white_player if self.current_player == chess.BLACK else self.black_player} played: {engine_move} after {self.move_duration:.4f}s (Eval: {self.current_eval:.2f})")
+            
+            # Record move metrics
+            if self.current_game_id:
+                try:
+                    current_player_name = self.white_player if self.current_player == chess.BLACK else self.black_player
+                    
+                    # Determine nodes evaluated (try to get from appropriate engine)
+                    nodes_evaluated = 0
+                    search_depth = 0
+                    
+                    if current_player_name == 'v7p3r' and hasattr(self.engine.search_engine, 'nodes_searched'):
+                        nodes_evaluated = getattr(self.engine.search_engine, 'nodes_searched', 0)
+                        search_depth = getattr(self.engine.search_engine, 'depth', 0)
+                    elif current_player_name == 'stockfish' and hasattr(self.stockfish, 'nodes_searched'):
+                        nodes_evaluated = getattr(self.stockfish, 'nodes_searched', 0)
+                        search_depth = getattr(self.stockfish, 'depth', 0)
+                    
+                    # Use legacy compatibility function to avoid async issues
+                    from metrics.chess_metrics import add_move_metric
+                    add_move_metric(
+                        game_id=self.current_game_id,
+                        move_number=move_number,
+                        player_color='white' if self.current_player == chess.BLACK else 'black',
+                        move_uci=str(engine_move),
+                        fen_before=fen_before_move,
+                        evaluation=self.current_eval,
+                        search_algorithm=current_player_name,
+                        depth=search_depth,
+                        nodes_searched=nodes_evaluated,
+                        time_taken=self.move_duration,
+                        pv_line=getattr(self, 'pv_line', '')
+                    )
+                    
+                    if self.monitoring_enabled and self.logger:
+                        self.logger.debug(f"Move metrics recorded for {current_player_name}")
+                        
+                except Exception as e:
+                    if self.logger:
+                        self.logger.warning(f"Failed to record move metrics: {e}")
             
             # Initialize logged_nodes
             logged_nodes = 0
