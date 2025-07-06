@@ -4,55 +4,15 @@ import sys
 import os
 import chess
 import random
-import logging
-import datetime
 from v7p3r_config import v7p3rConfig
+from v7p3r_debug import v7p3rLogger, v7p3rUtilities
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
-def resource_path(relative_path):
-    """Get absolute path to resource, works for dev and for PyInstaller"""
-    base = getattr(sys, '_MEIPASS', None)
-    if base:
-        return os.path.join(base, relative_path)
-    return os.path.join(os.path.abspath("."), relative_path)
-# =====================================
-# ========== LOGGING SETUP ============
-def get_timestamp():
-    return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
-# Create logging directory relative to project root
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
-log_dir = os.path.join(project_root, 'logging')
-if not os.path.exists(log_dir):
-    os.makedirs(log_dir, exist_ok=True)
-
-# Setup individual logger for this file
-timestamp = get_timestamp()
-#log_filename = f"v7p3r_search_{timestamp}.log"
-log_filename = "v7p3r_search.log"  # Use a single log file for simplicity
-log_file_path = os.path.join(log_dir, log_filename)
-
-#v7p3r_search_logger = logging.getLogger(f"v7p3r_search_{timestamp}")
-v7p3r_search_logger = logging.getLogger("v7p3r_search")
-v7p3r_search_logger.setLevel(logging.DEBUG)
-
-if not v7p3r_search_logger.handlers:
-    from logging.handlers import RotatingFileHandler
-    file_handler = RotatingFileHandler(
-        log_file_path,
-        maxBytes=10*1024*1024,
-        backupCount=3,
-        delay=True
-    )
-    formatter = logging.Formatter(
-        '%(asctime)s | %(levelname)s | %(funcName)-15s | %(message)s',
-        datefmt='%H:%M:%S'
-    )
-    file_handler.setFormatter(formatter)
-    v7p3r_search_logger.addHandler(file_handler)
-    v7p3r_search_logger.propagate = False
+# Setup centralized logging for this module
+v7p3r_search_logger = v7p3rLogger.setup_logger("v7p3r_search")
 
 class v7p3rSearch:
     def __init__(self, scoring_calculator, move_organizer, time_manager, opening_book):
@@ -95,7 +55,7 @@ class v7p3rSearch:
         self.best_score = -float('inf')
         self.fen = self.root_board.fen()
         self.search_id_counter = 0  # Counter for generating unique search IDs
-        self.search_id = f"search[{self.search_id_counter}]_{timestamp}"  # Unique ID for each search instance
+        self.search_id = f"search[{self.search_id_counter}]_{v7p3rUtilities.get_timestamp()}"  # Unique ID for each search instance
 
         # Initialize search dataset
         self.search_dataset = {
