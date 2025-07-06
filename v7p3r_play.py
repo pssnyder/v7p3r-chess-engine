@@ -6,12 +6,12 @@ import pygame
 import chess
 import chess.pgn
 import datetime
-import logging
 import socket
 from typing import Optional
 import time
 from io import StringIO
 from v7p3r_config import v7p3rConfig
+from v7p3r_debug import v7p3rLogger, v7p3rUtilities
 from metrics.v7p3r_chess_metrics import get_metrics_instance, GameMetric
 
 CONFIG_NAME = "custom_config"
@@ -28,49 +28,8 @@ parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 
-def resource_path(relative_path):
-    """Get absolute path to resource, works for dev and for PyInstaller"""
-    base = getattr(sys, '_MEIPASS', None)
-    if base:
-        return os.path.join(base, relative_path)
-    return os.path.join(os.path.abspath("."), relative_path)
-
-# =====================================
-# ========== LOGGING SETUP ============
-def get_timestamp():
-    return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-
-# Create logging directory relative to project root
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
-log_dir = os.path.join(project_root, 'logging')
-if not os.path.exists(log_dir):
-    os.makedirs(log_dir, exist_ok=True)
-
-# Setup individual logger for this file
-timestamp = get_timestamp()
-#log_filename = f"v7p3r_play_{timestamp}.log"
-log_filename = "v7p3r_play.log"  # Use a single log file for simplicity
-log_file_path = os.path.join(log_dir, log_filename)
-
-#v7p3r_play_logger = logging.getLogger(f"v7p3r_play_{timestamp}")
-v7p3r_play_logger = logging.getLogger("v7p3r_play")
-v7p3r_play_logger.setLevel(logging.DEBUG)
-
-if not v7p3r_play_logger.handlers:
-    from logging.handlers import RotatingFileHandler
-    file_handler = RotatingFileHandler(
-        log_file_path,
-        maxBytes=10*1024*1024,
-        backupCount=3,
-        delay=True
-    )
-    formatter = logging.Formatter(
-        '%(asctime)s | %(funcName)-15s | %(message)s',
-        datefmt='%H:%M:%S'
-    )
-    file_handler.setFormatter(formatter)
-    v7p3r_play_logger.addHandler(file_handler)
-    v7p3r_play_logger.propagate = False
+# Setup centralized logging for this module
+v7p3r_play_logger = v7p3rLogger.setup_logger("v7p3r_play")
 
 # Import necessary modules from v7p3r_engine
 from v7p3r import v7p3rEngine # Corrected import for v7p3rEngine
@@ -271,7 +230,7 @@ class v7p3rChess:
         self.move_end_time = 0
         self.move_duration = 0
         self.game_start_time = time.time()  # Track overall game timing
-        self.game_start_timestamp = get_timestamp()
+        self.game_start_timestamp = v7p3rUtilities.get_timestamp()
 
         # Reset PGN headers and file
         self.set_headers()
@@ -966,7 +925,7 @@ class v7p3rChess:
                         if self.monitoring_enabled and self.logger:
                             self.logger.info(f'Game {self.game_count - game_count_remaining}/{self.game_count} complete, starting next...')
                         print(f'Game {self.game_count - game_count_remaining}/{self.game_count} complete, starting next...')
-                        self.game_start_timestamp = get_timestamp()
+                        self.game_start_timestamp = v7p3rUtilities.get_timestamp()
                         self.current_game_db_id = f"eval_game_{self.game_start_timestamp}.pgn"
                         self.new_game()
 

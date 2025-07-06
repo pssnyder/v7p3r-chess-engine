@@ -2,56 +2,17 @@
 
 import os
 import sys
-import datetime
 import chess
-from typing import Optional
 import logging
+from typing import Optional
+from v7p3r_debug import v7p3rLogger, v7p3rUtilities
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
-def resource_path(relative_path):
-    """Get absolute path to resource, works for dev and for PyInstaller"""
-    base = getattr(sys, '_MEIPASS', None)
-    if base:
-        return os.path.join(base, relative_path)
-    return os.path.join(os.path.abspath("."), relative_path)
-# =====================================
-# ========== LOGGING SETUP ============
-def get_timestamp():
-    return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
-# Create logging directory relative to project root
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
-log_dir = os.path.join(project_root, 'logging')
-if not os.path.exists(log_dir):
-    os.makedirs(log_dir, exist_ok=True)
-
-# Setup individual logger for this file
-timestamp = get_timestamp()
-#log_filename = f"v7p3r_pst_{timestamp}.log"
-log_filename = "v7p3r_pst.log"  # Use a single log file for simplicity
-log_file_path = os.path.join(log_dir, log_filename)
-
-#v7p3r_pst_logger = logging.getLogger(f"v7p3r_pst_{timestamp}")
-v7p3r_pst_logger = logging.getLogger("v7p3r_pst")
-v7p3r_pst_logger.setLevel(logging.DEBUG)
-
-if not v7p3r_pst_logger.handlers:
-    from logging.handlers import RotatingFileHandler
-    file_handler = RotatingFileHandler(
-        log_file_path,
-        maxBytes=10*1024*1024,
-        backupCount=3,
-        delay=True
-    )
-    formatter = logging.Formatter(
-        '%(asctime)s | %(funcName)-15s | %(message)s',
-        datefmt='%H:%M:%S'
-    )
-    file_handler.setFormatter(formatter)
-    v7p3r_pst_logger.addHandler(file_handler)
-    v7p3r_pst_logger.propagate = False
+# Setup centralized logging for this module
+v7p3r_pst_logger = v7p3rLogger.setup_logger("v7p3r_pst")
 
 class v7p3rPST:
     """ Piece-Square Tables for chess position evaluation. """

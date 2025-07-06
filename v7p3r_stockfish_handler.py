@@ -7,57 +7,15 @@ import chess
 import time
 import sys
 import os
-import datetime
-import logging
 from typing import Optional, Dict, Any, Callable # Added Callable import
+from v7p3r_debug import v7p3rLogger, v7p3rUtilities
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
-def resource_path(relative_path):
-    """Get absolute path to resource, works for dev and for PyInstaller"""
-    if relative_path is None:
-        raise ValueError("relative_path cannot be None")
-    
-    base = getattr(sys, '_MEIPASS', None)
-    if base:
-        return os.path.join(base, relative_path)
-    return os.path.join(os.path.abspath("."), relative_path)
-# =====================================
-# ========== LOGGING SETUP ============
-def get_timestamp():
-    return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
-# Create logging directory relative to project root
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
-log_dir = os.path.join(project_root, 'logging')
-if not os.path.exists(log_dir):
-    os.makedirs(log_dir, exist_ok=True)
-
-# Setup individual logger for this file
-timestamp = get_timestamp()
-#log_filename = f"v7p3r_stockfish_handler_{timestamp}.log"
-log_filename = "v7p3r_stockfish_handler.log"  # Use a single log file for simplicity
-log_file_path = os.path.join(log_dir, log_filename)
-
-v7p3r_stockfish_handler_logger = logging.getLogger("v7p3r_stockfish_handler")
-v7p3r_stockfish_handler_logger.setLevel(logging.DEBUG)
-
-if not v7p3r_stockfish_handler_logger.handlers:
-    from logging.handlers import RotatingFileHandler
-    file_handler = RotatingFileHandler(
-        log_file_path,
-        maxBytes=10*1024*1024,
-        backupCount=3,
-        delay=True
-    )
-    formatter = logging.Formatter(
-        '%(asctime)s | %(funcName)-15s | %(message)s',
-        datefmt='%H:%M:%S'
-    )
-    file_handler.setFormatter(formatter)
-    v7p3r_stockfish_handler_logger.addHandler(file_handler)
-    v7p3r_stockfish_handler_logger.propagate = False
+# Setup centralized logging for this module
+v7p3r_stockfish_handler_logger = v7p3rLogger.setup_logger("v7p3r_stockfish_handler")
 
 class StockfishHandler:
     _instance = None
@@ -109,7 +67,7 @@ class StockfishHandler:
                 creationflags = subprocess.CREATE_NO_WINDOW
 
             self.process = subprocess.Popen(
-                resource_path(self.stockfish_path),
+                v7p3rUtilities.resource_path(self.stockfish_path),
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
