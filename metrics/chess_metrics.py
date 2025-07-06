@@ -575,10 +575,8 @@ def add_game_result(game_id: str, timestamp: str, winner: str, game_pgn: str,
         loop = asyncio.get_event_loop()
         if loop.is_running():
             asyncio.create_task(metrics.record_game_start(game_metric))
-            logger.info(f"Legacy game recording scheduled: {game_id}")
         else:
             asyncio.run(metrics.record_game_start(game_metric))
-            logger.info(f"Legacy game recording completed: {game_id}")
     except RuntimeError:
         # Fallback: synchronous recording
         try:
@@ -597,7 +595,6 @@ def add_game_result(game_id: str, timestamp: str, winner: str, game_pgn: str,
                     game_metric.final_position_fen, game_metric.termination_reason
                 ))
                 conn.commit()
-            logger.info(f"Legacy game recording completed (sync): {game_id}")
         except Exception as e:
             logger.error(f"Legacy game recording failed: {e}")
 
@@ -626,10 +623,8 @@ def add_move_metric(game_id: str, move_number: int, player_color: str,
         loop = asyncio.get_event_loop()
         if loop.is_running():
             asyncio.create_task(metrics.record_move(move_metric))
-            logger.info(f"Legacy move recording scheduled: {game_id} move {move_number}")
         else:
             asyncio.run(metrics.record_move(move_metric))
-            logger.info(f"Legacy move recording completed: {game_id} move {move_number}")
     except RuntimeError:
         # Fallback: synchronous recording
         try:
@@ -653,7 +648,6 @@ def add_move_metric(game_id: str, move_number: int, player_color: str,
                     move_metric.move_ordering_efficiency
                 ))
                 conn.commit()
-            logger.info(f"Legacy move recording completed (sync): {game_id} move {move_number}")
         except Exception as e:
             logger.error(f"Legacy move recording failed: {e}")
 

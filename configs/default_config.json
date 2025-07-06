@@ -7,7 +7,7 @@
     },
     "engine_config": {
         "name": "v7p3r",
-        "version": "0.0.8",
+        "version": "0.1.1",
         "ruleset": "default_ruleset",
         "search_algorithm": "minimax",
         "depth": 3,

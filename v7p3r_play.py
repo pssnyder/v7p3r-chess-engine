@@ -17,7 +17,7 @@ from v7p3r_config import v7p3rConfig
 from metrics.chess_metrics import get_metrics_instance, GameMetric, MoveMetric, EngineConfig
 import asyncio
 
-CONFIG_NAME = "speed_config"
+CONFIG_NAME = "custom_config"
 
 # Define the maximum frames per second for the game loop
 MAX_FPS = 60
@@ -265,7 +265,7 @@ class v7p3rChess:
 
         # Reset PGN headers and file
         self.set_headers()
-        self.quick_save_pgn("logging/active_game.pgn")
+        self.quick_save_pgn("active_game.pgn")
         
         # Initialize metrics for new game
         self.current_game_id = f"eval_game_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
@@ -694,7 +694,7 @@ class v7p3rChess:
                 print(f"HARDSTOP ERROR: Move Invalid: {e}. | Move: {engine_move} | FEN: {self.board.fen()}")
                 return
 
-            # Print the move and eval for the watcher, it will now be Black's turn so invert the colors when determining who just played
+            # Print the move and eval for the user, it will now be Black's turn so invert the colors when determining who just played
             print(f"{self.white_player if self.current_player == chess.BLACK else self.black_player} played: {engine_move} after {self.move_duration:.4f}s (Eval: {self.current_eval:.2f})")
             
             # Record move metrics
@@ -800,7 +800,7 @@ class v7p3rChess:
             else:
                 self.game.headers["Result"] = "*"
             
-            self.quick_save_pgn("logging/active_game.pgn")
+            self.quick_save_pgn("active_game.pgn")
             
             return True
         except ValueError as e:

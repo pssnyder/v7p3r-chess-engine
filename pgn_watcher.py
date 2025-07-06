@@ -195,7 +195,7 @@ class StandaloneChessRenderer:
 
 
 class PGNWatcher:
-    def __init__(self, pgn_path="logging/active_game.pgn"):
+    def __init__(self, pgn_path="active_game.pgn"):
         self.pgn_path = pgn_path
         self.last_mtime = 0
         pygame.init()
@@ -267,7 +267,7 @@ if __name__ == "__main__":
     os.makedirs("logging", exist_ok=True)
     
     # Default path to watch
-    pgn_path = "logging/active_game.pgn"
+    pgn_path = "active_game.pgn"
     
     # Allow command-line override
     if len(sys.argv) > 1:

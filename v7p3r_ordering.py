@@ -112,21 +112,21 @@ class v7p3rOrdering:
         if temp_board.is_checkmate():
             temp_board.pop()
             # Get checkmate move bonus from the current ruleset
-            return self.scoring_calculator.ruleset.get('checkmate_move_bonus', 999999999.0)
+            return self.scoring_calculator.ruleset.get('checkmate_order_modifier', 999999999.0)
         
         if temp_board.is_check(): # Check after move is made
-            score += self.scoring_calculator.ruleset.get('check_move_bonus', 99999.0)
+            score += self.scoring_calculator.ruleset.get('check_order_modifier', 99999.0)
 
         temp_board.pop()
         if temp_board.is_capture(move):
-            score += self.scoring_calculator.ruleset.get('capture_move_bonus', 5000.0)
+            score += self.scoring_calculator.ruleset.get('capture_order_modifier', 5000.0)
             victim_type = temp_board.piece_type_at(move.to_square)
             aggressor_type = temp_board.piece_type_at(move.from_square)
             if victim_type and aggressor_type:
                 score += (self.engine_config.get('piece_values', {}).get(victim_type, 0) * 10) - self.engine_config.get('piece_values', {}).get(aggressor_type, 0)
 
         if move.promotion:
-            score += self.scoring_calculator.ruleset.get('promotion_move_bonus', 3000.0)
+            score += self.scoring_calculator.ruleset.get('promotion_order_modifier', 3000.0)
             if move.promotion == chess.QUEEN:
                 score += self.engine_config.get('piece_values', {}).get(chess.QUEEN, 9.0) * 100 # Ensure piece_values is used
         return score

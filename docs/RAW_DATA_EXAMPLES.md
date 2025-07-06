@@ -94,7 +94,7 @@ evaluation_rules = {
     "piece_attacks_modifier": 2.0,          # Bonus for attacking hanging pieces
     "knight_count_modifier": 1.0,            # Bonus for having knight pair
     "castling_protection_modifier": 3.0,    # Bonus for keeping the right to castle
-    "material_weight_modifier": 0.8,              # Material calculation impact on eval
+    "material_score_modifier": 0.8,              # Material calculation impact on eval
     "piece_coordination_modifier": 0.5,     # Bonus for piece coordination
     "pawn_structure_modifier": -0.5,        # Penalty for having doubled pawns
     "pawn_weaknesses_modifier": -0.5,       # Penalty for having backward pawns
@@ -106,11 +106,11 @@ evaluation_rules = {
     "piece_protection_modifier": -2.0,    # Penalty for undefended pieces
     "open_files_modifier": 0.3,              # Bonus for having rooks on open files
     "board_coverage_modifier": 0.1,         # Bonus for piece mobility
-    "checkmate_move_bonus": 1000000,     # Bonus for finding a checkmate during move ordering scoring
-    "check_move_bonus": 10000,           # Bonus for finding a check move during move ordering scoring
+    "checkmate_order_modifier": 1000000,     # Bonus for finding a checkmate during move ordering scoring
+    "check_order_modifier": 10000,           # Bonus for finding a check move during move ordering scoring
     "hash_move_bonus": 5000,             # Bonus for finding a hash move during move ordering scoring
-    "capture_move_bonus": 4000,          # Bonus for finding a capture move during move ordering scoring
-    "promotion_move_bonus": 3000,        # Bonus for finding a promotion move during move ordering scoring
+    "capture_order_modifier": 4000,          # Bonus for finding a capture move during move ordering scoring
+    "promotion_order_modifier": 3000,        # Bonus for finding a promotion move during move ordering scoring
     "killer_move_bonus": 2000,           # Bonus for finding a killer moves during move ordering scoring
     "history_move_bonus": 1000,          # Bonus for finding a historical move during move ordering scoring
     "counter_move_bonus": 1000           # Bonus for finding a strong countermove during move ordering scoring

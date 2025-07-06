@@ -1,6 +1,6 @@
 {
-    "material_weight_modifier": {
-        "modifier_id": "material_weight_modifier",
+    "material_score_modifier": {
+        "modifier_id": "material_score_modifier",
         "modifier_value": 0.0,
         "modifier_name": "Material Weight",
         "modifier_desc": "for material value",
@@ -195,22 +195,22 @@
         "modifier_desc": " for pieces not defended",
         "modifier_catagory": "piece_coordination"
     },
-    "checkmate_move_bonus": {
-        "modifier_id": "checkmate_move_bonus",
+    "checkmate_order_modifier": {
+        "modifier_id": "checkmate_order_modifier",
         "modifier_value": 0.0,
         "modifier_name": "Checkmate Move Bonus",
         "modifier_desc": " for moves that give checkmate",
         "modifier_catagory": "tactical_elements"
     },
-    "check_move_bonus": {
-        "modifier_id": "check_move_bonus",
+    "check_order_modifier": {
+        "modifier_id": "check_order_modifier",
         "modifier_value": 0.0,
         "modifier_name": "Check Move Bonus",
         "modifier_desc": " for moves that give check",
         "modifier_catagory": "tactical_elements"
     },
-    "capture_move_bonus": {
-        "modifier_id": "capture_move_bonus",
+    "capture_order_modifier": {
+        "modifier_id": "capture_order_modifier",
         "modifier_value": 0.0,
         "modifier_name": "Capture Move Bonus",
         "modifier_desc": " for moves that capture pieces",
@@ -244,8 +244,8 @@
         "modifier_desc": " for killer moves in search",
         "modifier_catagory": "tactical_elements"
     },
-    "promotion_move_bonus": {
-        "modifier_id": "promotion_move_bonus",
+    "promotion_order_modifier": {
+        "modifier_id": "promotion_order_modifier",
         "modifier_value": 0.0,
         "modifier_name": "Promotion Move Bonus",
         "modifier_desc": " for moves that promote pawns",
