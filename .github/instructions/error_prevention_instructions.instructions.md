@@ -4,6 +4,9 @@ applyTo: '**'
 Coding standards, domain knowledge, and preferences that AI should follow.
 
 # Error Prevention Instructions
+## EXTREMELY IMPORTANT - MUST FOLLOW
+- YOU WILL NOT use "&&" and instead use proper PowerShell syntax.
+
 ## Powershell Execution
 - When executing commands in PowerShell, ensure that the syntax is compatible with the version of PowerShell being used.
 - Use the correct command separators and syntax for the version of PowerShell to avoid errors.
