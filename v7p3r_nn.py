@@ -1,5 +1,6 @@
-# v7p3r_nn_engine/v7p3r_nn.py
+# v7p3r_nn.py
 # v7p3r Chess Engine Neural Network Module
+
 import os
 import sys
 import numpy as np
@@ -12,7 +13,6 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 from datetime import datetime
-import logging
 import random
 from io import StringIO
 from collections import defaultdict
@@ -22,11 +22,10 @@ from typing import List, Dict, Tuple, Optional, Union
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
 from v7p3r_config import v7p3rConfig
 from v7p3r_stockfish_handler import StockfishHandler
+from v7p3r_debug import v7p3rLogger
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, 
-                   format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger("v7p3r_nn")
+# Setup centralized logging for this module
+v7p3r_nn_logger = v7p3rLogger.setup_logger("v7p3r_nn")
 
 class ChessPositionDataset(Dataset):
     """Dataset for chess positions and their evaluations"""
@@ -298,7 +297,7 @@ class v7p3rNeuralNetwork:
         
     def _load_config(self, config_path):
         """Load configuration from centralized config manager (deprecated - keeping for compatibility)"""
-        logger.warning("_load_config is deprecated. Using centralized configuration manager.")
+        v7p3r_nn_logger.warning("_load_config is deprecated. Using centralized configuration manager.")
         return self.config
         
     def _create_model(self):
@@ -313,7 +312,7 @@ class v7p3rNeuralNetwork:
         # Load pre-trained model if available
         model_path = self._get_latest_model_path()
         if model_path and os.path.exists(model_path):
-            logger.info(f"Loading pre-trained model from {model_path}")
+            v7p3r_nn_logger.info(f"Loading pre-trained model from {model_path}")
             model.load_state_dict(torch.load(model_path, map_location=self.device, weights_only=True))
             
         return model
@@ -337,7 +336,7 @@ class v7p3rNeuralNetwork:
         
     def train(self, pgn_files=None, db_path=None, epochs=None):
         """Train the neural network on historical PGN games"""
-        logger.info("Starting neural network training...")
+        v7p3r_nn_logger.info("Starting neural network training...")
         
         # Get training parameters from config
         train_config = self.config.get("training", {})
@@ -350,10 +349,10 @@ class v7p3rNeuralNetwork:
         positions, evaluations = self._collect_training_data(pgn_files, db_path)
         
         if not positions:
-            logger.warning("No training data found. Skipping training.")
+            v7p3r_nn_logger.warning("No training data found. Skipping training.")
             return
             
-        logger.info(f"Collected {len(positions)} positions for training")
+        v7p3r_nn_logger.info(f"Collected {len(positions)} positions for training")
         
         # Create dataset and dataloader
         dataset = ChessPositionDataset(positions, evaluations)
@@ -368,7 +367,7 @@ class v7p3rNeuralNetwork:
         for epoch in range(epochs):
             running_loss = 0.0
             batch_count = 0
-            logger.info(f"Starting epoch {epoch+1}/{epochs}")
+            v7p3r_nn_logger.info(f"Starting epoch {epoch+1}/{epochs}")
             for i, data in enumerate(dataloader):
                 inputs, targets = data
                 inputs = inputs.to(self.device)
@@ -380,14 +379,14 @@ class v7p3rNeuralNetwork:
                 optimizer.step()
                 running_loss += loss.item()
                 batch_count += 1
-                logger.info(f"Epoch {epoch+1} Batch {i+1} Loss: {loss.item():.4f}")
+                v7p3r_nn_logger.info(f"Epoch {epoch+1} Batch {i+1} Loss: {loss.item():.4f}")
                 if i % 10 == 9:
-                    logger.info(f"Epoch {epoch+1} [{i+1}/{len(dataloader)}] avg loss: {running_loss / (i+1):.4f}")
+                    v7p3r_nn_logger.info(f"Epoch {epoch+1} [{i+1}/{len(dataloader)}] avg loss: {running_loss / (i+1):.4f}")
             avg_loss = running_loss / batch_count if batch_count else 0.0
-            logger.info(f"Epoch {epoch+1} complete. Average loss: {avg_loss:.4f}")
+            v7p3r_nn_logger.info(f"Epoch {epoch+1} complete. Average loss: {avg_loss:.4f}")
             # Save checkpoint if configured
             self._save_checkpoint(epoch)
-        logger.info("Finished training")
+        v7p3r_nn_logger.info("Finished training")
         
         # Save the final model
         self._save_model()
@@ -412,14 +411,14 @@ class v7p3rNeuralNetwork:
                             evaluations.extend(evals_from_game)
                             file_positions += len(positions_from_game)
                         if file_positions == 0:
-                            logger.warning(f"No positions found in PGN file {pgn_file}")
+                            v7p3r_nn_logger.warning(f"No positions found in PGN file {pgn_file}")
                         else:
-                            logger.info(f"Extracted {file_positions} positions from {pgn_file}")
+                            v7p3r_nn_logger.info(f"Extracted {file_positions} positions from {pgn_file}")
                         # Commit all DB changes for this file at once (batch commit)
                         if hasattr(self, 'move_library') and hasattr(self.move_library, 'conn'):
                             self.move_library.conn.commit()
                 except Exception as e:
-                    logger.error(f"Error reading PGN file {pgn_file}: {e}")
+                    v7p3r_nn_logger.error(f"Error reading PGN file {pgn_file}: {e}")
         
         # Collect from database
         if db_path:
@@ -445,11 +444,11 @@ class v7p3rNeuralNetwork:
                         positions.extend(positions_from_game)
                         evaluations.extend(evals_from_game)
                     except Exception as e:
-                        logger.error(f"Error parsing PGN from database: {e}")
+                        v7p3r_nn_logger.error(f"Error parsing PGN from database: {e}")
                 
                 conn.close()
             except Exception as e:
-                logger.error(f"Error accessing database {db_path}: {e}")
+                v7p3r_nn_logger.error(f"Error accessing database {db_path}: {e}")
         
         return positions, evaluations
     
@@ -522,7 +521,7 @@ class v7p3rNeuralNetwork:
         
         checkpoint_path = os.path.join(model_dir, f"v7p3r_nn_checkpoint_epoch_{epoch+1}.pt")
         torch.save(self.model.state_dict(), checkpoint_path)
-        logger.info(f"Saved checkpoint to {checkpoint_path}")
+        v7p3r_nn_logger.info(f"Saved checkpoint to {checkpoint_path}")
     
     def _save_model(self):
         """Save the trained model"""
@@ -537,7 +536,7 @@ class v7p3rNeuralNetwork:
         model_path = os.path.join(model_dir, f"v7p3r_nn_model_{timestamp}.pt")
         
         torch.save(self.model.state_dict(), model_path)
-        logger.info(f"Saved model to {model_path}")
+        v7p3r_nn_logger.info(f"Saved model to {model_path}")
     
     def evaluate_position(self, fen):
         """Evaluate a chess position using the neural network"""
@@ -607,11 +606,11 @@ class v7p3rNeuralNetwork:
                 stockfish_config = self.config_manager.get_stockfish_config()
                 stockfish_path = stockfish_config.get('stockfish_path', '')
             except Exception as e:
-                logger.error(f"Failed to load stockfish config: {e}")
+                v7p3r_nn_logger.error(f"Failed to load stockfish config: {e}")
                 return False
         
         if not stockfish_path or not os.path.exists(stockfish_path):
-            logger.error(f"Stockfish executable not found at: {stockfish_path}")
+            v7p3r_nn_logger.error(f"Stockfish executable not found at: {stockfish_path}")
             return False
         
         # Initialize Stockfish handler
@@ -628,7 +627,7 @@ class v7p3rNeuralNetwork:
                 game = chess.pgn.read_game(f)
                 
             if not game:
-                logger.error(f"Could not load game from {pgn_path}")
+                v7p3r_nn_logger.error(f"Could not load game from {pgn_path}")
                 return False
                 
             # Get analysis settings from config
@@ -643,7 +642,7 @@ class v7p3rNeuralNetwork:
             
             # Skip very short games
             if len(moves_list) < 10:
-                logger.warning(f"Game {pgn_path} is too short to analyze ({len(moves_list)} moves)")
+                v7p3r_nn_logger.warning(f"Game {pgn_path} is too short to analyze ({len(moves_list)} moves)")
                 stockfish.quit()
                 return False
             
@@ -657,7 +656,7 @@ class v7p3rNeuralNetwork:
                 position_indices = range(5, len(moves_list), step)
                 position_indices = list(position_indices)[:positions_per_game]
             
-            logger.info(f"Analyzing {len(position_indices)} positions from game {pgn_path}")
+            v7p3r_nn_logger.info(f"Analyzing {len(position_indices)} positions from game {pgn_path}")
             
             # Analyze each selected position
             for move_index, move in enumerate(moves_list):
@@ -713,13 +712,13 @@ class v7p3rNeuralNetwork:
                 positions_analyzed += 1
                 
                 if positions_analyzed % 5 == 0:
-                    logger.info(f"Analyzed {positions_analyzed} positions")
+                    v7p3r_nn_logger.info(f"Analyzed {positions_analyzed} positions")
             
-            logger.info(f"Completed Stockfish analysis of {positions_analyzed} positions from {pgn_path}")
+            v7p3r_nn_logger.info(f"Completed Stockfish analysis of {positions_analyzed} positions from {pgn_path}")
             stockfish.quit()
             return True            
         except Exception as e:
-            logger.error(f"Error in Stockfish analysis: {e}")
+            v7p3r_nn_logger.error(f"Error in Stockfish analysis: {e}")
             if 'stockfish' in locals() and stockfish:
                 try:
                     stockfish.quit()

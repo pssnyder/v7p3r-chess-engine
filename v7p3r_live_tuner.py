@@ -1,12 +1,15 @@
 # v7p3r_live_tuner.py
 import os
 import sys
-import logging
 import datetime
 import sqlite3
 import chess
 from v7p3r import v7p3rEngine
 from v7p3r_config import v7p3rConfig
+from v7p3r_debug import v7p3rLogger
+
+# Setup centralized logging for this module
+v7p3r_live_tuner_logger = v7p3rLogger.setup_logger("v7p3r_live_tuner")
 
 OBSERVATION_MODE = False  # Set to True to enable observation features, such as pausing after each position
 position_config = {
@@ -34,35 +37,6 @@ def get_timestamp():
 # Create logging directory relative to project root
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
 log_dir = os.path.join(project_root, 'logging')
-if not os.path.exists(log_dir):
-    os.makedirs(log_dir, exist_ok=True)
-
-# Setup individual logger for this file
-timestamp = get_timestamp()
-#log_filename = f"v7p3r_live_tuner_{timestamp}.log"
-log_filename = "v7p3r_live_tuner.log"  # Use a single log file for simplicity
-log_file_path = os.path.join(log_dir, log_filename)
-
-#v7p3r_live_tuner_logger = logging.getLogger(f"v7p3r_live_tuner_{timestamp}")
-v7p3r_live_tuner_logger = logging.getLogger("v7p3r_live_tuner")
-v7p3r_live_tuner_logger.setLevel(logging.DEBUG)
-
-if not v7p3r_live_tuner_logger.handlers:
-    from logging.handlers import RotatingFileHandler
-    file_handler = RotatingFileHandler(
-        log_file_path,
-        maxBytes=10*1024*1024,
-        backupCount=3,
-        delay=True
-    )
-    formatter = logging.Formatter(
-        '%(asctime)s | %(levelname)s | %(funcName)-15s | %(message)s',
-        datefmt='%H:%M:%S'
-    )
-    file_handler.setFormatter(formatter)
-    v7p3r_live_tuner_logger.addHandler(file_handler)
-    v7p3r_live_tuner_logger.propagate = False
-
 class v7p3rTuner:
     """v7p3rTuner
     This class is responsible for tuning the v7p3r engine using starting positions from a database.

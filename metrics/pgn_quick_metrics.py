@@ -9,17 +9,19 @@ Display:
     - Opening Moves Statistics
 """
 import os
+import sys
 import json
-import logging
 import chess.pgn
 
-GAMES_DIR = os.path.join(os.path.dirname(__file__), '..', 'games')
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-logging.basicConfig(
-    filename='logging/quick_metrics.log',
-    level=logging.INFO,
-    format='%(asctime)s %(levelname)s %(message)s'
-)
+from v7p3r_debug import v7p3rLogger
+
+# Setup centralized logging for this module
+pgn_quick_metrics_logger = v7p3rLogger.setup_logger("pgn_quick_metrics")
+
+GAMES_DIR = os.path.join(os.path.dirname(__file__), '..', 'games')
 
 def get_pgn_files(directory):
     return [os.path.join(directory, f) for f in os.listdir(directory) if f.endswith('.pgn')]

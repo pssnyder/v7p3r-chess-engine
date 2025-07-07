@@ -1,4 +1,11 @@
 {
+    "checkmate_threats_modifier": {
+        "modifier_id": "checkmate_threats_modifier",
+        "modifier_value": 0.0,
+        "modifier_name": "Checkmate Threats",
+        "modifier_desc": " for checkmate position",
+        "modifier_catagory": "tactical_elements"
+    },
     "material_score_modifier": {
         "modifier_id": "material_score_modifier",
         "modifier_value": 0.0,
@@ -13,81 +20,18 @@
         "modifier_desc": " for piece-square table values",
         "modifier_catagory": "pst"
     },
-    "pawn_weaknesses_modifier": {
-        "modifier_id": "pawn_weaknesses_modifier",
+    "piece_captures_modifier": {
+        "modifier_id": "piece_captures_modifier",
         "modifier_value": 0.0,
-        "modifier_name": "Pawn Weaknesses",
-        "modifier_desc": " for pawns that are behind friendly pawns and difficult to advance",
-        "modifier_catagory": "pawn_structure"
+        "modifier_name": "Piece Capture",
+        "modifier_desc": " for capturing opponent's pieces",
+        "modifier_catagory": "tactical_elements"
     },
-    "pawn_structure_modifier": {
-        "modifier_id": "pawn_structure_modifier",
+    "center_control_modifier": {
+        "modifier_id": "center_control_modifier",
         "modifier_value": 0.0,
-        "modifier_name": "Pawn Structure",
-        "modifier_desc": " for having two pawns on the same file",
-        "modifier_catagory": "pawn_structure"
-    },
-    "passed_pawns_modifier": {
-        "modifier_id": "passed_pawns_modifier",
-        "modifier_value": 0.0,
-        "modifier_name": "Passed Pawns",
-        "modifier_desc": " for pawns with no opposing pawns blocking promotion path",
-        "modifier_catagory": "pawn_structure"
-    },
-    "pawn_promotion_modifier": {
-        "modifier_id": "pawn_promotion_modifier",
-        "modifier_value": 0.0,
-        "modifier_name": "Pawn Promotion",
-        "modifier_desc": " for pawns close to promotion",
-        "modifier_catagory": "pawn_structure"
-    },
-    "en_passant_modifier": {
-        "modifier_id": "en_passant_modifier",
-        "modifier_value": 0.0,
-        "modifier_name": "En Passant",
-        "modifier_desc": " for en passant capture opportunities",
-        "modifier_catagory": "pawn_structure"
-    },
-    "bishop_activity_modifier": {
-        "modifier_id": "bishop_activity_modifier",
-        "modifier_value": 0.0,
-        "modifier_name": "Bishop Activity",
-        "modifier_desc": " for active bishops controlling many squares",
-        "modifier_catagory": "piece_activity"
-    },
-    "bishop_vision_modifier": {
-        "modifier_id": "bishop_vision_modifier",
-        "modifier_value": 0.0,
-        "modifier_name": "Bishop Vision",
-        "modifier_desc": " for bishops with clear diagonals",
-        "modifier_catagory": "piece_activity"
-    },
-    "knight_activity_modifier": {
-        "modifier_id": "knight_activity_modifier",
-        "modifier_value": 0.0,
-        "modifier_name": "Knight Activity",
-        "modifier_desc": " for knights in central/active positions",
-        "modifier_catagory": "piece_activity"
-    },
-    "knight_count_modifier": {
-        "modifier_id": "knight_count_modifier",
-        "modifier_value": 0.0,
-        "modifier_name": "Knight Count",
-        "modifier_desc": " for having both knights",
-        "modifier_catagory": "piece_activity"
-    },
-    "piece_coordination_modifier": {
-        "modifier_id": "piece_coordination_modifier",
-        "modifier_value": 0.0,
-        "modifier_name": "Piece Coordination",
-        "modifier_desc": " for pieces supporting each other",
-        "modifier_catagory": "piece_coordination"
-    },
-    "board_coverage_modifier": {
-        "modifier_id": "board_coverage_modifier",
-        "modifier_value": 0.0,
-        "modifier_name": "Board Coverage",
-        "modifier_desc": " for pieces with many available moves",
+        "modifier_name": "Center Control",
+        "modifier_desc": " for controlling central squares",
         "modifier_catagory": "board_control"
     },
     "piece_development_modifier": {
@@ -97,33 +41,12 @@
         "modifier_desc": " for pieces not yet developed",
         "modifier_catagory": "piece_development"
     },
-    "center_control_modifier": {
-        "modifier_id": "center_control_modifier",
+    "board_coverage_modifier": {
+        "modifier_id": "board_coverage_modifier",
         "modifier_value": 0.0,
-        "modifier_name": "Center Control",
-        "modifier_desc": " for controlling central squares",
+        "modifier_name": "Board Coverage",
+        "modifier_desc": " for pieces with many available moves",
         "modifier_catagory": "board_control"
-    },
-    "open_files_modifier": {
-        "modifier_id": "open_files_modifier",
-        "modifier_value": 0.0,
-        "modifier_name": "Open Files",
-        "modifier_desc": " for rooks on open files",
-        "modifier_catagory": "board_control"
-    },
-    "rook_coordination_modifier": {
-        "modifier_id": "rook_coordination_modifier",
-        "modifier_value": 0.0,
-        "modifier_name": "Rook Coordination",
-        "modifier_desc": " for connected rooks",
-        "modifier_catagory": "piece_coordination"
-    },
-    "tempo_modifier": {
-        "modifier_id": "tempo_modifier",
-        "modifier_value": 0.0,
-        "modifier_name": "Tempo",
-        "modifier_desc": " for the side to move",
-        "modifier_catagory": "tactical_elements"
     },
     "castling_modifier": {
         "modifier_id": "castling_modifier",
@@ -139,69 +62,20 @@
         "modifier_desc": " for protection after castling",
         "modifier_catagory": "piece_development"
     },
-    "king_safety_modifier": {
-        "modifier_id": "king_safety_modifier",
+    "piece_coordination_modifier": {
+        "modifier_id": "piece_coordination_modifier",
         "modifier_value": 0.0,
-        "modifier_name": "King Safety",
-        "modifier_desc": " for having a protected king",
+        "modifier_name": "Piece Coordination",
+        "modifier_desc": " for pieces supporting each other",
         "modifier_catagory": "piece_coordination"
     },
-    "check_modifier": {
-        "modifier_id": "check_modifier",
+    "rook_coordination_modifier": {
+        "modifier_id": "rook_coordination_modifier",
         "modifier_value": 0.0,
-        "modifier_name": "Check Modifier",
-        "modifier_desc": " for giving check",
-        "modifier_catagory": "tactical_elements"
-    },
-    "checkmate_threats_modifier": {
-        "modifier_id": "checkmate_threats_modifier",
-        "modifier_value": 0.0,
-        "modifier_name": "Checkmate Threats",
-        "modifier_desc": " for checkmate position",
-        "modifier_catagory": "tactical_elements"
-    },
-    "stalemate_modifier": {
-        "modifier_id": "stalemate_modifier",
-        "modifier_value": 0.0,
-        "modifier_name": "Stalemate",
-        "modifier_desc": " for stalemate positions",
-        "modifier_catagory": "tactical_elements"
-    },
-    "draw_modifier": {
-        "modifier_id": "draw_modifier",
-        "modifier_value": 0.0,
-        "modifier_name": "Draw Modifier",
-        "modifier_desc": " for drawing positions",
-        "modifier_catagory": "tactical_elements"
-    },
-    "piece_attacks_modifier": {
-        "modifier_id": "piece_attacks_modifier",
-        "modifier_value": 0.0,
-        "modifier_name": "Piece Attacks",
-        "modifier_desc": " for attacking hanging pieces",
-        "modifier_catagory": "tactical_elements"
-    },
-    "queen_attack_modifier": {
-        "modifier_id": "queen_attack_modifier",
-        "modifier_value": 0.0,
-        "modifier_name": "Queen Attack",
-        "modifier_desc": " for capturing the opponent's queen",
-        "modifier_catagory": "tactical_elements"
-    },
-    "piece_capture_modifier": {
-        "modifier_id": "piece_capture_modifier",
-        "modifier_value": 0.0,
-        "modifier_name": "Piece Capture",
-        "modifier_desc": " for capturing opponent's pieces",
-        "modifier_catagory": "tactical_elements"
-    },
-    "piece_protection_modifier": {
-        "modifier_id": "piece_protection_modifier",
-        "modifier_value": 0.0,
-        "modifier_name": "Piece Protection",
-        "modifier_desc": " for pieces not defended",
+        "modifier_name": "Rook Coordination",
+        "modifier_desc": " for connected rooks",
         "modifier_catagory": "piece_coordination"
-    },
+    },    
     "checkmate_order_modifier": {
         "modifier_id": "checkmate_order_modifier",
         "modifier_value": 0.0,
@@ -221,34 +95,6 @@
         "modifier_value": 0.0,
         "modifier_name": "Capture Move Bonus",
         "modifier_desc": " for moves that capture pieces",
-        "modifier_catagory": "tactical_elements"
-    },
-    "counter_move_bonus": {
-        "modifier_id": "counter_move_bonus",
-        "modifier_value": 0.0,
-        "modifier_name": "Counter Move Bonus",
-        "modifier_desc": " for counter moves",
-        "modifier_catagory": "tactical_elements"
-    },
-    "hash_move_bonus": {
-        "modifier_id": "hash_move_bonus",
-        "modifier_value": 0.0,
-        "modifier_name": "Hash Move Bonus",
-        "modifier_desc": " for hash table moves",
-        "modifier_catagory": "tactical_elements"
-    },
-    "history_move_bonus": {
-        "modifier_id": "history_move_bonus",
-        "modifier_value": 0.0,
-        "modifier_name": "History Move Bonus",
-        "modifier_desc": " for historically good moves",
-        "modifier_catagory": "tactical_elements"
-    },
-    "killer_move_bonus": {
-        "modifier_id": "killer_move_bonus",
-        "modifier_value": 0.0,
-        "modifier_name": "Killer Move Bonus",
-        "modifier_desc": " for killer moves in search",
         "modifier_catagory": "tactical_elements"
     },
     "promotion_order_modifier": {

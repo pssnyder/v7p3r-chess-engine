@@ -1,3 +1,4 @@
+# v7p3r_rl.py
 """
 Enhanced v7p3r Reinforcement Learning Engine
 
@@ -26,7 +27,6 @@ import chess
 import chess.engine
 import numpy as np
 import random
-import logging
 from typing import List, Tuple, Dict, Optional
 from collections import deque
 import time
@@ -36,6 +36,10 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../v7p3r_engine')))
 
 from v7p3r_config import v7p3rConfig
+from v7p3r_debug import v7p3rLogger
+
+# Setup centralized logging for this module
+v7p3r_rl_logger = v7p3rLogger.setup_logger("v7p3r_rl")
 
 class ChessPositionEncoder:
     """Enhanced position encoding for chess positions."""
@@ -242,7 +246,7 @@ class V7P3RRLAgent:
     
     def _load_config(self, config_path: str) -> dict:
         """Load configuration from centralized config manager (deprecated - keeping for compatibility)"""
-        logging.warning("_load_config is deprecated. Using centralized configuration manager.")
+        v7p3r_rl_logger.warning("_load_config is deprecated. Using centralized configuration manager.")
         return self.config
     
     def _init_v7p3r_scoring(self):
@@ -264,7 +268,6 @@ class V7P3RRLAgent:
                 'engine_ruleset': 'rl_reward_system'
             }
             
-            logger = logging.getLogger("v7p3r_rl")
             pst = v7p3rPST()
             self.scorer = v7p3rScore(engine_config, pst)
             

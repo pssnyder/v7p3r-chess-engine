@@ -1,9 +1,7 @@
-# training/evaluate_v7p3r_nn.py
-# Script to evaluate the v7p3r Neural Network engine against other engines
+# v7p3r_nn_validation.py
 
 import os
 import argparse
-import logging
 import datetime
 import chess
 import chess.pgn
@@ -12,11 +10,10 @@ import yaml
 from v7p3r_nn import v7p3rNeuralNetwork
 from v7p3r import v7p3rEngine
 from v7p3r_stockfish_handler import StockfishHandler
+from v7p3r_debug import v7p3rLogger
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, 
-                   format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger("evaluate_v7p3r_nn")
+# Setup centralized logging for this module
+v7p3r_nn_validation_logger = v7p3rLogger.setup_logger("v7p3r_nn_validation")
 
 def get_timestamp():
     return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -68,7 +65,7 @@ def play_game(white_engine, black_engine, game_options=None):
             player_color = chess.BLACK
         
         # Get the move from the engine
-        logger.info(f"{'White' if board.turn == chess.WHITE else 'Black'} to move. Thinking...")
+        v7p3r_nn_validation_logger.info(f"{'White' if board.turn == chess.WHITE else 'Black'} to move. Thinking...")
         start_time = time.time()
         
         try:
@@ -79,14 +76,14 @@ def play_game(white_engine, black_engine, game_options=None):
                 uci_move = engine.get_best_move(board.fen())
                 move = chess.Move.from_uci(uci_move)
             else:
-                logger.error(f"Engine {engine} doesn't have a compatible interface")
+                v7p3r_nn_validation_logger.error(f"Engine {engine} doesn't have a compatible interface")
                 break
         except Exception as e:
-            logger.error(f"Error getting move from engine: {e}")
+            v7p3r_nn_validation_logger.error(f"Error getting move from engine: {e}")
             break
         
         elapsed = time.time() - start_time
-        logger.info(f"Move chosen: {board.san(move)} in {elapsed:.2f} seconds")
+        v7p3r_nn_validation_logger.info(f"Move chosen: {board.san(move)} in {elapsed:.2f} seconds")
         
         # Make the move
         board.push(move)
@@ -104,7 +101,7 @@ def play_game(white_engine, black_engine, game_options=None):
     result = board.result(claim_draw=True)
     game.headers["Result"] = result
     
-    logger.info(f"Game over. Result: {result}")
+    v7p3r_nn_validation_logger.info(f"Game over. Result: {result}")
     return game
 
 def save_game(game, output_dir="games"):
@@ -117,7 +114,7 @@ def save_game(game, output_dir="games"):
         exporter = chess.pgn.FileExporter(f)
         game.accept(exporter)
     
-    logger.info(f"Game saved to {output_file}")
+    v7p3r_nn_validation_logger.info(f"Game saved to {output_file}")
     return output_file
 
 def main():
@@ -150,7 +147,7 @@ def main():
             with open(args.v7p3r_config, 'r') as f:
                 v7p3r_config = yaml.safe_load(f)
         except Exception as e:
-            logger.error(f"Failed to load v7p3r config: {e}")
+            v7p3r_nn_validation_logger.error(f"Failed to load v7p3r config: {e}")
             v7p3r_config = {}
         
         # Initialize v7p3r engine
@@ -163,12 +160,12 @@ def main():
             with open(args.stockfish_config, 'r') as f:
                 stockfish_config = yaml.safe_load(f)
         except Exception as e:
-            logger.error(f"Failed to load Stockfish config: {e}")
+            v7p3r_nn_validation_logger.error(f"Failed to load Stockfish config: {e}")
             stockfish_config = {}
         
         stockfish_path = stockfish_config.get('stockfish_path', '')
         if not stockfish_path or not os.path.exists(stockfish_path):
-            logger.error(f"Stockfish executable not found at: {stockfish_path}")
+            v7p3r_nn_validation_logger.error(f"Stockfish executable not found at: {stockfish_path}")
             return
         
         # Initialize Stockfish engine
@@ -181,7 +178,7 @@ def main():
         opponent_name = "Stockfish"
     
     if opponent_engine is None:
-        logger.error("Failed to initialize opponent engine")
+        v7p3r_nn_validation_logger.error("Failed to initialize opponent engine")
         return
     
     # Play the specified number of games
@@ -190,7 +187,7 @@ def main():
     
     try:
         for game_num in range(1, args.games + 1):
-            logger.info(f"Starting game {game_num} of {args.games}")
+            v7p3r_nn_validation_logger.info(f"Starting game {game_num} of {args.games}")
             
             # Determine engine colors
             if args.alternate:
@@ -234,8 +231,8 @@ def main():
                 nn_results["draws"] += 1
             
             # Log current results
-            logger.info(f"Game {game_num} result: {result}")
-            logger.info(f"Current results - v7p3r NN: {nn_results['wins']} wins, {nn_results['losses']} losses, {nn_results['draws']} draws")
+            v7p3r_nn_validation_logger.info(f"Game {game_num} result: {result}")
+            v7p3r_nn_validation_logger.info(f"Current results - v7p3r NN: {nn_results['wins']} wins, {nn_results['losses']} losses, {nn_results['draws']} draws")
     
     finally:
         # Close engines to release resources
@@ -245,11 +242,11 @@ def main():
             opponent_engine.close()
     
     # Print final results
-    logger.info("Evaluation complete")
-    logger.info(f"Final results - v7p3r NN vs {opponent_name}:")
-    logger.info(f"v7p3r NN: {nn_results['wins']} wins, {nn_results['losses']} losses, {nn_results['draws']} draws")
+    v7p3r_nn_validation_logger.info("Evaluation complete")
+    v7p3r_nn_validation_logger.info(f"Final results - v7p3r NN vs {opponent_name}:")
+    v7p3r_nn_validation_logger.info(f"v7p3r NN: {nn_results['wins']} wins, {nn_results['losses']} losses, {nn_results['draws']} draws")
     win_rate = (nn_results['wins'] + nn_results['draws'] * 0.5) / args.games * 100
-    logger.info(f"v7p3r NN score: {win_rate:.2f}%")
+    v7p3r_nn_validation_logger.info(f"v7p3r NN score: {win_rate:.2f}%")
 
 if __name__ == "__main__":
     main()

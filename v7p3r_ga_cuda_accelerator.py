@@ -7,7 +7,10 @@ import torch
 import numpy as np
 import chess
 from typing import List, Tuple, Optional
-import logging
+from v7p3r_debug import v7p3rLogger
+
+# Setup centralized logging for this module
+v7p3r_ga_cuda_accelerator_logger = v7p3rLogger.setup_logger("v7p3r_ga_cuda_accelerator")
 
 class CUDAAccelerator:
     """Handles CUDA acceleration for batch position evaluation and fitness calculation."""
