@@ -7,6 +7,7 @@ import chess
 import chess.pgn
 import datetime
 import socket
+import threading
 from typing import Optional
 import time
 from io import StringIO
@@ -14,8 +15,9 @@ from v7p3r_config import v7p3rConfig
 from v7p3r_debug import v7p3rLogger, v7p3rUtilities
 from metrics.v7p3r_chess_metrics import get_metrics_instance, GameMetric
 from chess_core import ChessCore
+from pgn_watcher import PGNWatcher
 
-CONFIG_NAME = "custom_config"
+CONFIG_NAME = "default_config"
 
 # Define the maximum frames per second for the game loop
 MAX_FPS = 60
@@ -216,6 +218,11 @@ class v7p3rChess(ChessCore):
     
     def new_game(self):
         """Reset the game state for a new game"""
+        # Clear logs before starting a new game to avoid confusion with old logs
+        if self.monitoring_enabled and self.logger:
+            self.logger.info("Clearing logs before starting new game")
+            v7p3rLogger.clear_logs()
+        
         # Call parent new_game method
         super().new_game(self.starting_position)
         
@@ -281,8 +288,16 @@ class v7p3rChess(ChessCore):
 
     def record_evaluation(self):
         """Record evaluation score in PGN comments"""
-        # Use standard white perspective evaluation (white_score - black_score)
-        score = self.engine.scoring_calculator.evaluate_position(self.board)
+        # Special handling for game-ending positions
+        if self.board.is_checkmate():
+            # Assign a huge negative score if white is checkmated, huge positive if black is checkmated
+            score = -999999999 if self.board.turn == chess.WHITE else 999999999
+            if self.monitoring_enabled and self.logger:
+                self.logger.info(f"Recording checkmate evaluation: {score:+.2f}")
+        else:
+            # Use standard white perspective evaluation (white_score - black_score)
+            score = self.engine.scoring_calculator.evaluate_position(self.board)
+            
         self.current_eval = score
         self.game_node.comment = f"Eval: {score:+.2f}"
         
@@ -860,4 +875,9 @@ if __name__ == "__main__":
     else:
         print(f"Using custom configuration: {CONFIG_NAME} for v7p3rChess.")
         game = v7p3rChess(config_name=CONFIG_NAME)
+    
+    # TODO Fix implementation so it doesn't crash or interfere with the game. Start the PGN watcher in a separate thread if it's not already running
+    #pgn_watcher = PGNWatcher()
+    #threading.Thread(target=pgn_watcher.run).start()
+    
     game.run()

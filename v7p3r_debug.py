@@ -35,6 +35,51 @@ class v7p3rLogger:
     def log_debug(message: str):
         """Logs a debug message."""
         print(f"DEBUG: {message}")
+        
+    @staticmethod
+    def clear_logs(specific_module: Optional[str] = None):
+        """
+        Clears log files before starting a new game to avoid confusion with old logs.
+        
+        Args:
+            specific_module: If provided, only clears logs for this module. 
+                           If None, clears all logs in the logging directory.
+        
+        Returns:
+            int: Number of log files cleared
+        """
+        # Find the logging directory
+        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__)))
+        log_dir = os.path.join(project_root, 'logging')
+        
+        if not os.path.exists(log_dir):
+            v7p3rLogger.log_info("No logging directory found. Nothing to clear.")
+            return 0
+        
+        count = 0
+        try:
+            # Get all log files in the directory
+            for filename in os.listdir(log_dir):
+                # Check if this is a log file (either .log or rotated .log.N)
+                if filename.endswith('.log') or any(filename.endswith(f'.log.{i}') for i in range(1, 10)):
+                    # If specific module is provided, only clear logs for that module
+                    if specific_module is not None:
+                        if not filename.startswith(f"{specific_module}."):
+                            continue
+                    
+                    # Clear the file content
+                    filepath = os.path.join(log_dir, filename)
+                    with open(filepath, 'w') as f:
+                        # Just open in write mode to truncate the file
+                        pass
+                    count += 1
+                    
+            v7p3rLogger.log_info(f"Cleared {count} log files in {log_dir}")
+            return count
+            
+        except Exception as e:
+            v7p3rLogger.log_error(f"Error clearing log files: {str(e)}")
+            return 0
 
     @staticmethod
     def setup_logger(module_name: str, log_level: int = logging.DEBUG) -> logging.Logger:

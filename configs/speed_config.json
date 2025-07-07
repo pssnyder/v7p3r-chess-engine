@@ -6,8 +6,6 @@
         "black_player": "stockfish"
     },
     "engine_config": {
-        "name": "v7p3r",
-        "version": "0.0.8",
         "ruleset": "null_ruleset",
         "search_algorithm": "random",
         "depth": 1,

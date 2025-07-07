@@ -106,15 +106,22 @@ class v7p3rScore:
     
     def evaluate_position_from_perspective(self, board: chess.Board, color: Optional[chess.Color] = chess.WHITE) -> float:
         """Calculate position evaluation from specified player's perspective by delegating to scoring_calculator."""
-        current_turn = board.turn
         self.color_name = "White" if color == chess.WHITE else "Black"
         
-        if not isinstance(color, chess.Color) or color != current_turn or not board.is_valid():
+        if not isinstance(color, chess.Color) or not board.is_valid():
             if self.monitoring_enabled and self.logger:
-                self.logger.error(f"[Error] Invalid input for evaluation from perspective. Player: {self.color_name}, Turn: {board.turn}, FEN: {board.fen() if hasattr(board, 'fen') else 'N/A'}")
+                self.logger.error(f"[Error] Invalid input for evaluation from perspective. Player: {self.color_name}, FEN: {board.fen() if hasattr(board, 'fen') else 'N/A'}")
             return 0.0
 
-        score = self.calculate_score(board=board,color=color)
+        # Calculate direct scores for both sides
+        white_score = self.calculate_score(board=board, color=chess.WHITE)
+        black_score = self.calculate_score(board=board, color=chess.BLACK)
+        
+        # Convert to score from the requested perspective
+        if color == chess.WHITE:
+            score = white_score - black_score
+        else:
+            score = black_score - white_score
 
         if self.monitoring_enabled and self.logger:
             self.logger.info(f"{self.color_name}'s perspective: {score:.3f} | FEN: {board.fen()}")

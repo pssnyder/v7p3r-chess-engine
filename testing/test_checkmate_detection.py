@@ -33,8 +33,6 @@ def test_checkmate_detection():
         
         # Engine configuration optimized for checkmate detection
         engine_config = {
-            "name": "v7p3r",
-            "version": "1.0.0",
             "search_algorithm": "negamax",
             "depth": 5,
             "max_depth": 8,
