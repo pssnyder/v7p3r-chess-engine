@@ -233,9 +233,7 @@ class v7p3rScore:
         self.score_dataset['checkmate_threats'] = checkmate_threats_score
 
         # MATERIAL SCORE
-        material_score = self.pst.evaluate_board_position(board, endgame_factor)
-        if color == chess.BLACK:
-            material_score = -material_score
+        material_score = self.rules_manager._material_score(board, color) or 0.0
         if self.v7p3r_thinking:
             if self.monitoring_enabled and self.logger:
                 self.logger.info(f"[Scoring Calc] Material score for {self.color_name}: {material_score:.3f} (Ruleset: {self.ruleset_name})")
@@ -244,10 +242,18 @@ class v7p3rScore:
         score += 1.0 * material_score
         self.score_dataset['material_score'] = 1.0 * self.rules_manager._material_score(board, color)
         
+        # MATERIAL COUNT
+        material_count_score = 1.0 * (self.rules_manager._material_count(board, color) or 0.0)
+        if self.v7p3r_thinking:
+            if self.monitoring_enabled and self.logger:
+                self.logger.info(f"[Scoring Calc] Material count score for {self.color_name}: {material_count_score:.3f} (Ruleset: {self.ruleset_name})")
+            if self.verbose_output_enabled:
+                print(f"[Scoring Calc] Material count score for {self.color_name}: {material_count_score:.3f} (Ruleset: {self.ruleset_name})")
+        score += 1.0 * material_count_score
+        self.score_dataset['material_count'] = 1.0 * self.rules_manager._material_count(board, color)
+
         # PIECE-SQUARE TABLE SCORE
-        pst_board_score = self.pst.evaluate_board_position(board, endgame_factor)
-        if color == chess.BLACK:
-            pst_board_score = -pst_board_score
+        pst_board_score = self.pst.evaluate_board_position(board, color) or 0.0
         if self.v7p3r_thinking:
             if self.monitoring_enabled and self.logger:
                 self.logger.info(f"[Scoring Calc] Piece-square table score for {self.color_name}: {pst_board_score:.3f} (Ruleset: {self.ruleset_name})")

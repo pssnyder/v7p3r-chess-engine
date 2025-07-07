@@ -281,7 +281,7 @@ class ChessCore:
         if move_time < 0.1:
             time_ms = move_time * 1000
             if time_ms < 1.0:
-                # For very fast moves, show microseconds with higher precision
+                # For very fast moves (sub-millisecond), show microseconds with higher precision
                 return f"{time_ms:.3f}ms"
             else:
                 # For sub-100ms moves, show milliseconds with 1 decimal place

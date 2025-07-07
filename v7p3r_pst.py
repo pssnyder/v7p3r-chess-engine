@@ -163,7 +163,27 @@ class v7p3rPST:
             [-50, -30, -30, -30, -30, -30, -30, -50]
         ]
     
-    def get_piece_value(self, piece, square, color, endgame_factor=0.0):
+    def get_piece_value(self, piece):
+        """
+        Get the piece value based on its type without using piece-square tables.
+        
+        Args:
+            piece: chess.Piece object
+            square: chess square (0-63)
+            color: chess.WHITE or chess.BLACK
+            endgame_factor: float between 0.0 (opening) and 1.0 (endgame)
+        Returns:
+            Value in centipawns (positive is good for the piece's color)
+        """
+        if piece is None:
+            return 0
+        
+        # Get the base piece value
+        base_value = self.piece_values.get(piece.piece_type, 0.0)
+        
+        return int(base_value * 100)
+    
+    def get_pst_value(self, piece, square, color, endgame_factor=0.0):
         """
         Get the piece-square table value for a piece on a specific square.
         
@@ -226,7 +246,7 @@ class v7p3rPST:
         for square in chess.SQUARES:
             piece = board.piece_at(square)
             if piece:
-                value = self.get_piece_value(piece, square, piece.color, endgame_factor)
+                value = self.get_piece_value(piece)
                 if piece.color == chess.WHITE:
                     total_score += value
                 else:
@@ -243,13 +263,13 @@ if __name__ == "__main__":
     print("Initial position PST evaluation:", pst.evaluate_board_position(board))
     
     # Test specific squares
-    print(f"Knight on h3 value (White): {pst.get_piece_value(chess.Piece(chess.KNIGHT, chess.WHITE), chess.H3, chess.WHITE)}")
-    print(f"Knight on e4 value (White): {pst.get_piece_value(chess.Piece(chess.KNIGHT, chess.WHITE), chess.E4, chess.WHITE)}")
-    print(f"Difference (White): {pst.get_piece_value(chess.Piece(chess.KNIGHT, chess.WHITE), chess.E4, chess.WHITE) - pst.get_piece_value(chess.Piece(chess.KNIGHT, chess.WHITE), chess.H3, chess.WHITE)} centipawns")
+    print(f"Knight on h3 value (White): {pst.get_pst_value(chess.Piece(chess.KNIGHT, chess.WHITE), chess.H3, chess.WHITE)}")
+    print(f"Knight on e4 value (White): {pst.get_pst_value(chess.Piece(chess.KNIGHT, chess.WHITE), chess.E4, chess.WHITE)}")
+    print(f"Difference (White): {pst.get_pst_value(chess.Piece(chess.KNIGHT, chess.WHITE), chess.E4, chess.WHITE) - pst.get_pst_value(chess.Piece(chess.KNIGHT, chess.WHITE), chess.H3, chess.WHITE)} centipawns")
 
     # Test black perspective
-    print(f"Knight on a6 value (Black): {pst.get_piece_value(chess.Piece(chess.KNIGHT, chess.BLACK), chess.A6, chess.BLACK)}")
-    print(f"Knight on d5 value (Black): {pst.get_piece_value(chess.Piece(chess.KNIGHT, chess.BLACK), chess.D5, chess.BLACK)}")
+    print(f"Knight on a6 value (Black): {pst.get_pst_value(chess.Piece(chess.KNIGHT, chess.BLACK), chess.A6, chess.BLACK)}")
+    print(f"Knight on d5 value (Black): {pst.get_pst_value(chess.Piece(chess.KNIGHT, chess.BLACK), chess.D5, chess.BLACK)}")
 
     # Test endgame factor
     endgame_board = chess.Board("8/8/8/8/8/8/P7/K7 w - - 0 1") # White pawn on 7th, King on 1st
@@ -258,5 +278,5 @@ if __name__ == "__main__":
     
     # Test King endgame positions
     king_central_endgame_board = chess.Board("8/8/8/4k3/4K3/8/8/8 w - - 0 1")
-    print(f"\nKing central (endgame_factor=1.0) for White: {pst.get_piece_value(chess.Piece(chess.KING, chess.WHITE), chess.E4, chess.WHITE, endgame_factor=1.0)}")
-    print(f"King corner (endgame_factor=1.0) for White: {pst.get_piece_value(chess.Piece(chess.KING, chess.WHITE), chess.A1, chess.WHITE, endgame_factor=1.0)}")
+    print(f"\nKing central (endgame_factor=1.0) for White: {pst.get_pst_value(chess.Piece(chess.KING, chess.WHITE), chess.E4, chess.WHITE, endgame_factor=1.0)}")
+    print(f"King corner (endgame_factor=1.0) for White: {pst.get_pst_value(chess.Piece(chess.KING, chess.WHITE), chess.A1, chess.WHITE, endgame_factor=1.0)}")

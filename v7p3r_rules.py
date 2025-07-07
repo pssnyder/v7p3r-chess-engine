@@ -67,13 +67,13 @@ class v7p3rRules:
             piece = board.piece_at(square)
             if piece and piece.color == color:
                 # Add the material value of this piece
-                score += self.pst.get_piece_value(piece, square, color) * material_score_modifier
+                score += self.pst.get_piece_value(piece) * material_score_modifier
             elif piece and piece.color != color:
                 # Subtract the opponent's material value
-                score -= self.pst.get_piece_value(piece, square, piece.color) * material_score_modifier
+                score -= self.pst.get_piece_value(piece) * material_score_modifier
         return score
 
-    def material_count_score(self, board: chess.Board, color: chess.Color) -> float:
+    def _material_count(self, board: chess.Board, color: chess.Color) -> float:
         """Calculate the material count based purely on piece numbers per side, showing current side's material advantage."""
         score = 0.0
         material_count_modifier = self.ruleset.get('material_count_modifier', self.fallback_modifier)
