@@ -17,7 +17,7 @@ from metrics.v7p3r_chess_metrics import get_metrics_instance, GameMetric
 from chess_core import ChessCore
 from pgn_watcher import PGNWatcher
 
-CONFIG_NAME = "default_config"
+CONFIG_NAME = "material_only_config"
 
 # Define the maximum frames per second for the game loop
 MAX_FPS = 60

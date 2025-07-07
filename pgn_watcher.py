@@ -32,40 +32,55 @@ def resource_path(relative_path):
     return os.path.join(os.path.abspath("."), relative_path)
 # =====================================
 # ========== LOGGING SETUP ============
-def get_timestamp():
-    return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+# Import our robust logging system instead of using a custom setup
+try:
+    from v7p3r_debug import v7p3rLogger
+    pgn_watcher_logger = v7p3rLogger.setup_logger("pgn_watcher")
+except ImportError:
+    # Fallback to basic logging if v7p3r_debug is not available
+    def get_timestamp():
+        return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
-# Create logging directory relative to project root
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
-log_dir = os.path.join(project_root, 'logging')
-if not os.path.exists(log_dir):
-    os.makedirs(log_dir, exist_ok=True)
+    # Create logging directory relative to project root
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
+    log_dir = os.path.join(project_root, 'logging')
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir, exist_ok=True)
 
-# Setup individual logger for this file
-timestamp = get_timestamp()
-#log_filename = f"pgn_watcher_{timestamp}.log"
-log_filename = f"pgn_watcher.log"  # Use a single log file for simplicity
-log_file_path = os.path.join(log_dir, log_filename)
+    # Setup individual logger for this file
+    log_filename = f"pgn_watcher.log"  # Use a single log file for simplicity
+    log_file_path = os.path.join(log_dir, log_filename)
 
-#pgn_watcher_logger = logging.getLogger(f"pgn_watcher_{timestamp}")
-pgn_watcher_logger = logging.getLogger("pgn_watcher")
-pgn_watcher_logger.setLevel(logging.DEBUG)
+    pgn_watcher_logger = logging.getLogger("pgn_watcher")
+    pgn_watcher_logger.setLevel(logging.DEBUG)
 
-if not pgn_watcher_logger.handlers:
-    from logging.handlers import RotatingFileHandler
-    file_handler = RotatingFileHandler(
-        log_file_path,
-        maxBytes=10*1024*1024,
-        backupCount=3,
-        delay=True
-    )
-    formatter = logging.Formatter(
-        '%(asctime)s | %(funcName)-15s | %(message)s',
-        datefmt='%H:%M:%S'
-    )
-    file_handler.setFormatter(formatter)
-    pgn_watcher_logger.addHandler(file_handler)
-    pgn_watcher_logger.propagate = False
+    if not pgn_watcher_logger.handlers:
+        try:
+            from logging.handlers import RotatingFileHandler
+            file_handler = RotatingFileHandler(
+                log_file_path,
+                maxBytes=10*1024*1024,
+                backupCount=3,
+                delay=True
+            )
+            formatter = logging.Formatter(
+                '%(asctime)s | %(funcName)-15s | %(message)s',
+                datefmt='%H:%M:%S'
+            )
+            file_handler.setFormatter(formatter)
+            pgn_watcher_logger.addHandler(file_handler)
+            pgn_watcher_logger.propagate = False
+        except Exception as e:
+            print(f"Warning: Could not set up file logging for pgn_watcher: {e}")
+            # Fall back to console logging
+            console_handler = logging.StreamHandler()
+            formatter = logging.Formatter(
+                '%(asctime)s | %(funcName)-15s | %(message)s',
+                datefmt='%H:%M:%S'
+            )
+            console_handler.setFormatter(formatter)
+            pgn_watcher_logger.addHandler(console_handler)
+            pgn_watcher_logger.propagate = False
 
 class StandaloneChessRenderer:
     """Simplified standalone renderer for chess positions"""
