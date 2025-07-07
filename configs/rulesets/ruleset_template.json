@@ -13,6 +13,13 @@
         "modifier_desc": " for material value",
         "modifier_catagory": "material"
     },
+    "material_count_modifier": {
+        "modifier_id": "material_count_modifier",
+        "modifier_value": 0.0,
+        "modifier_name": "Material Count",
+        "modifier_desc": " for number of pieces",
+        "modifier_catagory": "material"
+    },
     "pst_score_modifier": {
         "modifier_id": "pst_score_modifier",
         "modifier_value": 1.0,
