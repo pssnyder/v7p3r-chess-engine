@@ -60,10 +60,10 @@ self.game_node.comment = f"Eval: {score:+.2f}"
 **Solution**: Fixed method call to include all required parameters:
 ```python
 # OLD - missing parameters
-score += self.pst.get_piece_value(piece.piece_type) * material_score_modifier
+score += self.pst.get_pst_value(piece.piece_type) * material_score_modifier
 
 # NEW - correct parameters
-score += self.pst.get_piece_value(piece, square, color) * material_score_modifier
+score += self.pst.get_pst_value(piece, square, color) * material_score_modifier
 ```
 
 ## Final Output Format

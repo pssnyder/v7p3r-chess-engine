@@ -22,8 +22,6 @@ test_config = {
         "black_player": "stockfish",
     },
     "engine_config": {
-        "name": "v7p3r",
-        "version": "2.0.0",
         "ruleset": "tuned_ga_gen2",
         "search_algorithm": "minimax",
         "depth": 2,                          # Lower depth for faster testing

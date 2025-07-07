@@ -1,63 +1,21 @@
-# v7p3r_score.py
+# v7p3r_rules.py
 
-""" v7p3r Scoring Calculation Module (Original Full Version)
-This module is responsible for calculating the score of a chess position based on various factors,
-including material balance, piece-square tables, king safety, and other positional features.
+""" v7p3r Rules Management Module
+This module is responsible for managing chess rules, validating moves, and handling special game rules.
 It is designed to be used by the v7p3r chess engine.
 """
 
 import chess
 import sys
 import os
-import logging
-import datetime
+from v7p3r_debug import v7p3rLogger, v7p3rUtilities
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
-def resource_path(relative_path):
-    """Get absolute path to resource, works for dev and for PyInstaller"""
-    base = getattr(sys, '_MEIPASS', None)
-    if base:
-        return os.path.join(base, relative_path)
-    return os.path.join(os.path.abspath("."), relative_path)
 
-# =====================================
-# ========== LOGGING SETUP ============
-def get_timestamp():
-    return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-
-# Create logging directory relative to project root
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
-log_dir = os.path.join(project_root, 'logging')
-if not os.path.exists(log_dir):
-    os.makedirs(log_dir, exist_ok=True)
-
-# Setup individual logger for this file
-timestamp = get_timestamp()
-#log_filename = f"v7p3r_rules_{timestamp}.log"
-log_filename = "v7p3r_rules.log"  # Use a single log file for simplicity
-log_file_path = os.path.join(log_dir, log_filename)
-
-#v7p3r_rules_logger = logging.getLogger(f"v7p3r_rules_{timestamp}")
-v7p3r_rules_logger = logging.getLogger("v7p3r_rules")
-v7p3r_rules_logger.setLevel(logging.DEBUG)
-
-if not v7p3r_rules_logger.handlers:
-    from logging.handlers import RotatingFileHandler
-    file_handler = RotatingFileHandler(
-        log_file_path,
-        maxBytes=10*1024*1024,
-        backupCount=3,
-        delay=True
-    )
-    formatter = logging.Formatter(
-        '%(asctime)s | %(levelname)s | %(funcName)-15s | %(message)s',
-        datefmt='%H:%M:%S'
-    )
-    file_handler.setFormatter(formatter)
-    v7p3r_rules_logger.addHandler(file_handler)
-    v7p3r_rules_logger.propagate = False
+# Setup centralized logging for this module
+v7p3r_rules_logger = v7p3rLogger.setup_logger("v7p3r_rules")
 
 # ==========================================
 # ========= RULE SCORING CLASS =========
@@ -71,7 +29,7 @@ class v7p3rRules:
         self.endgame_factor = 0.0  # Default endgame factor for endgame awareness
         self.fallback_modifier = 100
         self.score_counter = 0
-        self.score_id = f"score[{self.score_counter}]_{timestamp}"
+        self.score_id = f"score[{self.score_counter}]_{v7p3rUtilities.get_timestamp()}"
         self.fen = self.root_board.fen()
         self.root_move = chess.Move.null()
         self.score = 0.0
@@ -109,12 +67,28 @@ class v7p3rRules:
             piece = board.piece_at(square)
             if piece and piece.color == color:
                 # Add the material value of this piece
-                score += self.pst.get_piece_value(piece, square, color) * material_score_modifier
+                score += self.pst.get_piece_value(piece) * material_score_modifier
             elif piece and piece.color != color:
                 # Subtract the opponent's material value
-                score -= self.pst.get_piece_value(piece, square, piece.color) * material_score_modifier
+                score -= self.pst.get_piece_value(piece) * material_score_modifier
         return score
 
+    def _material_count(self, board: chess.Board, color: chess.Color) -> float:
+        """Calculate the material count based purely on piece numbers per side, showing current side's material advantage."""
+        score = 0.0
+        material_count_modifier = self.ruleset.get('material_count_modifier', self.fallback_modifier)
+        if material_count_modifier == 0.0:
+            return score
+
+        for square in chess.SQUARES:
+            piece = board.piece_at(square)
+            if piece and piece.color == color:
+                score += 1.0 * material_count_modifier
+            elif piece and piece.color != color:
+                score -= 1.0 * material_count_modifier
+
+        return score
+    
     def _pst_score(self, board: chess.Board, color: chess.Color) -> float:
         """Calculate the score based on Piece-Square Tables (PST) for the given color."""
         score = 0.0

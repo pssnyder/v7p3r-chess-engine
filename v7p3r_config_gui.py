@@ -20,8 +20,11 @@ from tkinter import ttk, messagebox, scrolledtext, filedialog
 import datetime
 from tkinter.font import Font
 import copy
-import logging
 from v7p3r_config import v7p3rConfig
+from v7p3r_debug import v7p3rLogger
+
+# Setup centralized logging for this module
+v7p3r_config_gui_logger = v7p3rLogger.setup_logger("v7p3r_config_gui")
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
 if parent_dir not in sys.path:
@@ -32,42 +35,11 @@ def resource_path(relative_path):
     if base:
         return os.path.join(base, relative_path)
     return os.path.join(os.path.abspath("."), relative_path)
-# =====================================
-# ========== LOGGING SETUP ============
+# Helper function for timestamps
 def get_timestamp():
     return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
-# Create logging directory relative to project root
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
-log_dir = os.path.join(project_root, 'logging')
-if not os.path.exists(log_dir):
-    os.makedirs(log_dir, exist_ok=True)
-
-# Setup individual logger for this file
-timestamp = get_timestamp()
-#log_filename = f"v7p3r_config_gui_{timestamp}.log"
-log_filename = "v7p3r_config_gui.log"  # Use a single log file for simplicity
-log_file_path = os.path.join(log_dir, log_filename)
-
-#v7p3r_config_gui_logger = logging.getLogger(f"v7p3r_config_gui_{timestamp}")
-v7p3r_config_gui_logger = logging.getLogger("v7p3r_config_gui")
-v7p3r_config_gui_logger.setLevel(logging.DEBUG)
-
-if not v7p3r_config_gui_logger.handlers:
-    from logging.handlers import RotatingFileHandler
-    file_handler = RotatingFileHandler(
-        log_file_path,
-        maxBytes=10*1024*1024,
-        backupCount=3,
-        delay=True
-    )
-    formatter = logging.Formatter(
-        '%(asctime)s | %(funcName)-15s | %(message)s',
-        datefmt='%H:%M:%S'
-    )
-    file_handler.setFormatter(formatter)
-    v7p3r_config_gui_logger.addHandler(file_handler)
-    v7p3r_config_gui_logger.propagate = False
+# Logging setup is handled by the centralized logger (v7p3r_config_gui_logger)
 
 # Import the ChessGame class from v7p3r_play
 try:
@@ -86,11 +58,12 @@ config_manager = v7p3rConfig()
 DEFAULT_CONFIG = config_manager.get_config()
 
 # Path for saved configurations
-CONFIG_DIR = os.path.join(parent_dir, "v7p3r_engine", "configs")
+CONFIG_DIR = os.path.join(parent_dir, "configs")
 os.makedirs(CONFIG_DIR, exist_ok=True)
 
 # Path for rulesets file
 RULESET_PATH = os.path.join(parent_dir, "configs", "rulesets", "custom_rulesets.json")
+RULESET_TEMPLATE_PATH = os.path.join(parent_dir, "configs", "rulesets", "ruleset_template.json")
 
 # Check if custom_rulesets.json exists, if not create it with default values
 def ensure_rulesets_json_exists():
@@ -195,24 +168,47 @@ def load_config(config_name):
     except Exception as e:
         return None, str(e)
 
+def delete_config(config_name):
+    """Delete a configuration file"""
+    if not config_name.endswith('.json'):
+        config_name += '.json'
+    
+    filepath = os.path.join(CONFIG_DIR, config_name)
+    
+    try:
+        if os.path.exists(filepath):
+            os.remove(filepath)
+            return True, None
+        else:
+            return False, "File not found"
+    except Exception as e:
+        return False, str(e)
+
 def validate_config(config_data):
     """Basic validation of configuration data"""
-    required_keys = ["engine_config", "stockfish_config"]
+    required_keys = ["game_config", "engine_config", "stockfish_config"]
     
     # Check if all required keys exist
     for key in required_keys:
         if key not in config_data:
             return False, f"Missing required key: {key}"
     
+    # Check game_config
+    game_config = config_data.get("game_config", {})
+    game_required_keys = ["game_count", "starting_position", "white_player", "black_player"]
+    for key in game_required_keys:
+        if key not in game_config:
+            return False, f"Missing required game config key: {key}"
+    
     # Check engine_config
     engine_config = config_data.get("engine_config", {})
-    engine_required_keys = ["name", "version", "color", "ruleset", "search_algorithm", "depth", "max_depth", "monitoring_enabled", "logger", "game_count", "starting_position", "white_player", "black_player", "verbose_output"]
+    engine_required_keys = ["name", "version", "ruleset", "search_algorithm", "depth", "max_depth", "monitoring_enabled", "logger"]
     for key in engine_required_keys:
         if key not in engine_config:
             return False, f"Missing required engine config key: {key}"
     
     # Check stockfish_config if black_player or white_player is stockfish
-    if engine_config.get("white_player") == "stockfish" or engine_config.get("black_player") == "stockfish":
+    if game_config.get("white_player") == "stockfish" or game_config.get("black_player") == "stockfish":
         stockfish_config = config_data.get("stockfish_config", {})
         stockfish_required_keys = ["stockfish_path", "elo_rating", "skill_level", "debug_mode", "depth", "max_depth", "movetime"]
         for key in stockfish_required_keys:
@@ -227,11 +223,13 @@ def load_ruleset_data():
     try:
         with open(RULESET_PATH, 'r') as file:
             rulesets = json.load(file)
+            v7p3r_config_gui_logger.info(f"Loaded {len(rulesets)} rulesets from {RULESET_PATH}")
             return rulesets or {}
     except FileNotFoundError:
+        v7p3r_config_gui_logger.warning(f"Ruleset file not found at {RULESET_PATH}")
         return {}
     except Exception as e:
-        print(f"Error loading rulesets data: {e}")
+        v7p3r_config_gui_logger.error(f"Error loading rulesets data: {e}")
         return {}
 
 def save_ruleset(ruleset_name, ruleset_data, all_rulesets=None):
@@ -255,54 +253,51 @@ def save_ruleset(ruleset_name, ruleset_data, all_rulesets=None):
         # Save all rulesets back to file
         with open(RULESET_PATH, 'w') as f:
             json.dump(all_rulesets, f, indent=4)
+        v7p3r_config_gui_logger.info(f"Saved ruleset '{ruleset_name}' to {RULESET_PATH}")
         return True, ruleset_name
     except Exception as e:
+        v7p3r_config_gui_logger.error(f"Error saving ruleset '{ruleset_name}': {e}")
         return False, str(e)
 
 def get_default_ruleset_values():
-    """Get default values for a new ruleset"""
-    # Default values for a new ruleset
-    return {
-        "pawn_weaknesses_modifier": -0.5,
-        "bishop_activity_modifier": 0.15,
-        "bishop_vision_modifier": 1.0,
-        "capture_order_modifier": 4000,
-        "castling_modifier": 5.0,
-        "castling_protection_modifier": 3.0,
-        "center_control_modifier": 0.25,
-        "check_modifier": 50.0,
-        "check_order_modifier": 10000,
-        "checkmate_threats_modifier": 1000000.0,
-        "checkmate_order_modifier": 1000000,
-        "rook_coordination_modifier": 0.25,
-        "counter_move_bonus": 1000,
-        "pawn_structure_modifier": -0.5,
-        "draw_modifier": -9999999999.0,
-        "en_passant_modifier": 1.0,
-        "piece_attacks_modifier": 2.0,
-        "hash_move_bonus": 5000,
-        "history_move_bonus": 1000,
-        "killer_move_bonus": 2000,
-        "king_safety_modifier": 1.5,
-        "knight_activity_modifier": 0.1,
-        "knight_count_modifier": 1.0,
-        "material_score_modifier": 0.8,
-        "pst_score_modifier": 0.5,
-        "open_files_modifier": 0.3,
-        "passed_pawns_modifier": 1.0,
-        "pawn_promotion_modifier": 5.0,
-        "piece_coordination_modifier": 0.5,
-        "board_coverage_modifier": 0.1,
-        "promotion_order_modifier": 3000,
-        "queen_attack_modifier": 1000.0,
-        "piece_capture_modifier": 100.0,
-        "repetition_penalty": -9999999999.0,
-        "rook_development_penalty": 0.2,
-        "stalemate_modifier": -9999999999.0,
-        "tempo_modifier": 0.1,
-        "piece_protection_modifier": -2.0,
-        "piece_development_modifier": -0.5
-    }
+    """Get default values for a new ruleset from the ruleset template"""
+    try:
+        # Try to load from ruleset template
+        if os.path.exists(RULESET_TEMPLATE_PATH):
+            v7p3r_config_gui_logger.info(f"Loading ruleset template from {RULESET_TEMPLATE_PATH}")
+            with open(RULESET_TEMPLATE_PATH, 'r') as f:
+                template = json.load(f)
+                return template
+        else:
+            v7p3r_config_gui_logger.warning(f"Ruleset template not found at {RULESET_TEMPLATE_PATH}, using hardcoded defaults")
+            # Fallback to hardcoded values if template doesn't exist
+            return {
+                "material_score_modifier": {
+                    "modifier_id": "material_score_modifier",
+                    "modifier_value": 0.8,
+                    "modifier_name": "Material Weight",
+                    "modifier_desc": " for material value",
+                    "modifier_catagory": "material"
+                },
+                "pst_score_modifier": {
+                    "modifier_id": "pst_score_modifier",
+                    "modifier_value": 0.5,
+                    "modifier_name": "Piece-Square Table Weight",
+                    "modifier_desc": " for piece-square table values",
+                    "modifier_catagory": "pst"
+                },
+                # Add more fallback modifiers as needed
+                "tempo_modifier": {
+                    "modifier_id": "tempo_modifier",
+                    "modifier_value": 0.1,
+                    "modifier_name": "Tempo",
+                    "modifier_desc": " for maintaining initiative",
+                    "modifier_catagory": "tempo"
+                }
+            }
+    except Exception as e:
+        v7p3r_config_gui_logger.error(f"Error loading ruleset template: {e}")
+        return {}
 
 class ConfigGUI:
     """Main class for the V7P3R Configuration GUI"""
@@ -360,6 +355,9 @@ class ConfigGUI:
         self.ruleset_data = load_ruleset_data()
         self.current_ruleset = get_default_ruleset_values()
         self.ruleset_vars = {}
+        
+        # Initialize form variables
+        self._init_form_variables()
         
         # Main container frame
         self.main_frame = ttk.Frame(self.root, padding="10")
@@ -419,6 +417,40 @@ class ConfigGUI:
         self._refresh_config_list()
         self._refresh_ruleset_list()
         
+    def _init_form_variables(self):
+        """Initialize all form variables with default values"""
+        # Game configuration variables
+        game_config = self.current_config.get("game_config", {})
+        self.game_count_var = tk.IntVar(value=game_config.get("game_count", 1))
+        self.starting_pos_var = tk.StringVar(value=game_config.get("starting_position", "default"))
+        self.white_player_var = tk.StringVar(value=game_config.get("white_player", "v7p3r"))
+        self.black_player_var = tk.StringVar(value=game_config.get("black_player", "stockfish"))
+        
+        # Engine configuration variables
+        engine_config = self.current_config.get("engine_config", {})
+        self.engine_version_var = tk.StringVar(value=engine_config.get("version", "1.0.0"))
+        self.engine_color_var = tk.StringVar(value=engine_config.get("color", "white"))
+        self.ruleset_var = tk.StringVar(value=engine_config.get("ruleset", "default_ruleset"))
+        self.search_algorithm_var = tk.StringVar(value=engine_config.get("search_algorithm", "alphabeta"))
+        self.depth_var = tk.IntVar(value=engine_config.get("depth", 3))
+        self.max_depth_var = tk.IntVar(value=engine_config.get("max_depth", 5))
+        self.monitoring_var = tk.BooleanVar(value=engine_config.get("monitoring_enabled", True))
+        self.verbose_var = tk.BooleanVar(value=engine_config.get("verbose_output", False))
+        self.logger_var = tk.StringVar(value=engine_config.get("logger", "v7p3r_chess"))
+        
+        # Stockfish configuration variables
+        stockfish_config = self.current_config.get("stockfish_config", {})
+        self.stockfish_path_var = tk.StringVar(value=stockfish_config.get("stockfish_path", ""))
+        self.elo_var = tk.IntVar(value=stockfish_config.get("elo_rating", 1000))
+        self.skill_var = tk.IntVar(value=stockfish_config.get("skill_level", 1))
+        self.debug_var = tk.BooleanVar(value=stockfish_config.get("debug_mode", False))
+        self.sf_depth_var = tk.IntVar(value=stockfish_config.get("depth", 3))
+        self.sf_max_depth_var = tk.IntVar(value=stockfish_config.get("max_depth", 5))
+        self.movetime_var = tk.IntVar(value=stockfish_config.get("movetime", 1000))
+        
+        # Form configuration name
+        self.form_name_var = tk.StringVar()
+
     def _setup_load_tab(self):
         """Setup the Load Configuration tab"""
         # Frame for existing configurations
@@ -690,7 +722,7 @@ class ConfigGUI:
         """Setup the Ruleset Manager tab"""
         # Frame for existing rulesets
         saved_frame = ttk.LabelFrame(self.ruleset_tab, text="Saved Rulesets", padding=10)
-        saved_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        saved_frame.pack(fill=tk.BOTH, expand=False, padx=5, pady=5)
         
         # Dropdown for selecting saved rulesets
         ttk.Label(saved_frame, text="Select a saved ruleset:").pack(anchor=tk.W, pady=5)
@@ -714,11 +746,36 @@ class ConfigGUI:
         new_button = ttk.Button(button_frame, text="New Ruleset", command=self._new_ruleset)
         new_button.pack(side=tk.LEFT, padx=5)
         
-        # Ruleset preview
-        preview_frame = ttk.LabelFrame(self.ruleset_tab, text="Ruleset Preview", padding=10)
-        preview_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        # Create a paned window for preview and editor
+        ruleset_paned = ttk.PanedWindow(self.ruleset_tab, orient=tk.HORIZONTAL)
+        ruleset_paned.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
-        self.ruleset_preview = scrolledtext.ScrolledText(preview_frame, wrap=tk.WORD, width=80, height=15)
+        # Ruleset preview
+        preview_frame = ttk.LabelFrame(ruleset_paned, text="Ruleset Preview", padding=10)
+        ruleset_paned.add(preview_frame, weight=1)
+        
+        self.ruleset_preview = scrolledtext.ScrolledText(preview_frame, wrap=tk.WORD, width=50, height=20)
+        self.ruleset_preview.pack(fill=tk.BOTH, expand=True)
+        self.ruleset_preview.config(state=tk.DISABLED)
+        
+        # Ruleset editor
+        self.ruleset_edit_frame = ttk.LabelFrame(ruleset_paned, text="Ruleset Editor", padding=10)
+        ruleset_paned.add(self.ruleset_edit_frame, weight=2)
+        
+        edit_controls = ttk.Frame(self.ruleset_edit_frame)
+        edit_controls.pack(fill=tk.X, pady=5)
+        
+        self.ruleset_name_var = tk.StringVar()
+        ttk.Label(edit_controls, text="Ruleset Name:").pack(side=tk.LEFT, padx=5)
+        ttk.Entry(edit_controls, textvariable=self.ruleset_name_var, width=30).pack(side=tk.LEFT, padx=5)
+        
+        ttk.Button(edit_controls, text="Save Ruleset", command=self._save_current_ruleset).pack(side=tk.LEFT, padx=5)
+        ttk.Button(edit_controls, text="Reset Form", command=lambda: self._on_ruleset_selected(None)).pack(side=tk.LEFT, padx=5)
+        
+        # Placeholder for the form - will be populated in _refresh_ruleset_form
+        
+        # Refresh the ruleset list
+        self._refresh_ruleset_list()
         self.ruleset_preview.pack(fill=tk.BOTH, expand=True)
         self.ruleset_preview.configure(bg=self.colors["text_bg"], fg=self.colors["text_fg"], font=("Consolas", 10))
         self.ruleset_preview.config(state=tk.DISABLED)
@@ -863,26 +920,80 @@ class ConfigGUI:
     
     def _refresh_ruleset_list(self):
         """Refresh the list of available rulesets"""
-        print("Refreshing ruleset list")
+        # Load all rulesets
         self.ruleset_data = load_ruleset_data()
-        ruleset_names = list(self.ruleset_data.keys())
-        self.ruleset_combo['values'] = ruleset_names
+        self.rulesets = list(self.ruleset_data.keys())
         
-        if ruleset_names:
-            self.ruleset_dropdown_var.set(ruleset_names[0])
-            print(f"Setting initial ruleset to: {ruleset_names[0]}")
-            try:
-                self._on_ruleset_selected(None)
-                print("Ruleset selection handled successfully")
-            except Exception as e:
-                print(f"Error in _on_ruleset_selected: {e}")
+        # Update the dropdown
+        self.ruleset_combo['values'] = self.rulesets
+        
+        # Select the first one if available
+        if self.rulesets:
+            self.ruleset_dropdown_var.set(self.rulesets[0])
+            self._on_ruleset_selected(None)
         else:
-            self.ruleset_dropdown_var.set("")
-            print("No rulesets found")
+            # Clear the preview if no rulesets
             self.ruleset_preview.config(state=tk.NORMAL)
             self.ruleset_preview.delete(1.0, tk.END)
-            self.ruleset_preview.insert(tk.END, "No rulesets found.")
+            self.ruleset_preview.insert(tk.END, "No rulesets available.")
             self.ruleset_preview.config(state=tk.DISABLED)
+    
+    def _run_chess_game(self):
+        """Run a chess game with the current configuration"""
+        # Check if there's a valid configuration
+        if not self.current_config:
+            messagebox.showwarning("Warning", "No configuration loaded. Please load or create a configuration first.")
+            return
+        
+        # Validate the configuration
+        valid, error = validate_config(self.current_config)
+        if not valid:
+            messagebox.showerror("Invalid Configuration", f"The current configuration is invalid: {error}")
+            return
+        
+        try:
+            v7p3r_config_gui_logger.info("Starting chess game with current configuration")
+            
+            # Create temporary config file
+            temp_config_name = f"temp_config_{get_timestamp()}"
+            temp_config_path = os.path.join(CONFIG_DIR, f"{temp_config_name}.json")
+            with open(temp_config_path, 'w') as f:
+                json.dump(self.current_config, f, indent=4)
+            
+            v7p3r_config_gui_logger.info(f"Saved temporary configuration to {temp_config_path}")
+            
+            # Initialize the chess game with the configuration
+            try:
+                # Create and run a chess game instance
+                from v7p3r_play import v7p3rChess
+                game = v7p3rChess(temp_config_name)
+                game.run()
+                
+                v7p3r_config_gui_logger.info("Chess game completed successfully")
+                messagebox.showinfo("Success", "Chess game completed successfully!")
+            except Exception as e:
+                v7p3r_config_gui_logger.error(f"Error running chess game: {e}")
+                messagebox.showerror("Error", f"Failed to run chess game: {e}")
+                
+        except Exception as e:
+            v7p3r_config_gui_logger.error(f"Error preparing chess game: {e}")
+            messagebox.showerror("Error", f"Failed to prepare chess game: {e}")
+    
+    def _load_selected_ruleset(self):
+        """Load the selected ruleset into the engine configuration"""
+        selected = self.ruleset_dropdown_var.get()
+        if not selected:
+            messagebox.showwarning("Warning", "No ruleset selected.")
+            return
+        
+        # Update the engine config with the selected ruleset
+        if "engine_config" in self.current_config:
+            self.current_config["engine_config"]["ruleset"] = selected
+            v7p3r_config_gui_logger.info(f"Updated engine configuration to use ruleset: {selected}")
+            messagebox.showinfo("Success", f"Engine configuration updated to use ruleset: {selected}")
+        else:
+            v7p3r_config_gui_logger.warning("Could not update engine configuration: 'engine_config' key not found")
+            messagebox.showwarning("Warning", "Could not update engine configuration. Please ensure a valid configuration is loaded.")
     
     def _on_config_selected(self, config_manager):
         """Handle configuration selection from dropdown"""
@@ -899,9 +1010,9 @@ class ConfigGUI:
     
     def _on_ruleset_selected(self, event):
         """Handle ruleset selection from dropdown"""
-        print("Ruleset selection event triggered")
+        v7p3r_config_gui_logger.debug("Ruleset selection event triggered")
         selected = self.ruleset_dropdown_var.get()
-        print(f"Selected ruleset: {selected}")
+        v7p3r_config_gui_logger.info(f"Selected ruleset: {selected}")
         
         if selected and selected in self.ruleset_data:
             ruleset_data = self.ruleset_data[selected]
@@ -913,7 +1024,12 @@ class ConfigGUI:
             self.ruleset_preview.insert(tk.END, json_text)
             self.ruleset_preview.config(state=tk.DISABLED)
             
-            # Status message removed - using messagebox for important notifications only
+            # Update current ruleset 
+            self.current_ruleset = ruleset_data
+            
+            # Update form if it exists
+            if hasattr(self, 'ruleset_form_frame') and self.ruleset_form_frame:
+                self._refresh_ruleset_form()
     
     def _load_selected_config(self):
         """Load the selected configuration"""
@@ -941,7 +1057,7 @@ class ConfigGUI:
         else:
             messagebox.showerror("Error", f"Failed to load configuration: {error}")
     
-    def _load_selected_ruleset(self):
+    def _load_selected_ruleset_old(self):
         """Load the selected ruleset into the editor"""
         selected = self.ruleset_dropdown_var.get()
         if not selected:
@@ -962,501 +1078,405 @@ class ConfigGUI:
         else:
             messagebox.showerror("Error", f"Ruleset '{selected}' not found.")
     
-    def _new_ruleset(self):
-        """Create a new ruleset with default values"""
-        self.current_ruleset = get_default_ruleset_values()
-        self.ruleset_name_var.set("")
-        
-        # Update editor fields
-        for param, var in self.ruleset_vars.items():
-            if param in self.current_ruleset:
-                var.set(self.current_ruleset[param])
-        
-        # Status message removed - using messagebox for important notifications only
-        self.notebook.select(4)  # Switch to ruleset editor tab
-    
-    def _save_ruleset_editor(self):
-        """Save the current ruleset from editor"""
-        ruleset_name = self.ruleset_name_var.get()
-        
+    def _save_current_ruleset(self):
+        """Save the current ruleset with changes from the form"""
+        # Get the ruleset name
+        ruleset_name = self.ruleset_name_var.get().strip()
         if not ruleset_name:
-            # Generate timestamp name if none provided
-            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
-            ruleset_name = f"custom_ruleset_{timestamp}"
-            self.ruleset_name_var.set(ruleset_name)
+            messagebox.showwarning("Warning", "Please enter a ruleset name.")
+            return
         
-        # Collect values from form
-        ruleset_data = {}
-        for param, var in self.ruleset_vars.items():
-            ruleset_data[param] = var.get()
+        # Create a new ruleset data structure
+        new_ruleset = {}
+        
+        # Update values from the form
+        for key, var in self.ruleset_vars.items():
+            if key in self.current_ruleset and isinstance(self.current_ruleset[key], dict):
+                # Copy the existing structure but update the value
+                new_ruleset[key] = self.current_ruleset[key].copy()
+                try:
+                    # Try to get the value as a float
+                    new_ruleset[key]["modifier_value"] = float(var.get())
+                except (ValueError, TypeError):
+                    # If conversion fails, use the string value
+                    new_ruleset[key]["modifier_value"] = var.get()
+            else:
+                # For simple values or backward compatibility
+                try:
+                    new_ruleset[key] = float(var.get())
+                except (ValueError, TypeError):
+                    new_ruleset[key] = var.get()
         
         # Save the ruleset
-        success, result = save_ruleset(ruleset_name, ruleset_data, self.ruleset_data)
+        success, result = save_ruleset(ruleset_name, new_ruleset)
         
         if success:
-            self.current_ruleset = ruleset_data
-            messagebox.showinfo("Success", f"Ruleset saved as '{result}'")
-            # Status message removed - using messagebox for important notifications only
+            v7p3r_config_gui_logger.info(f"Saved ruleset: {result}")
+            messagebox.showinfo("Success", f"Ruleset '{result}' saved successfully.")
+            
+            # Refresh the ruleset list and select the new one
             self._refresh_ruleset_list()
-            self.ruleset_var.set(result)
+            self.ruleset_dropdown_var.set(result)
+            self._on_ruleset_selected(None)
         else:
+            v7p3r_config_gui_logger.error(f"Failed to save ruleset: {result}")
             messagebox.showerror("Error", f"Failed to save ruleset: {result}")
     
-    def _load_ruleset_editor(self):
-        """Load a ruleset into the editor (redirects to the ruleset selection tab)"""
-        self.notebook.select(3)  # Switch to ruleset manager tab
-        # Status message removed - using messagebox for important notifications only
-    
-    def _reset_ruleset_editor(self):
-        """Reset the ruleset editor to default values"""
-        if messagebox.askyesno("Confirm Reset", "Are you sure you want to reset to default values?"):
-            self.current_ruleset = get_default_ruleset_values()
-            
-            # Update editor fields
-            for param, var in self.ruleset_vars.items():
-                if param in self.current_ruleset:
-                    var.set(self.current_ruleset[param])
-            
-            # Status message removed - using messagebox for important notifications only
-            
-
-    def _browse_stockfish(self):
-        """Browse for Stockfish executable"""
-        stockfish_path = filedialog.askopenfilename(
-            title="Select Stockfish Executable",
-            filetypes=[("Executables", "*.exe"), ("All Files", "*.*")]
-        )
-        if stockfish_path:
-            self.stockfish_path_var.set(stockfish_path)
-    
-    def _run_chess_game(self):
-        """Run the chess game with the current configuration"""
-        # Determine which tab is active and get the appropriate configuration
-        current_tab = self.notebook.index(self.notebook.select())
-        config_data = None
+    def _new_ruleset(self):
+        """Create a new ruleset based on the template"""
+        # Load the default template
+        self.current_ruleset = get_default_ruleset_values()
         
-        try:
-            if current_tab == 0:  # Load Configuration tab
-                selected = self.config_var.get()
-                if not selected:
-                    messagebox.showwarning("Warning", "No configuration selected.")
-                    return
-                
-                config_data, error = load_config(selected)
-                if error:
-                    messagebox.showerror("Error", f"Failed to load configuration: {error}")
-                    return
-            
-            elif current_tab == 1:  # JSON Editor tab
-                if not self._validate_json():
-                    return
-                
-                json_text = self.json_editor.get(1.0, tk.END)
-                try:
-                    config_data = json.loads(json_text)
-                except json.JSONDecodeError as e:
-                    messagebox.showerror("JSON Error", f"Invalid JSON: {str(e)}")
-                    return
-            
-            elif current_tab == 2:  # Guided Configuration tab
-                # Construct config from form fields
-                config_data = {
-                    "starting_position": self.start_pos_var.get(),
-                    "white_player": self.white_player_var.get(),
-                    "black_player": self.black_player_var.get(),
-                    "game_count": int(self.game_count_var.get()),
-                    "engine_config": {
-                        "name": self.engine_name_var.get(),
-                        "version": self.engine_version_var.get(),
-                        "color": self.engine_color_var.get(),
-                        "ruleset": self.ruleset_var.get(),
-                        "search_algorithm": self.search_algorithm_var.get(),
-                        "depth": int(self.depth_var.get()),
-                        "max_depth": int(self.max_depth_var.get()),
-                        "monitoring_enabled": bool(self.monitoring_var.get()),
-                        "verbose_output": bool(self.verbose_var.get()),
-                        "logger": self.logger_var.get(),
-                        "starting_position": self.start_pos_var.get(),
-                        "white_player": self.white_player_var.get(),
-                        "black_player": self.black_player_var.get(),
-                    },
-                    "stockfish_config": {
-                        "stockfish_path": self.stockfish_path_var.get(),
-                        "elo_rating": int(self.elo_var.get()),
-                        "skill_level": int(self.skill_var.get()),
-                        "debug_mode": bool(self.debug_var.get()),
-                        "depth": int(self.sf_depth_var.get()),
-                        "max_depth": int(self.sf_max_depth_var.get()),
-                        "movetime": int(self.movetime_var.get()),
-                    },
-                }
-            
-            elif current_tab == 3 or current_tab == 4:  # Ruleset Manager or Ruleset Editor tab
-                # For ruleset tabs, prompt user to select a configuration first
-                messagebox.showinfo("Select Configuration", "Please select or create a configuration first.")
-                self.notebook.select(0)  # Switch to Load Configuration tab
-                return
-
-            # Make sure config_data is not None
-            if config_data is None:
-                messagebox.showerror("Error", "Failed to get configuration data")
-                return
-
-            # Check if the selected ruleset exists before running
-            ruleset_name = config_data.get("engine_config", {}).get("ruleset", "default_ruleset")
-            ruleset_data = load_ruleset_data()
-            
-            if ruleset_name not in ruleset_data:
-                result = messagebox.askyesno(
-                    "Ruleset Not Found", 
-                    f"The selected ruleset '{ruleset_name}' was not found. Do you want to use 'default_ruleset' instead?"
-                )
-                if result:
-                    config_data["engine_config"]["ruleset"] = "default_ruleset"
-                else:
-                    return
-            
-            # Save configuration before running
-            if messagebox.askyesno("Save Configuration", "Do you want to save this configuration before running?"):
-                config_name = ""
-                if current_tab == 0:
-                    config_name = selected
-                elif current_tab == 1:
-                    config_name = self.config_name_var.get()
-                elif current_tab == 2:
-                    config_name = self.form_name_var.get()
-                
-                success, result = save_config(config_name, config_data)
-                if success:
-                    self._show_status(f"Configuration saved as '{result}' before running")
-                    self._refresh_config_list()
-                else:
-                    messagebox.showerror("Error", f"Failed to save configuration: {result}")
-                    # Continue anyway
-            
-            # Run the game
-            try:
-                messagebox.showinfo("Starting Game", "Starting chess game...")
-                self.root.update_idletasks()  # Force UI update
-                
-                # Import ChessGame here to avoid circular imports
-                try:
-                    # Try local import first
-                    from v7p3r_play import v7p3rChess
-                except ImportError:
-                    # Fallback to package import
-                    from v7p3r_play import v7p3rChess
-                
-                game = v7p3rChess(config_data)
-                game.run()
-                
-                # Close metrics store if it exists
-                if hasattr(game, 'metrics_store') and game.metrics_store:
-                    game.metrics_store.close()
-                
-                messagebox.showinfo("Game Complete", "Chess game completed successfully.")
-            except ImportError as ie:
-                messagebox.showerror("Import Error", f"Could not import ChessGame: {ie}\n\nMake sure play_v7p3r.py is in the correct location.")
-            except Exception as e:
-                messagebox.showerror("Error", f"Failed to run chess game: {e}")
-                
-        except Exception as e:
-            messagebox.showerror("Error", f"Error setting up game: {e}")
-    
-    def _validate_json(self):
-        """Validate the JSON in the editor"""
-        json_text = self.json_editor.get(1.0, tk.END)
-        try:
-            config_data = json.loads(json_text)
-            valid, error = validate_config(config_data)
-            if valid:
-                messagebox.showinfo("Validation", "Configuration is valid.")
-                return True
-            else:
-                messagebox.showerror("Validation Error", error)
-                return False
-        except json.JSONDecodeError as e:
-            messagebox.showerror("JSON Error", f"Invalid JSON: {str(e)}")
-            return False
-    
-    def _save_json_config(self):
-        """Save the JSON configuration"""
-        if not self._validate_json():
-            return
+        # Generate a new name with timestamp
+        timestamp = get_timestamp()
+        new_name = f"custom_ruleset_{timestamp}"
+        self.ruleset_name_var.set(new_name)
         
-        json_text = self.json_editor.get(1.0, tk.END)
-        config_data = json.loads(json_text)
-        config_name = self.config_name_var.get()
+        # Update the preview
+        self.ruleset_preview.config(state=tk.NORMAL)
+        self.ruleset_preview.delete(1.0, tk.END)
+        self.ruleset_preview.insert(tk.END, json.dumps({new_name: self.current_ruleset}, indent=4))
+        self.ruleset_preview.config(state=tk.DISABLED)
         
-        success, result = save_config(config_name, config_data)
-        if success:
-            self.current_config = config_data
-            messagebox.showinfo("Success", f"Configuration saved as '{result}'")
-            # Status message removed - using messagebox for important notifications only
-            self._refresh_config_list()
-            self.config_var.set(result.replace('.json', ''))
+        # Refresh the form with the new template
+        self._refresh_ruleset_form()
+        
+        v7p3r_config_gui_logger.info(f"Created new ruleset template with name: {new_name}")
+        messagebox.showinfo("New Ruleset", "A new ruleset template has been created. Modify values as needed and click 'Save Ruleset' when done.")
+    
+    def _refresh_ruleset_form(self):
+        """Refresh the ruleset form based on the current ruleset"""
+        if not hasattr(self, 'ruleset_form_frame'):
+            # Create the form frame if it doesn't exist
+            self.ruleset_form_frame = ttk.Frame(self.ruleset_edit_frame)
+            self.ruleset_form_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         else:
-            messagebox.showerror("Error", f"Failed to save configuration: {result}")
-            # Status message removed - using messagebox for important notifications only
-    
-    def _load_json_to_form(self):
-        """Load JSON data to the form fields"""
-        if not self._validate_json():
-            return
+            # Clear existing form widgets
+            for widget in self.ruleset_form_frame.winfo_children():
+                widget.destroy()
         
-        json_text = self.json_editor.get(1.0, tk.END)
-        try:
-            config_data = json.loads(json_text)
-            self._update_form_from_config(config_data)
-            self.form_name_var.set(self.config_name_var.get())
-            self.notebook.select(2)  # Switch to form tab
-            # Status message removed - using messagebox for important notifications only
-            messagebox.showinfo("Form Loaded", "JSON loaded to form fields")
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to load JSON to form: {e}")
-            # Status message removed - using messagebox for important notifications only
-            messagebox.showerror("Load Error", f"Form load error: {e}")
-    
-    def _update_form_from_config(self, config_data):
-        """Update form fields from configuration data"""
-        try:
-            # General settings
-            self.start_pos_var.set(config_data.get("starting_position", "default"))
-            self.white_player_var.set(config_data.get("white_player", "v7p3r"))
-            self.black_player_var.set(config_data.get("black_player", "stockfish"))
-            self.game_count_var.set(config_data.get("game_count", 1))
-            
-            # Engine config
-            engine_config = config_data.get("engine_config", {})
-            self.engine_name_var.set(engine_config.get("name", "v7p3r"))
-            self.engine_version_var.set(engine_config.get("version", "1.0.0"))
-            self.engine_color_var.set(engine_config.get("color", "white"))
-            self.ruleset_var.set(engine_config.get("ruleset", "default_ruleset"))
-            self.search_algorithm_var.set(engine_config.get("search_algorithm", "lookahead"))
-            self.depth_var.set(engine_config.get("depth", 5))
-            self.max_depth_var.set(engine_config.get("max_depth", 8))
-            self.monitoring_var.set(engine_config.get("monitoring_enabled", True))
-            self.verbose_var.set(engine_config.get("verbose_output", True))
-            self.logger_var.set(engine_config.get("logger", "v7p3r_engine_logger"))
-            
-            # Stockfish config
-            stockfish_config = config_data.get("stockfish_config", {})
-            self.stockfish_path_var.set(stockfish_config.get("stockfish_path", "engine_utilities/external_engines/stockfish/stockfish-windows-x86-64-avx2.exe"))
-            self.elo_var.set(stockfish_config.get("elo_rating", 100))
-            self.skill_var.set(stockfish_config.get("skill_level", 1))
-            self.debug_var.set(stockfish_config.get("debug_mode", False))
-            self.sf_depth_var.set(stockfish_config.get("depth", 2))
-            self.sf_max_depth_var.set(stockfish_config.get("max_depth", 3))
-            self.movetime_var.set(stockfish_config.get("movetime", 500))
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to update form fields: {e}")
-    
-    def _save_form_config(self):
-        """Save configuration from form fields"""
-        try:
-            # Construct config from form fields
-            config_data = {
-                "starting_position": self.start_pos_var.get(),
-                "white_player": self.white_player_var.get(),
-                "black_player": self.black_player_var.get(),
-                "game_count": self.game_count_var.get(),
-                "engine_config": {
-                    "name": self.engine_name_var.get(),
-                    "version": self.engine_version_var.get(),
-                    "color": self.engine_color_var.get(),
-                    "ruleset": self.ruleset_var.get(),
-                    "search_algorithm": self.search_algorithm_var.get(),
-                    "depth": self.depth_var.get(),
-                    "max_depth": self.max_depth_var.get(),
-                    "monitoring_enabled": self.monitoring_var.get(),
-                    "verbose_output": self.verbose_var.get(),
-                    "logger": self.logger_var.get(),
-                    "starting_position": self.start_pos_var.get(),
-                    "white_player": self.white_player_var.get(),
-                    "black_player": self.black_player_var.get(),
-                },
-                "stockfish_config": {
-                    "stockfish_path": self.stockfish_path_var.get(),
-                    "elo_rating": self.elo_var.get(),
-                    "skill_level": self.skill_var.get(),
-                    "debug_mode": self.debug_var.get(),
-                    "depth": self.sf_depth_var.get(),
-                    "max_depth": self.sf_max_depth_var.get(),
-                    "movetime": self.movetime_var.get(),
-                },
-            }
-            
-            # Validate the configuration
-            valid, error = validate_config(config_data)
-            if not valid:
-                messagebox.showerror("Validation Error", error)
-                return
-            
-            # Save the configuration
-            config_name = self.form_name_var.get()
-            success, result = save_config(config_name, config_data)
-            
-            if success:
-                self.current_config = config_data
-                messagebox.showinfo("Success", f"Configuration saved as '{result}'")
-                # Status message removed - using messagebox for important notifications only
-                
-                # Update the JSON editor with the new configuration
-                self.config_name_var.set(self.form_name_var.get())
-                self.json_editor.delete(1.0, tk.END)
-                self.json_editor.insert(tk.END, json.dumps(config_data, indent=4))
-                
-                self._refresh_config_list()
-                self.config_var.set(result.replace('.json', ''))
+        # Create a canvas for scrolling
+        canvas = tk.Canvas(self.ruleset_form_frame, bg=self.colors["bg"])
+        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        
+        # Add a scrollbar
+        scrollbar = ttk.Scrollbar(self.ruleset_form_frame, orient=tk.VERTICAL, command=canvas.yview)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        # Create a frame inside the canvas for the form elements
+        form_inner = ttk.Frame(canvas)
+        canvas.create_window((0, 0), window=form_inner, anchor=tk.NW)
+        
+        # Group modifiers by category
+        categories = {}
+        for key, modifier in self.current_ruleset.items():
+            if isinstance(modifier, dict) and "modifier_catagory" in modifier:
+                category = modifier["modifier_catagory"]
+                if category not in categories:
+                    categories[category] = []
+                categories[category].append(key)
             else:
-                messagebox.showerror("Error", f"Failed to save configuration: {result}")
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to save form configuration: {e}")
-    
-    def _load_form_to_json(self):
-        """Load form data to the JSON editor"""
-        try:
-            # Construct config from form fields
-            config_data = {
-                "starting_position": self.start_pos_var.get(),
-                "white_player": self.white_player_var.get(),
-                "black_player": self.black_player_var.get(),
-                "game_count": self.game_count_var.get(),
-                "engine_config": {
-                    "name": self.engine_name_var.get(),
-                    "version": self.engine_version_var.get(),
-                    "color": self.engine_color_var.get(),
-                    "ruleset": self.ruleset_var.get(),
-                    "search_algorithm": self.search_algorithm_var.get(),
-                    "depth": self.depth_var.get(),
-                    "max_depth": self.max_depth_var.get(),
-                    "monitoring_enabled": self.monitoring_var.get(),
-                    "verbose_output": self.verbose_var.get(),
-                    "logger": self.logger_var.get(),
-                    "starting_position": self.start_pos_var.get(),
-                    "white_player": self.white_player_var.get(),
-                    "black_player": self.black_player_var.get(),
-                },
-                "stockfish_config": {
-                    "stockfish_path": self.stockfish_path_var.get(),
-                    "elo_rating": self.elo_var.get(),
-                    "skill_level": self.skill_var.get(),
-                    "debug_mode": self.debug_var.get(),
-                    "depth": self.sf_depth_var.get(),
-                    "max_depth": self.sf_max_depth_var.get(),
-                    "movetime": self.movetime_var.get(),
-                },
-            }
+                # For backwards compatibility with old format
+                if "other" not in categories:
+                    categories["other"] = []
+                categories["other"].append(key)
+        
+        # Create form elements for each category
+        row = 0
+        self.ruleset_vars = {}  # Clear previous variables
+        
+        for category, keys in sorted(categories.items()):
+            # Create category header
+            category_label = ttk.Label(
+                form_inner, 
+                text=category.replace("_", " ").title(),
+                font=("Segoe UI", 12, "bold"),
+                foreground=self.colors["header"]
+            )
+            category_label.grid(row=row, column=0, columnspan=3, sticky=tk.W, padx=5, pady=(10, 5))
+            row += 1
             
-            # Update the JSON editor
-            self.config_name_var.set(self.form_name_var.get())
-            self.json_editor.delete(1.0, tk.END)
-            self.json_editor.insert(tk.END, json.dumps(config_data, indent=4))
-            
-            # Switch to JSON tab
-            self.notebook.select(1)
-            # Status message removed - using messagebox for important notifications only
-            messagebox.showinfo("JSON Update", "Form data loaded to JSON editor")
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to load form data to JSON: {e}")
+            # Create form elements for each modifier in the category
+            for key in sorted(keys):
+                if key in self.current_ruleset and isinstance(self.current_ruleset[key], dict):
+                    modifier = self.current_ruleset[key]
+                    name = modifier.get("modifier_name", key.replace("_", " ").title())
+                    desc = modifier.get("modifier_desc", "")
+                    value = modifier.get("modifier_value", 0.0)
+                    
+                    # Label with tooltip
+                    label = ttk.Label(form_inner, text=f"{name}:")
+                    label.grid(row=row, column=0, sticky=tk.W, padx=5, pady=2)
+                    
+                    # Create tooltip (simplified)
+                    if desc:
+                        self._create_tooltip(label, f"{name}{desc}")
+                    
+                    # Value entry field
+                    var = tk.DoubleVar(value=float(value))
+                    self.ruleset_vars[key] = var
+                    entry = ttk.Entry(form_inner, textvariable=var, width=10)
+                    entry.grid(row=row, column=1, padx=5, pady=2)
+                    
+                    # Optional slider for visual adjustment
+                    scale = ttk.Scale(
+                        form_inner, 
+                        from_=-10.0, 
+                        to=10.0, 
+                        orient=tk.HORIZONTAL, 
+                        variable=var,
+                        length=150
+                    )
+                    scale.grid(row=row, column=2, sticky=tk.W, padx=5, pady=2)
+                    
+                    row += 1
+                else:
+                    # Handle old format or non-dict values
+                    name = key.replace("_", " ").title()
+                    value = self.current_ruleset.get(key, 0.0)
+                    
+                    label = ttk.Label(form_inner, text=f"{name}:")
+                    label.grid(row=row, column=0, sticky=tk.W, padx=5, pady=2)
+                    
+                    # Value entry field
+                    try:
+                        var = tk.DoubleVar(value=float(value))
+                    except (ValueError, TypeError):
+                        var = tk.StringVar(value=str(value))
+                    
+                    self.ruleset_vars[key] = var
+                    entry = ttk.Entry(form_inner, textvariable=var, width=15)
+                    entry.grid(row=row, column=1, columnspan=2, sticky=tk.W, padx=5, pady=2)
+                    
+                    row += 1
+        
+        # Update the scroll region
+        form_inner.update_idletasks()
+        canvas.config(scrollregion=canvas.bbox(tk.ALL))
+        
+        # Add mousewheel scrolling
+        def _on_mousewheel(event):
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        canvas.bind_all("<MouseWheel>", _on_mousewheel)
     
+    def _create_tooltip(self, widget, text):
+        """Create a simple tooltip for a widget"""
+        def enter(event):
+            x, y, _, _ = widget.bbox("insert")
+            x += widget.winfo_rootx() + 25
+            y += widget.winfo_rooty() + 25
+            
+            # Create tooltip window
+            self.tooltip = tk.Toplevel(widget)
+            self.tooltip.wm_overrideredirect(True)
+            self.tooltip.wm_geometry(f"+{x}+{y}")
+            
+            label = ttk.Label(
+                self.tooltip, 
+                text=text, 
+                background=self.colors["text_bg"],
+                foreground=self.colors["text_fg"],
+                relief="solid", 
+                borderwidth=1,
+                wraplength=250,
+                justify="left",
+                padding=(5, 3)
+            )
+            label.pack()
+        
+        def leave(event):
+            if hasattr(self, 'tooltip'):
+                self.tooltip.destroy()
+                
+        widget.bind("<Enter>", enter)
+        widget.bind("<Leave>", leave)
+        
     def _delete_selected_config(self):
-        """Delete the selected configuration"""
+        """Delete the selected configuration file"""
         selected = self.config_var.get()
         if not selected:
             messagebox.showwarning("Warning", "No configuration selected.")
             return
         
-        confirm = messagebox.askyesno("Confirm Delete", f"Are you sure you want to delete '{selected}'?")
+        # Confirm deletion
+        confirm = messagebox.askyesno(
+            "Confirm Deletion", 
+            f"Are you sure you want to delete the configuration '{selected}'?",
+            icon=messagebox.WARNING
+        )
+        
         if confirm:
-            try:
-                filepath = os.path.join(CONFIG_DIR, selected + '.json')
-                if os.path.exists(filepath):
-                    os.remove(filepath)
-                    self._refresh_config_list()
-                    # Status message removed - using messagebox for important notifications only
-                    messagebox.showinfo("Config Deleted", f"Deleted configuration: {selected}")
-                else:
-                    messagebox.showerror("Error", f"File not found: {filepath}")
-            except Exception as e:
-                messagebox.showerror("Error", f"Failed to delete configuration: {e}")
-
-    def _new_ruleset_from_form(self):
-        """Create a new ruleset using the current form values."""
-        try:
-            # Collect values from form fields
-            ruleset_data = {}
-            for param, var in self.ruleset_vars.items():
-                ruleset_data[param] = var.get()
-
-            # Generate a default name for the new ruleset
-            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
-            ruleset_name = f"custom_ruleset_{timestamp}"
-
-            # Save the new ruleset
-            success, result = save_ruleset(ruleset_name, ruleset_data, self.ruleset_data)
+            success, error = delete_config(selected)
             if success:
-                self.ruleset_data = load_ruleset_data()  # Refresh ruleset data
-                self._refresh_ruleset_list()  # Update the ruleset dropdown
-                messagebox.showinfo("Success", f"New ruleset '{result}' created successfully.")
-                # Status message removed - using messagebox for important notifications only
-                messagebox.showinfo("New Ruleset", f"New ruleset created: {result}")
+                v7p3r_config_gui_logger.info(f"Deleted configuration: {selected}")
+                messagebox.showinfo("Success", f"Configuration '{selected}' was deleted.")
+                self._refresh_config_list()
             else:
-                messagebox.showerror("Error", f"Failed to create new ruleset: {result}")
+                v7p3r_config_gui_logger.error(f"Error deleting configuration {selected}: {error}")
+                messagebox.showerror("Error", f"Could not delete configuration: {error}")
+    
+    def _validate_json(self):
+        """Validate the JSON configuration in the editor"""
+        try:
+            # Get the JSON from the editor
+            json_text = self.json_editor.get(1.0, tk.END)
+            config_data = json.loads(json_text)
+            
+            # Validate the config structure
+            is_valid, error = validate_config(config_data)
+            
+            if is_valid:
+                v7p3r_config_gui_logger.info("JSON configuration is valid")
+                messagebox.showinfo("Validation", "Configuration is valid.")
+                return True
+            else:
+                v7p3r_config_gui_logger.warning(f"Invalid JSON configuration: {error}")
+                messagebox.showwarning("Validation", f"Invalid configuration: {error}")
+                return False
+        except json.JSONDecodeError as e:
+            v7p3r_config_gui_logger.error(f"JSON decode error: {e}")
+            messagebox.showerror("Error", f"Invalid JSON format: {e}")
+            return False
         except Exception as e:
-            messagebox.showerror("Error", f"An error occurred while creating the ruleset: {e}")
-            # Status message removed - using messagebox for important notifications only
-            messagebox.showerror("Ruleset Error", f"Ruleset creation error: {e}")
-            
-    def _edit_selected_engine_ruleset(self):
-        """Edit the selected engine ruleset."""
-        selected_ruleset = self.ruleset_var.get()
-        if not selected_ruleset:
-            messagebox.showwarning("Warning", "No ruleset selected.")
-            return
-
-        if selected_ruleset in self.ruleset_data:
-            self.current_ruleset = self.ruleset_data[selected_ruleset]
-            self.ruleset_name_var.set(selected_ruleset)
-            
-            # Update the ruleset dropdown in the ruleset manager tab
-            self.ruleset_dropdown_var.set(selected_ruleset)
-
-            # Update editor fields
-            for param, var in self.ruleset_vars.items():
-                if param in self.current_ruleset:
-                    var.set(self.current_ruleset[param])
-
-            # Status message removed - using messagebox for important notifications only
-            # Set the window title to indicate the ruleset being edited
-            self.notebook.select(4)  # Switch to ruleset editor tab
-        else:
-            messagebox.showerror("Error", f"Ruleset '{selected_ruleset}' not found.")
-            
-
-def main():
-    """Main entry point for the V7P3R Configuration GUI"""
-    root = tk.Tk()
-    app = ConfigGUI(root)
+            v7p3r_config_gui_logger.error(f"Validation error: {e}")
+            messagebox.showerror("Error", f"Error validating configuration: {e}")
+            return False
     
-    # Set window icon if available
-    try:
-        icon_path = os.path.join(parent_dir, "images", "wK.png")
-        if os.path.exists(icon_path):
-            icon = tk.PhotoImage(file=icon_path)
-            root.iconphoto(True, icon)
-    except Exception as e:
-        print(f"Could not load icon: {e}")
+    def _save_json_config(self):
+        """Save the JSON configuration from the editor"""
+        try:
+            # Get JSON from editor
+            json_text = self.json_editor.get(1.0, tk.END)
+            config_data = json.loads(json_text)
+            
+            # Validate the config
+            is_valid, error = validate_config(config_data)
+            if not is_valid:
+                v7p3r_config_gui_logger.warning(f"Invalid configuration: {error}")
+                messagebox.showwarning("Validation Failed", f"Configuration is invalid: {error}")
+                return
+            
+            # Get configuration name
+            config_name = self.config_name_var.get().strip()
+            if not config_name:
+                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                config_name = f"config_{timestamp}"
+                self.config_name_var.set(config_name)
+            
+            # Save the configuration
+            success, result = save_config(config_name, config_data)
+            if success:
+                v7p3r_config_gui_logger.info(f"Saved JSON configuration to {result}")
+                messagebox.showinfo("Success", f"Configuration saved as {result}")
+                self.current_config = config_data
+                self._refresh_config_list()
+            else:
+                v7p3r_config_gui_logger.error(f"Error saving configuration: {result}")
+                messagebox.showerror("Error", f"Failed to save configuration: {result}")
+        except json.JSONDecodeError as e:
+            v7p3r_config_gui_logger.error(f"JSON decode error: {e}")
+            messagebox.showerror("JSON Error", f"Invalid JSON format: {e}")
+        except Exception as e:
+            v7p3r_config_gui_logger.error(f"Unexpected error saving JSON configuration: {e}")
+            messagebox.showerror("Error", f"Unexpected error: {e}")
     
-    # Center the window on the screen
-    root.update_idletasks()
-    width = root.winfo_width()
-    height = root.winfo_height()
-    x = (root.winfo_screenwidth() // 2) - (width // 2)
-    y = (root.winfo_screenheight() // 2) - (height // 2)
-    root.geometry(f'{width}x{height}+{x}+{y}')
+    def _load_json_to_form(self):
+        """Load the JSON configuration to the form fields"""
+        try:
+            # Get JSON from editor
+            json_text = self.json_editor.get(1.0, tk.END)
+            config_data = json.loads(json_text)
+            
+            # Validate the config
+            is_valid, error = validate_config(config_data)
+            if not is_valid:
+                v7p3r_config_gui_logger.warning(f"Invalid configuration: {error}")
+                messagebox.showwarning("Validation Failed", f"Configuration is invalid: {error}")
+                return
+            
+            # Update current config
+            self.current_config = config_data
+            
+            # Update form with values from config
+            self._update_form_from_config(config_data)
+            
+            # Switch to form tab
+            self.notebook.select(self.form_tab)
+            
+            v7p3r_config_gui_logger.info("Loaded JSON configuration to form")
+            self._show_status("Configuration loaded to form")
+            
+        except json.JSONDecodeError as e:
+            v7p3r_config_gui_logger.error(f"JSON decode error: {e}")
+            messagebox.showerror("JSON Error", f"Invalid JSON format: {e}")
+        except Exception as e:
+            v7p3r_config_gui_logger.error(f"Unexpected error loading JSON to form: {e}")
+            messagebox.showerror("Error", f"Unexpected error: {e}")
     
-    root.mainloop()
-
-if __name__ == "__main__":
-    main()
+    def _update_form_from_config(self, config_data):
+        """Update the form fields with values from the configuration"""
+        try:
+            # Get config sections
+            game_config = config_data.get("game_config", {})
+            engine_config = config_data.get("engine_config", {})
+            stockfish_config = config_data.get("stockfish_config", {})
+            
+            # Update Game Configuration
+            self.game_count_var.set(game_config.get("game_count", 1))
+            self.starting_pos_var.set(game_config.get("starting_position", "default"))
+            
+            # Set player selections if they are in the valid options
+            white_player = game_config.get("white_player", "v7p3r")
+            black_player = game_config.get("black_player", "stockfish")
+            
+            if white_player in self.engine_options:
+                self.white_player_var.set(white_player)
+            
+            if black_player in self.engine_options:
+                self.black_player_var.set(black_player)
+            
+            # Update Engine Configuration
+            self.engine_version_var.set(engine_config.get("version", "1.0.0"))
+            
+            # Set engine color if valid
+            engine_color = engine_config.get("color", "white")
+            if engine_color in ["white", "black"]:
+                self.engine_color_var.set(engine_color)
+            
+            # Set ruleset if it exists in available rulesets
+            ruleset = engine_config.get("ruleset", "default_ruleset")
+            if ruleset in self.rulesets:
+                self.ruleset_var.set(ruleset)
+            
+            # Set search algorithm if valid
+            search_algorithm = engine_config.get("search_algorithm", "alphabeta")
+            valid_algorithms = ["lookahead", "minimax", "alphabeta", "quiescence", "iterative_deepening"]
+            if search_algorithm in valid_algorithms:
+                self.search_algorithm_var.set(search_algorithm)
+            
+            # Update numeric values
+            self.depth_var.set(engine_config.get("depth", 3))
+            self.max_depth_var.set(engine_config.get("max_depth", 5))
+            
+            # Update boolean values
+            self.monitoring_var.set(engine_config.get("monitoring_enabled", True))
+            self.verbose_var.set(engine_config.get("verbose_output", False))
+            
+            # Update logger
+            self.logger_var.set(engine_config.get("logger", "v7p3r_chess"))
+            
+            # Update Stockfish Configuration
+            self.stockfish_path_var.set(stockfish_config.get("stockfish_path", ""))
+            self.elo_var.set(stockfish_config.get("elo_rating", 1000))
+            self.skill_var.set(stockfish_config.get("skill_level", 1))
+            self.debug_var.set(stockfish_config.get("debug_mode", False))
+            self.sf_depth_var.set(stockfish_config.get("depth", 3))
+            self.sf_max_depth_var.set(stockfish_config.get("max_depth", 5))
+            self.movetime_var.set(stockfish_config.get("movetime", 1000))
+            
+            v7p3r_config_gui_logger.info("Updated form with configuration values")
+            
+        except Exception as e:
+            v7p3r_config_gui_logger.error(f"Error updating form from config: {e}")
+            messagebox.showerror("Error", f"Error updating form: {e}")

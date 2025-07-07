@@ -6,15 +6,18 @@ import pygame
 import chess
 import chess.pgn
 import datetime
-import logging
 import socket
+import threading
 from typing import Optional
 import time
 from io import StringIO
 from v7p3r_config import v7p3rConfig
+from v7p3r_debug import v7p3rLogger, v7p3rUtilities
 from metrics.v7p3r_chess_metrics import get_metrics_instance, GameMetric
+from chess_core import ChessCore
+from pgn_watcher import PGNWatcher
 
-CONFIG_NAME = "custom_config"
+CONFIG_NAME = "material_only_config"
 
 # Define the maximum frames per second for the game loop
 MAX_FPS = 60
@@ -28,55 +31,14 @@ parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 
-def resource_path(relative_path):
-    """Get absolute path to resource, works for dev and for PyInstaller"""
-    base = getattr(sys, '_MEIPASS', None)
-    if base:
-        return os.path.join(base, relative_path)
-    return os.path.join(os.path.abspath("."), relative_path)
-
-# =====================================
-# ========== LOGGING SETUP ============
-def get_timestamp():
-    return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-
-# Create logging directory relative to project root
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
-log_dir = os.path.join(project_root, 'logging')
-if not os.path.exists(log_dir):
-    os.makedirs(log_dir, exist_ok=True)
-
-# Setup individual logger for this file
-timestamp = get_timestamp()
-#log_filename = f"v7p3r_play_{timestamp}.log"
-log_filename = "v7p3r_play.log"  # Use a single log file for simplicity
-log_file_path = os.path.join(log_dir, log_filename)
-
-#v7p3r_play_logger = logging.getLogger(f"v7p3r_play_{timestamp}")
-v7p3r_play_logger = logging.getLogger("v7p3r_play")
-v7p3r_play_logger.setLevel(logging.DEBUG)
-
-if not v7p3r_play_logger.handlers:
-    from logging.handlers import RotatingFileHandler
-    file_handler = RotatingFileHandler(
-        log_file_path,
-        maxBytes=10*1024*1024,
-        backupCount=3,
-        delay=True
-    )
-    formatter = logging.Formatter(
-        '%(asctime)s | %(funcName)-15s | %(message)s',
-        datefmt='%H:%M:%S'
-    )
-    file_handler.setFormatter(formatter)
-    v7p3r_play_logger.addHandler(file_handler)
-    v7p3r_play_logger.propagate = False
+# Setup centralized logging for this module
+v7p3r_play_logger = v7p3rLogger.setup_logger("v7p3r_play")
 
 # Import necessary modules from v7p3r_engine
 from v7p3r import v7p3rEngine # Corrected import for v7p3rEngine
 from v7p3r_stockfish_handler import StockfishHandler
 
-class v7p3rChess:
+class v7p3rChess(ChessCore):
     def __init__(self, config_name: Optional[str] = None):
         """
         config: ChessGameConfig object containing all configuration parameters.
@@ -85,8 +47,8 @@ class v7p3rChess:
         pygame.init()
         self.clock = pygame.time.Clock()
 
-        # Enable logging
-        self.logger = v7p3r_play_logger
+        # Initialize the base ChessCore first
+        super().__init__(logger_name="v7p3r_play")
 
         # Load configuration first
         try:
@@ -256,25 +218,23 @@ class v7p3rChess:
     
     def new_game(self):
         """Reset the game state for a new game"""
-        self.board = chess.Board()
-        if self.starting_position != "default":
-            self.board.set_fen(self.starting_position)
-        self.game = chess.pgn.Game()
-        self.game_node = self.game
-        self.selected_square = chess.SQUARES[0]
+        # Clear logs before starting a new game to avoid confusion with old logs
+        if self.monitoring_enabled and self.logger:
+            self.logger.info("Clearing logs before starting new game")
+            v7p3rLogger.clear_logs()
+        
+        # Call parent new_game method
+        super().new_game(self.starting_position)
+        
+        # Add engine-specific initialization
         self.last_engine_move = chess.Move.null()
         self.current_eval = 0.0
-        self.current_player = self.board.turn
-        self.last_move = chess.Move.null()
-        self.move_history = []
         self.move_start_time = 0
         self.move_end_time = 0
         self.move_duration = 0
-        self.game_start_time = time.time()  # Track overall game timing
-        self.game_start_timestamp = get_timestamp()
 
-        # Reset PGN headers and file
-        self.set_headers()
+        # Reset PGN headers with engine information
+        super().set_headers(white_player=self.white_player, black_player=self.black_player, event="v7p3r Engine Chess Game")
         self.quick_save_pgn("active_game.pgn")
         
         # Initialize metrics for new game
@@ -313,56 +273,31 @@ class v7p3rChess:
         if self.monitoring_enabled and self.logger:
             self.logger.info(f"Starting new game: {self.current_game_id}.")
 
-    def set_headers(self):
-        self.game.headers["Event"] = "v7p3r Engine Chess Game"
-        self.game.headers["White"] = f"{self.white_player}"
-        self.game.headers["Black"] = f"{self.black_player}"
-        self.game.headers["Date"] = datetime.datetime.now().strftime("%Y.%m.%d")
-        self.game.headers["Site"] = socket.gethostbyname(socket.gethostname())
-        self.game.headers["Round"] = "#"
-
-    def get_board_result(self):
-        """Return the result string for the current board state."""
-        # Explicitly handle all draw and win/loss cases, fallback to "*"
-        if self.board.is_checkmate():
-            # The side to move is checkmated, so the other side wins
-            return "1-0" if self.board.turn == chess.BLACK else "0-1"
-        # Explicit draw conditions
-        if (
-            self.board.is_stalemate()
-            or self.board.is_insufficient_material()
-            or self.board.can_claim_fifty_moves()
-            or self.board.can_claim_threefold_repetition()
-            or self.board.is_seventyfive_moves()
-            or self.board.is_fivefold_repetition()
-            or self.board.is_variant_draw()
-        ):
-            return "1/2-1/2"
-        # If the game is over but not by checkmate or above draws, fallback to chess.Board.result()
-        if self.board.is_game_over():
-            result = self.board.result()
-            # Defensive: If result is not a valid string, force draw string
-            if result not in ("1-0", "0-1", "1/2-1/2"):
-                return "1/2-1/2"
-            return result
-        return "*"
-
     def handle_game_end(self):
         """Check if the game is over and handle end conditions."""
         if self.board.is_game_over():
-            # Ensure the result is set in the PGN headers and game node
+            # Call parent method to handle basic game end logic
+            super().handle_game_end()
+            
+            # Add engine-specific game end handling
             result = self.get_board_result()
-            self.game.headers["Result"] = result
-            self.game_node = self.game.end()
             self.save_game_data()
             print(f"\nGame over: {result}")
             return True
         return False
-    
+
     def record_evaluation(self):
         """Record evaluation score in PGN comments"""
-        # Use standard white perspective evaluation (white_score - black_score)
-        score = self.engine.scoring_calculator.evaluate_position(self.board)
+        # Special handling for game-ending positions
+        if self.board.is_checkmate():
+            # Assign a huge negative score if white is checkmated, huge positive if black is checkmated
+            score = -999999999 if self.board.turn == chess.WHITE else 999999999
+            if self.monitoring_enabled and self.logger:
+                self.logger.info(f"Recording checkmate evaluation: {score:+.2f}")
+        else:
+            # Use standard white perspective evaluation (white_score - black_score)
+            score = self.engine.scoring_calculator.evaluate_position(self.board)
+            
         self.current_eval = score
         self.game_node.comment = f"Eval: {score:+.2f}"
         
@@ -486,89 +421,6 @@ class v7p3rChess:
             if self.monitoring_enabled and self.logger:
                 self.logger.info(f"Game PGN saved to {pgn_filepath}")
             self.quick_save_pgn(f"games/{game_id}.pgn")
-
-    def quick_save_pgn_to_file(self, filename):
-        """Quick save the current game to a PGN file"""
-        # Inject or update Result header so the PGN shows the game outcome
-        if self.board.is_game_over():
-            self.game.headers["Result"] = self.get_board_result()
-            self.game_node = self.game.end()
-        else:
-            self.game.headers["Result"] = "*"
-        
-        with open(filename, "w") as f:
-            exporter = chess.pgn.FileExporter(f)
-            self.game.accept(exporter)
-
-    def quick_save_pgn(self, filename):
-        """Save PGN to local file."""
-        try:            
-            with open(filename, 'w', encoding='utf-8') as f:
-                # Get PGN text
-                buf = StringIO()
-                exporter = chess.pgn.FileExporter(buf)
-                self.game.accept(exporter)
-                f.write(buf.getvalue())
-        except Exception as e:
-            if self.monitoring_enabled and self.logger:
-                self.logger.error(f"[Error] Failed to save PGN to {filename}: {e}")
-
-    def save_local_game_files(self, game_id, pgn_text):
-        """Save both PGN and JSON config files locally for metrics processing."""
-        try:
-            import os
-            import json
-            
-            # Ensure games directory exists
-            os.makedirs("games", exist_ok=True)
-            
-            # Save PGN file
-            pgn_path = f"games/{game_id}.pgn"
-            with open(pgn_path, 'w', encoding='utf-8') as f:
-                f.write(pgn_text)
-            
-            # Save JSON config file for metrics processing
-            json_path = f"games/{game_id}.json"
-            config_data = {
-                'game_id': game_id,
-                'timestamp': self.game_start_timestamp,
-                'engine_config': self.engine.engine_config,
-            }
-            with open(json_path, 'w', encoding='utf-8') as f:
-                json.dump(config_data, f, indent=4)
-            
-            if self.monitoring_enabled and self.logger:
-                self.logger.info(f"Saved local files: {pgn_path}, {json_path}")
-                
-        except Exception as e:
-            if self.monitoring_enabled and self.logger:
-                self.logger.error(f"[Error] Failed to save local game files for {game_id}: {e}")
-
-    def import_fen(self, fen_string):
-        """Import a position from FEN notation"""
-        try:
-            new_board = chess.Board(fen_string)
-            
-            if not new_board.is_valid():
-                if self.monitoring_enabled and self.logger:
-                    self.logger.error(f"[Error] Invalid FEN position: {fen_string}")
-                return False
-
-            self.board = new_board
-            self.game = chess.pgn.Game()
-            self.game.setup(new_board)
-            self.game_node = self.game            
-            self.selected_square = None
-            self.game.headers["FEN"] = fen_string
-
-            if self.monitoring_enabled and self.logger:
-                self.logger.info(f"Successfully imported FEN: {fen_string}")
-            return True
-
-        except Exception as e:
-            if self.monitoring_enabled and self.logger:
-                self.logger.error(f"[Error] Unexpected problem importing FEN: {e}")
-            return False
 
     # ===================================
     # ========= MOVE HANDLERS ===========
@@ -787,70 +639,29 @@ class v7p3rChess:
 
     def push_move(self, move):
         """ Test and push a move to the board and game node """
-        if not self.board.is_valid():
-            if self.monitoring_enabled and self.logger:
-                self.logger.error(f"[Error] Invalid board state detected! | FEN: {self.board.fen()}")
+        # Call parent method first for basic move validation and execution
+        if not super().push_move(move):
             return False
-        
-        if self.monitoring_enabled and self.logger:
-            self.logger.info(f"Attempting to push move from {'White Engine' if self.board.turn == chess.WHITE else 'Black Engine'}: {move} | FEN: {self.board.fen()}")
-
-        if isinstance(move, str):
-            try:
-                move = chess.Move.from_uci(move)
-                if self.monitoring_enabled and self.logger:
-                    self.logger.info(f"Converted to chess.Move move from UCI string before push: {move}")
-            except ValueError:
-                if self.monitoring_enabled and self.logger:
-                    self.logger.error(f"[Error] Invalid UCI string received: {move}")
-                return False
-        
-        if not self.board.is_legal(move):
-            if self.monitoring_enabled and self.logger:
-                self.logger.info(f"[Error] Illegal move blocked from being pushed: {move}")
-            return False
-        
+            
+        # Add engine-specific functionality after successful move
         try:
-            if self.monitoring_enabled and self.logger:
-                self.logger.info(f"No remaining checks, pushing move: {move} | FEN: {self.board.fen()}")
-            
-            self.board.push(move)
-            self.game_node = self.game_node.add_variation(move)
-            self.last_move = move
-            if self.monitoring_enabled and self.logger:
-                self.logger.info(f"Move pushed successfully: {move} | FEN: {self.board.fen()}")
-            
-            self.current_player = self.board.turn
-            
             # Calculate move time
             move_time = self.move_duration if hasattr(self, 'move_duration') and self.move_duration > 0 else 0.0
             
             # Display the move that was made
             self.display_move_made(move, move_time)
             
+            # Record evaluation if using v7p3r engine
             if self.engine.name.lower() == 'v7p3r':
                 self.record_evaluation()
             
-            # If the move ends the game, set the result header and end the game node
-            if self.board.is_game_over():
-                result = self.get_board_result()
-                self.game.headers["Result"] = result
-                self.game_node = self.game.end()
-            else:
-                self.game.headers["Result"] = "*"
-            
+            # Save active game state
             self.quick_save_pgn("active_game.pgn")
             
             return True
-        except ValueError as e:
-            if self.monitoring_enabled and self.logger:
-                self.logger.error(f"[Error] ValueError pushing move {move}: {e}. Dumping PGN to error_dump.pgn")
-            self.quick_save_pgn("games/game_error_dump.pgn")
-            return False
-            
         except Exception as e:
             if self.monitoring_enabled and self.logger:
-                self.logger.error(f"[Error] Exception pushing move {move}: {e}. Dumping PGN to error_dump.pgn")
+                self.logger.error(f"[Error] Exception in engine-specific push_move logic {move}: {e}. Dumping PGN to error_dump.pgn")
             self.quick_save_pgn("games/game_error_dump.pgn")
             return False
     
@@ -966,7 +777,7 @@ class v7p3rChess:
                         if self.monitoring_enabled and self.logger:
                             self.logger.info(f'Game {self.game_count - game_count_remaining}/{self.game_count} complete, starting next...')
                         print(f'Game {self.game_count - game_count_remaining}/{self.game_count} complete, starting next...')
-                        self.game_start_timestamp = get_timestamp()
+                        self.game_start_timestamp = v7p3rUtilities.get_timestamp()
                         self.current_game_db_id = f"eval_game_{self.game_start_timestamp}.pgn"
                         self.new_game()
 
@@ -1014,40 +825,6 @@ class v7p3rChess:
             self.cleanup_engines()
         except:
             pass
-
-    def _format_time_for_display(self, move_time: float) -> str:
-        """
-        Format move time for display with appropriate units.
-        
-        Args:
-            move_time: Time in seconds (stored with high precision)
-            
-        Returns:
-            Formatted time string with appropriate units (s or ms)
-        """
-        if move_time <= 0:
-            return "0.000s"
-        
-        # If time is less than 0.1 seconds (100ms), display in milliseconds
-        if move_time < 0.1:
-            time_ms = move_time * 1000
-            if time_ms < 1.0:
-                # For very fast moves, show microseconds with higher precision
-                return f"{time_ms:.3f}ms"
-            else:
-                # For sub-100ms moves, show milliseconds with 1 decimal place
-                return f"{time_ms:.1f}ms"
-        else:
-            # For moves 100ms and above, display in seconds
-            if move_time < 1.0:
-                # Sub-second but >= 100ms: show 3 decimal places
-                return f"{move_time:.3f}s"
-            elif move_time < 10.0:
-                # 1-10 seconds: show 2 decimal places
-                return f"{move_time:.2f}s"
-            else:
-                # 10+ seconds: show 1 decimal place
-                return f"{move_time:.1f}s"
 
     def display_move_made(self, move: chess.Move, move_time: float = 0.0):
         """Display a move with proper formatting and evaluation information."""
@@ -1098,4 +875,9 @@ if __name__ == "__main__":
     else:
         print(f"Using custom configuration: {CONFIG_NAME} for v7p3rChess.")
         game = v7p3rChess(config_name=CONFIG_NAME)
+    
+    # TODO Fix implementation so it doesn't crash or interfere with the game. Start the PGN watcher in a separate thread if it's not already running
+    #pgn_watcher = PGNWatcher()
+    #threading.Thread(target=pgn_watcher.run).start()
+    
     game.run()

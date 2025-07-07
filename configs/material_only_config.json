@@ -6,8 +6,6 @@
         "black_player": "stockfish"
     },
     "engine_config": {
-        "name": "v7p3r",
-        "version": "0.1.1",
         "ruleset": "material_only_ruleset",
         "search_algorithm": "simple",
         "depth": 5,
@@ -15,7 +13,7 @@
         "use_game_phase": false,
         "use_quiescence": false,
         "order_moves": false,
-        "max_moves": 5,
+        "max_moves": 10,
         "strict_draw_prevention": false,
         "monitoring_enabled": true,
         "verbose_output": true

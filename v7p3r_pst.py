@@ -2,56 +2,17 @@
 
 import os
 import sys
-import datetime
 import chess
-from typing import Optional
 import logging
+from typing import Optional
+from v7p3r_debug import v7p3rLogger, v7p3rUtilities
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
-def resource_path(relative_path):
-    """Get absolute path to resource, works for dev and for PyInstaller"""
-    base = getattr(sys, '_MEIPASS', None)
-    if base:
-        return os.path.join(base, relative_path)
-    return os.path.join(os.path.abspath("."), relative_path)
-# =====================================
-# ========== LOGGING SETUP ============
-def get_timestamp():
-    return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
-# Create logging directory relative to project root
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
-log_dir = os.path.join(project_root, 'logging')
-if not os.path.exists(log_dir):
-    os.makedirs(log_dir, exist_ok=True)
-
-# Setup individual logger for this file
-timestamp = get_timestamp()
-#log_filename = f"v7p3r_pst_{timestamp}.log"
-log_filename = "v7p3r_pst.log"  # Use a single log file for simplicity
-log_file_path = os.path.join(log_dir, log_filename)
-
-#v7p3r_pst_logger = logging.getLogger(f"v7p3r_pst_{timestamp}")
-v7p3r_pst_logger = logging.getLogger("v7p3r_pst")
-v7p3r_pst_logger.setLevel(logging.DEBUG)
-
-if not v7p3r_pst_logger.handlers:
-    from logging.handlers import RotatingFileHandler
-    file_handler = RotatingFileHandler(
-        log_file_path,
-        maxBytes=10*1024*1024,
-        backupCount=3,
-        delay=True
-    )
-    formatter = logging.Formatter(
-        '%(asctime)s | %(funcName)-15s | %(message)s',
-        datefmt='%H:%M:%S'
-    )
-    file_handler.setFormatter(formatter)
-    v7p3r_pst_logger.addHandler(file_handler)
-    v7p3r_pst_logger.propagate = False
+# Setup centralized logging for this module
+v7p3r_pst_logger = v7p3rLogger.setup_logger("v7p3r_pst")
 
 class v7p3rPST:
     """ Piece-Square Tables for chess position evaluation. """
@@ -202,7 +163,27 @@ class v7p3rPST:
             [-50, -30, -30, -30, -30, -30, -30, -50]
         ]
     
-    def get_piece_value(self, piece, square, color, endgame_factor=0.0):
+    def get_piece_value(self, piece):
+        """
+        Get the piece value based on its type without using piece-square tables.
+        
+        Args:
+            piece: chess.Piece object
+            square: chess square (0-63)
+            color: chess.WHITE or chess.BLACK
+            endgame_factor: float between 0.0 (opening) and 1.0 (endgame)
+        Returns:
+            Value in centipawns (positive is good for the piece's color)
+        """
+        if piece is None:
+            return 0
+        
+        # Get the base piece value
+        base_value = self.piece_values.get(piece.piece_type, 0.0)
+        
+        return int(base_value * 100)
+    
+    def get_pst_value(self, piece, square, color, endgame_factor=0.0):
         """
         Get the piece-square table value for a piece on a specific square.
         
@@ -265,7 +246,7 @@ class v7p3rPST:
         for square in chess.SQUARES:
             piece = board.piece_at(square)
             if piece:
-                value = self.get_piece_value(piece, square, piece.color, endgame_factor)
+                value = self.get_piece_value(piece)
                 if piece.color == chess.WHITE:
                     total_score += value
                 else:
@@ -282,13 +263,13 @@ if __name__ == "__main__":
     print("Initial position PST evaluation:", pst.evaluate_board_position(board))
     
     # Test specific squares
-    print(f"Knight on h3 value (White): {pst.get_piece_value(chess.Piece(chess.KNIGHT, chess.WHITE), chess.H3, chess.WHITE)}")
-    print(f"Knight on e4 value (White): {pst.get_piece_value(chess.Piece(chess.KNIGHT, chess.WHITE), chess.E4, chess.WHITE)}")
-    print(f"Difference (White): {pst.get_piece_value(chess.Piece(chess.KNIGHT, chess.WHITE), chess.E4, chess.WHITE) - pst.get_piece_value(chess.Piece(chess.KNIGHT, chess.WHITE), chess.H3, chess.WHITE)} centipawns")
+    print(f"Knight on h3 value (White): {pst.get_pst_value(chess.Piece(chess.KNIGHT, chess.WHITE), chess.H3, chess.WHITE)}")
+    print(f"Knight on e4 value (White): {pst.get_pst_value(chess.Piece(chess.KNIGHT, chess.WHITE), chess.E4, chess.WHITE)}")
+    print(f"Difference (White): {pst.get_pst_value(chess.Piece(chess.KNIGHT, chess.WHITE), chess.E4, chess.WHITE) - pst.get_pst_value(chess.Piece(chess.KNIGHT, chess.WHITE), chess.H3, chess.WHITE)} centipawns")
 
     # Test black perspective
-    print(f"Knight on a6 value (Black): {pst.get_piece_value(chess.Piece(chess.KNIGHT, chess.BLACK), chess.A6, chess.BLACK)}")
-    print(f"Knight on d5 value (Black): {pst.get_piece_value(chess.Piece(chess.KNIGHT, chess.BLACK), chess.D5, chess.BLACK)}")
+    print(f"Knight on a6 value (Black): {pst.get_pst_value(chess.Piece(chess.KNIGHT, chess.BLACK), chess.A6, chess.BLACK)}")
+    print(f"Knight on d5 value (Black): {pst.get_pst_value(chess.Piece(chess.KNIGHT, chess.BLACK), chess.D5, chess.BLACK)}")
 
     # Test endgame factor
     endgame_board = chess.Board("8/8/8/8/8/8/P7/K7 w - - 0 1") # White pawn on 7th, King on 1st
@@ -297,5 +278,5 @@ if __name__ == "__main__":
     
     # Test King endgame positions
     king_central_endgame_board = chess.Board("8/8/8/4k3/4K3/8/8/8 w - - 0 1")
-    print(f"\nKing central (endgame_factor=1.0) for White: {pst.get_piece_value(chess.Piece(chess.KING, chess.WHITE), chess.E4, chess.WHITE, endgame_factor=1.0)}")
-    print(f"King corner (endgame_factor=1.0) for White: {pst.get_piece_value(chess.Piece(chess.KING, chess.WHITE), chess.A1, chess.WHITE, endgame_factor=1.0)}")
+    print(f"\nKing central (endgame_factor=1.0) for White: {pst.get_pst_value(chess.Piece(chess.KING, chess.WHITE), chess.E4, chess.WHITE, endgame_factor=1.0)}")
+    print(f"King corner (endgame_factor=1.0) for White: {pst.get_pst_value(chess.Piece(chess.KING, chess.WHITE), chess.A1, chess.WHITE, endgame_factor=1.0)}")

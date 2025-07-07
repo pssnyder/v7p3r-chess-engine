@@ -9,57 +9,16 @@ It is designed to be used by the v7p3r chess engine.
 import chess
 import sys
 import os
-import logging
-import datetime
 from typing import Optional
 from v7p3r_config import v7p3rConfig
+from v7p3r_debug import v7p3rLogger, v7p3rUtilities
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
-def resource_path(relative_path):
-    """Get absolute path to resource, works for dev and for PyInstaller"""
-    base = getattr(sys, '_MEIPASS', None)
-    if base:
-        return os.path.join(base, relative_path)
-    return os.path.join(os.path.abspath("."), relative_path)
 
-# =====================================
-# ========== LOGGING SETUP ============
-def get_timestamp():
-    return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-
-# Create logging directory relative to project root
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-log_dir = os.path.join(project_root, 'logging')
-if not os.path.exists(log_dir):
-    os.makedirs(log_dir, exist_ok=True)
-
-# Setup individual logger for this file
-timestamp = get_timestamp()
-#log_filename = f"v7p3r_score_{timestamp}.log"
-log_filename = f"v7p3r_score.log"  # Use a fixed log filename for simplicity
-log_file_path = os.path.join(log_dir, log_filename)
-
-#v7p3r_score_logger = logging.getLogger(f"v7p3r_score_{timestamp}")
-v7p3r_score_logger = logging.getLogger("v7p3r_score")
-v7p3r_score_logger.setLevel(logging.DEBUG)
-
-if not v7p3r_score_logger.handlers:
-    from logging.handlers import RotatingFileHandler
-    file_handler = RotatingFileHandler(
-        log_file_path,
-        maxBytes=10*1024*1024,
-        backupCount=3,
-        delay=True
-    )
-    formatter = logging.Formatter(
-        '%(asctime)s | %(levelname)s | %(funcName)-15s | %(message)s',
-        datefmt='%H:%M:%S'
-    )
-    file_handler.setFormatter(formatter)
-    v7p3r_score_logger.addHandler(file_handler)
-    v7p3r_score_logger.propagate = False
+# Setup centralized logging for this module
+v7p3r_score_logger = v7p3rLogger.setup_logger("v7p3r_score")
 
 class v7p3rScore:
     def __init__(self, rules_manager, pst):
@@ -90,7 +49,7 @@ class v7p3rScore:
         self.game_phase = 'opening'  # Default game phase
         self.endgame_factor = 0.0  # Default endgame factor for endgame awareness
         self.score_counter = 0
-        self.score_id = f"score[{self.score_counter}]_{timestamp}"
+        self.score_id = f"score[{self.score_counter}]_{v7p3rUtilities.get_timestamp()}"
         self.fen = self.root_board.fen()
         self.root_move = chess.Move.null()
         self.score = 0.0
@@ -147,15 +106,22 @@ class v7p3rScore:
     
     def evaluate_position_from_perspective(self, board: chess.Board, color: Optional[chess.Color] = chess.WHITE) -> float:
         """Calculate position evaluation from specified player's perspective by delegating to scoring_calculator."""
-        current_turn = board.turn
         self.color_name = "White" if color == chess.WHITE else "Black"
         
-        if not isinstance(color, chess.Color) or color != current_turn or not board.is_valid():
+        if not isinstance(color, chess.Color) or not board.is_valid():
             if self.monitoring_enabled and self.logger:
-                self.logger.error(f"[Error] Invalid input for evaluation from perspective. Player: {self.color_name}, Turn: {board.turn}, FEN: {board.fen() if hasattr(board, 'fen') else 'N/A'}")
+                self.logger.error(f"[Error] Invalid input for evaluation from perspective. Player: {self.color_name}, FEN: {board.fen() if hasattr(board, 'fen') else 'N/A'}")
             return 0.0
 
-        score = self.calculate_score(board=board,color=color)
+        # Calculate direct scores for both sides
+        white_score = self.calculate_score(board=board, color=chess.WHITE)
+        black_score = self.calculate_score(board=board, color=chess.BLACK)
+        
+        # Convert to score from the requested perspective
+        if color == chess.WHITE:
+            score = white_score - black_score
+        else:
+            score = black_score - white_score
 
         if self.monitoring_enabled and self.logger:
             self.logger.info(f"{self.color_name}'s perspective: {score:.3f} | FEN: {board.fen()}")
@@ -274,9 +240,7 @@ class v7p3rScore:
         self.score_dataset['checkmate_threats'] = checkmate_threats_score
 
         # MATERIAL SCORE
-        material_score = self.pst.evaluate_board_position(board, endgame_factor)
-        if color == chess.BLACK:
-            material_score = -material_score
+        material_score = self.rules_manager._material_score(board, color) or 0.0
         if self.v7p3r_thinking:
             if self.monitoring_enabled and self.logger:
                 self.logger.info(f"[Scoring Calc] Material score for {self.color_name}: {material_score:.3f} (Ruleset: {self.ruleset_name})")
@@ -285,10 +249,18 @@ class v7p3rScore:
         score += 1.0 * material_score
         self.score_dataset['material_score'] = 1.0 * self.rules_manager._material_score(board, color)
         
+        # MATERIAL COUNT
+        material_count_score = 1.0 * (self.rules_manager._material_count(board, color) or 0.0)
+        if self.v7p3r_thinking:
+            if self.monitoring_enabled and self.logger:
+                self.logger.info(f"[Scoring Calc] Material count score for {self.color_name}: {material_count_score:.3f} (Ruleset: {self.ruleset_name})")
+            if self.verbose_output_enabled:
+                print(f"[Scoring Calc] Material count score for {self.color_name}: {material_count_score:.3f} (Ruleset: {self.ruleset_name})")
+        score += 1.0 * material_count_score
+        self.score_dataset['material_count'] = 1.0 * self.rules_manager._material_count(board, color)
+
         # PIECE-SQUARE TABLE SCORE
-        pst_board_score = self.pst.evaluate_board_position(board, endgame_factor)
-        if color == chess.BLACK:
-            pst_board_score = -pst_board_score
+        pst_board_score = self.pst.evaluate_board_position(board, color) or 0.0
         if self.v7p3r_thinking:
             if self.monitoring_enabled and self.logger:
                 self.logger.info(f"[Scoring Calc] Piece-square table score for {self.color_name}: {pst_board_score:.3f} (Ruleset: {self.ruleset_name})")
