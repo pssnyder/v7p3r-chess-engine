@@ -237,11 +237,14 @@ class v7p3rScore:
         self.score_dataset['material_score'] = material_score
         
         # Decide if we need more detailed evaluation
-        # Early return if we're in a very clear position
-        if abs(material_score) > 1500:  # Big material advantage
+        # Early return if we're in a very clear position (queen + multiple pieces advantage)
+        if abs(material_score) > 1500 and not board.is_check():  # Big material advantage and not in check
             if detailed_logging:
                 self.logger.info(f"[Scoring Calc] Early return due to large material advantage: {material_score:.3f}")
-            return score
+            
+            # Ensure the score is within reasonable bounds
+            material_score = max(-2000, min(2000, material_score))
+            return material_score
         
         # GAME PHASE
         if self.use_game_phase:
@@ -266,6 +269,12 @@ class v7p3rScore:
         piece_development_score = self.rules_manager._piece_development(board, color) or 0.0
         score += piece_development_score
         self.score_dataset['piece_development'] = piece_development_score
+        
+        # Normalize score to reasonable centipawn range if needed
+        # Only normalize if it's not a checkmate score
+        if abs(score) < 9000:  # Not a checkmate or near-checkmate evaluation
+            # Clip extreme scores that aren't mate scores
+            score = max(-2000, min(2000, score))
         
         # Log only the final score unless detailed logging is enabled
         if self.monitoring_enabled and self.logger:

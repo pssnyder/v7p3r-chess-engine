@@ -27,7 +27,7 @@ class v7p3rRules:
         self.root_board = chess.Board()
         self.game_phase = 'opening'  # Default game phase
         self.endgame_factor = 0.0  # Default endgame factor for endgame awareness
-        self.fallback_modifier = 100
+        self.fallback_modifier = 1.0  # Default modifier for scoring components (was 100, reduced to avoid score inflation)
         self.score_counter = 0
         self.score_id = f"score[{self.score_counter}]_{v7p3rUtilities.get_timestamp()}"
         self.fen = self.root_board.fen()
@@ -45,7 +45,9 @@ class v7p3rRules:
         Only consider legal moves for 'color' without mutating the original board's turn.
         """
         score = 0.0
-        checkmate_threats_modifier = self.ruleset.get('checkmate_threats_modifier', self.fallback_modifier*9999)
+        # Use the ruleset value directly (now set to 9900 in default_ruleset.json)
+        # This keeps the scale consistent with typical centipawn evaluations
+        checkmate_threats_modifier = self.ruleset.get('checkmate_threats_modifier', 9900.0)
         if checkmate_threats_modifier == 0.0:
             return score
 

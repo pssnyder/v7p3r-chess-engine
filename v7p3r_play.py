@@ -882,13 +882,21 @@ class v7p3rChess(ChessCore):
 
 
 if __name__ == "__main__":
+    # Process command line arguments
+    import argparse
+    parser = argparse.ArgumentParser(description='V7P3R Chess Engine')
+    parser.add_argument('-c', '--config', dest='config_name', type=str, default=CONFIG_NAME,
+                        help='Configuration file name (without .json extension)')
+    args = parser.parse_args()
+    
     # Set up and start the game
-    if CONFIG_NAME == "default_config":
+    config_to_use = args.config_name
+    if config_to_use == "default_config":
         print("Using default configuration for v7p3rChess.")
-        game = v7p3rChess(config_name=CONFIG_NAME)
     else:
-        print(f"Using custom configuration: {CONFIG_NAME} for v7p3rChess.")
-        game = v7p3rChess(config_name=CONFIG_NAME)
+        print(f"Using custom configuration: {config_to_use} for v7p3rChess.")
+    
+    game = v7p3rChess(config_name=config_to_use)
     
     # TODO Fix implementation so it doesn't crash or interfere with the game. Start the PGN watcher in a separate thread if it's not already running
     #pgn_watcher = PGNWatcher()

@@ -209,7 +209,13 @@ class v7p3rSearch:
                             self.logger.info(f"SEARCH: Calling _simple_search")
                             initial_eval = self.scoring_calculator.evaluate_position_from_perspective(temp_board, self.current_perspective)
                             self.logger.info(f"SEARCH: Initial position evaluation: {initial_eval:.2f}")
+                        # Reset node counter before search
+                        self.nodes_searched = 0
                         current_move_score = self._simple_search(temp_board, self.depth, color)
+                        # Add a safety check in case the search got stuck
+                        if self.nodes_searched > 20000:
+                            if self.monitoring_enabled and self.logger:
+                                self.logger.warning(f"Search exceeded node limit of 20000, search may have issues")
                         if self.monitoring_enabled and self.logger:
                             self.logger.info(f"SEARCH: _simple_search returned score: {current_move_score}")
                     elif self.search_algorithm == 'evaluation':
@@ -277,6 +283,30 @@ class v7p3rSearch:
         This ensures the engine always plays the move that leads to the best possible position,
         while preferring variations where position quality continuously improves.
         """
+        # Guard against excessive recursion or invalid depth
+        if depth < 0:
+            depth = 0
+        
+        # Hard depth limit to prevent excessive recursion
+        if self.nodes_searched > 10000:  # Safety limit to prevent hanging
+            eval_result = self.scoring_calculator.evaluate_position_from_perspective(board, self.current_perspective)
+            if board.turn != self.current_perspective:
+                eval_result = -eval_result
+            return eval_result
+            
+        # Store a counter on the instance to track recursive call depth
+        if not hasattr(self, '_search_recursion_depth'):
+            self._search_recursion_depth = 0
+        
+        self._search_recursion_depth += 1
+        if self._search_recursion_depth > 20:  # Set a reasonable limit to prevent infinite recursion
+            self._search_recursion_depth -= 1
+            eval_result = self.scoring_calculator.evaluate_position_from_perspective(board, self.current_perspective)
+            if board.turn != self.current_perspective:
+                eval_result = -eval_result
+            return eval_result
+            return self.scoring_calculator.evaluate_position_from_perspective(board, self.current_perspective)
+            
         self.nodes_searched += 1
         
         # Terminal condition - reached max depth or game over
@@ -293,7 +323,9 @@ class v7p3rSearch:
             
             # For positions that aren't quiet, use quiescence search if enabled
             if depth <= 0 and self.quiescence_enabled and (board.is_check() or self._position_is_tactical(board)):
-                q_score = self._quiescence_search(board, self.current_perspective, -float('inf'), float('inf'), board.turn == self.current_perspective)
+                # Make sure we're passing the correct perspective to quiescence search
+                q_score = self._quiescence_search(board, self.current_perspective, -float('inf'), float('inf'), 
+                                                 board.turn == self.current_perspective, 0)
                 return q_score
             
             return eval_result
@@ -365,6 +397,15 @@ class v7p3rSearch:
                 counter_best_score = -float('inf')
                 found_improving_move = False
                 
+                # Limit the search depth for counter-moves to prevent recursion
+                counter_depth = max(0, depth - 1)  # Ensure we don't go negative
+                
+                # Limit the number of counter-moves to consider to prevent explosion
+                max_counter_moves = 5
+                if len(counter_moves) > max_counter_moves:
+                    # Try to order counter moves if we're going to limit them
+                    counter_moves = self.move_organizer.order_moves(board, counter_moves, depth=0, cutoff=max_counter_moves)
+                
                 for counter_move in counter_moves:
                     board.push(counter_move)
                     
@@ -380,9 +421,15 @@ class v7p3rSearch:
                             self.logger.info(f"SIMPLE: Counter-move {counter_move} improves position from {current_position_score:.2f} to {counter_score:.2f}")
                         
                         # Search deeper with this promising counter-move
-                        deeper_score = self._simple_search(board, depth-1, color)
-                        if deeper_score > counter_best_score:
-                            counter_best_score = deeper_score
+                        # Make sure we're decrementing the depth to avoid infinite recursion
+                        if counter_depth > 0:  # Only search deeper if we have depth left
+                            deeper_score = self._simple_search(board, counter_depth, color)
+                            if deeper_score > counter_best_score:
+                                counter_best_score = deeper_score
+                        else:
+                            # Use the evaluation directly if we can't search deeper
+                            if counter_score > counter_best_score:
+                                counter_best_score = counter_score
                     
                     # Even if this move doesn't improve our position, track it in case we need to fall back
                     elif counter_score > counter_best_score:
@@ -413,6 +460,10 @@ class v7p3rSearch:
                     if self.monitoring_enabled and self.logger:
                         self.logger.info(f"SIMPLE: Updated PV with move {best_move}, score {best_score:.2f}")
         
+        # Decrement the recursion depth counter before returning
+        if hasattr(self, '_search_recursion_depth'):
+            self._search_recursion_depth -= 1
+            
         return best_score
 
     def _minimax_search(self, board: chess.Board, depth: int, alpha: float, beta: float, maximizing_player: bool):
@@ -581,14 +632,15 @@ class v7p3rSearch:
 
     def _quiescence_search(self, board: chess.Board, color: chess.Color, alpha: float, beta: float, maximizing_player: bool, current_ply: int = 0) -> float:
         """Quiescence search to handle tactical positions."""
+        # Safety check to prevent infinite recursion
         # HARD LIMIT to prevent infinite recursion - early exit if we're too deep
-        max_q_depth = 3  # Hard limit for quiescence search
-        if current_ply >= max_q_depth:
+        max_q_depth = 2  # Reduced hard limit for quiescence search
+        if current_ply >= max_q_depth or self.nodes_searched > 10000:
             if self.monitoring_enabled and self.logger:
-                self.logger.info(f"QUIESCENCE: Max depth reached (ply {current_ply} >= {max_q_depth}), returning stand pat evaluation")
+                self.logger.info(f"QUIESCENCE: Max depth/nodes reached (ply {current_ply} >= {max_q_depth}), returning stand pat evaluation")
             eval_result = self.scoring_calculator.evaluate_position_from_perspective(board, self.current_perspective)
             # Adjust evaluation for the player to move
-            if board.turn != self.current_perspective and not maximizing_player:
+            if not maximizing_player:
                 eval_result = -eval_result
             return eval_result
             
@@ -598,7 +650,7 @@ class v7p3rSearch:
         # Get a static evaluation first, always from the consistent perspective
         stand_pat_score = self.scoring_calculator.evaluate_position_from_perspective(board, self.current_perspective)
         # Adjust evaluation for the player to move
-        if board.turn != self.current_perspective and not maximizing_player:
+        if not maximizing_player:
             stand_pat_score = -stand_pat_score
             
         if self.monitoring_enabled and self.verbose_output_enabled and self.logger:
@@ -653,9 +705,15 @@ class v7p3rSearch:
         if len(moves_to_consider) > 5:
             moves_to_consider = self.move_organizer.order_moves(board, moves_to_consider, depth=0, cutoff=5)
         
+        # For very limited quiescence search to prevent infinite loops
+        # Only explore the top 3 captures maximum
+        if current_ply > 0 and len(moves_to_consider) > 3:
+            moves_to_consider = moves_to_consider[:3]
+            
         for move in moves_to_consider:
             board.push(move)
-            score = self._quiescence_search(board, color, -beta, -alpha, not maximizing_player, current_ply + 1)
+            # For negamax-style quiescence search, we swap the perspective and negate the score
+            score = -self._quiescence_search(board, color, -beta, -alpha, not maximizing_player, current_ply + 1)
             board.pop()
             self.nodes_searched += 1
             

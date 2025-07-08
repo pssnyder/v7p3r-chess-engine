@@ -20,14 +20,14 @@ class v7p3rPST:
         self.logger = logger if logger else v7p3r_pst_logger
         # Initialize piece-square tables
         self.tables = self._create_tables()
-        # Default Piece Values
+        # Default Piece Values in centipawns
         self.piece_values = {
-            chess.KING: 0.0,
-            chess.QUEEN: 9.0,
-            chess.ROOK: 5.0,
-            chess.BISHOP: 3.25,
-            chess.KNIGHT: 3.0,
-            chess.PAWN: 1.0
+            chess.KING: 20000,  # Not used for material calculation, but for MVV-LVA
+            chess.QUEEN: 900,   # Standard centipawn value
+            chess.ROOK: 500,    # Standard centipawn value
+            chess.BISHOP: 330,  # Standard centipawn value
+            chess.KNIGHT: 320,  # Standard centipawn value
+            chess.PAWN: 100     # Standard centipawn value
         }
     def _create_tables(self):
         """Create all piece-square tables"""
@@ -169,19 +169,14 @@ class v7p3rPST:
         
         Args:
             piece: chess.Piece object
-            square: chess square (0-63)
-            color: chess.WHITE or chess.BLACK
-            endgame_factor: float between 0.0 (opening) and 1.0 (endgame)
         Returns:
             Value in centipawns (positive is good for the piece's color)
         """
         if piece is None:
             return 0
         
-        # Get the base piece value
-        base_value = self.piece_values.get(piece.piece_type, 0.0)
-        
-        return int(base_value * 100)
+        # Get the piece value directly in centipawns
+        return self.piece_values.get(piece.piece_type, 0)
     
     def get_pst_value(self, piece, square, color, endgame_factor=0.0):
         """

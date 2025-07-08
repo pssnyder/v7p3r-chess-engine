@@ -2,7 +2,7 @@
 {
     "default_ruleset": {
         "ruleset_name": "default_ruleset",
-        "checkmate_threats_modifier": 999999999.0,
+        "checkmate_threats_modifier": 9900.0,
         "material_score_modifier": 1.0,
         "material_count_modifier": 1.0,
         "pst_score_modifier": 1.0,
