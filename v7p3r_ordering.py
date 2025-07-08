@@ -36,6 +36,10 @@ class v7p3rOrdering:
 
     def order_moves(self, board: chess.Board, moves, depth: int = 0, cutoff: int = 0) -> list:
         """Order moves for better alpha-beta pruning efficiency"""
+        # Safety check to prevent empty move list issues
+        if not moves:
+            return []
+            
         move_scores = []
         for move in moves:
             if not board.is_legal(move):
@@ -50,18 +54,20 @@ class v7p3rOrdering:
 
         move_scores.sort(key=lambda x: x[1], reverse=True)
         
-        # Get max_moves setting from engine config and truncate if needed
-        max_moves = cutoff
-        if max_moves is not None and max_moves > 0 and len(move_scores) > max_moves:
+        # Get max_moves setting from engine config if cutoff is not specified
+        max_moves = cutoff if cutoff > 0 else self.max_moves
+        if max_moves > 0 and len(move_scores) > max_moves:
             original_count = len(move_scores)
             move_scores = move_scores[:max_moves]
-            # Log to both ordering logger and print to console for visibility
-            log_msg = f"MOVE_TRUNCATION: Truncated move list from {original_count} to {max_moves} moves at depth {depth}"
-            if self.monitoring_enabled and self.logger:
-                self.logger.info(log_msg)
+            # Only log truncation for significant reductions to avoid excessive logging
+            if original_count - max_moves > 5:
+                log_msg = f"MOVE_TRUNCATION: Truncated move list from {original_count} to {max_moves} moves at depth {depth}"
+                if self.monitoring_enabled and self.logger:
+                    self.logger.info(log_msg)
         
-        if self.monitoring_enabled and self.logger:
-            self.logger.info(f"Ordered moves at depth {depth}: {[f'{move} ({score:.2f})' for move, score in move_scores]} | FEN: {board.fen()}")
+        # Reduce logging frequency to improve performance
+        if self.monitoring_enabled and self.verbose_output_enabled and self.logger:
+            self.logger.info(f"Ordered moves at depth {depth}: {[f'{move} ({score:.2f})' for move, score in move_scores[:3]]}... (total: {len(move_scores)}) | FEN: {board.fen()}")
         
         return [move for move, _ in move_scores]
 

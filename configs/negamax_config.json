@@ -8,8 +8,8 @@
     "engine_config": {
         "ruleset": "default_ruleset",
         "search_algorithm": "negamax",
-        "depth": 3,
-        "max_depth": 4,
+        "depth": 5,
+        "max_depth": 7,
         "use_game_phase": true,
         "use_quiescence": true,
         "order_moves": true,
@@ -37,6 +37,7 @@
         "syzygy_path": null,
         "syzygy_probe_depth": 1,
         "uci_chess960": false
+
     },
     "puzzle_config": {
         "puzzle_database": {

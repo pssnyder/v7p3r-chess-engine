@@ -43,6 +43,7 @@ class v7p3rScore:
         self.use_game_phase = self.engine_config.get('use_game_phase', True)
         self.white_player = self.game_config.get('white_player', 'v7p3r')
         self.black_player = self.game_config.get('black_player', 'v7p3r')
+        self.fallback_modifier = 100
 
         # Initialize scoring parameters
         self.root_board = chess.Board()
@@ -113,7 +114,16 @@ class v7p3rScore:
                 self.logger.error(f"[Error] Invalid input for evaluation from perspective. Player: {self.color_name}, FEN: {board.fen() if hasattr(board, 'fen') else 'N/A'}")
             return 0.0
 
+        # Game over checks for quick returns
+        checkmate_threats_modifier = self.ruleset.get('checkmate_threats_modifier', self.fallback_modifier)
+        if board.is_checkmate():
+            return -1 * checkmate_threats_modifier if board.turn == color else checkmate_threats_modifier
+        if board.is_stalemate() or board.is_insufficient_material():
+            return 0.0
+
         # Calculate direct scores for both sides
+        # Use a simplified score calculation for quiescence and deep searches
+        # to improve performance
         white_score = self.calculate_score(board=board, color=chess.WHITE)
         black_score = self.calculate_score(board=board, color=chess.BLACK)
         
@@ -123,14 +133,15 @@ class v7p3rScore:
         else:
             score = black_score - white_score
 
-        if self.monitoring_enabled and self.logger:
+        if self.monitoring_enabled and self.verbose_output_enabled and self.logger:
             self.logger.info(f"{self.color_name}'s perspective: {score:.3f} | FEN: {board.fen()}")
+            
         self.score_dataset['evaluation'] = score
         return score
     
     # ==========================================
     # ========== GAME PHASE CALCULATION ========
-    def calculate_game_phase(self, board: chess.Board):
+    def _calculate_game_phase(self, board: chess.Board):
         """
         Determines the current phase of the game: 'opening', 'middlegame', or 'endgame'.
         Uses material and castling rights as heuristics.
@@ -203,158 +214,62 @@ class v7p3rScore:
         """
         score = 0.0
         
-        # Update scoring dictionary with current position information
+        # Update scoring dictionary with minimal position information
         self.score_dataset['fen'] = board.fen()
-        last_move = board.peek() if board.move_stack else chess.Move.null()
-        self.score_dataset['move'] = last_move
-        self.score_dataset['piece'] = board.piece_type_at(last_move.to_square) if last_move else None
-
-        # Helper for consistent color display in logs
         self.color_name = "White" if color == chess.WHITE else "Black"
         self.score_dataset['color'] = self.color_name
-        self.current_player_name = self.game_config.get('white_player','') if color == chess.WHITE else self.game_config.get('black_player','')
-        self.score_dataset['current_player'] = self.current_player_name
-        self.v7p3r_thinking = self.current_player_name == 'v7p3r'
-        self.score_dataset['v7p3r_thinking'] = self.v7p3r_thinking
-        if self.v7p3r_thinking:
-            if self.monitoring_enabled and self.logger:
-                self.logger.info(f"[Scoring Calc] Starting score calculation for {self.current_player_name} engine as {self.color_name} | Ruleset: {self.ruleset_name} | FEN: {board.fen()}")
-            if self.verbose_output_enabled:
-                print(f"[Scoring Calc] Starting score calculation for {self.current_player_name} engine as {self.color_name} | Ruleset: {self.ruleset_name} | FEN: {board.fen()}")
+        
+        # Only log detailed info when monitoring is enabled and verbose is true
+        detailed_logging = self.monitoring_enabled and self.verbose_output_enabled and self.logger
+        
+        # Optimize computation: Start with most important factors first
+        
+        # CHECKMATE THREATS - Most critical factor
+        checkmate_threats_score = self.rules_manager._checkmate_threats(board, color) or 0.0
+        score += checkmate_threats_score
+        
+        # MATERIAL SCORE - Second most important factor
+        material_score = self.rules_manager._material_score(board, color) or 0.0
+        score += material_score
+        
+        # Store these critical values for logging
+        self.score_dataset['checkmate_threats'] = checkmate_threats_score
+        self.score_dataset['material_score'] = material_score
+        
+        # Decide if we need more detailed evaluation
+        # Early return if we're in a very clear position
+        if abs(material_score) > 1500:  # Big material advantage
+            if detailed_logging:
+                self.logger.info(f"[Scoring Calc] Early return due to large material advantage: {material_score:.3f}")
+            return score
         
         # GAME PHASE
         if self.use_game_phase:
-            self.calculate_game_phase(board)
-        else:
-            self.game_phase = 'opening'
-            self.endgame_factor = 0.0
-
-        # CHECKMATE THREATS
-        checkmate_threats_score = 1.0 * (self.rules_manager._checkmate_threats(board, color) or 0.0)
-        if self.v7p3r_thinking:
-            if self.monitoring_enabled and self.logger:
-                self.logger.info(f"[Scoring Calc] Checkmate threats score for {self.color_name}: {checkmate_threats_score:.3f} (Ruleset: {self.ruleset_name})")
-            if self.verbose_output_enabled:
-                print(f"[Scoring Calc] Checkmate threats score for {self.color_name}: {checkmate_threats_score:.3f} (Ruleset: {self.ruleset_name})")
-        score += checkmate_threats_score
-        self.score_dataset['checkmate_threats'] = checkmate_threats_score
-
-        # MATERIAL SCORE
-        material_score = self.rules_manager._material_score(board, color) or 0.0
-        if self.v7p3r_thinking:
-            if self.monitoring_enabled and self.logger:
-                self.logger.info(f"[Scoring Calc] Material score for {self.color_name}: {material_score:.3f} (Ruleset: {self.ruleset_name})")
-            if self.verbose_output_enabled:
-                print(f"[Scoring Calc] Material score for {self.color_name}: {material_score:.3f} (Ruleset: {self.ruleset_name})")
-        score += 1.0 * material_score
-        self.score_dataset['material_score'] = 1.0 * self.rules_manager._material_score(board, color)
+            self._calculate_game_phase(board)
         
-        # MATERIAL COUNT
-        material_count_score = 1.0 * (self.rules_manager._material_count(board, color) or 0.0)
-        if self.v7p3r_thinking:
-            if self.monitoring_enabled and self.logger:
-                self.logger.info(f"[Scoring Calc] Material count score for {self.color_name}: {material_count_score:.3f} (Ruleset: {self.ruleset_name})")
-            if self.verbose_output_enabled:
-                print(f"[Scoring Calc] Material count score for {self.color_name}: {material_count_score:.3f} (Ruleset: {self.ruleset_name})")
-        score += 1.0 * material_count_score
-        self.score_dataset['material_count'] = 1.0 * self.rules_manager._material_count(board, color)
-
-        # PIECE-SQUARE TABLE SCORE
-        pst_board_score = self.pst.evaluate_board_position(board, color) or 0.0
-        if self.v7p3r_thinking:
-            if self.monitoring_enabled and self.logger:
-                self.logger.info(f"[Scoring Calc] Piece-square table score for {self.color_name}: {pst_board_score:.3f} (Ruleset: {self.ruleset_name})")
-            if self.verbose_output_enabled:
-                print(f"[Scoring Calc] Piece-square table score for {self.color_name}: {pst_board_score:.3f} (Ruleset: {self.ruleset_name})")
-        score += 1.0 * pst_board_score
-        self.score_dataset['pst_score'] = 1.0 * pst_board_score
-
+        # PST SCORE
+        pst_score = self.rules_manager._pst_score(board, color, self.endgame_factor) or 0.0
+        score += pst_score
+        self.score_dataset['pst_score'] = pst_score
+        
         # PIECE CAPTURES
-        piece_captures_score = 1.0 * (self.rules_manager._piece_captures(board, color) or 0.0)
-        if self.v7p3r_thinking:
-            if self.monitoring_enabled and self.logger:
-                self.logger.info(f"[Scoring Calc] Piece captures score for {self.color_name}: {piece_captures_score:.3f} (Ruleset: {self.ruleset_name})")
-            if self.verbose_output_enabled:
-                print(f"[Scoring Calc] Piece captures score for {self.color_name}: {piece_captures_score:.3f} (Ruleset: {self.ruleset_name})")
+        piece_captures_score = self.rules_manager._piece_captures(board, color) or 0.0
         score += piece_captures_score
         self.score_dataset['piece_captures'] = piece_captures_score
-
+        
         # CENTER CONTROL
-        center_control_score = 1.0 * (self.rules_manager._center_control(board, color) or 0.0)
-        if self.v7p3r_thinking:
-            if self.monitoring_enabled and self.logger:
-                self.logger.info(f"[Scoring Calc] Center control score for {self.color_name}: {center_control_score:.3f} (Ruleset: {self.ruleset_name})")
-            if self.verbose_output_enabled:
-                print(f"[Scoring Calc] Center control score for {self.color_name}: {center_control_score:.3f} (Ruleset: {self.ruleset_name})")
+        center_control_score = self.rules_manager._center_control(board, color) or 0.0
         score += center_control_score
         self.score_dataset['center_control'] = center_control_score
-
+        
         # PIECE DEVELOPMENT
-        piece_development_score = 1.0 * (self.rules_manager._piece_development(board, color) or 0.0)
-        if self.v7p3r_thinking:
-            if self.monitoring_enabled and self.logger:
-                self.logger.info(f"[Scoring Calc] Piece development score for {self.color_name}: {piece_development_score:.3f} (Ruleset: {self.ruleset_name})")
-            if self.verbose_output_enabled:
-                print(f"[Scoring Calc] Piece development score for {self.color_name}: {piece_development_score:.3f} (Ruleset: {self.ruleset_name})")
+        piece_development_score = self.rules_manager._piece_development(board, color) or 0.0
         score += piece_development_score
         self.score_dataset['piece_development'] = piece_development_score
-
-        # BOARD COVERAGE
-        board_coverage_score = 1.0 * (self.rules_manager._board_coverage(board, color) or 0.0)
-        if self.v7p3r_thinking:
-            if self.monitoring_enabled and self.logger:
-                self.logger.info(f"[Scoring Calc] Board coverage score for {self.color_name}: {board_coverage_score:.3f} (Ruleset: {self.ruleset_name})")
-            if self.verbose_output_enabled:
-                print(f"[Scoring Calc] Board coverage score for {self.color_name}: {board_coverage_score:.3f} (Ruleset: {self.ruleset_name})")
-        score += board_coverage_score
-        self.score_dataset['board_coverage'] = board_coverage_score
-
-        # CASTLING
-        castling_score = 1.0 * (self.rules_manager._castling(board, color) or 0.0)
-        if self.v7p3r_thinking:
-            if self.monitoring_enabled and self.logger:
-                self.logger.info(f"[Scoring Calc] Castling score for {self.color_name}: {castling_score:.3f} (Ruleset: {self.ruleset_name})")
-            if self.verbose_output_enabled:
-                print(f"[Scoring Calc] Castling score for {self.color_name}: {castling_score:.3f} (Ruleset: {self.ruleset_name})")
-        score += castling_score
-        self.score_dataset['castling'] = castling_score
-
-        # CASTLING PROTECTION
-        castling_protection_score = 1.0 * (self.rules_manager._castling_protection(board, color) or 0.0)
-        if self.v7p3r_thinking:
-            if self.monitoring_enabled and self.logger:
-                self.logger.info(f"[Scoring Calc] Castling protection score for {self.color_name}: {castling_protection_score:.3f} (Ruleset: {self.ruleset_name})")
-            if self.verbose_output_enabled:
-                print(f"[Scoring Calc] Castling protection score for {self.color_name}: {castling_protection_score:.3f} (Ruleset: {self.ruleset_name})")
-        score += castling_protection_score
-        self.score_dataset['castling_protection'] = castling_protection_score
-
-        # PIECE COORDINATION
-        piece_coordination_score = 1.0 * (self.rules_manager._piece_coordination(board, color) or 0.0)
-        if self.v7p3r_thinking:
-            if self.monitoring_enabled and self.logger:
-                self.logger.info(f"[Scoring Calc] Piece coordination score for {self.color_name}: {piece_coordination_score:.3f} (Ruleset: {self.ruleset_name})")
-            if self.verbose_output_enabled:
-                print(f"[Scoring Calc] Piece coordination score for {self.color_name}: {piece_coordination_score:.3f} (Ruleset: {self.ruleset_name})")
-        score += piece_coordination_score
-        self.score_dataset['piece_coordination'] = piece_coordination_score
-
-        # ROOK COORDINATION
-        rook_coordination_score = 1.0 * (self.rules_manager._rook_coordination(board, color) or 0.0)
-        if self.v7p3r_thinking:
-            if self.monitoring_enabled and self.logger:
-                self.logger.info(f"[Scoring Calc] Rook coordination score for {self.color_name}: {rook_coordination_score:.3f} (Ruleset: {self.ruleset_name})")
-            if self.verbose_output_enabled:
-                print(f"[Scoring Calc] Rook coordination score for {self.color_name}: {rook_coordination_score:.3f} (Ruleset: {self.ruleset_name})")
-        score += rook_coordination_score
-        self.score_dataset['rook_coordination'] = rook_coordination_score
         
-        # FINAL SCORE
-        self.score_dataset['score'] = score  # Update final score in scoring dictionary
-        
-        if self.v7p3r_thinking:
-            if self.monitoring_enabled and self.logger:
-                self.logger.info(f"[Scoring Calc] Final score for {self.current_player_name} as {self.color_name}: {score:.3f} | Ruleset: {self.ruleset_name} | FEN: {board.fen()}")
-            if self.verbose_output_enabled:
-                print(f"[Scoring Calc] Final score for {self.current_player_name} as {self.color_name}: {score:.3f} | Ruleset: {self.ruleset_name} | FEN: {board.fen()}")
+        # Log only the final score unless detailed logging is enabled
+        if self.monitoring_enabled and self.logger:
+            self.logger.info(f"[Scoring Calc] Final score for {self.color_name}: {score:.3f}")
+            
+        self.score_dataset['evaluation'] = score
         return score

@@ -88,8 +88,8 @@ class v7p3rRules:
                 score -= 1.0 * material_count_modifier
 
         return score
-    
-    def _pst_score(self, board: chess.Board, color: chess.Color) -> float:
+
+    def _pst_score(self, board: chess.Board, color: chess.Color, endgame_factor: float) -> float:
         """Calculate the score based on Piece-Square Tables (PST) for the given color."""
         score = 0.0
         pst_score_modifier = self.ruleset.get('pst_score_modifier', self.fallback_modifier)
@@ -101,10 +101,10 @@ class v7p3rRules:
             piece = board.piece_at(square)
             if piece and piece.color == color:
                 # Add the PST value for this piece at its current square
-                score += self.pst.get_piece_square_value(piece.piece_type, square) * pst_score_modifier
+                score += self.pst.get_pst_value(piece, square, color, endgame_factor) * pst_score_modifier
             elif piece and piece.color != color:
                 # Subtract the opponent's PST value
-                score -= self.pst.get_piece_square_value(piece.piece_type, square) * pst_score_modifier
+                score -= self.pst.get_pst_value(piece, square, piece.color, endgame_factor) * pst_score_modifier
 
         return score
     def _piece_captures(self, board: chess.Board, color: chess.Color) -> float:
@@ -124,9 +124,36 @@ class v7p3rRules:
             chess.KING: 20000  # King captures are checkmate
         }
 
-        # Evaluate all capture moves for the current player
+        # Get all capture moves
+        captures = []
         for move in board.legal_moves:
             if board.is_capture(move):
+                captures.append(move)
+                
+        # Limit number of captures to analyze (max 8 captures)
+        max_captures = 8
+        capture_count = min(len(captures), max_captures)
+        
+        # Only analyze the most important captures if we have too many
+        if capture_count > 0:
+            # Sort captures by rough MVV-LVA (prioritize high-value victims)
+            capture_priorities = []
+            for move in captures:
+                victim_piece = board.piece_at(move.to_square)
+                attacker_piece = board.piece_at(move.from_square)
+                
+                if victim_piece and attacker_piece:
+                    victim_value = mvv_lva_values.get(victim_piece.piece_type, 0)
+                    attacker_value = mvv_lva_values.get(attacker_piece.piece_type, 0)
+                    priority = victim_value - (attacker_value * 0.1)
+                    capture_priorities.append((move, priority))
+                    
+            # Sort by priority (highest first) and take top N captures
+            capture_priorities.sort(key=lambda x: x[1], reverse=True)
+            top_captures = [cp[0] for cp in capture_priorities[:max_captures]]
+            
+            # Evaluate these top captures
+            for move in top_captures:
                 victim_piece = board.piece_at(move.to_square)
                 attacker_piece = board.piece_at(move.from_square)
                 
@@ -137,7 +164,7 @@ class v7p3rRules:
                     # Basic MVV-LVA score: prioritize high-value victims with low-value attackers
                     mvv_lva_score = victim_value - (attacker_value * 0.1)
                     
-                    # Check if the capture is safe (Static Exchange Evaluation approximation)
+                    # Check if the capture is safe using our simplified SEE
                     capture_safety = self._evaluate_capture_safety(board, move, color)
                     
                     # Apply bonuses/penalties based on capture quality
@@ -152,17 +179,13 @@ class v7p3rRules:
                         penalty_factor = 0.002 if victim_value >= 500 else 0.001
                         score += mvv_lva_score * piece_captures_modifier * penalty_factor
 
-        # Evaluate opponent's capture threats against us (defensive consideration)
-        for move in board.legal_moves:
-            if board.is_capture(move):
-                victim_piece = board.piece_at(move.to_square)
-                attacker_piece = board.piece_at(move.from_square)
-                
-                if victim_piece and attacker_piece and victim_piece.color == color:
-                    # Our piece is being threatened
-                    victim_value = mvv_lva_values.get(victim_piece.piece_type, 0)
-                    
-                    # Apply defensive penalty
+        # Simplify defensive consideration - only check for direct threats to valuable pieces
+        valuable_pieces = [chess.QUEEN, chess.ROOK]
+        for square in chess.SQUARES:
+            piece = board.piece_at(square)
+            if piece and piece.color == color and piece.piece_type in valuable_pieces:
+                if board.is_attacked_by(not color, square):
+                    victim_value = mvv_lva_values.get(piece.piece_type, 0)
                     score -= victim_value * piece_captures_modifier * 0.005
 
         return score
@@ -170,52 +193,47 @@ class v7p3rRules:
     def _evaluate_capture_safety(self, board: chess.Board, capture_move: chess.Move, color: chess.Color) -> float:
         """
         Helper function to evaluate the safety of a capture move.
+        Returns the material balance (positive if good for the player, negative if bad).
+        Simplified SEE (Static Exchange Evaluation) to avoid infinite loops.
         """
         # Make the capture move temporarily
         board_copy = board.copy()
-        board_copy.push(capture_move)
         
-        target_square = capture_move.to_square
-        attackers_and_defenders = []
-        
-        # Find all pieces that can attack the target square
-        for square in chess.SQUARES:
-            piece = board_copy.piece_at(square)
-            if piece and board_copy.is_attacked_by(piece.color, target_square):
-                piece_value = {
-                    chess.PAWN: 100, chess.KNIGHT: 320, chess.BISHOP: 330,
-                    chess.ROOK: 500, chess.QUEEN: 900, chess.KING: 20000
-                }.get(piece.piece_type, 0)
-                attackers_and_defenders.append((piece_value, piece.color))
-        
-        # Sort by piece value (least valuable first for each side)
-        attackers_and_defenders.sort(key=lambda x: x[0])
-        
-        # Simulate the exchange sequence
-        material_balance = 0
-        current_turn = not color  # Opponent responds to our capture
-        
-        # Get the value of the initially captured piece
-        captured_piece = board.piece_at(capture_move.to_square)
-        if captured_piece:
-            captured_piece_value = {
-                chess.PAWN: 100, chess.KNIGHT: 320, chess.BISHOP: 330,
-                chess.ROOK: 500, chess.QUEEN: 900, chess.KING: 20000
-            }.get(captured_piece.piece_type, 0)
-            material_balance += captured_piece_value  # We gain the initial capture
-        else:
+        # Get the value of the initially captured piece before making the move
+        captured_piece = board_copy.piece_at(capture_move.to_square)
+        if not captured_piece:
             return 0  # No piece to capture
+            
+        captured_piece_value = {
+            chess.PAWN: 100, chess.KNIGHT: 320, chess.BISHOP: 330,
+            chess.ROOK: 500, chess.QUEEN: 900, chess.KING: 20000
+        }.get(captured_piece.piece_type, 0)
         
-        # Process recaptures alternately
-        for piece_value, piece_color in attackers_and_defenders:
-            if piece_color == current_turn:
-                if current_turn == color:
-                    material_balance += piece_value  # We recapture
-                else:
-                    material_balance -= piece_value  # Opponent recaptures
-                current_turn = not current_turn
+        # Get the value of the attacking piece
+        attacking_piece = board_copy.piece_at(capture_move.from_square)
+        if not attacking_piece:
+            return 0  # No attacker (shouldn't happen)
+            
+        attacking_piece_value = {
+            chess.PAWN: 100, chess.KNIGHT: 320, chess.BISHOP: 330,
+            chess.ROOK: 500, chess.QUEEN: 900, chess.KING: 20000
+        }.get(attacking_piece.piece_type, 0)
         
-        return material_balance
+        # Make the move
+        board_copy.push(capture_move)
+        target_square = capture_move.to_square
+        
+        # Check if the square is now defended by the opponent
+        is_defended = board_copy.is_attacked_by(not color, target_square)
+        
+        if not is_defended:
+            # Simple case: we capture a piece and it's not defended
+            return captured_piece_value
+            
+        # If the square is defended, we have a simple trade
+        # For simplicity, we'll just do a basic evaluation
+        # Positive if we're trading a lower value piece for a higher value one
+        return captured_piece_value - attacking_piece_value
 
     def _center_control(self, board: chess.Board, color: chess.Color) -> float:
         """Simple center control"""

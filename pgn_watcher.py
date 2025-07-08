@@ -71,7 +71,8 @@ except ImportError:
             pgn_watcher_logger.addHandler(file_handler)
             pgn_watcher_logger.propagate = False
         except Exception as e:
-            print(f"Warning: Could not set up file logging for pgn_watcher: {e}")
+            # Last resort fallback message if logging completely fails
+            pgn_watcher_logger.error(f"Could not set up file logging for pgn_watcher: {e}")
             # Fall back to console logging
             console_handler = logging.StreamHandler()
             formatter = logging.Formatter(
@@ -94,6 +95,7 @@ class StandaloneChessRenderer:
         self.flip_board = False
         self.display_needs_update = True
         self.screen_ready = False
+        self.logger = pgn_watcher_logger
         
     def load_images(self):
         """Load chess piece images"""
@@ -106,7 +108,7 @@ class StandaloneChessRenderer:
                     (SQ_SIZE, SQ_SIZE)
                 )
             except pygame.error:
-                print(f"Could not load image for {piece}")
+                self.logger.error(f"Could not load image for {piece}")
                 
     def draw_board(self):
         """Draw the chess board"""
@@ -224,9 +226,13 @@ class PGNWatcher:
         pygame.display.set_caption("PGN Watcher")
         self.game.load_images()
         self.clock = pygame.time.Clock()
+        self.logger = pgn_watcher_logger
+        
+        self.logger.info(f"PGN Watcher initialized, watching: {pgn_path}")
 
     def run(self):
         running = True
+        self.logger.info("Starting PGN Watcher loop")
         while running:
             for e in pygame.event.get():
                 if e.type == pygame.QUIT:
@@ -236,14 +242,19 @@ class PGNWatcher:
                 mtime = os.path.getmtime(self.pgn_path)
                 if mtime != self.last_mtime:
                     self.last_mtime = mtime
+                    self.logger.debug(f"PGN file changed, reloading: {self.pgn_path}")
                     self._reload_pgn()
             except FileNotFoundError:
-                pass
+                # Don't log this every time, only when the status changes
+                if self.last_mtime != 0:
+                    self.logger.warning(f"PGN file not found: {self.pgn_path}")
+                    self.last_mtime = 0
                 
             # redraw if needed
             if self.game.screen:
                 self.game.update_display()
             self.clock.tick(10)
+        self.logger.info("PGN Watcher loop ended")
         pygame.quit()
 
     def _reload_pgn(self):
@@ -272,11 +283,29 @@ class PGNWatcher:
                     if key in game.headers:
                         eval_str = f" (Eval: {game.headers[key]})"
                         break
-                # Print formatted info
-                print(f"Loaded game: {white} vs {black}")
-                print(f"Current position: {board.fen()}{eval_str}")
+                
+                # Get the last move if any moves have been made
+                last_move_str = ""
+                moves = list(game.mainline_moves())
+                if moves:
+                    last_move = moves[-1]
+                    last_move_str = f" | Last move: {last_move.uci()}"
+                
+                # Log game information
+                self.logger.info(f"Loaded game: {white} vs {black}{last_move_str}")
+                self.logger.info(f"Current position: {board.fen()}{eval_str}")
+                
+                # Get game comment with evaluation if available
+                last_node = game
+                for _ in moves:
+                    if not last_node.variations:
+                        break
+                    last_node = last_node.variations[0]
+                
+                if last_node.comment:
+                    self.logger.info(f"Position comment: {last_node.comment}")
         except Exception as e:
-            print(f"Error reloading PGN: {e}")
+            self.logger.error(f"Error reloading PGN: {e}")
 
 
 if __name__ == "__main__":
@@ -290,5 +319,6 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         pgn_path = sys.argv[1]
     
-    print(f"Watching PGN file: {pgn_path}")
+    # Log startup instead of printing
+    pgn_watcher_logger.info(f"Starting PGN Watcher for file: {pgn_path}")
     PGNWatcher(pgn_path).run()

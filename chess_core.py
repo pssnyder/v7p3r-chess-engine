@@ -148,6 +148,9 @@ class ChessCore:
                 self.game_node = self.game.end()
             else:
                 self.game.headers["Result"] = "*"
+                
+            # Update active_game.pgn after each move for real-time monitoring
+            self.quick_save_pgn("active_game.pgn")
             
             return True
         except ValueError as e:
@@ -193,7 +196,9 @@ class ChessCore:
                 buf = StringIO()
                 exporter = chess.pgn.FileExporter(buf)
                 self.game.accept(exporter)
-                f.write(buf.getvalue())
+                pgn_content = buf.getvalue()
+                f.write(pgn_content)
+                f.flush()  # Ensure content is written to disk
             
             if self.logger:
                 self.logger.debug(f"PGN saved to {filename}")

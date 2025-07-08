@@ -17,7 +17,7 @@ from metrics.v7p3r_chess_metrics import get_metrics_instance, GameMetric
 from chess_core import ChessCore
 from pgn_watcher import PGNWatcher
 
-CONFIG_NAME = "material_only_config"
+CONFIG_NAME = "default_config"
 
 # Define the maximum frames per second for the game loop
 MAX_FPS = 60
@@ -294,18 +294,23 @@ class v7p3rChess(ChessCore):
             score = -999999999 if self.board.turn == chess.WHITE else 999999999
             if self.monitoring_enabled and self.logger:
                 self.logger.info(f"Recording checkmate evaluation: {score:+.2f}")
+                
+            # Make sure the score format is consistent, especially for extreme values
+            formatted_score = f"{score:+.2f}" if abs(score) < 10000 else f"{int(score):+d}"
+            self.current_eval = score
+            self.game_node.comment = f"Eval: {formatted_score}"
         else:
             # Use standard white perspective evaluation (white_score - black_score)
             score = self.engine.scoring_calculator.evaluate_position(self.board)
             
-        self.current_eval = score
-        self.game_node.comment = f"Eval: {score:+.2f}"
+            self.current_eval = score
+            self.game_node.comment = f"Eval: {score:+.2f}"
         
         # Display move with evaluation if verbose output is enabled
-        if self.verbose_output_enabled:
+        if self.verbose_output_enabled and self.logger:
             current_player = self.board.turn
             player_name = "White" if current_player == chess.WHITE else "Black"
-            print(f"Position evaluation: {score:+.2f} (White perspective)")
+            self.logger.info(f"Position evaluation: {score:+.2f} (White perspective)")
         
         if self.monitoring_enabled and self.logger:
             self.logger.info(f"Evaluation recorded: {score:+.2f} (White perspective)")
@@ -655,8 +660,7 @@ class v7p3rChess(ChessCore):
             if self.engine.name.lower() == 'v7p3r':
                 self.record_evaluation()
             
-            # Save active game state
-            self.quick_save_pgn("active_game.pgn")
+            # The active_game.pgn is already updated in the parent chess_core.py push_move method
             
             return True
         except Exception as e:
@@ -833,9 +837,15 @@ class v7p3rChess(ChessCore):
         player_name = "White" if move_player == chess.WHITE else "Black"
         engine_name = self.white_player if move_player == chess.WHITE else self.black_player
         
-        # Get evaluation from White's perspective (white_score - black_score)
+        # Get evaluation
         try:
-            eval_score = self.engine.scoring_calculator.evaluate_position(self.board)
+            # Special handling for checkmate
+            if self.board.is_checkmate():
+                # Assign a huge negative score if white is checkmated, huge positive if black is checkmated
+                eval_score = -999999999 if self.board.turn == chess.WHITE else 999999999
+            else:
+                # Use standard white perspective evaluation (white_score - black_score)
+                eval_score = self.engine.scoring_calculator.evaluate_position(self.board)
         except:
             eval_score = 0.0
         
@@ -847,7 +857,11 @@ class v7p3rChess(ChessCore):
         # Always show time if we have timing data
         move_display += f" ({time_display})"
         if eval_score != 0.0:
-            move_display += f" [Eval: {eval_score:+.2f}]"
+            # Format evaluation appropriately (integer for extreme values)
+            if abs(eval_score) > 10000:
+                move_display += f" [Eval: {int(eval_score):+d}]"
+            else:
+                move_display += f" [Eval: {eval_score:+.2f}]"
         
         print(move_display)
         
