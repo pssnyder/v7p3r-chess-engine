@@ -8,7 +8,7 @@ It is designed to be used by the v7p3r chess engine.
 import chess
 import sys
 import os
-from v7p3r_utilities import v7p3rUtilities
+from v7p3r_utilities import get_timestamp
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if parent_dir not in sys.path:
@@ -24,7 +24,7 @@ class v7p3rRules:
         self.endgame_factor = 0.0  # Default endgame factor for endgame awareness
         self.fallback_modifier = 1.0  # Default modifier for scoring components (was 100, reduced to avoid score inflation)
         self.score_counter = 0
-        self.score_id = f"score[{self.score_counter}]_{v7p3rUtilities.get_timestamp()}"
+        self.score_id = f"score[{self.score_counter}]_{get_timestamp()}"
         self.fen = self.root_board.fen()
         self.root_move = chess.Move.null()
         self.score = 0.0
@@ -48,14 +48,20 @@ class v7p3rRules:
         Assess if 'color' can deliver a checkmate on their next move.
         Only consider legal moves for 'color' without mutating the original board's turn.
         """
+        # Ensure we have proper chess.Color values
+        if color is True or color is False:  # Raw boolean passed in
+            color = chess.WHITE if color else chess.BLACK
+            
+        current_turn = chess.WHITE if board.turn else chess.BLACK
+            
         score = 0.0
         checkmate_threats_modifier = self.ruleset.get('checkmate_threats_modifier', self.fallback_modifier)
         if checkmate_threats_modifier == 0.0:
             return score
 
-        if board.is_checkmate() and board.turn == color:
+        if board.is_checkmate() and current_turn == color:
             score += 9999.0 * checkmate_threats_modifier
-        elif board.is_checkmate() and board.turn != color:
+        elif board.is_checkmate() and current_turn != color:
             score -= 9999.0 * checkmate_threats_modifier
         return score
 

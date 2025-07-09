@@ -11,6 +11,7 @@ import sys
 import os
 from typing import Optional
 from v7p3r_config import v7p3rConfig
+from v7p3r_utilities import get_timestamp
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if parent_dir not in sys.path:
@@ -41,7 +42,7 @@ class v7p3rScore:
         self.game_phase = 'opening'  # Default game phase
         self.endgame_factor = 0.0  # Default endgame factor for endgame awareness
         self.score_counter = 0
-        self.score_id = f"score[{self.score_counter}]_{v7p3rUtilities.get_timestamp()}"
+        self.score_id = f"score[{self.score_counter}]_{get_timestamp()}"
         self.fen = self.root_board.fen()
         self.root_move = chess.Move.null()
         self.score = 0.0
@@ -89,6 +90,10 @@ class v7p3rScore:
     
     def evaluate_position_from_perspective(self, board: chess.Board, color: Optional[chess.Color] = chess.WHITE) -> float:
         """Calculate position evaluation from specified player's perspective by delegating to scoring_calculator."""
+        # Ensure we have a proper chess.Color value
+        if color is True or color is False:  # Raw boolean passed in
+            color = chess.WHITE if color else chess.BLACK
+            
         self.color_name = "White" if color == chess.WHITE else "Black"
         
         if not isinstance(color, chess.Color) or not board.is_valid():
@@ -96,8 +101,10 @@ class v7p3rScore:
 
         # Game over checks for quick returns
         checkmate_threats_modifier = self.ruleset.get('checkmate_threats_modifier', self.fallback_modifier)
+        # Ensure board.turn is converted to chess.Color for comparison
+        current_turn = chess.WHITE if board.turn else chess.BLACK
         if board.is_checkmate():
-            return -1 * checkmate_threats_modifier if board.turn == color else checkmate_threats_modifier
+            return -1 * checkmate_threats_modifier if current_turn == color else checkmate_threats_modifier
         if board.is_stalemate() or board.is_insufficient_material():
             return 0.0
 

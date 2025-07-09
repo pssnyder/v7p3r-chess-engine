@@ -5,13 +5,12 @@ Generic chess functionality independent of specific engines.
 import os
 import chess
 import chess.pgn
-import chess.engine
 import datetime
 import socket
 import time
 from typing import Optional
 from io import StringIO
-from v7p3r_debug import v7p3rUtilities
+from v7p3r_utilities import get_timestamp
 
 class ChessCore:
     def __init__(self):
@@ -41,7 +40,7 @@ class ChessCore:
         self.current_player = self.board.turn
         self.move_history = []
         self.game_start_time = time.time()
-        self.game_start_timestamp = v7p3rUtilities.get_timestamp()
+        self.game_start_timestamp = get_timestamp()
 
         # Set default PGN headers
         self.set_headers()

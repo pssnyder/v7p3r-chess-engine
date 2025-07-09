@@ -11,11 +11,11 @@ import time
 from io import StringIO
 from v7p3r_config import v7p3rConfig
 from v7p3r_utilities import resource_path, get_timestamp
-from metrics.v7p3r_chess_metrics import get_metrics_instance, GameMetric
+from v7p3r_chess_metrics import get_metrics_instance, GameMetric
 from chess_core import ChessCore
 from pgn_watcher import PGNWatcher
 
-CONFIG_NAME = "custom_config"
+CONFIG_NAME = "default_config"
 
 # Define the maximum frames per second for the game loop
 MAX_FPS = 60
@@ -117,7 +117,7 @@ class v7p3rChess(ChessCore):
                 game_duration=0.0
             )
             # Use legacy compatibility function to avoid async issues
-            from metrics.v7p3r_chess_metrics import add_game_result
+            from v7p3r_chess_metrics import add_game_result
             add_game_result(
                 game_id=self.current_game_id,
                 timestamp=datetime.datetime.now().isoformat(),
@@ -189,7 +189,7 @@ class v7p3rChess(ChessCore):
                 total_moves = len(list(self.game.mainline_moves()))
                 
                 # Update database with final game result
-                from metrics.v7p3r_chess_metrics import get_metrics_instance
+                from v7p3r_chess_metrics import get_metrics_instance
                 metrics = get_metrics_instance()
                 
                 # Determine winner for database format
@@ -269,7 +269,8 @@ class v7p3rChess(ChessCore):
         """Process move for the engine"""
         engine_move = chess.Move.null()
         self.current_eval = 0.0
-        self.current_player = self.board.turn
+        # Explicitly convert board.turn to chess.Color
+        self.current_player = chess.WHITE if self.board.turn else chess.BLACK
         self.move_start_time = time.time()  # Start timing the move
         self.move_end_time = 0
         self.move_duration = 0

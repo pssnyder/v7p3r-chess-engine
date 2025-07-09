@@ -5,6 +5,7 @@ import os
 import chess
 import random
 from v7p3r_config import v7p3rConfig
+from v7p3r_utilities import get_timestamp
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if parent_dir not in sys.path:
@@ -49,7 +50,7 @@ class v7p3rSearch:
         self.best_score = -float('inf')
         self.fen = self.root_board.fen()
         self.search_id_counter = 0  # Counter for generating unique search IDs
-        self.search_id = f"search[{self.search_id_counter}]_{v7p3rUtilities.get_timestamp()}"  # Unique ID for each search instance
+        self.search_id = f"search[{self.search_id_counter}]_{get_timestamp()}"  # Unique ID for each search instance
 
         # Initialize search dataset
         self.search_dataset = {
@@ -71,10 +72,12 @@ class v7p3rSearch:
         """Search handler: delegates to the selected search algorithm, which is responsible for root move selection."""
         try:
             self.root_board = board.copy()
-            self.current_turn = board.turn
-            self.current_perspective = color
+            # Ensure we're using proper chess.Color values
+            self.current_turn = chess.WHITE if board.turn else chess.BLACK
+            self.current_perspective = chess.WHITE if color else chess.BLACK
             self.nodes_searched = 0  # Reset nodes searched for this search
-            self.color_name = 'White' if color == chess.WHITE else 'Black'
+            # Ensure explicit color comparison
+            self.color_name = 'White' if color == chess.WHITE else 'Black'  # color will be chess.WHITE or chess.BLACK
             self.best_move = chess.Move.null()
             self.best_score = -float('inf')
             self.pv_move_stack = [{}]
@@ -424,7 +427,7 @@ class v7p3rSearch:
         if board.is_game_over():
             if board.is_checkmate():
                 # Found checkmate, return the first move that started this sequence
-                return first_move if first_move != chess.Move.null() else chess.Move.null()
+                return first_move
             else:
                 # Game over but not checkmate (stalemate, etc.)
                 return chess.Move.null()
