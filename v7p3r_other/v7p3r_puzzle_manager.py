@@ -12,17 +12,11 @@ The database uses a normalized schema with only a puzzles table.
 """
 
 import os
-import sys
 import sqlite3
 import csv
 import json
-import logging
 from datetime import datetime
-import random
-from pathlib import Path
 from v7p3r_config import v7p3rConfig
-
-
 
 # Define ELO difficulty levels
 ELO_DIFFICULTY_LEVELS = {
@@ -71,61 +65,9 @@ class PuzzleDBManager:
         # Create tables if they don't exist
         self._create_tables()
         
-        # Set up logging
-        self._setup_logging()
-        
-    def _setup_logging(self):
-        """Configure logging for the puzzle database manager."""
-        try:
-            log_level = getattr(logging, self.config.get('logging', {}).get('level', 'INFO'))
-            log_file = self.config.get('logging', {}).get('file', 'logging/puzzle_db_manager.log')
-            
-            # Create log directory if it doesn't exist
-            os.makedirs(os.path.dirname(log_file), exist_ok=True)
-            
-            # Configure logging
-            self.logger = logging.getLogger('puzzle_db_manager')
-            self.logger.setLevel(log_level)
-            
-            # Clear existing handlers to avoid duplicates
-            if self.logger.handlers:
-                self.logger.handlers.clear()
-            
-            # File handler
-            file_handler = logging.FileHandler(log_file)
-            file_handler.setLevel(log_level)
-            file_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-            file_handler.setFormatter(file_format)
-            
-            # Console handler
-            console_handler = logging.StreamHandler()
-            console_handler.setLevel(log_level)
-            console_format = logging.Formatter('%(levelname)s - %(message)s')
-            console_handler.setFormatter(console_format)
-            
-            # Add handlers
-            self.logger.addHandler(file_handler)
-            self.logger.addHandler(console_handler)
-            
-        except Exception as e:
-            # Fallback to basic logging if there's an error
-            self.logger = logging.getLogger('puzzle_db_manager')
-            self.logger.setLevel(logging.INFO)
-            
-            if not self.logger.handlers:
-                handler = logging.StreamHandler()
-                handler.setLevel(logging.INFO)
-                formatter = logging.Formatter('%(levelname)s - %(message)s')
-                handler.setFormatter(formatter)
-                self.logger.addHandler(handler)
-                
-            self.logger.error(f"Error setting up logging: {e}")
-            self.logger.info("Using fallback logging configuration")
-    
     def _create_tables(self):
         """Create the database tables if they don't exist."""
         if not self.conn:
-            self.logger.error("No database connection available")
             return
             
         cursor = self.conn.cursor()
@@ -167,13 +109,10 @@ class PuzzleDBManager:
             int: Number of puzzles imported.
         """
         if not self.conn:
-            self.logger.error("No database connection available")
             return 0
             
         imported_count = 0
         skipped_count = 0
-        
-        self.logger.info(f"Importing puzzles from {csv_path}")
         
         try:
             with open(csv_path, newline='', encoding='utf-8') as csvfile:
@@ -200,22 +139,18 @@ class PuzzleDBManager:
                         ))
                         imported_count += 1
                         
-                        # Log progress periodically
+                        # Record progress periodically
                         if imported_count % 1000 == 0:
-                            self.logger.info(f"Imported {imported_count} puzzles so far...")
                             self.conn.commit()
                             
                     except Exception as e:
-                        self.logger.error(f"Error importing puzzle {row.get('PuzzleId', 'unknown')}: {str(e)}")
                         skipped_count += 1
                 
                 self.conn.commit()
                 
-            self.logger.info(f"Import complete. Imported {imported_count} puzzles, skipped {skipped_count}.")
             return imported_count
             
         except Exception as e:
-            self.logger.error(f"Failed to import puzzles: {str(e)}")
             return 0
 
     def _get_difficulty_level(self, rating):
@@ -246,7 +181,6 @@ class PuzzleDBManager:
             list: List of puzzle dictionaries.
         """
         if not self.conn:
-            self.logger.error("No database connection available")
             return []
             
         if filters is None:
@@ -317,7 +251,6 @@ class PuzzleDBManager:
             dict: The puzzle data or None if not found.
         """
         if not self.conn:
-            self.logger.error("No database connection available")
             return None
             
         cursor = self.conn.cursor()
@@ -336,7 +269,6 @@ class PuzzleDBManager:
             list: Sorted list of unique themes.
         """
         if not self.conn:
-            self.logger.error("No database connection available")
             return []
             
         cursor = self.conn.cursor()
@@ -358,7 +290,6 @@ class PuzzleDBManager:
             dict: Database statistics.
         """
         if not self.conn:
-            self.logger.error("No database connection available")
             return {
                 "total_puzzles": 0,
                 "difficulty_distribution": {},
@@ -411,14 +342,12 @@ class PuzzleDBManager:
             str: Path to the generated test set file.
         """
         if not self.conn:
-            self.logger.error("No database connection available")
             return None
             
         # Get puzzles based on filters
         puzzles = self.get_puzzles(filters, limit=size)
         
         if not puzzles:
-            self.logger.warning("No puzzles match the specified filters")
             return None
             
         # Create test set data
@@ -458,7 +387,6 @@ class PuzzleDBManager:
         with open(output_path, 'w') as f:
             json.dump(test_set, f, indent=2, default=str)
             
-        self.logger.info(f"Generated test set with {len(puzzles)} puzzles: {output_path}")
         return output_path
     
     def close(self):
@@ -466,9 +394,8 @@ class PuzzleDBManager:
         if self.conn:
             try:
                 self.conn.close()
-                self.logger.info("Database connection closed")
             except Exception as e:
-                self.logger.error(f"Error closing database connection: {e}")
+                raise
             finally:
                 self.conn = None
 
@@ -507,10 +434,8 @@ class PuzzleDBManager:
         query_parts.append("ORDER BY RANDOM() LIMIT ?")
         query_params.append(count)
         if not self.conn:
-            self.logger.error("No database connection available")
             return []
         if not self.conn:
-            self.logger.error("No database connection available")
             return []
         cursor = self.conn.cursor()
         cursor.execute(" ".join(query_parts), query_params)

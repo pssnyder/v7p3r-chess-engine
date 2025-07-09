@@ -19,11 +19,7 @@ from v7p3r_ga_ruleset_manager import v7p3rGARulesetManager
 from v7p3r_score import v7p3rScore
 from v7p3r_pst import v7p3rPST
 from v7p3r_stockfish_handler import StockfishHandler
-from puzzles.puzzle_db_manager import PuzzleDBManager
-from v7p3r_debug import v7p3rLogger
-
-# Setup centralized logging for this module
-v7p3r_ga_logger = v7p3rLogger.setup_logger("v7p3r_ga")
+from v7p3r_other.v7p3r_puzzle_manager import PuzzleDBManager
 
 class v7p3rGeneticAlgorithm:
     """
@@ -33,9 +29,6 @@ class v7p3rGeneticAlgorithm:
         # Use centralized configuration manager
         self.config_manager = v7p3rConfig(overrides=config_overrides)
         self.config = self.config_manager.get_v7p3r_ga_config()
-
-        # Setup logger
-        self.logger = v7p3r_ga_logger
 
         # Managers
         self.ruleset_manager = v7p3rGARulesetManager()
@@ -51,8 +44,8 @@ class v7p3rGeneticAlgorithm:
 
         # Scorer
         engine_cfg = {'verbose_output': False}
-        # Initialize PST with default piece values and logger
-        pst = v7p3rPST(self.logger)
+        # Initialize PST
+        pst = v7p3rPST()
         self.scorer = v7p3rScore(engine_cfg, pst)
 
         # Load base ruleset
@@ -81,7 +74,6 @@ class v7p3rGeneticAlgorithm:
         # Using puzzle DB manager to fetch
         self.test_positions = self.puzzle_db.get_puzzles(limit=count)
         if not self.test_positions:
-            v7p3r_ga_logger.warning('No puzzles found; defaulting to starting position')
             self.test_positions = [{'fen': 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'}]
 
     def _mutate(self, ruleset, scale=0.1):
@@ -101,7 +93,6 @@ class v7p3rGeneticAlgorithm:
     def _evaluate(self, ruleset):
         # Override ruleset directly in scorer
         self.scorer.ruleset = ruleset
-        # Optional: update ruleset_name for logging
         self.scorer.ruleset_name = 'GA_Tuning'
         error = 0.0
         from chess import Board
@@ -137,7 +128,6 @@ class v7p3rGeneticAlgorithm:
                 v7_eval = self.scorer.calculate_score(board, board.turn) * 100
                 error += (v7_eval - sf_eval) ** 2
             except Exception as e:
-                v7p3r_ga_logger.warning(f"Error evaluating position {fen}: {e}")
                 error += 1e6
         
         mse = error / max(len(positions_to_evaluate), 1)
@@ -151,13 +141,11 @@ class v7p3rGeneticAlgorithm:
             self.stockfish.close()
         if hasattr(self.puzzle_db, 'close'):
             self.puzzle_db.close()
-        v7p3r_ga_logger.info('Cleanup complete')
         
     def run(self):
         gens = self.config.get('generations', 20)
         elitism = self.config.get('elitism_rate', 0.1)
         for g in range(gens):
-            v7p3r_ga_logger.info(f'Generation {g+1}/{gens}')
             scores = [self._evaluate(r) for r in self.population]
             paired = list(zip(self.population, scores))
             paired.sort(key=lambda x: x[1], reverse=True)
@@ -173,11 +161,10 @@ class v7p3rGeneticAlgorithm:
                 new_pop.append(child)
             self.population = new_pop
             best = paired[0]
-            v7p3r_ga_logger.info(f'Best fitness: {best[1]}')
+            
             # save best to results
             self._save_best(best[0], g)
-        v7p3r_ga_logger.info('GA tuning complete')
-
+        
     def _save_best(self, ruleset, generation):
         out_dir = os.path.join(os.path.dirname(__file__), 'ga_results')
         os.makedirs(out_dir, exist_ok=True)
@@ -187,8 +174,7 @@ class v7p3rGeneticAlgorithm:
             json.dump(ruleset, f, indent=4)
         # also update main custom_rulesets.json
         self.ruleset_manager.save_ruleset(f'tuned_ga_gen{generation+1}', ruleset)
-        v7p3r_ga_logger.info(f'Saved best ruleset for gen {generation+1} to {path}')
-
+        
 def main():
     ga = v7p3rGeneticAlgorithm()
     ga.run()

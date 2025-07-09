@@ -8,14 +8,10 @@ import os
 import sys
 import time
 from typing import Optional, Dict, Any
-from v7p3r_debug import v7p3rLogger, v7p3rUtilities
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
-
-# Setup centralized logging for this module
-v7p3r_time_logger = v7p3rLogger.setup_logger("v7p3r_time")
 
 class v7p3rTime:
     def __init__(self):

@@ -1,6 +1,6 @@
 # pgn_watcher.py
 """ PGN Watcher for Active Games 
-This script monitors the active_game.pgn in the logging directory for changes and updates the chess board display accordingly.
+This script monitors the active_game.pgn in the root directory for changes and updates the chess board display accordingly.
 This is an asyncronous standalone renderer intended to provide visual feedback for games in progress without impacting engine performance.
 Due to the asyncronous nature, automated games may not display all moves in real time. """
 
@@ -10,8 +10,9 @@ import pygame
 import chess
 import chess.pgn
 import sys
-import logging
-import datetime
+
+# Default path to watch
+pgn_path = "active_game.pgn"
 
 # Define constants locally instead of importing from chess_game
 WIDTH, HEIGHT = 640, 640
@@ -30,58 +31,6 @@ def resource_path(relative_path):
     if base:
         return os.path.join(base, relative_path)
     return os.path.join(os.path.abspath("."), relative_path)
-# =====================================
-# ========== LOGGING SETUP ============
-# Import our robust logging system instead of using a custom setup
-try:
-    from v7p3r_debug import v7p3rLogger
-    pgn_watcher_logger = v7p3rLogger.setup_logger("pgn_watcher")
-except ImportError:
-    # Fallback to basic logging if v7p3r_debug is not available
-    def get_timestamp():
-        return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-
-    # Create logging directory relative to project root
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
-    log_dir = os.path.join(project_root, 'logging')
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir, exist_ok=True)
-
-    # Setup individual logger for this file
-    log_filename = f"pgn_watcher.log"  # Use a single log file for simplicity
-    log_file_path = os.path.join(log_dir, log_filename)
-
-    pgn_watcher_logger = logging.getLogger("pgn_watcher")
-    pgn_watcher_logger.setLevel(logging.DEBUG)
-
-    if not pgn_watcher_logger.handlers:
-        try:
-            from logging.handlers import RotatingFileHandler
-            file_handler = RotatingFileHandler(
-                log_file_path,
-                maxBytes=10*1024*1024,
-                backupCount=3,
-                delay=True
-            )
-            formatter = logging.Formatter(
-                '%(asctime)s | %(funcName)-15s | %(message)s',
-                datefmt='%H:%M:%S'
-            )
-            file_handler.setFormatter(formatter)
-            pgn_watcher_logger.addHandler(file_handler)
-            pgn_watcher_logger.propagate = False
-        except Exception as e:
-            # Last resort fallback message if logging completely fails
-            pgn_watcher_logger.error(f"Could not set up file logging for pgn_watcher: {e}")
-            # Fall back to console logging
-            console_handler = logging.StreamHandler()
-            formatter = logging.Formatter(
-                '%(asctime)s | %(funcName)-15s | %(message)s',
-                datefmt='%H:%M:%S'
-            )
-            console_handler.setFormatter(formatter)
-            pgn_watcher_logger.addHandler(console_handler)
-            pgn_watcher_logger.propagate = False
 
 class StandaloneChessRenderer:
     """Simplified standalone renderer for chess positions"""
@@ -95,7 +44,6 @@ class StandaloneChessRenderer:
         self.flip_board = False
         self.display_needs_update = True
         self.screen_ready = False
-        self.logger = pgn_watcher_logger
         
     def load_images(self):
         """Load chess piece images"""
@@ -108,7 +56,7 @@ class StandaloneChessRenderer:
                     (SQ_SIZE, SQ_SIZE)
                 )
             except pygame.error:
-                self.logger.error(f"Could not load image for {piece}")
+                raise
                 
     def draw_board(self):
         """Draw the chess board"""
@@ -226,13 +174,9 @@ class PGNWatcher:
         pygame.display.set_caption("PGN Watcher")
         self.game.load_images()
         self.clock = pygame.time.Clock()
-        self.logger = pgn_watcher_logger
-        
-        self.logger.info(f"PGN Watcher initialized, watching: {pgn_path}")
 
     def run(self):
         running = True
-        self.logger.info("Starting PGN Watcher loop")
         last_event_check = time.time()
         last_file_check = time.time()
         
@@ -252,15 +196,12 @@ class PGNWatcher:
                     mtime = os.path.getmtime(self.pgn_path)
                     if mtime != self.last_mtime:
                         self.last_mtime = mtime
-                        self.logger.debug(f"PGN file changed, reloading: {self.pgn_path}")
                         self._reload_pgn()
                 except FileNotFoundError:
-                    # Don't log this every time, only when the status changes
                     if self.last_mtime != 0:
-                        self.logger.warning(f"PGN file not found: {self.pgn_path}")
                         self.last_mtime = 0
                 except Exception as e:
-                    self.logger.error(f"Error checking PGN file: {e}")
+                    raise
                 last_file_check = current_time
             
             # Update display if needed, limited to 30 FPS
@@ -268,12 +209,10 @@ class PGNWatcher:
                 try:
                     self.game.update_display()
                 except pygame.error as e:
-                    self.logger.error(f"Error updating display: {e}")
                     running = False
             
             # Sleep a tiny amount to prevent CPU spinning
             time.sleep(0.001)
-        self.logger.info("PGN Watcher loop ended")
         pygame.quit()
 
     def _reload_pgn(self):
@@ -305,44 +244,19 @@ class PGNWatcher:
                     self.game.board = board
                     self.game.selected_square = None
                     self.game.mark_display_dirty()
-                    
-                    # Extract basic game info
-                    white = game.headers.get('White', 'Unknown')
-                    black = game.headers.get('Black', 'Unknown')
-                    self.logger.info(f"Loaded game: {white} vs {black}")
-                    
-                    # Only get last move if moves were made
-                    if moves:
-                        last_move = moves[-1]
-                        self.logger.info(f"Last move: {last_move.uci()}")
                 
                 return  # Success, exit retry loop
                 
             except (IOError, PermissionError) as e:
                 if attempt < max_retries - 1:
-                    self.logger.warning(f"Retry {attempt + 1}/{max_retries}: Could not read PGN: {e}")
                     time.sleep(retry_delay)
-                else:
-                    self.logger.error(f"Failed to read PGN after {max_retries} attempts: {e}")
             except Exception as e:
-                if isinstance(e, TimeoutError):
-                    self.logger.error(f"Timeout while reading PGN: {e}")
-                else:
-                    self.logger.error(f"Unexpected error reloading PGN: {e}")
                 break  # Don't retry on timeout or unexpected errors
 
-
 if __name__ == "__main__":
-    # Create logging directory if it doesn't exist
-    os.makedirs("logging", exist_ok=True)
-    
-    # Default path to watch
-    pgn_path = "active_game.pgn"
     
     # Allow command-line override
     if len(sys.argv) > 1:
         pgn_path = sys.argv[1]
     
-    # Log startup instead of printing
-    pgn_watcher_logger.info(f"Starting PGN Watcher for file: {pgn_path}")
     PGNWatcher(pgn_path).run()

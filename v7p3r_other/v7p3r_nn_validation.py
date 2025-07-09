@@ -10,10 +10,6 @@ import yaml
 from v7p3r_nn import v7p3rNeuralNetwork
 from v7p3r import v7p3rEngine
 from v7p3r_stockfish_handler import StockfishHandler
-from v7p3r_debug import v7p3rLogger
-
-# Setup centralized logging for this module
-v7p3r_nn_validation_logger = v7p3rLogger.setup_logger("v7p3r_nn_validation")
 
 def get_timestamp():
     return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -65,7 +61,6 @@ def play_game(white_engine, black_engine, game_options=None):
             player_color = chess.BLACK
         
         # Get the move from the engine
-        v7p3r_nn_validation_logger.info(f"{'White' if board.turn == chess.WHITE else 'Black'} to move. Thinking...")
         start_time = time.time()
         
         try:
@@ -76,14 +71,11 @@ def play_game(white_engine, black_engine, game_options=None):
                 uci_move = engine.get_best_move(board.fen())
                 move = chess.Move.from_uci(uci_move)
             else:
-                v7p3r_nn_validation_logger.error(f"Engine {engine} doesn't have a compatible interface")
                 break
         except Exception as e:
-            v7p3r_nn_validation_logger.error(f"Error getting move from engine: {e}")
             break
         
         elapsed = time.time() - start_time
-        v7p3r_nn_validation_logger.info(f"Move chosen: {board.san(move)} in {elapsed:.2f} seconds")
         
         # Make the move
         board.push(move)
@@ -101,7 +93,6 @@ def play_game(white_engine, black_engine, game_options=None):
     result = board.result(claim_draw=True)
     game.headers["Result"] = result
     
-    v7p3r_nn_validation_logger.info(f"Game over. Result: {result}")
     return game
 
 def save_game(game, output_dir="games"):
@@ -114,7 +105,6 @@ def save_game(game, output_dir="games"):
         exporter = chess.pgn.FileExporter(f)
         game.accept(exporter)
     
-    v7p3r_nn_validation_logger.info(f"Game saved to {output_file}")
     return output_file
 
 def main():
@@ -147,11 +137,10 @@ def main():
             with open(args.v7p3r_config, 'r') as f:
                 v7p3r_config = yaml.safe_load(f)
         except Exception as e:
-            v7p3r_nn_validation_logger.error(f"Failed to load v7p3r config: {e}")
-            v7p3r_config = {}
+            raise
         
         # Initialize v7p3r engine
-        opponent_engine = v7p3rEngine(chess.Board(), chess.BLACK)
+        opponent_engine = v7p3rEngine()
         opponent_name = "v7p3r"
     
     elif args.opponent == "stockfish":
@@ -160,25 +149,17 @@ def main():
             with open(args.stockfish_config, 'r') as f:
                 stockfish_config = yaml.safe_load(f)
         except Exception as e:
-            v7p3r_nn_validation_logger.error(f"Failed to load Stockfish config: {e}")
             stockfish_config = {}
         
         stockfish_path = stockfish_config.get('stockfish_path', '')
         if not stockfish_path or not os.path.exists(stockfish_path):
-            v7p3r_nn_validation_logger.error(f"Stockfish executable not found at: {stockfish_path}")
             return
         
         # Initialize Stockfish engine
-        opponent_engine = StockfishHandler(
-            stockfish_path=stockfish_path,
-            elo_rating=stockfish_config.get('elo_rating', 1500),
-            skill_level=stockfish_config.get('skill_level', 5),
-            debug_mode=False
-        )
+        opponent_engine = StockfishHandler(stockfish_config=stockfish_path)
         opponent_name = "Stockfish"
     
     if opponent_engine is None:
-        v7p3r_nn_validation_logger.error("Failed to initialize opponent engine")
         return
     
     # Play the specified number of games
@@ -187,8 +168,6 @@ def main():
     
     try:
         for game_num in range(1, args.games + 1):
-            v7p3r_nn_validation_logger.info(f"Starting game {game_num} of {args.games}")
-            
             # Determine engine colors
             if args.alternate:
                 nn_plays_white = (game_num % 2 == 1)
@@ -230,10 +209,6 @@ def main():
                 results["draws"] += 1
                 nn_results["draws"] += 1
             
-            # Log current results
-            v7p3r_nn_validation_logger.info(f"Game {game_num} result: {result}")
-            v7p3r_nn_validation_logger.info(f"Current results - v7p3r NN: {nn_results['wins']} wins, {nn_results['losses']} losses, {nn_results['draws']} draws")
-    
     finally:
         # Close engines to release resources
         if hasattr(nn_engine, 'close'):
@@ -242,11 +217,11 @@ def main():
             opponent_engine.close()
     
     # Print final results
-    v7p3r_nn_validation_logger.info("Evaluation complete")
-    v7p3r_nn_validation_logger.info(f"Final results - v7p3r NN vs {opponent_name}:")
-    v7p3r_nn_validation_logger.info(f"v7p3r NN: {nn_results['wins']} wins, {nn_results['losses']} losses, {nn_results['draws']} draws")
+    print("Evaluation complete")
+    print(f"Final results - v7p3r NN vs {opponent_name}:")
+    print(f"v7p3r NN: {nn_results['wins']} wins, {nn_results['losses']} losses, {nn_results['draws']} draws")
     win_rate = (nn_results['wins'] + nn_results['draws'] * 0.5) / args.games * 100
-    v7p3r_nn_validation_logger.info(f"v7p3r NN score: {win_rate:.2f}%")
+    print(f"v7p3r NN score: {win_rate:.2f}%")
 
 if __name__ == "__main__":
     main()

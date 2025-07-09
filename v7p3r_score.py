@@ -11,14 +11,10 @@ import sys
 import os
 from typing import Optional
 from v7p3r_config import v7p3rConfig
-from v7p3r_debug import v7p3rLogger, v7p3rUtilities
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
-
-# Setup centralized logging for this module
-v7p3r_score_logger = v7p3rLogger.setup_logger("v7p3r_score")
 
 class v7p3rScore:
     def __init__(self, rules_manager, pst):
@@ -27,11 +23,6 @@ class v7p3rScore:
         self.config_manager = v7p3rConfig()
         self.engine_config = self.config_manager.get_engine_config()  # Ensure it's always a dictionary
         self.game_config = self.config_manager.get_game_config()
-
-        # Logging Setup
-        self.logger = v7p3r_score_logger
-        self.monitoring_enabled = self.engine_config.get('monitoring_enabled', True)
-        self.verbose_output_enabled = self.engine_config.get('verbose_output', False)
 
         # Required Scoring Modules
         self.pst = pst
@@ -80,8 +71,6 @@ class v7p3rScore:
     def evaluate_position(self, board: chess.Board) -> float:
         """Calculate position evaluation from general perspective by delegating to scoring_calculator."""
         if not isinstance(board, chess.Board) or not board.is_valid():
-            if self.monitoring_enabled and self.logger:
-                self.logger.error(f"[Error] Invalid input for evaluation. Board: {board.fen() if hasattr(board, 'fen') else 'N/A'}")
             return 0.0
         
         white_score = self.calculate_score(
@@ -95,8 +84,6 @@ class v7p3rScore:
 
         # Return the score from whites perspective
         score = white_score - black_score
-        if self.monitoring_enabled and self.logger:
-            self.logger.info(f"Evaluation: {score:.3f} | FEN: {board.fen()}")
         self.score_dataset['evaluation'] = score
         return score
     
@@ -105,8 +92,6 @@ class v7p3rScore:
         self.color_name = "White" if color == chess.WHITE else "Black"
         
         if not isinstance(color, chess.Color) or not board.is_valid():
-            if self.monitoring_enabled and self.logger:
-                self.logger.error(f"[Error] Invalid input for evaluation from perspective. Player: {self.color_name}, FEN: {board.fen() if hasattr(board, 'fen') else 'N/A'}")
             return 0.0
 
         # Game over checks for quick returns
@@ -127,9 +112,6 @@ class v7p3rScore:
             score = white_score - black_score
         else:
             score = black_score - white_score
-
-        if self.monitoring_enabled and self.verbose_output_enabled and self.logger:
-            self.logger.info(f"{self.color_name}'s perspective: {score:.3f} | FEN: {board.fen()}")
             
         self.score_dataset['evaluation'] = score
         return score
@@ -195,8 +177,6 @@ class v7p3rScore:
         self.score_dataset['game_phase'] = phase
         self.score_dataset['endgame_factor'] = endgame_factor
         self.score_dataset['material'] = material
-        if self.monitoring_enabled and self.logger:
-            self.logger.info(f"[Game Phase] Current phase: {self.game_phase} | Endgame factor: {self.endgame_factor:.2f} | FEN: {board.fen()}")
         return
     
     # ==========================================
@@ -231,9 +211,6 @@ class v7p3rScore:
         
         # Stop Check - Return if we're in a very clear position (queen + multiple pieces advantage)
         if (material_count > 10 or material_score > 1500) and not board.is_check():  # Big material advantage and not in check
-            if self.monitoring_enabled and self.logger:
-                self.logger.info(f"[Scoring Calc] Early return due to large advantage: {score:.3f}")
-            
             return score
         
         # GAME PHASE
@@ -258,9 +235,4 @@ class v7p3rScore:
         # Get a final evaluation score
         self.score_dataset['evaluation'] = score
         
-        # Log the final score
-        if self.monitoring_enabled and self.logger:
-            self.logger.info(f"[Scoring Calc] Final score for {self.color_name}: {score:.3f}")
-            self.logger.debug(f"[Scoring Dataset] {self.score_dataset}")
-
         return score

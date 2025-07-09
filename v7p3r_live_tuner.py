@@ -6,10 +6,6 @@ import sqlite3
 import chess
 from v7p3r import v7p3rEngine
 from v7p3r_config import v7p3rConfig
-from v7p3r_debug import v7p3rLogger
-
-# Setup centralized logging for this module
-v7p3r_live_tuner_logger = v7p3rLogger.setup_logger("v7p3r_live_tuner")
 
 OBSERVATION_MODE = False  # Set to True to enable observation features, such as pausing after each position
 position_config = {
@@ -29,27 +25,15 @@ def resource_path(relative_path):
     if base:
         return os.path.join(base, relative_path)
     return os.path.join(os.path.abspath("."), relative_path)
-# =====================================
-# ========== LOGGING SETUP ============
-def get_timestamp():
-    return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
-# Create logging directory relative to project root
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
-log_dir = os.path.join(project_root, 'logging')
 class v7p3rTuner:
     """v7p3rTuner
     This class is responsible for tuning the v7p3r engine using starting positions from a database.
     """
     def __init__(self):
-        # Initialize logger
-        self.logger = v7p3r_live_tuner_logger
-        
         # Load Configuration
         self.config_manager = v7p3rConfig()
         self.engine_config = self.config_manager.get_engine_config()
-        self.monitoring_enabled = self.engine_config.get("monitoring_enabled", True)
-        self.verbose_output_enabled = self.engine_config.get("verbose_output", True)
         
         # Initialize the engine with the loaded config
         self.engine = v7p3rEngine(self.engine_config)
@@ -102,18 +86,10 @@ class v7p3rTuner:
         limit = criteria.get('limit', 25)
         params = [rating_limit, max_moves] + theme_params + [limit]
         
-        # Debug output
-        if self.monitoring_enabled and self.logger:
-            self.logger.info(f"Database query: {query}")
-            self.logger.info(f"Query parameters: {params}")
-            self.logger.info(f"Criteria: rating <= {rating_limit}, max_moves <= {max_moves}, themes: {themes} ({query_type}), limit: {limit}")
         with sqlite3.connect(db_path) as conn:
             cursor = conn.cursor()
             cursor.execute(query, params)
             results = cursor.fetchall()
-            
-            if self.monitoring_enabled and self.logger:
-                self.logger.info(f"Database returned {len(results)} raw results")
             
             if results:
                 # Extract FEN and moves from results
@@ -128,17 +104,10 @@ class v7p3rTuner:
                     else:
                         moves_list = []
                     
-                    if self.monitoring_enabled and self.logger and i < 3:
-                        self.logger.info(f"Sample position {i+1}: FEN={fen[:50]}..., moves={moves_list}")
-                    
                     starting_positions.append({fen: moves_list})
                 
-                if self.monitoring_enabled and self.logger:
-                    self.logger.info(f"Successfully processed {len(starting_positions)} starting positions matching criteria: {criteria}")
                 print(f"Found {len(starting_positions)} starting positions matching criteria")
             else:
-                if self.monitoring_enabled and self.logger:
-                    self.logger.warning(f"No starting positions found matching criteria: {criteria}")
                 print(f"No starting positions found matching criteria: {criteria}")
                 starting_positions = []
         return starting_positions
@@ -156,8 +125,6 @@ class v7p3rTuner:
         current_move_number = 0
         played_moves = []
 
-        if self.monitoring_enabled and self.logger:
-            self.logger.info(f"Starting position {current_position}/{position_count}: FEN={current_position_fen} | Total moves: {total_moves} | Solution moves: {solution_moves}")
         print(f"\n--- Starting FEN: {current_position_fen}")
         print(f"Solution move sequence: {solution_moves}")
 
@@ -168,26 +135,18 @@ class v7p3rTuner:
                 self.board.push_uci(solution_move)
                 played_moves.append(solution_move)
                 print(f"Last played move {current_move_number}/{total_moves}: {solution_move} | FEN: {self.board.fen()}")
-                if self.monitoring_enabled and self.logger:
-                    self.logger.info(f"Last played move {current_move_number}/{total_moves}: {solution_move} | FEN: {self.board.fen()}")
                 continue
             else:
                 # If it's an even move, we need to let the engine play
                 print(f"Engine is thinking... (engine should play {solution_move})")
-                if self.monitoring_enabled and self.logger:
-                    self.logger.info(f"Sending position to engine: {self.board.fen()} (engine should play {solution_move})")
-
+                
                 # Find the engine's move
                 engine_guess = self.engine.search_engine.search(self.board, self.board.turn)
 
                 # Validate engine move
                 if engine_guess is None or str(engine_guess) == "0000":
-                    if self.monitoring_enabled and self.logger:
-                        self.logger.error(f"[Error] Engine could not find a valid move for position {current_position}/{position_count} at move {current_move_number}.")
                     break
                 if engine_guess not in self.board.legal_moves:
-                    if self.monitoring_enabled and self.logger:
-                        self.logger.error(f"[Error] Engine guess {engine_guess} is not a legal move in this position. Skipping.")
                     break
 
                 # Record engine move
@@ -196,13 +155,9 @@ class v7p3rTuner:
                 # Push engine move
                 self.board.push(engine_guess)
                 print(f"Engine played move {current_move_number}/{total_moves}: {engine_guess.uci()} | FEN: {self.board.fen()}")
-                if self.monitoring_enabled and self.logger:
-                    self.logger.info(f"Engine played move {current_move_number}/{total_moves}: {engine_guess.uci()} | FEN: {self.board.fen()}")
                 
                 if self.board.is_game_over():
                     print(f"Game over: {self.board.result()} Reason: {self.board.outcome()}")
-                    if self.monitoring_enabled and self.logger:
-                        self.logger.info(f"Game over: {self.board.result()} Reason: {self.board.outcome()}")
                     break
 
         # After all moves, compare engine's sequence to solution
@@ -210,13 +165,9 @@ class v7p3rTuner:
         print(f"Solution move sequence: {solution_moves}")
         if played_moves == solution_moves:
             print("Engine solved the position correctly! WIN recorded.")
-            if self.monitoring_enabled and self.logger:
-                self.logger.info("Engine solved the position correctly! WIN recorded.")
         else:
             print("Engine did not solve the position. LOSS recorded.")
-            if self.monitoring_enabled and self.logger:
-                self.logger.info("Engine did not solve the position. LOSS recorded.")
-
+        
 def main(position_config):
     # Initialize the tuner
     tuner = v7p3rTuner()

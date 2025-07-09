@@ -21,7 +21,6 @@ class v7p3rConfig:
         self.engine_config = {}
         self.stockfish_config = {}
         self.puzzle_config = {}
-        self.logging_config = {}
         self.metrics_config = {}
         self.v7p3r_nn_config = {}
         self.v7p3r_ga_config = {}
@@ -107,7 +106,6 @@ class v7p3rConfig:
         self.engine_config = self.config.get('engine_config', {})
         self.stockfish_config = self.config.get('stockfish_config', {})
         self.puzzle_config = self.config.get('puzzle_config', {})
-        self.logging_config = self.config.get('logging_config', {})
         self.metrics_config = self.config.get('metrics_config', {})
         self.v7p3r_nn_config = self.config.get('v7p3r_nn_config', {})
         self.v7p3r_ga_config = self.config.get('v7p3r_ga_config', {})
@@ -192,7 +190,7 @@ class v7p3rConfig:
                 except json.JSONDecodeError as e:
                     raise ValueError(f"Invalid JSON in custom_rulesets.json: {e}")
             
-            # Log if custom ruleset was requested but not found
+            # Warn the user if custom ruleset was requested but not found
             if not custom_found:
                 print(f"WARNING: Custom ruleset '{self.ruleset_name}' not found. Using default_ruleset values only.")
         
@@ -219,10 +217,6 @@ class v7p3rConfig:
     def get_puzzle_config(self):
         """Get puzzle-specific configuration"""
         return copy.deepcopy(self.puzzle_config)
-    
-    def get_logging_config(self):
-        """Get logging-specific configuration"""
-        return copy.deepcopy(self.logging_config)
     
     def get_metrics_config(self):
         """Get metrics-specific configuration"""
@@ -267,7 +261,7 @@ class v7p3rConfig:
     def get_config_for_module(self, module_name: str):
         """
         Get configuration for a specific module.
-        Supported modules: 'nn', 'ga', 'rl', 'engine', 'stockfish', 'puzzle', 'game', 'logging', 'metrics'
+        Supported modules: 'nn', 'ga', 'rl', 'engine', 'stockfish', 'puzzle', 'game', 'metrics'
         """
         module_getters = {
             'nn': self.get_v7p3r_nn_config,
@@ -277,7 +271,6 @@ class v7p3rConfig:
             'stockfish': self.get_stockfish_config,
             'puzzle': self.get_puzzle_config,
             'game': self.get_game_config,
-            'logging': self.get_logging_config,
             'metrics': self.get_metrics_config
         }
         

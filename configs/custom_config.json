@@ -14,16 +14,13 @@
         "use_quiescence": false,
         "order_moves": true,
         "max_ordered_moves": 8,
-        "strict_draw_prevention": true,
-        "monitoring_enabled": true,
-        "verbose_output": false,
-        "logger": "v7p3r_engine_logger"
+        "strict_draw_prevention": true
     },
     "stockfish_config": {
         "stockfish_path": "stockfish/stockfish-windows-x86-64-avx2.exe",
         "elo_rating": 400,
         "skill_level": 4,
-        "debug_mode": false,
+        "debug_mode": true,
         "depth": 4,
         "max_depth": 10,
         "movetime": 1000,
@@ -73,14 +70,9 @@
                 "stockfish_verification": true
             },
             "display": {
-                "show_solution": false,
-                "verbose_logging": true
+                "show_solution": false
             }
         }
-    },
-    "logging_config": {
-        "log_level": "DEBUG",
-        "log_format": "%(asctime)s | %(levelname)s | %(funcName)s | %(message)s"
     },
     "metrics_config": {
         "metrics_to_track": [
@@ -179,7 +171,6 @@
         "save_frequency": 100,
         "use_cuda": true,
         "device": "auto",
-        "verbose_training": true,
-        "log_frequency": 10
+        "verbose_training": true
     }
 }

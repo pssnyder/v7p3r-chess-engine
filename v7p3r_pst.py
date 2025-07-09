@@ -3,21 +3,14 @@
 import os
 import sys
 import chess
-import logging
-from typing import Optional
-from v7p3r_debug import v7p3rLogger, v7p3rUtilities
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 
-# Setup centralized logging for this module
-v7p3r_pst_logger = v7p3rLogger.setup_logger("v7p3r_pst")
-
 class v7p3rPST:
     """ Piece-Square Tables for chess position evaluation. """
-    def __init__(self, logger: Optional[logging.Logger] = None):
-        self.logger = logger if logger else v7p3r_pst_logger
+    def __init__(self):
         # Initialize piece-square tables
         self.tables = self._create_tables()
         # Default Piece Values in centipawns
@@ -252,7 +245,7 @@ class v7p3rPST:
 # Example usage and testing
 if __name__ == "__main__":
     # Test the piece-square tables
-    pst = v7p3rPST(logging.getLogger("v7p3rPST"))
+    pst = v7p3rPST()
     board = chess.Board()
     
     print("Initial position PST evaluation:", pst.evaluate_board_position(board))

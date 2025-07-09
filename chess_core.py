@@ -11,14 +11,11 @@ import socket
 import time
 from typing import Optional
 from io import StringIO
-from v7p3r_debug import v7p3rLogger, v7p3rUtilities
+from v7p3r_debug import v7p3rUtilities
 
 class ChessCore:
-    def __init__(self, logger_name: str = "chess_core"):
+    def __init__(self):
         """Initialize core chess components"""
-        # Setup logging
-        self.logger = v7p3rLogger.setup_logger(logger_name)
-        
         # Initialize core chess state
         self.board = chess.Board()
         self.game = chess.pgn.Game()
@@ -32,9 +29,6 @@ class ChessCore:
         # Game state tracking
         self.current_player = self.board.turn
         
-        if self.logger:
-            self.logger.info("ChessCore initialized")
-
     def new_game(self, starting_position: str = "default"):
         """Reset the game state for a new game"""
         self.board = chess.Board()
@@ -52,9 +46,6 @@ class ChessCore:
         # Set default PGN headers
         self.set_headers()
         
-        if self.logger:
-            self.logger.info(f"New game started with position: {starting_position}")
-
     def set_headers(self, white_player: str = "White", black_player: str = "Black", event: str = "Chess Game"):
         """Set PGN headers for the game"""
         self.game.headers["Event"] = event
@@ -97,48 +88,28 @@ class ChessCore:
             result = self.get_board_result()
             self.game.headers["Result"] = result
             self.game_node = self.game.end()
-            if self.logger:
-                self.logger.info(f"Game ended with result: {result}")
             return True
         return False
 
     def push_move(self, move) -> bool:
         """Test and push a move to the board and game node"""
         if not self.board.is_valid():
-            if self.logger:
-                self.logger.error(f"Invalid board state detected! | FEN: {self.board.fen()}")
             return False
         
-        if self.logger:
-            self.logger.debug(f"Attempting to push move: {move} | FEN: {self.board.fen()}")
-
         if isinstance(move, str):
             try:
                 move = chess.Move.from_uci(move)
-                if self.logger:
-                    self.logger.debug(f"Converted UCI string to chess.Move: {move}")
             except ValueError:
-                if self.logger:
-                    self.logger.error(f"Invalid UCI string received: {move}")
                 return False
         
         if not self.board.is_legal(move):
-            if self.logger:
-                self.logger.error(f"Illegal move blocked: {move}")
             return False
         
         try:
-            if self.logger:
-                self.logger.debug(f"Pushing move: {move} | FEN: {self.board.fen()}")
-            
             self.board.push(move)
             self.game_node = self.game_node.add_variation(move)
             self.last_move = move
             self.move_history.append(move)
-            
-            if self.logger:
-                self.logger.debug(f"Move pushed successfully: {move} | FEN: {self.board.fen()}")
-            
             self.current_player = self.board.turn
             
             # If the move ends the game, set the result header and end the game node
@@ -154,12 +125,8 @@ class ChessCore:
             
             return True
         except ValueError as e:
-            if self.logger:
-                self.logger.error(f"ValueError pushing move {move}: {e}")
             return False
         except Exception as e:
-            if self.logger:
-                self.logger.error(f"Exception pushing move {move}: {e}")
             return False
 
     def import_fen(self, fen_string: str) -> bool:
@@ -168,8 +135,6 @@ class ChessCore:
             new_board = chess.Board(fen_string)
             
             if not new_board.is_valid():
-                if self.logger:
-                    self.logger.error(f"Invalid FEN position: {fen_string}")
                 return False
 
             self.board = new_board
@@ -179,13 +144,9 @@ class ChessCore:
             self.selected_square = None
             self.game.headers["FEN"] = fen_string
 
-            if self.logger:
-                self.logger.info(f"Successfully imported FEN: {fen_string}")
             return True
 
         except Exception as e:
-            if self.logger:
-                self.logger.error(f"Unexpected problem importing FEN: {e}")
             return False
 
     def quick_save_pgn(self, filename: str) -> bool:
@@ -200,12 +161,8 @@ class ChessCore:
                 f.write(pgn_content)
                 f.flush()  # Ensure content is written to disk
             
-            if self.logger:
-                self.logger.debug(f"PGN saved to {filename}")
             return True
         except Exception as e:
-            if self.logger:
-                self.logger.error(f"Failed to save PGN to {filename}: {e}")
             return False
 
     def quick_save_pgn_to_file(self, filename: str):
@@ -260,13 +217,9 @@ class ChessCore:
             with open(json_path, 'w', encoding='utf-8') as f:
                 json.dump(config_data, f, indent=4)
             
-            if self.logger:
-                self.logger.info(f"Saved local files: {pgn_path}, {json_path}")
             return True
                 
         except Exception as e:
-            if self.logger:
-                self.logger.error(f"Failed to save local game files for {game_id}: {e}")
             return False
 
     def _format_time_for_display(self, move_time: float) -> str:

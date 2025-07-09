@@ -11,7 +11,6 @@ import json
 import os
 import threading
 from dataclasses import dataclass
-import datetime
 from typing import Dict, Optional, Any
 from pathlib import Path
 import pandas as pd
@@ -19,14 +18,6 @@ import pandas as pd
 # Add parent directory to path for imports
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-from v7p3r_debug import v7p3rLogger
-
-# Setup centralized logging for this module
-v7p3r_chess_metrics_logger = v7p3rLogger.setup_logger("v7p3r_chess_metrics")
-
-# Set the logger to be used throughout the module
-logger = v7p3r_chess_metrics_logger
 
 # Database path
 BASE_DIR = Path(__file__).parent
@@ -89,7 +80,6 @@ class v7p3rMetrics:
         self.db_path = db_path or DB_PATH
         self._lock = threading.Lock()
         self._initialize_database()
-        logger.info(f"v7p3rMetrics initialized with database: {self.db_path}")
     
     def _initialize_database(self):
         """Initialize database tables if they don't exist."""
@@ -106,18 +96,16 @@ class v7p3rMetrics:
                     # If we have old tables but not new ones, we need to migrate
                     if ('game_results' in existing_tables or 'move_metrics' in existing_tables) and 'games' not in existing_tables:
                         needs_migration = True
-                        logger.info("Detected old database schema, backing up and creating new schema...")
                         
                         # Backup the old database
                         backup_path = self.db_path.with_suffix('.db.backup')
                         import shutil
                         shutil.copy2(self.db_path, backup_path)
-                        logger.info(f"Old database backed up to: {backup_path}")
                         
                         # Remove old database to start fresh
                         self.db_path.unlink()
             except Exception as e:
-                logger.warning(f"Error checking database schema: {e}")
+                raise
         
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
@@ -183,10 +171,7 @@ class v7p3rMetrics:
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_configs_timestamp ON engine_configs(timestamp)")
             
             conn.commit()
-            logger.info("Database tables initialized successfully")
-            if needs_migration:
-                logger.info("New database schema created. Old data backed up but not migrated automatically.")
-    
+           
     async def record_game_start(self, game_metric: GameMetric) -> bool:
         """Record the start of a new game."""
         try:
@@ -205,10 +190,8 @@ class v7p3rMetrics:
                         game_metric.final_position_fen, game_metric.termination_reason
                     ))
                     conn.commit()
-            logger.info(f"Game started: {game_metric.game_id}")
             return True
         except Exception as e:
-            logger.error(f"Error recording game start: {e}")
             return False
     
     async def record_move(self, move_metric: MoveMetric) -> bool:
@@ -236,7 +219,6 @@ class v7p3rMetrics:
                     conn.commit()
             return True
         except Exception as e:
-            logger.error(f"Error recording move: {e}")
             return False
     
     async def update_game_result(self, game_id: str, result: str, 
@@ -256,10 +238,8 @@ class v7p3rMetrics:
                     """, (result, total_moves, game_duration, final_position_fen, 
                           termination_reason, game_id))
                     conn.commit()
-            logger.info(f"Game result updated: {game_id} -> {result}")
             return True
         except Exception as e:
-            logger.error(f"Error updating game result: {e}")
             return False
     
     async def save_engine_config(self, config: EngineConfig) -> bool:
@@ -283,10 +263,8 @@ class v7p3rMetrics:
                         config.use_move_ordering, config.hash_size_mb, additional_params_json
                     ))
                     conn.commit()
-            logger.info(f"Engine config saved: {config.config_id}")
             return True
         except Exception as e:
-            logger.error(f"Error saving engine config: {e}")
             return False
 
     
@@ -330,7 +308,6 @@ class v7p3rMetrics:
                 
                 return game_data
         except Exception as e:
-            logger.error(f"Error getting game summary: {e}")
             return None
     
     async def get_performance_trends(self, limit: int = 50) -> pd.DataFrame:
@@ -352,7 +329,6 @@ class v7p3rMetrics:
                 """
                 return pd.read_sql_query(query, conn, params=(limit,))
         except Exception as e:
-            logger.error(f"Error getting performance trends: {e}")
             return pd.DataFrame()
     
     async def get_engine_config_history(self) -> pd.DataFrame:
@@ -365,7 +341,6 @@ class v7p3rMetrics:
                 """
                 return pd.read_sql_query(query, conn)
         except Exception as e:
-            logger.error(f"Error getting config history: {e}")
             return pd.DataFrame()
 
 
@@ -544,7 +519,6 @@ def create_streamlit_dashboard():
         st.markdown("🎯 **V7P3R Chess Engine** | Analytics Dashboard v2.0")
         
     except ImportError:
-        logger.error("Streamlit not installed. Install with: pip install streamlit")
         return False
     
     return True
@@ -553,9 +527,9 @@ def create_streamlit_dashboard():
 def run_dashboard():
     """Run the Streamlit dashboard."""
     if create_streamlit_dashboard():
-        logger.info("Dashboard created successfully. Run with: streamlit run this_file.py")
+        print("Dashboard created successfully. Run with: streamlit run this_file.py")
     else:
-        logger.error("Failed to create dashboard. Make sure streamlit is installed.")
+        print("Failed to create dashboard. Make sure streamlit is installed.")
 
 
 # Legacy compatibility functions (for smooth transition)
@@ -601,7 +575,7 @@ def add_game_result(game_id: str, timestamp: str, winner: str, game_pgn: str,
                 ))
                 conn.commit()
         except Exception as e:
-            logger.error(f"Legacy game recording failed: {e}")
+            raise
 
 
 def add_move_metric(game_id: str, move_number: int, player_color: str, 
@@ -654,7 +628,7 @@ def add_move_metric(game_id: str, move_number: int, player_color: str,
                 ))
                 conn.commit()
         except Exception as e:
-            logger.error(f"Legacy move recording failed: {e}")
+            raise
 
 
 # Main entry point
@@ -666,5 +640,4 @@ if __name__ == "__main__":
     else:
         # Default behavior - just initialize metrics system
         metrics = get_metrics_instance()
-        logger.info("V7P3R Metrics system initialized successfully")
-        logger.info("To run dashboard: python chess_metrics.py dashboard")
+        print("To run dashboard: python chess_metrics.py dashboard")

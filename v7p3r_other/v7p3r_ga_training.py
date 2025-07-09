@@ -13,12 +13,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from v7p3r_ga import v7p3rGeneticAlgorithm
 from v7p3r_ga_ruleset_manager import v7p3rGARulesetManager
-from puzzles.puzzle_db_manager import PuzzleDBManager
+from v7p3r_other.v7p3r_puzzle_manager import PuzzleDBManager
 from v7p3r_config import v7p3rConfig
-from v7p3r_debug import v7p3rLogger
-
-# Setup centralized logging for this module
-v7p3r_ga_training_logger = v7p3rLogger.setup_logger("v7p3r_ga_training")
 
 def main():
     # Load config from centralized config manager
@@ -46,13 +42,11 @@ def main():
 
     try:
         for gen in range(generations):
-            v7p3r_ga_training_logger.info(f'=== Generation {gen+1}/{generations} ===')
             # Fetch new random FENs for this generation (reduced count)
             positions_per_gen_actual = min(positions_per_gen, 3)  # Cap at 3 for speed
             fens = puzzle_db.get_random_fens(count=positions_per_gen_actual)
             print(f"[DEBUG] Generation {gen+1}: Retrieved {len(fens)} FENs from DB.")
             if not fens:
-                v7p3r_ga_training_logger.error(f"No FENs found in the database for generation {gen+1}. Check DB path and data.")
                 # Try to fetch a few puzzles directly for debug
                 sample_puzzles = puzzle_db.get_puzzles(limit=5)
                 print(f"[DEBUG] Sample puzzles from DB: {sample_puzzles}")
@@ -116,8 +110,6 @@ def main():
             # Save best ruleset
             ruleset_manager.save_ruleset(f'tuned_ga_gen{gen+1}', best_ruleset)
             print(f"[DEBUG] Generation {gen+1}: Best ruleset saved.")
-
-        v7p3r_ga_training_logger.info('GA training complete.')
     finally:
         # Clean up Stockfish process if possible
         if hasattr(ga, 'stockfish') and hasattr(ga.stockfish, 'close'):

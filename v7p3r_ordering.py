@@ -5,15 +5,11 @@ import os
 import sys
 import chess
 from v7p3r_config import v7p3rConfig
-from v7p3r_debug import v7p3rLogger, v7p3rUtilities
 
 # Ensure the parent directory is in sys.path for imports
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
-
-# Setup centralized logging for this module
-v7p3r_ordering_logger = v7p3rLogger.setup_logger("v7p3r_ordering")
 
 class v7p3rOrdering:
     """Class for move ordering in the V7P3R chess engine."""
@@ -24,11 +20,6 @@ class v7p3rOrdering:
         
         # Required Engine Modules
         self.scoring_calculator = scoring_calculator
-        
-        # Logging Setup
-        self.logger = v7p3r_ordering_logger
-        self.monitoring_enabled = self.engine_config.get('monitoring_enabled', True)
-        self.verbose_output_enabled = self.engine_config.get('verbose_output', False)
         
         # Move Ordering Settings
         self.move_ordering_enabled = self.engine_config.get('move_ordering_enabled', True)
@@ -43,8 +34,6 @@ class v7p3rOrdering:
         move_scores = []
         for move in moves:
             if not board.is_legal(move):
-                if self.monitoring_enabled and self.logger:
-                    self.logger.error(f"[Error] Illegal move passed to order_moves: {move} | FEN: {board.fen()}")
                 continue
             
             score = self._order_move_score(board, move)
@@ -57,17 +46,7 @@ class v7p3rOrdering:
         # Get max_ordered_moves setting from engine config if cutoff is not specified
         max_ordered_moves = cutoff if cutoff > 0 else self.max_ordered_moves
         if max_ordered_moves > 0 and len(move_scores) > max_ordered_moves:
-            original_count = len(move_scores)
             move_scores = move_scores[:max_ordered_moves]
-            # Only log truncation for significant reductions to avoid excessive logging
-            if original_count - max_ordered_moves > 5:
-                log_msg = f"MOVE_TRUNCATION: Truncated move list from {original_count} to {max_ordered_moves} moves at depth {depth}"
-                if self.monitoring_enabled and self.logger:
-                    self.logger.info(log_msg)
-        
-        # Reduce logging frequency to improve performance
-        if self.monitoring_enabled and self.verbose_output_enabled and self.logger:
-            self.logger.info(f"Ordered moves at depth {depth}: {[f'{move} ({score:.2f})' for move, score in move_scores[:3]]}... (total: {len(move_scores)}) | FEN: {board.fen()}")
         
         return [move for move, _ in move_scores]
 

@@ -5,14 +5,10 @@ import os
 import chess
 import random
 from v7p3r_config import v7p3rConfig
-from v7p3r_debug import v7p3rLogger, v7p3rUtilities
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
-
-# Setup centralized logging for this module
-v7p3r_search_logger = v7p3rLogger.setup_logger("v7p3r_search")
 
 class v7p3rSearch:
     def __init__(self, scoring_calculator, move_organizer, time_manager, opening_book, engine_config=None):
@@ -22,11 +18,6 @@ class v7p3rSearch:
             self.engine_config = engine_config
         else:
             self.engine_config = self.config_manager.get_engine_config()
-
-        # Logging Setup
-        self.logger = v7p3r_search_logger
-        self.monitoring_enabled = self.engine_config.get('monitoring_enabled', True)
-        self.verbose_output_enabled = self.engine_config.get('verbose_output', False)
 
         # Required Search Modules
         self.scoring_calculator = scoring_calculator
@@ -79,13 +70,6 @@ class v7p3rSearch:
     def search(self, board: chess.Board, color: chess.Color):
         """Search handler: delegates to the selected search algorithm, which is responsible for root move selection."""
         try:
-            if self.monitoring_enabled and self.logger:
-                self.logger.info(f"SEARCH START: search_algorithm={self.search_algorithm}, depth={self.depth}, "
-                  f"scoring_calculator type={type(self.scoring_calculator)}, "
-                  f"move_organizer type={type(self.move_organizer)}, "
-                  f"time_manager type={type(self.time_manager)}, "
-                  f"opening_book type={type(self.opening_book)}")
-
             self.root_board = board.copy()
             self.current_turn = board.turn
             self.current_perspective = color
@@ -105,20 +89,12 @@ class v7p3rSearch:
                     'color': self.current_perspective,
                     'evaluation': self.scoring_calculator.evaluate_position_from_perspective(self.root_board, self.current_perspective)
                 }]
-                if self.monitoring_enabled and self.logger:
-                    self.logger.info(f"SEARCH: Checkmate move found: {checkmate_move} | FEN: {board.fen()}")
                 return checkmate_move
 
             # Check for book moves
             try:
-                if self.monitoring_enabled and self.logger:
-                    self.logger.info(f"SEARCH: About to call opening_book.get_book_move")
                 book_move = self.opening_book.get_book_move(self.root_board)
-                if self.monitoring_enabled and self.logger:
-                    self.logger.info(f"SEARCH: get_book_move returned: {book_move}")
             except Exception as e:
-                if self.monitoring_enabled and self.logger:
-                    self.logger.error(f"SEARCH ERROR in get_book_move: {e}")
                 book_move = None
 
             if book_move and self.root_board.is_legal(book_move):
@@ -130,12 +106,7 @@ class v7p3rSearch:
                     'color': self.current_perspective,
                     'evaluation': self.scoring_calculator.evaluate_position_from_perspective(self.root_board, self.current_perspective)
                 }]
-                if self.monitoring_enabled and self.logger:
-                    self.logger.info(f"Opening book move found: {book_move} | FEN: {self.root_board.fen()}")
                 return book_move
-
-            if self.monitoring_enabled and self.logger:
-                self.logger.info(f"== EVALUATION (Player: {self.color_name}) == | Search Type: {self.search_algorithm} | Depth: {self.depth} | Max Depth: {self.max_depth} == ")
 
             # Delegate to the selected search algorithm, which is responsible for root move selection
             if self.search_algorithm == 'minimax':
@@ -152,33 +123,17 @@ class v7p3rSearch:
                 move = self._random_search(self.root_board)
                 score = self.scoring_calculator.evaluate_position_from_perspective(self.root_board, color)
             else:
-                if self.monitoring_enabled and self.logger:
-                    self.logger.error(f"Unknown search algorithm: {self.search_algorithm}")
                 move = chess.Move.null()
                 score = 0.0
 
-            if self.monitoring_enabled and self.logger:
-                self.logger.info(f"SEARCH: Algorithm returned move {move} with score {score}")
+            # Update search state
+            self.search_dataset['score'] = score
+            self.search_dataset['best_move'] = move
 
             return move
 
         except Exception as e:
-            if self.monitoring_enabled and self.logger:
-                self.logger.error(f"CRITICAL ERROR in search method: {e}")
-                self.logger.error(f"Exception type: {type(e)}")
-                import traceback
-                self.logger.error(f"Full traceback: {traceback.format_exc()}")
-                self.logger.error(f"Board FEN: {board.fen()}")
-                self.logger.error(f"Player: {self.color_name}")
-                self.logger.error(f"Search algorithm: {self.search_algorithm}")
-            # Return a random legal move as fallback
-            legal_moves = list(board.legal_moves)
-            if legal_moves:
-                fallback_move = random.choice(legal_moves)
-                if self.monitoring_enabled and self.logger:
-                    self.logger.error(f"Returning fallback move: {fallback_move}")
-                return fallback_move
-            return chess.Move.null()
+            raise
 
     def _minimax_root(self, board: chess.Board, depth: int, color: chess.Color):
         """Root node for minimax: iterates over legal moves and calls minimax recursively."""
@@ -192,8 +147,6 @@ class v7p3rSearch:
             temp_board = board.copy()
             temp_board.push(move)
             score = self._minimax_search(temp_board, depth - 1, -float('inf'), float('inf'), not maximizing)
-            if self.monitoring_enabled and self.logger:
-                self.logger.info(f"MINIMAX ROOT: Move {move} got score {score}")
             if score > best_score:
                 best_score = score
                 best_move = move
@@ -210,8 +163,6 @@ class v7p3rSearch:
             temp_board = board.copy()
             temp_board.push(move)
             score = -self._negamax_search(temp_board, depth - 1, -float('inf'), float('inf'))
-            if self.monitoring_enabled and self.logger:
-                self.logger.info(f"NEGAMAX ROOT: Move {move} got score {score}")
             if score > best_score:
                 best_score = score
                 best_move = move
@@ -236,13 +187,6 @@ class v7p3rSearch:
         """Minimax search with alpha-beta pruning. Returns score (float)."""
         self.nodes_searched += 1
         
-        # Directly log to the file without conditional checks
-        self.logger.info(f"MINIMAX-DIRECT: Called with depth={depth}, max={maximizing_player}")
-        
-        # Log entry into minimax search
-        if self.monitoring_enabled and self.logger:
-            self.logger.info(f"MINIMAX: Searching at depth {depth}, maximizing={maximizing_player}, alpha={alpha:.2f}, beta={beta:.2f}")
-        
         # Terminal condition - reached max depth or game over
         if depth <= 0 or board.is_game_over():
             # Always evaluate from the current perspective
@@ -254,9 +198,6 @@ class v7p3rSearch:
             if not maximizing_player:
                 eval_result = -eval_result
                 
-            if self.monitoring_enabled and self.logger:
-                self.logger.info(f"MINIMAX: Evaluation at leaf node: {eval_result:.2f} | FEN: {board.fen()}")
-            
             # For positions that aren't quiet, use quiescence search if enabled
             if depth <= 0 and self.quiescence_enabled and (board.is_check() or self._position_is_tactical(board)):
                 q_score = self._quiescence_search(board, self.current_perspective, alpha, beta, maximizing_player)
@@ -275,19 +216,12 @@ class v7p3rSearch:
             else:
                 return 0  # Stalemate
                 
-        if self.monitoring_enabled and self.logger:
-            self.logger.info(f"MINIMAX: Found {len(legal_moves)} legal moves at depth {depth}")
-        
         # Determine appropriate depth cutoff based on current depth
         cutoff = min(max(2, self.max_ordered_moves // (self.depth - depth + 1)), self.max_ordered_moves) if self.move_ordering_enabled else 0
         
         if self.move_ordering_enabled:
-            if self.monitoring_enabled and self.logger:
-                self.logger.info(f"MINIMAX: Ordering moves for depth {depth} with cutoff {cutoff}")
             # Order moves for better alpha-beta pruning efficiency
             ordered_moves = self.move_organizer.order_moves(board, legal_moves, depth=depth, cutoff=cutoff)
-            if self.monitoring_enabled and self.logger:
-                self.logger.info(f"MINIMAX: Received {len(ordered_moves)} ordered moves at depth {depth}")
         else:
             ordered_moves = legal_moves
             
@@ -299,31 +233,21 @@ class v7p3rSearch:
             board.pop()
             
             if not isinstance(score, (int, float)):
-                if self.monitoring_enabled and self.logger:
-                    self.logger.error(f"ERROR: Recursive minimax returned non-numeric value: {score} (type: {type(score)})")
                 score = 0.0
 
             if maximizing_player:
                 if score > best_score:
                     best_score = score
-                    if self.monitoring_enabled and self.logger:
-                        self.logger.info(f"MINIMAX: New best move at depth {depth}: {move}, score: {score:.2f}")
                 alpha = max(alpha, best_score)
             else:
                 if score < best_score:
                     best_score = score
-                    if self.monitoring_enabled and self.logger:
-                        self.logger.info(f"MINIMAX: New best move at depth {depth}: {move}, score: {score:.2f}")
                 beta = min(beta, best_score)
 
             # Alpha-beta pruning
             if alpha >= beta:
-                if self.monitoring_enabled and self.logger:
-                    self.logger.info(f"MINIMAX: Alpha-beta cutoff at depth {depth}, alpha={alpha:.2f}, beta={beta:.2f}")
                 break
 
-        if self.monitoring_enabled and self.logger:
-            self.logger.info(f"MINIMAX: Returning best score at depth {depth}: {best_score:.2f}")
         return best_score
         
     def _position_is_tactical(self, board: chess.Board) -> bool:
@@ -346,10 +270,7 @@ class v7p3rSearch:
             # This ensures scores are always from the perspective of the player to move
             if board.turn != self.current_perspective:
                 eval_result = -eval_result
-                
-            if self.monitoring_enabled and self.verbose_output_enabled and self.logger:
-                self.logger.info(f"NEGAMAX: Leaf node evaluation from {self.color_name}'s perspective: {eval_result:.2f} | FEN: {board.fen()}")
-            
+
             # For positions that aren't quiet, use quiescence search if enabled
             if depth <= 0 and self.quiescence_enabled and (board.is_check() or self._position_is_tactical(board)):
                 q_score = self._quiescence_search(board, self.current_perspective, alpha, beta, board.turn == self.current_perspective)
@@ -369,19 +290,12 @@ class v7p3rSearch:
             else:
                 return 0  # Stalemate
                 
-        if self.monitoring_enabled and self.verbose_output_enabled and self.logger:
-            self.logger.info(f"NEGAMAX: Found {len(legal_moves)} legal moves at depth {depth}")
-        
         # Determine appropriate depth cutoff based on current depth
         cutoff = min(max(2, self.max_ordered_moves // (self.depth - depth + 1)), self.max_ordered_moves) if self.move_ordering_enabled else 0
         
         if self.move_ordering_enabled:
-            if self.monitoring_enabled and self.verbose_output_enabled and self.logger:
-                self.logger.info(f"NEGAMAX: Ordering moves for depth {depth} with cutoff {cutoff}")
             # Order moves for better alpha-beta pruning efficiency
             ordered_moves = self.move_organizer.order_moves(board, legal_moves, depth=depth, cutoff=cutoff)
-            if self.monitoring_enabled and self.verbose_output_enabled and self.logger:
-                self.logger.info(f"NEGAMAX: Received {len(ordered_moves)} ordered moves at depth {depth}")
         else:
             ordered_moves = legal_moves
             
@@ -419,26 +333,18 @@ class v7p3rSearch:
         # HARD LIMIT to prevent infinite recursion - early exit if we're too deep
         max_q_depth = 2  # Reduced hard limit for quiescence search
         if current_ply >= max_q_depth or self.nodes_searched > 10000:
-            if self.monitoring_enabled and self.logger:
-                self.logger.info(f"QUIESCENCE: Max depth/nodes reached (ply {current_ply} >= {max_q_depth}), returning stand pat evaluation")
             eval_result = self.scoring_calculator.evaluate_position_from_perspective(board, self.current_perspective)
             # Adjust evaluation for the player to move
             if not maximizing_player:
                 eval_result = -eval_result
             return eval_result
             
-        if self.monitoring_enabled and self.verbose_output_enabled and self.logger:
-            self.logger.info(f"QUIESCENCE: Starting search at ply {current_ply}, alpha={alpha:.2f}, beta={beta:.2f}, maximizing={maximizing_player}")
-        
         # Get a static evaluation first, always from the consistent perspective
         stand_pat_score = self.scoring_calculator.evaluate_position_from_perspective(board, self.current_perspective)
         # Adjust evaluation for the player to move
         if not maximizing_player:
             stand_pat_score = -stand_pat_score
             
-        if self.monitoring_enabled and self.verbose_output_enabled and self.logger:
-            self.logger.info(f"QUIESCENCE: Stand pat score: {stand_pat_score} (maximizing={maximizing_player})")
-        
         # Check for immediate game-ending conditions with huge scores
         if board.is_checkmate():
             # Determine if the current perspective is being checkmated
@@ -449,8 +355,6 @@ class v7p3rSearch:
                 # Opponent is checkmated - very good
                 checkmate_score = 999999999
                 
-            if self.monitoring_enabled and self.logger:
-                self.logger.info(f"QUIESCENCE: Checkmate detected, returning: {checkmate_score} from {self.color_name}'s perspective")
             return checkmate_score
         
         # Handle standing pat
@@ -467,8 +371,6 @@ class v7p3rSearch:
         if board.is_check():
             # Must consider all legal moves to escape check
             moves_to_consider = list(board.legal_moves)
-            if self.monitoring_enabled and self.verbose_output_enabled and self.logger:
-                self.logger.info(f"QUIESCENCE: In check, considering all {len(moves_to_consider)} legal moves")
         else:
             # Only consider captures and promotions
             captures = []
@@ -477,8 +379,6 @@ class v7p3rSearch:
                     captures.append(move)
                     
             moves_to_consider = captures
-            if self.monitoring_enabled and self.verbose_output_enabled and self.logger:
-                self.logger.info(f"QUIESCENCE: Not in check, considering {len(moves_to_consider)} tactical moves (captures/promotions)")
             
         # If no good tactical moves, return stand pat
         if not moves_to_consider:
@@ -561,13 +461,8 @@ class v7p3rSearch:
                 temp_board = board.copy()
                 temp_board.push(move)
                 
-                if self.monitoring_enabled and self.logger:
-                    self.logger.info(f"MATE SEARCH: Attacker trying move {move} at ply {ply} | FEN: {temp_board.fen()}")
-                
                 # Check if this move immediately gives checkmate
                 if temp_board.is_checkmate():
-                    if self.monitoring_enabled and self.logger:
-                        self.logger.info(f"MATE SEARCH: Immediate checkmate found with move {move} | First move: {current_first_move}")
                     return current_first_move
                 
                 # If this move gives check, continue searching for forced mate
@@ -575,8 +470,6 @@ class v7p3rSearch:
                     # Recursively search from defender's perspective
                     mate_move = self._checkmate_search(temp_board, ply - 1, current_first_move, potential_checkmate_moves)
                     if mate_move != chess.Move.null():
-                        if self.monitoring_enabled and self.logger:
-                            self.logger.info(f"MATE SEARCH: Forced mate found starting with {current_first_move} after move {move}")
                         return current_first_move
                 
                 # For non-checking moves, only continue if we're at high depth (looking for quiet setups)
@@ -594,23 +487,16 @@ class v7p3rSearch:
                 temp_board = board.copy()
                 temp_board.push(move)
                 
-                if self.monitoring_enabled and self.logger:
-                    self.logger.info(f"MATE SEARCH: Defender trying escape move {move} at ply {ply} | FEN: {temp_board.fen()}")
-                
                 # Check if this defensive move escapes mate
                 mate_move = self._checkmate_search(temp_board, ply - 1, first_move, potential_checkmate_moves)
                 
                 if mate_move == chess.Move.null():
                     # Defender found an escape
                     defender_can_escape = True
-                    if self.monitoring_enabled and self.logger:
-                        self.logger.info(f"MATE SEARCH: Defender can escape with move {move}")
                     break
             
             # If defender cannot escape any move, mate is forced
             if not defender_can_escape:
-                if self.monitoring_enabled and self.logger:
-                    self.logger.info(f"MATE SEARCH: Defender has no escape, mate is forced with first move {first_move}")
                 return first_move
         
         return chess.Move.null()  # No forced mate found
@@ -632,7 +518,5 @@ class v7p3rSearch:
                 or temp_board.is_seventyfive_moves()
                 or temp_board.is_fivefold_repetition()
                 or temp_board.is_variant_draw()):
-                if self.monitoring_enabled and self.logger:
-                    self.logger.info(f"Stalemate or draw condition met for move: {first_move} | FEN: {temp_board.fen()}")
                 return True  # Return true if a draw condition is found
         return False  # Return false if no drawing moves are found

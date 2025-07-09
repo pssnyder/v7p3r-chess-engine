@@ -16,42 +16,15 @@ import os
 import sys
 import json
 import tkinter as tk
-from tkinter import ttk, messagebox, scrolledtext, filedialog
+from tkinter import ttk, messagebox, scrolledtext
 import datetime
 from tkinter.font import Font
 import copy
 from v7p3r_config import v7p3rConfig
-from v7p3r_debug import v7p3rLogger
-
-# Setup centralized logging for this module
-v7p3r_config_gui_logger = v7p3rLogger.setup_logger("v7p3r_config_gui")
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
-def resource_path(relative_path):
-    """Get absolute path to resource, works for dev and for PyInstaller"""
-    base = getattr(sys, '_MEIPASS', None)
-    if base:
-        return os.path.join(base, relative_path)
-    return os.path.join(os.path.abspath("."), relative_path)
-# Helper function for timestamps
-def get_timestamp():
-    return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-
-# Logging setup is handled by the centralized logger (v7p3r_config_gui_logger)
-
-# Import the ChessGame class from v7p3r_play
-try:
-    from v7p3r_play import v7p3rChess  # Try relative import first
-except ImportError:
-    try:
-        from v7p3r_play import v7p3rChess  # Try package import
-    except ImportError:
-        import sys
-        import os
-        sys.path.insert(0, os.path.dirname(__file__))
-        from v7p3r_play import v7p3rChess  # Direct import from same directory
 
 # Default values used for new configurations
 config_manager = v7p3rConfig()
@@ -202,7 +175,7 @@ def validate_config(config_data):
     
     # Check engine_config
     engine_config = config_data.get("engine_config", {})
-    engine_required_keys = ["name", "version", "ruleset", "search_algorithm", "depth", "max_depth", "monitoring_enabled", "logger"]
+    engine_required_keys = ["name", "version", "ruleset", "search_algorithm", "depth", "max_depth"]
     for key in engine_required_keys:
         if key not in engine_config:
             return False, f"Missing required engine config key: {key}"
@@ -223,13 +196,10 @@ def load_ruleset_data():
     try:
         with open(RULESET_PATH, 'r') as file:
             rulesets = json.load(file)
-            v7p3r_config_gui_logger.info(f"Loaded {len(rulesets)} rulesets from {RULESET_PATH}")
             return rulesets or {}
     except FileNotFoundError:
-        v7p3r_config_gui_logger.warning(f"Ruleset file not found at {RULESET_PATH}")
         return {}
     except Exception as e:
-        v7p3r_config_gui_logger.error(f"Error loading rulesets data: {e}")
         return {}
 
 def save_ruleset(ruleset_name, ruleset_data, all_rulesets=None):
@@ -253,10 +223,8 @@ def save_ruleset(ruleset_name, ruleset_data, all_rulesets=None):
         # Save all rulesets back to file
         with open(RULESET_PATH, 'w') as f:
             json.dump(all_rulesets, f, indent=4)
-        v7p3r_config_gui_logger.info(f"Saved ruleset '{ruleset_name}' to {RULESET_PATH}")
         return True, ruleset_name
     except Exception as e:
-        v7p3r_config_gui_logger.error(f"Error saving ruleset '{ruleset_name}': {e}")
         return False, str(e)
 
 def get_default_ruleset_values():
@@ -264,12 +232,10 @@ def get_default_ruleset_values():
     try:
         # Try to load from ruleset template
         if os.path.exists(RULESET_TEMPLATE_PATH):
-            v7p3r_config_gui_logger.info(f"Loading ruleset template from {RULESET_TEMPLATE_PATH}")
             with open(RULESET_TEMPLATE_PATH, 'r') as f:
                 template = json.load(f)
                 return template
         else:
-            v7p3r_config_gui_logger.warning(f"Ruleset template not found at {RULESET_TEMPLATE_PATH}, using hardcoded defaults")
             # Fallback to hardcoded values if template doesn't exist
             return {
                 "material_score_modifier": {
@@ -296,7 +262,6 @@ def get_default_ruleset_values():
                 }
             }
     except Exception as e:
-        v7p3r_config_gui_logger.error(f"Error loading ruleset template: {e}")
         return {}
 
 class ConfigGUI:
@@ -434,9 +399,6 @@ class ConfigGUI:
         self.search_algorithm_var = tk.StringVar(value=engine_config.get("search_algorithm", "alphabeta"))
         self.depth_var = tk.IntVar(value=engine_config.get("depth", 3))
         self.max_depth_var = tk.IntVar(value=engine_config.get("max_depth", 5))
-        self.monitoring_var = tk.BooleanVar(value=engine_config.get("monitoring_enabled", True))
-        self.verbose_var = tk.BooleanVar(value=engine_config.get("verbose_output", False))
-        self.logger_var = tk.StringVar(value=engine_config.get("logger", "v7p3r_chess"))
         
         # Stockfish configuration variables
         stockfish_config = self.current_config.get("stockfish_config", {})
@@ -634,24 +596,6 @@ class ConfigGUI:
         self.max_depth_var = tk.IntVar(value=engine_config["max_depth"])
         max_depth_spin = ttk.Spinbox(engine_frame, from_=1, to=30, textvariable=self.max_depth_var, width=5)
         max_depth_spin.grid(row=6, column=1, sticky=tk.W, padx=5, pady=5)
-        
-        # Monitoring enabled
-        ttk.Label(engine_frame, text="Monitoring Enabled:").grid(row=7, column=0, sticky=tk.W, padx=5, pady=5)
-        self.monitoring_var = tk.BooleanVar(value=engine_config["monitoring_enabled"])
-        monitoring_check = ttk.Checkbutton(engine_frame, variable=self.monitoring_var)
-        monitoring_check.grid(row=7, column=1, sticky=tk.W, padx=5, pady=5)
-        
-        # Verbose output
-        ttk.Label(engine_frame, text="Verbose Output:").grid(row=8, column=0, sticky=tk.W, padx=5, pady=5)
-        self.verbose_var = tk.BooleanVar(value=engine_config["verbose_output"])
-        verbose_check = ttk.Checkbutton(engine_frame, variable=self.verbose_var)
-        verbose_check.grid(row=8, column=1, sticky=tk.W, padx=5, pady=5)
-        
-        # Logger
-        ttk.Label(engine_frame, text="Logger:").grid(row=9, column=0, sticky=tk.W, padx=5, pady=5)
-        self.logger_var = tk.StringVar(value=engine_config["logger"])
-        logger_entry = ttk.Entry(engine_frame, textvariable=self.logger_var, width=30)
-        logger_entry.grid(row=9, column=1, sticky=tk.W, padx=5, pady=5)
         
         # Stockfish Configuration
         stockfish_frame = ttk.LabelFrame(self.scrollable_frame, text="Stockfish Configuration", padding=10)
@@ -952,15 +896,11 @@ class ConfigGUI:
             return
         
         try:
-            v7p3r_config_gui_logger.info("Starting chess game with current configuration")
-            
             # Create temporary config file
             temp_config_name = f"temp_config_{get_timestamp()}"
             temp_config_path = os.path.join(CONFIG_DIR, f"{temp_config_name}.json")
             with open(temp_config_path, 'w') as f:
                 json.dump(self.current_config, f, indent=4)
-            
-            v7p3r_config_gui_logger.info(f"Saved temporary configuration to {temp_config_path}")
             
             # Initialize the chess game with the configuration
             try:
@@ -969,14 +909,11 @@ class ConfigGUI:
                 game = v7p3rChess(temp_config_name)
                 game.run()
                 
-                v7p3r_config_gui_logger.info("Chess game completed successfully")
                 messagebox.showinfo("Success", "Chess game completed successfully!")
             except Exception as e:
-                v7p3r_config_gui_logger.error(f"Error running chess game: {e}")
                 messagebox.showerror("Error", f"Failed to run chess game: {e}")
                 
         except Exception as e:
-            v7p3r_config_gui_logger.error(f"Error preparing chess game: {e}")
             messagebox.showerror("Error", f"Failed to prepare chess game: {e}")
     
     def _load_selected_ruleset(self):
@@ -989,10 +926,8 @@ class ConfigGUI:
         # Update the engine config with the selected ruleset
         if "engine_config" in self.current_config:
             self.current_config["engine_config"]["ruleset"] = selected
-            v7p3r_config_gui_logger.info(f"Updated engine configuration to use ruleset: {selected}")
             messagebox.showinfo("Success", f"Engine configuration updated to use ruleset: {selected}")
         else:
-            v7p3r_config_gui_logger.warning("Could not update engine configuration: 'engine_config' key not found")
             messagebox.showwarning("Warning", "Could not update engine configuration. Please ensure a valid configuration is loaded.")
     
     def _on_config_selected(self, config_manager):
@@ -1010,10 +945,7 @@ class ConfigGUI:
     
     def _on_ruleset_selected(self, event):
         """Handle ruleset selection from dropdown"""
-        v7p3r_config_gui_logger.debug("Ruleset selection event triggered")
         selected = self.ruleset_dropdown_var.get()
-        v7p3r_config_gui_logger.info(f"Selected ruleset: {selected}")
-        
         if selected and selected in self.ruleset_data:
             ruleset_data = self.ruleset_data[selected]
             self.ruleset_preview.config(state=tk.NORMAL)
@@ -1111,7 +1043,6 @@ class ConfigGUI:
         success, result = save_ruleset(ruleset_name, new_ruleset)
         
         if success:
-            v7p3r_config_gui_logger.info(f"Saved ruleset: {result}")
             messagebox.showinfo("Success", f"Ruleset '{result}' saved successfully.")
             
             # Refresh the ruleset list and select the new one
@@ -1119,7 +1050,6 @@ class ConfigGUI:
             self.ruleset_dropdown_var.set(result)
             self._on_ruleset_selected(None)
         else:
-            v7p3r_config_gui_logger.error(f"Failed to save ruleset: {result}")
             messagebox.showerror("Error", f"Failed to save ruleset: {result}")
     
     def _new_ruleset(self):
@@ -1141,7 +1071,6 @@ class ConfigGUI:
         # Refresh the form with the new template
         self._refresh_ruleset_form()
         
-        v7p3r_config_gui_logger.info(f"Created new ruleset template with name: {new_name}")
         messagebox.showinfo("New Ruleset", "A new ruleset template has been created. Modify values as needed and click 'Save Ruleset' when done.")
     
     def _refresh_ruleset_form(self):
@@ -1309,11 +1238,9 @@ class ConfigGUI:
         if confirm:
             success, error = delete_config(selected)
             if success:
-                v7p3r_config_gui_logger.info(f"Deleted configuration: {selected}")
                 messagebox.showinfo("Success", f"Configuration '{selected}' was deleted.")
                 self._refresh_config_list()
             else:
-                v7p3r_config_gui_logger.error(f"Error deleting configuration {selected}: {error}")
                 messagebox.showerror("Error", f"Could not delete configuration: {error}")
     
     def _validate_json(self):
@@ -1327,19 +1254,15 @@ class ConfigGUI:
             is_valid, error = validate_config(config_data)
             
             if is_valid:
-                v7p3r_config_gui_logger.info("JSON configuration is valid")
                 messagebox.showinfo("Validation", "Configuration is valid.")
                 return True
             else:
-                v7p3r_config_gui_logger.warning(f"Invalid JSON configuration: {error}")
                 messagebox.showwarning("Validation", f"Invalid configuration: {error}")
                 return False
         except json.JSONDecodeError as e:
-            v7p3r_config_gui_logger.error(f"JSON decode error: {e}")
             messagebox.showerror("Error", f"Invalid JSON format: {e}")
             return False
         except Exception as e:
-            v7p3r_config_gui_logger.error(f"Validation error: {e}")
             messagebox.showerror("Error", f"Error validating configuration: {e}")
             return False
     
@@ -1353,7 +1276,6 @@ class ConfigGUI:
             # Validate the config
             is_valid, error = validate_config(config_data)
             if not is_valid:
-                v7p3r_config_gui_logger.warning(f"Invalid configuration: {error}")
                 messagebox.showwarning("Validation Failed", f"Configuration is invalid: {error}")
                 return
             
@@ -1367,18 +1289,14 @@ class ConfigGUI:
             # Save the configuration
             success, result = save_config(config_name, config_data)
             if success:
-                v7p3r_config_gui_logger.info(f"Saved JSON configuration to {result}")
                 messagebox.showinfo("Success", f"Configuration saved as {result}")
                 self.current_config = config_data
                 self._refresh_config_list()
             else:
-                v7p3r_config_gui_logger.error(f"Error saving configuration: {result}")
                 messagebox.showerror("Error", f"Failed to save configuration: {result}")
         except json.JSONDecodeError as e:
-            v7p3r_config_gui_logger.error(f"JSON decode error: {e}")
             messagebox.showerror("JSON Error", f"Invalid JSON format: {e}")
         except Exception as e:
-            v7p3r_config_gui_logger.error(f"Unexpected error saving JSON configuration: {e}")
             messagebox.showerror("Error", f"Unexpected error: {e}")
     
     def _load_json_to_form(self):
@@ -1391,7 +1309,6 @@ class ConfigGUI:
             # Validate the config
             is_valid, error = validate_config(config_data)
             if not is_valid:
-                v7p3r_config_gui_logger.warning(f"Invalid configuration: {error}")
                 messagebox.showwarning("Validation Failed", f"Configuration is invalid: {error}")
                 return
             
@@ -1404,14 +1321,11 @@ class ConfigGUI:
             # Switch to form tab
             self.notebook.select(self.form_tab)
             
-            v7p3r_config_gui_logger.info("Loaded JSON configuration to form")
             self._show_status("Configuration loaded to form")
             
         except json.JSONDecodeError as e:
-            v7p3r_config_gui_logger.error(f"JSON decode error: {e}")
             messagebox.showerror("JSON Error", f"Invalid JSON format: {e}")
         except Exception as e:
-            v7p3r_config_gui_logger.error(f"Unexpected error loading JSON to form: {e}")
             messagebox.showerror("Error", f"Unexpected error: {e}")
     
     def _update_form_from_config(self, config_data):
@@ -1459,13 +1373,6 @@ class ConfigGUI:
             self.depth_var.set(engine_config.get("depth", 3))
             self.max_depth_var.set(engine_config.get("max_depth", 5))
             
-            # Update boolean values
-            self.monitoring_var.set(engine_config.get("monitoring_enabled", True))
-            self.verbose_var.set(engine_config.get("verbose_output", False))
-            
-            # Update logger
-            self.logger_var.set(engine_config.get("logger", "v7p3r_chess"))
-            
             # Update Stockfish Configuration
             self.stockfish_path_var.set(stockfish_config.get("stockfish_path", ""))
             self.elo_var.set(stockfish_config.get("elo_rating", 1000))
@@ -1475,8 +1382,5 @@ class ConfigGUI:
             self.sf_max_depth_var.set(stockfish_config.get("max_depth", 5))
             self.movetime_var.set(stockfish_config.get("movetime", 1000))
             
-            v7p3r_config_gui_logger.info("Updated form with configuration values")
-            
         except Exception as e:
-            v7p3r_config_gui_logger.error(f"Error updating form from config: {e}")
             messagebox.showerror("Error", f"Error updating form: {e}")

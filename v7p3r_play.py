@@ -6,13 +6,10 @@ import pygame
 import chess
 import chess.pgn
 import datetime
-import socket
-import threading
 from typing import Optional
 import time
 from io import StringIO
 from v7p3r_config import v7p3rConfig
-from v7p3r_debug import v7p3rLogger
 from v7p3r_utilities import resource_path, get_timestamp
 from metrics.v7p3r_chess_metrics import get_metrics_instance, GameMetric
 from chess_core import ChessCore
@@ -31,9 +28,6 @@ if parent_dir not in sys.path:
 from v7p3r import v7p3rEngine
 from v7p3r_stockfish_handler import StockfishHandler
 
-# Setup centralized logging for this module after imports
-v7p3r_play_logger = v7p3rLogger.setup_logger("v7p3r_play")
-
 class v7p3rChess(ChessCore):
     def __init__(self, config_name: Optional[str] = None):
         """
@@ -42,9 +36,6 @@ class v7p3rChess(ChessCore):
         # Initialize Pygame (even in headless mode, for internal timing)
         pygame.init()
         self.clock = pygame.time.Clock()
-
-        # Initialize the base ChessCore first
-        super().__init__(logger_name="v7p3r_play")
 
         # Load configuration first
         try:
@@ -55,24 +46,14 @@ class v7p3rChess(ChessCore):
                 self.engine_config = self.config_manager.get_engine_config()
                 self.stockfish_config = self.config_manager.get_stockfish_config()
                 self.puzzle_config = self.config_manager.get_puzzle_config()
-                if self.logger:
-                    self.logger.info("No configuration provided, using default v7p3r configuration.")
             else:
                 self.config_name = config_name
                 self.config_manager = v7p3rConfig(config_path=os.path.join('configs',f"{self.config_name}.json"))
                 self.game_config = self.config_manager.get_game_config()
                 self.engine_config = self.config_manager.get_engine_config()
                 self.stockfish_config = self.config_manager.get_stockfish_config()
-                if self.logger:
-                    self.logger.info("Configuration provided, using custom settings.")
         except Exception as e:
-            if self.logger:
-                self.logger.error(f"Error loading configuration: {e}")
             raise
-
-        # Set logging and output levels after config is loaded
-        self.monitoring_enabled = self.engine_config.get("monitoring_enabled", True)
-        self.verbose_output_enabled = self.engine_config.get("verbose_output", False)
 
         # Initialize Engines
         self.engine = v7p3rEngine(self.engine_config)
@@ -80,49 +61,11 @@ class v7p3rChess(ChessCore):
         # Initialize metrics system
         self.metrics = get_metrics_instance()
         self.current_game_id = None
-        if self.logger:
-            self.logger.info("Metrics system initialized")
-        
-        # Debug stockfish config before passing to handler
-        if self.logger:
-            self.logger.info(f"Stockfish config being passed to handler: {self.stockfish_config}")
-            self.logger.info(f"Stockfish path in config: {self.stockfish_config.get('stockfish_path', 'NOT_FOUND')}")
         
         try:
             self.stockfish = StockfishHandler(stockfish_config=self.stockfish_config)
-            if self.logger:
-                self.logger.info("StockfishHandler initialized successfully")
         except Exception as e:
-            if self.logger:
-                self.logger.error(f"Failed to initialize StockfishHandler: {e}")
-            print(f"ERROR: Failed to initialize Stockfish: {e}")
-            if self.verbose_output_enabled:
-                print("Falling back to DummyStockfish for testing purposes")
-            # Create a dummy stockfish handler that always returns null moves
-            class DummyStockfish:
-                def __init__(self):
-                    self.process = None
-                    self.nodes_searched = 0
-                    self.last_search_info = {}
-                
-                def search(self, board, player, config):
-                    return chess.Move.null()
-                
-                def cleanup(self):
-                    pass
-                    
-                def quit(self):
-                    pass
-                    
-                def get_last_search_info(self):
-                    return {}
-            
-            self.stockfish = DummyStockfish()
-        
-        # Check if stockfish process is running
-        if hasattr(self.stockfish, 'process') and self.stockfish.process is None:
-            if self.verbose_output_enabled:
-                print("WARNING: Stockfish process is None - engine failed to start!")
+            raise
 
         # Initialize new engines based on availability and configuration
         self.engines = {
@@ -145,11 +88,6 @@ class v7p3rChess(ChessCore):
     
     def new_game(self):
         """Reset the game state for a new game"""
-        # Clear logs before starting a new game to avoid confusion with old logs
-        if self.monitoring_enabled and self.logger:
-            self.logger.info("Clearing logs before starting new game")
-            v7p3rLogger.clear_logs()
-        
         # Call parent new_game method
         super().new_game(self.starting_position)
         
@@ -191,14 +129,8 @@ class v7p3rChess(ChessCore):
                 white_engine_config=str(self.white_engine_config),
                 black_engine_config=str(self.black_engine_config)
             )
-            if self.logger:
-                self.logger.info(f"Game metrics initialized for: {self.current_game_id}")
         except Exception as e:
-            if self.logger:
-                self.logger.warning(f"Failed to initialize game metrics: {e}")
-        
-        if self.monitoring_enabled and self.logger:
-            self.logger.info(f"Starting new game: {self.current_game_id}.")
+            raise
 
     def handle_game_end(self):
         """Check if the game is over and handle end conditions."""
@@ -219,8 +151,6 @@ class v7p3rChess(ChessCore):
         if self.board.is_checkmate():
             # Assign a huge negative score if white is checkmated, huge positive if black is checkmated
             score = -999999999 if self.board.turn == chess.WHITE else 999999999
-            if self.monitoring_enabled and self.logger:
-                self.logger.info(f"Recording checkmate evaluation: {score:+.2f}")
                 
             # Make sure the score format is consistent, especially for extreme values
             formatted_score = f"{score:+.2f}" if abs(score) < 10000 else f"{int(score):+d}"
@@ -232,15 +162,6 @@ class v7p3rChess(ChessCore):
             
             self.current_eval = score
             self.game_node.comment = f"Eval: {score:+.2f}"
-        
-        # Display move with evaluation if verbose output is enabled
-        if self.verbose_output_enabled and self.logger:
-            current_player = self.board.turn
-            player_name = "White" if current_player == chess.WHITE else "Black"
-            self.logger.info(f"Position evaluation: {score:+.2f} (White perspective)")
-        
-        if self.monitoring_enabled and self.logger:
-            self.logger.info(f"Evaluation recorded: {score:+.2f} (White perspective)")
             
     def save_game_data(self):
         """Save the game data to local files and database only."""
@@ -310,19 +231,10 @@ class v7p3rChess(ChessCore):
                             WHERE game_id = ?
                         """, (db_result, total_moves, game_duration, final_fen, termination, self.current_game_id))
                         conn.commit()
-                    if self.monitoring_enabled and self.logger:
-                        self.logger.info(f"Game {self.current_game_id} result updated in database: {db_result}")
                 except Exception as e:
-                    if self.logger:
-                        self.logger.error(f"Failed to update game result in database: {e}")
-                
-                # Log completion
-                if self.monitoring_enabled and self.logger:
-                    self.logger.info(f"Game {self.current_game_id} completed: {result} in {total_moves} moves ({game_duration:.1f}s)")
-                    
+                    raise
+                  
             except Exception as e:
-                if self.logger:
-                    self.logger.warning(f"Failed to record game completion metrics: {e}")
                 # Fallback: Save JSON config file for metrics processing
                 config_filepath = f"games/eval_game_{timestamp}.json"
                 
@@ -339,9 +251,7 @@ class v7p3rChess(ChessCore):
                 with open(config_filepath, "w") as f:
                     import json
                     json.dump(game_specific_config, f, indent=4)
-                if self.monitoring_enabled and self.logger:
-                    self.logger.info(f"Game-specific combined configuration saved to {config_filepath}")
-        
+                
             # Save locally into pgn file
             pgn_filepath = f"games/eval_game_{timestamp}.pgn"
             with open(pgn_filepath, "w") as f:
@@ -350,8 +260,6 @@ class v7p3rChess(ChessCore):
                 # Always append the result string at the end for compatibility
                 if result != "*":
                     f.write(f"\n{result}\n")
-            if self.monitoring_enabled and self.logger:
-                self.logger.info(f"Game PGN saved to {pgn_filepath}")
             self.quick_save_pgn(f"games/{game_id}.pgn")
 
     # ===================================
@@ -365,19 +273,11 @@ class v7p3rChess(ChessCore):
         self.move_start_time = time.time()  # Start timing the move
         self.move_end_time = 0
         self.move_duration = 0
-        if self.monitoring_enabled and self.logger:
-            self.logger.info(f"Processing move for {self.white_player if self.current_player == chess.WHITE else self.black_player} using {self.engine.name} engine.")
         print(f"{self.white_player if self.current_player == chess.WHITE else self.black_player} is thinking...")
         
-        if self.monitoring_enabled and self.logger:
-            current_player_name = "White" if self.current_player == chess.WHITE else "Black"
-            self.logger.info(f"{current_player_name} ({self.white_player if self.current_player == chess.WHITE else self.black_player}) is thinking...")
-
         # Send the move request to the appropriate engine or human interface
         if (self.white_player.lower() == 'human' and self.current_player == chess.WHITE) or (self.black_player.lower() == 'human' and self.current_player == chess.BLACK):
             # Handle human player input (not implemented here, placeholder)
-            if self.monitoring_enabled and self.logger:
-                self.logger.info("Waiting for human player input...")
             return
         else:
             # Determine current player engine
@@ -387,12 +287,9 @@ class v7p3rChess(ChessCore):
             if not hasattr(self, '_engine_failures'):
                 self._engine_failures = {}
             
-            # Check if this engine has already failed        if current_engine_name in self._engine_failures:
-            if self.monitoring_enabled and self.logger:
-                self.logger.error(f"Engine {current_engine_name} has already failed. Game will end.")
-            result = "1-0" if self.current_player == chess.BLACK else "0-1"
-            self.game_result = result  # Store the result
-            return
+            # Check if this engine has already failed        
+            if current_engine_name in self._engine_failures:
+                return
 
             try:
                 if current_engine_name == 'v7p3r':
@@ -415,15 +312,6 @@ class v7p3rChess(ChessCore):
             except Exception as e:
                 # Mark this engine as failed
                 self._engine_failures[current_engine_name] = str(e)
-                
-                if self.monitoring_enabled and self.logger:
-                    self.logger.error(f"[CRITICAL] Engine {current_engine_name} failed: {e}")
-                
-                # Determine game result based on which player's engine failed
-                if self.current_player == chess.WHITE:
-                    self.board.set_result("0-1")  # Black wins if White's engine fails
-                else:
-                    self.board.set_result("1-0")  # White wins if Black's engine fails
 
     def push_move(self, move):
         """ Test and push a move to the board and game node """
@@ -447,8 +335,6 @@ class v7p3rChess(ChessCore):
             
             return True
         except Exception as e:
-            if self.monitoring_enabled and self.logger:
-                self.logger.error(f"[Error] Exception in engine-specific push_move logic {move}: {e}. Dumping PGN to error_dump.pgn")
             self.quick_save_pgn("games/game_error_dump.pgn")
             return False
     
@@ -507,9 +393,7 @@ class v7p3rChess(ChessCore):
         game_count_remaining = self.game_count
         
         print(f"White: {self.white_player} vs Black: {self.black_player}")
-        if self.monitoring_enabled and self.logger:
-            self.logger.info(f"White: {self.white_player} vs Black: {self.black_player}")
-
+        
         while running and game_count_remaining >= 1:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -522,12 +406,8 @@ class v7p3rChess(ChessCore):
                     game_count_remaining -= 1
                     if game_count_remaining == 0:
                         running = False
-                        if self.monitoring_enabled and self.logger:
-                            self.logger.info(f'All {self.game_count} games complete, exiting...')
                         print(f'All {self.game_count} games complete, exiting...')
                     else:
-                        if self.monitoring_enabled and self.logger:
-                            self.logger.info(f'Game {self.game_count - game_count_remaining}/{self.game_count} complete, starting next...')
                         print(f'Game {self.game_count - game_count_remaining}/{self.game_count} complete, starting next...')
                         self.game_start_timestamp = get_timestamp()
                         self.current_game_db_id = f"eval_game_{self.game_start_timestamp}.pgn"
@@ -554,10 +434,7 @@ class v7p3rChess(ChessCore):
                 self.stockfish.quit()
                 
         except Exception as e:
-            if self.monitoring_enabled and self.logger:
-                self.logger.error(f"[Error] Failed during engine cleanup: {e}")
-            else:
-                print(f"Error during engine cleanup: {e}")
+            raise
 
     def __del__(self):
         """Destructor to ensure cleanup."""
@@ -601,22 +478,6 @@ class v7p3rChess(ChessCore):
         
         print(move_display)
         
-        # Verbose output (only if verbose_output_enabled)
-        if self.verbose_output_enabled:
-            move_number = len(list(self.game.mainline_moves())) // 2 + 1
-            print(f"  Move #{move_number} | Position: {self.board.fen()}")
-            if eval_score > 0:
-                print(f"  Position favors White by {abs(eval_score):.2f}")
-            elif eval_score < 0:
-                print(f"  Position favors Black by {abs(eval_score):.2f}")
-            else:
-                print(f"  Position is balanced")
-        
-        # Logging (if monitoring enabled) - use high precision for storage
-        if self.monitoring_enabled and self.logger:
-            self.logger.info(f"Move made: {player_name} ({engine_name}) played {move} with eval {eval_score:+.2f} in {move_time:.6f}s")
-
-
 if __name__ == "__main__":
     # Process command line arguments
     if CONFIG_NAME == "default_config":

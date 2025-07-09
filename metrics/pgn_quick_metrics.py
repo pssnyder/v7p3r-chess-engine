@@ -16,11 +16,6 @@ import chess.pgn
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from v7p3r_debug import v7p3rLogger
-
-# Setup centralized logging for this module
-pgn_quick_metrics_logger = v7p3rLogger.setup_logger("pgn_quick_metrics")
-
 GAMES_DIR = os.path.join(os.path.dirname(__file__), '..', 'games')
 
 def get_pgn_files(directory):

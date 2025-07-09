@@ -36,10 +36,6 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../v7p3r_engine')))
 
 from v7p3r_config import v7p3rConfig
-from v7p3r_debug import v7p3rLogger
-
-# Setup centralized logging for this module
-v7p3r_rl_logger = v7p3rLogger.setup_logger("v7p3r_rl")
 
 class ChessPositionEncoder:
     """Enhanced position encoding for chess positions."""
@@ -246,7 +242,6 @@ class V7P3RRLAgent:
     
     def _load_config(self, config_path: str) -> dict:
         """Load configuration from centralized config manager (deprecated - keeping for compatibility)"""
-        v7p3r_rl_logger.warning("_load_config is deprecated. Using centralized configuration manager.")
         return self.config
     
     def _init_v7p3r_scoring(self):

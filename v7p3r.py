@@ -18,20 +18,11 @@ from v7p3r_book import v7p3rBook
 from v7p3r_pst import v7p3rPST
 from v7p3r_config import v7p3rConfig
 from v7p3r_rules import v7p3rRules
-from v7p3r_debug import v7p3rLogger
-
-
-# =====================================
-# ========== LOGGING SETUP ============
-# Use the centralized logger setup from v7p3r_debug
-v7p3r_logger = v7p3rLogger.setup_logger("v7p3r")
 
 # =====================================
 # ========== ENGINE CLASS =============
 class v7p3rEngine:
     def __init__(self, engine_config=None):
-        self.logger = v7p3r_logger
-
         # Overrides
         self.time_control = {    # Default to infinite time control
             'infinite': True
@@ -43,8 +34,6 @@ class v7p3rEngine:
             self.engine_config = engine_config
         else:
             self.engine_config = self.config_manager.get_engine_config()  # Ensure it's always a dictionary
-            if self.logger:
-                self.logger.info("No engine configuration provided, using v7p3r's default_config.")
 
         # Load engine config and default values
         self.name = self.engine_config.get("name", "v7p3r")
@@ -68,7 +57,7 @@ class v7p3rEngine:
         
 
         # Required Engine Modules
-        self.pst = v7p3rPST(self.logger)
+        self.pst = v7p3rPST()
         self.rules_manager = v7p3rRules(ruleset=self.ruleset, pst=self.pst)
         self.scoring_calculator = v7p3rScore(rules_manager=self.rules_manager, pst=self.pst)
         self.move_organizer = v7p3rOrdering(self.scoring_calculator)
@@ -83,9 +72,5 @@ class v7p3rEngine:
             engine_config=self.engine_config
         )
 
-        # Debug: Check if all components are properly initialized
-        if self.logger:
-            self.logger.info(f"pst: {type(self.pst)} | scoring: {type(self.scoring_calculator)} | ordering: {type(self.move_organizer)} | time: {type(self.time_manager)} | book: {type(self.opening_book)} | search: {type(self.search_engine)}")
-            self.logger.info(f"search_engine.search method: {type(getattr(self.search_engine, 'search', 'NOT_FOUND'))}")
             
         print(f"pst: {type(self.pst)} | scoring: {type(self.scoring_calculator)} | ordering: {type(self.move_organizer)} | time: {type(self.time_manager)} | book: {type(self.opening_book)} | search: {type(self.search_engine)}")

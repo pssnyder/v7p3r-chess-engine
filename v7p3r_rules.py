@@ -8,21 +8,16 @@ It is designed to be used by the v7p3r chess engine.
 import chess
 import sys
 import os
-from v7p3r_debug import v7p3rLogger, v7p3rUtilities
+from v7p3r_utilities import v7p3rUtilities
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 
-# Setup centralized logging for this module
-v7p3r_rules_logger = v7p3rLogger.setup_logger("v7p3r_rules")
-
 # ==========================================
 # ========= RULE SCORING CLASS =========
 class v7p3rRules:
     def __init__(self, ruleset, pst):
-        self.logger = v7p3r_rules_logger
-
         # Initialize scoring parameters
         self.root_board = chess.Board()
         self.game_phase = 'opening'  # Default game phase

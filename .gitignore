@@ -11,7 +11,6 @@
 .product_management/
 templates/*
 games/*
-logging/*
 db_backups/*
 training_data/*
 external_engines/*
@@ -22,6 +21,7 @@ v7p3r_ga_models/*
 v7p3r_rl_models/*
 venv/*
 .history/*
+scripts/*
 
 # Data files
 *.pgn
@@ -32,7 +32,6 @@ venv/*
 .db-shm
 .db-wal
 #*.sqlite
-*.log
 
 # Model files
 #*.pt
@@ -76,8 +75,7 @@ pipenv.lock # For pipenv
 # Distribution / packaging
 # ... (keep existing if not covered above, review for redundancy)
 
-# Logs and temporary files
-*.log
+# Temporary files
 *.tmp
 *.bak
 pip-log.txt
