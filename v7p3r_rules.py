@@ -5,9 +5,11 @@ This module is responsible for managing chess rules, validating moves, and handl
 It is designed to be used by the v7p3r chess engine.
 """
 
-import chess
-import sys
 import os
+import sys
+import chess
+from v7p3r_config import v7p3rConfig
+from v7p3r_mvv_lva import v7p3rMVVLVA
 from v7p3r_utilities import get_timestamp
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -17,31 +19,55 @@ if parent_dir not in sys.path:
 # ==========================================
 # ========= RULE SCORING CLASS =========
 class v7p3rRules:
-    def __init__(self, ruleset, pst):
-        # Initialize scoring parameters
-        self.root_board = chess.Board()
-        self.game_phase = 'opening'  # Default game phase
-        self.endgame_factor = 0.0  # Default endgame factor for endgame awareness
-        self.fallback_modifier = 1.0  # Default modifier for scoring components (was 100, reduced to avoid score inflation)
-        self.score_counter = 0
-        self.score_id = f"score[{self.score_counter}]_{get_timestamp()}"
-        self.fen = self.root_board.fen()
-        self.root_move = chess.Move.null()
-        self.score = 0.0
-
-        # Set up required modules
-        self.ruleset = ruleset
-        self.pst = pst
+    def __init__(self, ruleset=None, pst=None):
+        # Engine Configuration
+        self.config_manager = v7p3rConfig()
+        self.engine_config = self.config_manager.get_engine_config()
+        self.game_config = self.config_manager.get_game_config()
         
-        # Standard centipawn piece values - centralizing to avoid duplication
-        self.piece_values = {
+        # Initialize MVV-LVA calculator
+        self.mvv_lva = v7p3rMVVLVA(self)
+        
+        # Initialize piece values
+        self.piece_values = self.engine_config.get('piece_values', {
             chess.PAWN: 100,
             chess.KNIGHT: 320,
             chess.BISHOP: 330,
             chess.ROOK: 500,
             chess.QUEEN: 900,
             chess.KING: 20000  # Not used for material calculation, but for MVV-LVA
-        }
+        })
+
+        # Initialize required components with defaults if not provided
+        self.fallback_modifier = 100
+        self.ruleset = ruleset if ruleset is not None else {}
+        self.pst = pst if pst is not None else self._create_default_pst()
+        
+        # Initialize scoring counters
+        self.score_counter = 0
+        self.score_id = f"score[{self.score_counter}]_{get_timestamp()}"
+        
+    def _create_default_pst(self):
+        """Create a default piece-square table handler with basic functionality"""
+        class DefaultPST:
+            def get_piece_value(self, piece):
+                values = {
+                    chess.PAWN: 100,
+                    chess.KNIGHT: 320,
+                    chess.BISHOP: 330,
+                    chess.ROOK: 500,
+                    chess.QUEEN: 900,
+                    chess.KING: 20000
+                }
+                return values.get(piece.piece_type, 0)
+                
+            def get_pst_value(self, piece, square, color, endgame_factor=0.0):
+                return 0  # Default to no positional bonus
+                
+            def get_piece_square_value(self, piece_type, square, color):
+                return 0  # Default to no positional bonus
+
+        return DefaultPST()
 
     def checkmate_threats(self, board: chess.Board, color: chess.Color) -> float:
         """
@@ -274,3 +300,127 @@ class v7p3rRules:
                 score = black_castling_score - white_castling_score
                 
         return score * castling_modifier
+
+    def find_checkmate_in_n(self, board: chess.Board, n: int, color: chess.Color) -> chess.Move:
+        """
+        Find a checkmate in n moves if it exists.
+        Returns the first move of the mating sequence if found, otherwise null move.
+        
+        Args:
+            board: The current board position
+            n: Maximum number of moves to look ahead
+            color: Color to find checkmate for
+        """
+        if n <= 0:
+            return chess.Move.null()
+            
+        # If it's not our turn, we need to wait for opponent's move
+        if board.turn != color:
+            return chess.Move.null()
+            
+        # Check immediate checkmate
+        legal_moves = list(board.legal_moves)
+        for move in legal_moves:
+            board_copy = board.copy()
+            board_copy.push(move)
+            
+            if board_copy.is_checkmate():
+                return move
+                
+        # If no immediate checkmate, look deeper if we still have depth
+        if n > 1:
+            for move in legal_moves:
+                board_copy = board.copy()
+                board_copy.push(move)
+                
+                # Skip if opponent can checkmate us
+                opponent_can_mate = False
+                for opponent_move in board_copy.legal_moves:
+                    opponent_board = board_copy.copy()
+                    opponent_board.push(opponent_move)
+                    if opponent_board.is_checkmate():
+                        opponent_can_mate = True
+                        break
+                        
+                if opponent_can_mate:
+                    continue
+                    
+                # For each opponent reply
+                all_replies_fail = True
+                for opponent_move in board_copy.legal_moves:
+                    opponent_board = board_copy.copy()
+                    opponent_board.push(opponent_move)
+                    
+                    # If we can't find a mate after opponent's best defense
+                    if self.find_checkmate_in_n(opponent_board, n-2, color) == chess.Move.null():
+                        all_replies_fail = False
+                        break
+                        
+                # If all opponent replies lead to mate
+                if all_replies_fail and board_copy.legal_moves:
+                    return move
+                    
+        return chess.Move.null()
+
+    def is_stalemate_threatened(self, board: chess.Board) -> bool:
+        """Check if any legal move leads to stalemate"""
+        for move in board.legal_moves:
+            board_copy = board.copy()
+            board_copy.push(move)
+            if board_copy.is_stalemate():
+                return True
+        return False
+
+    def find_non_stalemate_move(self, board: chess.Board) -> chess.Move:
+        """Find a move that doesn't lead to stalemate"""
+        best_move = chess.Move.null()
+        best_score = float('-inf')
+        
+        for move in board.legal_moves:
+            board_copy = board.copy()
+            board_copy.push(move)
+            
+            if not board_copy.is_stalemate():
+                # Score the move based on:
+                # 1. Does it give check?
+                # 2. Is it a capture?
+                # 3. Does it improve piece position?
+                score = 0
+                
+                if board_copy.is_check():
+                    score += 50
+                    
+                if board.is_capture(move):
+                    victim = board.piece_at(move.to_square)
+                    attacker = board.piece_at(move.from_square)
+                    if victim and attacker:
+                        score += self.piece_values[victim.piece_type]
+                        
+                # Use PST to evaluate position improvement
+                piece = board.piece_at(move.from_square)
+                if piece:
+                    from_value = self.pst.get_piece_square_value(piece.piece_type, move.from_square, piece.color)
+                    to_value = self.pst.get_piece_square_value(piece.piece_type, move.to_square, piece.color)
+                    score += (to_value - from_value)
+                    
+                if score > best_score:
+                    best_score = score
+                    best_move = move
+                    
+        return best_move
+
+    def get_game_phase(self, board: chess.Board) -> str:
+        """Determine the current game phase"""
+        # Count material to determine game phase
+        total_material = 0
+        for piece_type in [chess.PAWN, chess.KNIGHT, chess.BISHOP, chess.ROOK, chess.QUEEN]:
+            total_material += len(board.pieces(piece_type, chess.WHITE))
+            total_material += len(board.pieces(piece_type, chess.BLACK))
+            
+        # Full material = 30 (16 pawns, 4 knights, 4 bishops, 4 rooks, 2 queens)
+        if total_material >= 26:  # Lost less than 4 pieces
+            return 'opening'
+        elif total_material >= 14:  # Still has significant material
+            return 'middlegame'
+        else:
+            return 'endgame'

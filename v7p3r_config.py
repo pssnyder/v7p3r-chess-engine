@@ -9,7 +9,12 @@ class v7p3rConfig:
     This class generates the configuration settings for the engine, including game settings, engine settings, and Stockfish settings.
     Supports centralized configuration management with override capabilities for all modules.
     """
-    def __init__(self, config_path: Optional[str] = None, overrides: Optional[Dict[str, Any]] = None):
+    def __init__(self, config_name: Optional[str] = None, overrides: Optional[Dict[str, Any]] = None):
+        if config_name is not None:
+            # If a specific config name is provided, use that to determine the path
+            config_path = os.path.join(os.path.dirname(__file__), 'configs', f'{config_name}.json')
+        else:
+            config_path = None
         if config_path is not None and os.path.isfile(config_path):
             self.config_path = config_path
         else:
@@ -353,3 +358,290 @@ class v7p3rConfig:
         """Clear all configuration overrides and reload from file."""
         self.overrides = {}
         self._load_config()
+
+    def _get_default_engine_config(self):
+        """Get default engine configuration"""
+        return {
+            'depth': 20,
+            'multi_threaded': True,
+            'use_transpositions': True,
+            'use_tablebases': True,
+            'use_ponder': True,
+            'use_null_move': True,
+            'null_move_threshold': 3,
+            'use_late_move_reduction': True,
+            'late_move_reduction_factor': 3,
+            'use_quiescence': False,
+            'use_game_phase': True,
+            'use_mvv_lva': True,  # Enable/disable MVV-LVA calculations
+            'mvv_lva_settings': {
+                'use_safety_checks': True,  # Consider piece safety in MVV-LVA
+                'use_position_context': True,  # Consider positional factors
+                'safety_margin': 200,  # Base safety margin for captures
+                'position_bonus': 50,  # Bonus for positionally sound captures
+            },
+            'use_dtm': False,
+            'dtm_depth': 10,
+            'dtm_window': 5,
+            'use_aspiration': True,
+            'aspiration_window': 10,
+            'use_futility_pruning': True,
+            'futility_margin': 100,
+            'use_extended_pawn_structure': True,
+            'pawn_structure_weight': 10,
+            'use_king_safety': True,
+            'king_safety_weight': 20,
+            'use_piece_activity': True,
+            'piece_activity_weight': 15,
+            'use_space_control': True,
+            'space_control_weight': 10,
+            'use_mobility': True,
+            'mobility_weight': 10,
+            'use_material_balance': True,
+            'material_balance_weight': 10,
+            'use_attack_defense': True,
+            'attack_defense_weight': 10,
+            'use_blockade': True,
+            'blockade_weight': 10,
+            'use_open_files': True,
+            'open_files_weight': 10,
+            'use_semi_open_files': True,
+            'semi_open_files_weight': 5,
+            'use_passed_pawns': True,
+            'passed_pawns_weight': 10,
+            'use_isolated_pawns': True,
+            'isolated_pawns_weight': 10,
+            'use_backwards_pawns': True,
+            'backwards_pawns_weight': 10,
+            'use_doubled_pawns': True,
+            'doubled_pawns_weight': 10,
+            'use_weak_squares': True,
+            'weak_squares_weight': 10,
+            'use_strong_squares': True,
+            'strong_squares_weight': 10,
+            'use_color_complexity': True,
+            'color_complexity_weight': 10,
+            'use_piece_swarm': True,
+            'piece_swarm_weight': 10,
+            'use_knight_outposts': True,
+            'knight_outposts_weight': 10,
+            'use_bishop_pair': True,
+            'bishop_pair_weight': 10,
+            'use_rook_lift': True,
+            'rook_lift_weight': 10,
+            'use_queen_activity': True,
+            'queen_activity_weight': 10,
+            'use_king_activity': True,
+            'king_activity_weight': 10,
+            'use_castle_safety': True,
+            'castle_safety_weight': 10,
+            'use_risk_management': True,
+            'risk_management_weight': 10,
+            'use_material_count': True,
+            'material_count_weight': 10,
+            'use_piece_value': True,
+            'piece_value_weight': 10,
+            'use_king_distance': True,
+            'king_distance_weight': 10,
+            'use_queen_distance': True,
+            'queen_distance_weight': 10,
+            'use_rook_distance': True,
+            'rook_distance_weight': 10,
+            'use_bishop_distance': True,
+            'bishop_distance_weight': 10,
+            'use_knight_distance': True,
+            'knight_distance_weight': 10,
+            'use_pawn_distance': True,
+            'pawn_distance_weight': 10,
+            'use_king_pawn_distance': True,
+            'king_pawn_distance_weight': 10,
+            'use_queen_pawn_distance': True,
+            'queen_pawn_distance_weight': 10,
+            'use_rook_pawn_distance': True,
+            'rook_pawn_distance_weight': 10,
+            'use_bishop_pawn_distance': True,
+            'bishop_pawn_distance_weight': 10,
+            'use_knight_pawn_distance': True,
+            'knight_pawn_distance_weight': 10,
+            'use_passed_pawn_distance': True,
+            'passed_pawn_distance_weight': 10,
+            'use_isolated_pawn_distance': True,
+            'isolated_pawn_distance_weight': 10,
+            'use_backwards_pawn_distance': True,
+            'backwards_pawn_distance_weight': 10,
+            'use_doubled_pawn_distance': True,
+            'doubled_pawn_distance_weight': 10,
+            'use_weak_square_distance': True,
+            'weak_square_distance_weight': 10,
+            'use_strong_square_distance': True,
+            'strong_square_distance_weight': 10,
+            'use_color_complexity_distance': True,
+            'color_complexity_distance_weight': 10,
+            'use_piece_swarm_distance': True,
+            'piece_swarm_distance_weight': 10,
+            'use_knight_outpost_distance': True,
+            'knight_outpost_distance_weight': 10,
+            'use_bishop_pair_distance': True,
+            'bishop_pair_distance_weight': 10,
+            'use_rook_lift_distance': True,
+            'rook_lift_distance_weight': 10,
+            'use_queen_activity_distance': True,
+            'queen_activity_distance_weight': 10,
+            'use_king_activity_distance': True,
+            'king_activity_distance_weight': 10,
+            'use_castle_safety_distance': True,
+            'castle_safety_distance_weight': 10,
+            'use_risk_management_distance': True,
+            'risk_management_distance_weight': 10,
+            'use_material_count_distance': True,
+            'material_count_distance_weight': 10,
+            'use_piece_value_distance': True,
+            'piece_value_distance_weight': 10,
+            'use_king_distance_weight': True,
+            'king_distance_weight_weight': 10,
+            'use_queen_distance_weight': True,
+            'queen_distance_weight_weight': 10,
+            'use_rook_distance_weight': True,
+            'rook_distance_weight_weight': 10,
+            'use_bishop_distance_weight': True,
+            'bishop_distance_weight_weight': 10,
+            'use_knight_distance_weight': True,
+            'knight_distance_weight_weight': 10,
+            'use_pawn_distance_weight': True,
+            'pawn_distance_weight_weight': 10,
+            'use_king_pawn_distance_weight': True,
+            'king_pawn_distance_weight_weight': 10,
+            'use_queen_pawn_distance_weight': True,
+            'queen_pawn_distance_weight_weight': 10,
+            'use_rook_pawn_distance_weight': True,
+            'rook_pawn_distance_weight_weight': 10,
+            'use_bishop_pawn_distance_weight': True,
+            'bishop_pawn_distance_weight_weight': 10,
+            'use_knight_pawn_distance_weight': True,
+            'knight_pawn_distance_weight_weight': 10,
+            'use_passed_pawn_distance_weight': True,
+            'passed_pawn_distance_weight_weight': 10,
+            'use_isolated_pawn_distance_weight': True,
+            'isolated_pawn_distance_weight_weight': 10,
+            'use_backwards_pawn_distance_weight': True,
+            'backwards_pawn_distance_weight_weight': 10,
+            'use_doubled_pawn_distance_weight': True,
+            'doubled_pawn_distance_weight_weight': 10,
+            'use_weak_square_distance_weight': True,
+            'weak_square_distance_weight_weight': 10,
+            'use_strong_square_distance_weight': True,
+            'strong_square_distance_weight_weight': 10,
+            'use_color_complexity_distance_weight': True,
+            'color_complexity_distance_weight_weight': 10,
+            'use_piece_swarm_distance_weight': True,
+            'piece_swarm_distance_weight_weight': 10,
+            'use_knight_outpost_distance_weight': True,
+            'knight_outpost_distance_weight_weight': 10,
+            'use_bishop_pair_distance_weight': True,
+            'bishop_pair_distance_weight_weight': 10,
+            'use_rook_lift_distance_weight': True,
+            'rook_lift_distance_weight_weight': 10,
+            'use_queen_activity_distance_weight': True,
+            'queen_activity_distance_weight_weight': 10,
+            'use_king_activity_distance_weight': True,
+            'king_activity_distance_weight_weight': 10,
+            'use_castle_safety_distance_weight': True,
+            'castle_safety_distance_weight_weight': 10,
+            'use_risk_management_distance_weight': True,
+            'risk_management_distance_weight_weight': 10,
+            'use_material_count_distance_weight': True,
+            'material_count_distance_weight_weight': 10,
+            'use_piece_value_distance_weight': True,
+            'piece_value_distance_weight_weight': 10,
+        }
+
+    def _get_default_game_config(self):
+        """Get default game configuration"""
+        return {
+            "game_count": 1,
+            "starting_position": "default",
+            "white_player": "v7p3r",
+            "black_player": "stockfish"
+        }
+
+    def _get_default_puzzle_config(self):
+        """Get default puzzle configuration"""
+        return {
+            "puzzle_database": {
+                "db_path": "puzzle_data.db",
+                "selection": {
+                    "min_rating": 800,
+                    "max_rating": 3000,
+                    "batch_size": 25,
+                    "themes": ["mate"],
+                    "strict_theme_matching": False
+                },
+                "adaptive_elo": {
+                    "enabled": False,
+                    "starting_elo": 1200,
+                    "increment": 100,
+                    "decrement": 50,
+                    "success_threshold": 0.8
+                },
+                "maintenance": {
+                    "auto_vacuum": True,
+                    "max_attempts_per_puzzle": 10
+                }
+            },
+            "puzzle_solver": {
+                "engine": {
+                    "depth": 3,
+                    "time_limit": 5000
+                },
+                "tracking": {
+                    "record_attempts": True,
+                    "save_positions": True
+                },
+                "integration": {
+                    "update_transposition_table": False,
+                    "stockfish_verification": False
+                },
+                "display": {
+                    "show_solution": True
+                }
+            }
+        }
+
+    def _get_default_metrics_config(self):
+        """Get default metrics configuration"""
+        return {
+            "metrics_to_track": [
+                "evaluation",
+                "depth",
+                "nodes_searched",
+                "time_taken"
+            ],
+            "include_engines": ["v7p3r"],
+            "exclude_engine_ids": [],
+            "group_by": "engine_id",
+            "respect_exclusion_flags": True,
+            "default_grouping": "engine_id",
+            "show_engine_version": True,
+            "show_engine_config_hash": True
+        }
+
+    def load_config(self, config_path: str) -> None:
+        """Load a specific configuration file."""
+        try:
+            with open(config_path, 'r') as f:
+                config = json.loads(f.read())
+                if 'engine_config' in config:
+                    self.engine_config = config['engine_config']
+                if 'game_config' in config:
+                    self.game_config = config['game_config']
+                if 'puzzle_config' in config:
+                    self.puzzle_config = config['puzzle_config']
+                if 'metrics_config' in config:
+                    self.metrics_config = config['metrics_config']
+        except Exception as e:
+            print(f"Error loading config from {config_path}: {str(e)}")
+            # Fall back to defaults if loading fails
+            self.engine_config = self._get_default_engine_config()
+            self.game_config = self._get_default_game_config()
+            self.puzzle_config = self._get_default_puzzle_config()
+            self.metrics_config = self._get_default_metrics_config()

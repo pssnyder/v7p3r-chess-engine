@@ -1,20 +1,15 @@
 # v7p3r_live_tuner.py
 import os
 import sys
-import datetime
+from typing import Optional
 import sqlite3
 import chess
 from v7p3r import v7p3rEngine
 from v7p3r_config import v7p3rConfig
 
+CONFIG_NAME = 'mvv_lva_test_config'  # Configuration file for MVV-LVA testing
+
 OBSERVATION_MODE = False  # Set to True to enable observation features, such as pausing after each position
-position_config = {
-    "rating": 2000, # Max rating for starting positions
-    "themes": ["mateIn1", "mateIn2","mateIn3"], # Themes to filter by, e.g., 'mate', 'tactics'
-    "max_moves": 10, # Max moves in the position
-    "limit": 25, # Limit the number of starting positions returned
-    "query_type": "loose" # 'strict' uses 'AND' logic, 'loose' uses 'OR' logic, when querying themes
-}
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if parent_dir not in sys.path:
@@ -30,30 +25,45 @@ class v7p3rTuner:
     """v7p3rTuner
     This class is responsible for tuning the v7p3r engine using starting positions from a database.
     """
-    def __init__(self):
+    def __init__(self, config_name: Optional[str] = 'default_config'):
         # Load Configuration
-        self.config_manager = v7p3rConfig()
-        self.engine_config = self.config_manager.get_engine_config()
+        self.config_manager = v7p3rConfig(config_name=config_name)
         
-        # Initialize the engine with the loaded config
+        # Get configs
+        self.engine_config = self.config_manager.get_engine_config()
+        self.puzzle_config = self.config_manager.get_puzzle_config()
+        
+        # Initialize the engine with the test config
         self.engine = v7p3rEngine(self.engine_config)
 
         # Initialize the board and other attributes
-        self.board = chess.Board()  # Start with an empty board
+        self.board = chess.Board()
         self.current_position = 0
+        
+        # Set up position config from puzzle config
+        self.position_config = self.puzzle_config.get('position_config', {})
+        self.max_rating = self.position_config.get("max_rating", 2000)
+        self.themes = self.position_config.get("themes", ["mate"])
+        self.max_moves = self.position_config.get("max_moves", 10)
+        self.position_limit = self.position_config.get("position_limit", 25)
+        self.query_type = self.position_config.get("query_type", "loose")
 
-    def get_starting_positions(self, criteria: dict):
+    def get_starting_positions(self):
         """
-        Fetches starting positions from the database meeting the criteria
+        Fetches starting positions from the database meeting the criteria from config
+        If criteria is passed, it overrides the config settings
         """
-        # Open read only db connection to puzzle_data.db (located at project root /puzzles/puzzle_data.db)
-        db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'puzzles', 'puzzle_data.db'))
+
+        # Open read only db connection to puzzle_data.db (located at project root)
+        db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 
+                                              self.puzzle_config.get('puzzle_database', {}).get('db_path', 'puzzle_data.db')))
+                                              
         if not os.path.exists(db_path):
             raise FileNotFoundError(f"Database file not found: {db_path}")
         
         # Prepare query for multiple themes, supporting strict (AND) and loose (OR) logic
-        themes = criteria.get('themes', ['mate'])
-        query_type = criteria.get('query_type', 'strict')
+        themes = self.themes
+        query_type = self.query_type
         if query_type not in ['strict', 'loose']:
             raise ValueError("query_type must be 'strict' or 'loose'")
         if not isinstance(themes, list):
@@ -81,11 +91,11 @@ class v7p3rTuner:
         """
         
         # Prepare parameters in correct order
-        rating_limit = criteria.get('rating', 3000)
-        max_moves = criteria.get('max_moves', 10)
-        limit = criteria.get('limit', 25)
+        rating_limit = self.max_rating
+        max_moves = self.max_moves
+        limit = self.position_limit
         params = [rating_limit, max_moves] + theme_params + [limit]
-        
+        print(f"Executing query with params: {params}")
         with sqlite3.connect(db_path) as conn:
             cursor = conn.cursor()
             cursor.execute(query, params)
@@ -107,12 +117,13 @@ class v7p3rTuner:
                     starting_positions.append({fen: moves_list})
                 
                 print(f"Found {len(starting_positions)} starting positions matching criteria")
+                print(f"Criteria: max_rating={self.max_rating}, max_moves={self.max_moves}, themes={self.themes}, position_limit={self.position_limit}, query_type={self.query_type}")
             else:
-                print(f"No starting positions found matching criteria: {criteria}")
+                print(f"No starting positions found matching criteria: {self.puzzle_config}")
                 starting_positions = []
         return starting_positions
     
-    def solve_position(self, position_object, position_count, current_position=0):
+    def solve_position(self, position_object, position_count, current_position=0) -> bool:
         current_position_fen = next(iter(position_object.keys()))
         solution_moves = position_object.get(current_position_fen, [])
         current_position += 1
@@ -157,7 +168,6 @@ class v7p3rTuner:
                 print(f"Engine played move {current_move_number}/{total_moves}: {engine_guess.uci()} | FEN: {self.board.fen()}")
                 
                 if self.board.is_game_over():
-                    print(f"Game over: {self.board.result()} Reason: {self.board.outcome()}")
                     break
 
         # After all moves, compare engine's sequence to solution
@@ -165,30 +175,30 @@ class v7p3rTuner:
         print(f"Solution move sequence: {solution_moves}")
         if played_moves == solution_moves:
             print("Engine solved the position correctly! WIN recorded.")
+            return True
         else:
             print("Engine did not solve the position. LOSS recorded.")
-        
-def main(position_config):
-    # Initialize the tuner
-    tuner = v7p3rTuner()
-    starting_positions = tuner.get_starting_positions(position_config)
-    position_count = len(starting_positions)
-    current_position = 0
-    if position_count == 0:
-        print("No starting positions found matching the criteria.")
-        return
-    for position_object in starting_positions:
-        current_position += 1
-        tuner.solve_position(position_object, position_count, current_position)
-
-        if OBSERVATION_MODE:
-            # Pause and wait for the user to review and continue
-            input("Press Enter to continue to the next position... (CTRL+C to exit)")
+            return False
 
 if __name__ == "__main__":
     try:
-        main(position_config)
+        
+        tuner = v7p3rTuner(CONFIG_NAME)
+        # Get starting positions using config settings
+        positions = tuner.get_starting_positions()
+        positions_solved = 0
+        current_position_solved = False
+        # Test each position
+        for i, position in enumerate(positions, 1):
+            current_position_solved = False
+            current_position_solved = tuner.solve_position(position, len(positions), i)
+
+            if current_position_solved:
+                positions_solved += 1
+
+            if OBSERVATION_MODE:
+                # Pause and wait for the user to review and continue
+                input("Press Enter to continue to the next position... (CTRL+C to exit)")
+        print(f"\nTotal positions solved: {positions_solved}/{len(positions)}")
     except Exception as e:
         print("Exception occurred:", e)
-        import traceback
-        traceback.print_exc()

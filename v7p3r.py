@@ -1,7 +1,30 @@
 # v7p3r_engine.py
 
 """ v7p3r Engine
-This module implements the core engine for the v7p3r chess AI.
+This module impleme        # Engine components initialization in dependency order
+        # 1. Base components without dependencies
+        self.pst = v7p3rPST()
+        self.opening_book = v7p3rBook()
+        self.time_manager = v7p3rTime()
+        
+        # 2. Rules system
+        self.rules = v7p3rRules(self.ruleset_name, self.pst)
+        
+        # 3. Scoring system
+        self.scoring_calculator = v7p3rScore(self.rules, self.pst)
+        
+        # 4. Move organization
+        self.move_organizer = v7p3rOrdering(self.scoring_calculator)
+        
+        # 5. Main search engine with all dependencies
+        self.search_engine = v7p3rSearch(
+            self.scoring_calculator,
+            self.move_organizer,
+            self.time_manager,
+            self.opening_book,
+            self.rules,
+            self.engine_config
+        )gine for the v7p3r chess AI.
 It provides handler functionality for search algorithms, evaluation functions, and move ordering
 """
 
@@ -58,19 +81,83 @@ class v7p3rEngine:
 
         # Required Engine Modules
         self.pst = v7p3rPST()
-        self.rules_manager = v7p3rRules(ruleset=self.ruleset, pst=self.pst)
-        self.scoring_calculator = v7p3rScore(rules_manager=self.rules_manager, pst=self.pst)
-        self.move_organizer = v7p3rOrdering(self.scoring_calculator)
+        self.rules_manager = v7p3rRules(self.ruleset_name, self.pst)
+        self.scoring_calculator = v7p3rScore(self.rules_manager, self.pst)
+        self.move_organizer = v7p3rOrdering(scoring_calculator=self.scoring_calculator)
         self.time_manager = v7p3rTime()
         self.opening_book = v7p3rBook()
-        # Pass the engine_config to the v7p3rSearch constructor
         self.search_engine = v7p3rSearch(
-            scoring_calculator=self.scoring_calculator, 
-            move_organizer=self.move_organizer, 
-            time_manager=self.time_manager, 
-            opening_book=self.opening_book,
-            engine_config=self.engine_config
+            self.scoring_calculator,
+            self.move_organizer,
+            self.time_manager,
+            self.opening_book,
+            self.rules_manager,
+            self.engine_config
         )
+        
+        # State tracking
+        self.current_evaluation = 0.0
+        self.nodes_searched = 0
+        self.last_move_time = 0.0
+        self.last_pv_line = []
 
+    def get_move(self, board: chess.Board, color: chess.Color) -> chess.Move:
+        """Get the best move for the current position following the evaluation hierarchy."""
+        import time
+        start_time = time.time()
+        
+        try:
+            # 1. Try book moves first
+            book_move = self.opening_book.get_book_move(board)
+            if book_move and board.is_legal(book_move):
+                self._update_state(0.0, 1, time.time() - start_time)
+                return book_move
+                
+            # 2. Check for immediate checkmate
+            mate_move = self.rules_manager.find_checkmate_in_n(board, 5, color)
+            if mate_move and board.is_legal(mate_move):
+                self._update_state(float('inf'), 1, time.time() - start_time)
+                return mate_move
+                
+            # 3. If we're in trouble, look for saving moves
+            if board.is_check():
+                # Search deeper in check positions
+                self.search_engine.depth = min(self.depth + 2, self.max_depth)
+            else:
+                self.search_engine.depth = self.depth
+                
+            # 4. Get move from search engine
+            move = self.search_engine.search(board, color)
             
-        print(f"pst: {type(self.pst)} | scoring: {type(self.scoring_calculator)} | ordering: {type(self.move_organizer)} | time: {type(self.time_manager)} | book: {type(self.opening_book)} | search: {type(self.search_engine)}")
+            # 5. Update engine state
+            self._update_state(
+                self.search_engine.evaluation,
+                self.search_engine.nodes_searched,
+                time.time() - start_time
+            )
+            
+            return move
+            
+        except Exception as e:
+            print(f"Error in get_move: {str(e)}")
+            # Emergency fallback - return first legal move
+            legal_moves = list(board.legal_moves)
+            return legal_moves[0] if legal_moves else chess.Move.null()
+            
+    def _update_state(self, evaluation: float, nodes: int, time_taken: float):
+        """Update engine state after a move calculation"""
+        self.current_evaluation = evaluation
+        self.nodes_searched = nodes
+        self.last_move_time = time_taken
+        
+    def get_current_evaluation(self) -> float:
+        """Get the evaluation of the current position"""
+        return self.current_evaluation
+        
+    def get_nodes_searched(self) -> int:
+        """Get the number of nodes searched in the last search"""
+        return self.nodes_searched
+        
+    def get_last_move_time(self) -> float:
+        """Get the time taken for the last move calculation"""
+        return self.last_move_time

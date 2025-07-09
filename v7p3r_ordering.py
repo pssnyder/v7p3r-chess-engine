@@ -5,6 +5,7 @@ import os
 import sys
 import chess
 from v7p3r_config import v7p3rConfig
+from v7p3r_mvv_lva import v7p3rMVVLVA
 
 # Ensure the parent directory is in sys.path for imports
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -20,6 +21,7 @@ class v7p3rOrdering:
         
         # Required Engine Modules
         self.scoring_calculator = scoring_calculator
+        self.mvv_lva = v7p3rMVVLVA(scoring_calculator.rules_manager)
         
         # Move Ordering Settings
         self.move_ordering_enabled = self.engine_config.get('move_ordering_enabled', True)
@@ -65,12 +67,10 @@ class v7p3rOrdering:
             score += 9999.0
 
         temp_board.pop()
-        if temp_board.is_capture(move):
-            score += 999.0
-            victim_type = temp_board.piece_type_at(move.to_square)
-            aggressor_type = temp_board.piece_type_at(move.from_square)
-            if victim_type and aggressor_type:
-                score += (self.engine_config.get('piece_values', {}).get(victim_type, 0) * 10) - self.engine_config.get('piece_values', {}).get(aggressor_type, 0)
+        if board.is_capture(move):
+            # Use MVV-LVA for capture scoring
+            mvv_lva_score = self.mvv_lva.calculate_mvv_lva_score(move, board)
+            score += 900.0 + mvv_lva_score
 
         if move.promotion:
             score += 90.0

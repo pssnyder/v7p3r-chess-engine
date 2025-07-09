@@ -38,7 +38,7 @@
     },
     "puzzle_config": {
         "puzzle_database": {
-            "db_path": "puzzles/puzzle_data.db",
+            "db_path": "puzzle_data.db",
             "selection": {
             "min_rating": 800,
             "max_rating": 3000,

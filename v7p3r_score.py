@@ -12,6 +12,7 @@ import os
 from typing import Optional
 from v7p3r_config import v7p3rConfig
 from v7p3r_utilities import get_timestamp
+from v7p3r_mvv_lva import v7p3rMVVLVA
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if parent_dir not in sys.path:
@@ -28,6 +29,7 @@ class v7p3rScore:
         # Required Scoring Modules
         self.pst = pst
         self.rules_manager = rules_manager
+        self.mvv_lva = v7p3rMVVLVA(rules_manager)
 
         # Scoring Setup
         self.ruleset_name = self.engine_config.get('ruleset', 'default_ruleset')
@@ -69,24 +71,167 @@ class v7p3rScore:
     # =================================
     # ===== EVALUATION FUNCTIONS ======
 
-    def evaluate_position(self, board: chess.Board) -> float:
-        """Calculate position evaluation from general perspective by delegating to scoring_calculator."""
-        if not isinstance(board, chess.Board) or not board.is_valid():
-            return 0.0
+    def _evaluate_material(self, board: chess.Board) -> float:
+        """Evaluate material balance between the two players."""
+        material_score = 0.0
         
-        white_score = self.calculate_score(
-            board=board,
-            color=chess.WHITE,
-        )
-        black_score = self.calculate_score(
-            board=board,
-            color=chess.BLACK,
-        )
+        # Material values (pawn = 1, knight = 3, bishop = 3, rook = 5, queen = 9)
+        piece_values = {
+            chess.PAWN: 1.0,
+            chess.KNIGHT: 3.0,
+            chess.BISHOP: 3.0,
+            chess.ROOK: 5.0,
+            chess.QUEEN: 9.0,
+        }
+        
+        # Calculate material score based on piece values
+        for piece_type, value in piece_values.items():
+            white_material = len(board.pieces(piece_type, chess.WHITE))
+            black_material = len(board.pieces(piece_type, chess.BLACK))
+            material_score += (white_material - black_material) * value
+        
+        return material_score
 
-        # Return the score from whites perspective
-        score = white_score - black_score
-        self.score_dataset['evaluation'] = score
+    def _evaluate_piece_development(self, board: chess.Board) -> float:
+        """Evaluate piece development and control of the center"""
+        score = 0.0
+        
+        # Center squares
+        center_squares = [chess.D4, chess.E4, chess.D5, chess.E5]
+        near_center_squares = [chess.C3, chess.D3, chess.E3, chess.F3,
+                             chess.C4, chess.F4,
+                             chess.C5, chess.F5,
+                             chess.C6, chess.D6, chess.E6, chess.F6]
+        
+        # Evaluate piece development and center control
+        for square in chess.SQUARES:
+            piece = board.piece_at(square)
+            if piece is not None:
+                # Center control bonus
+                if square in center_squares:
+                    score += 30 if piece.color == chess.WHITE else -30
+                elif square in near_center_squares:
+                    score += 15 if piece.color == chess.WHITE else -15
+                
+                # Development bonus for minor pieces
+                if piece.piece_type in [chess.KNIGHT, chess.BISHOP]:
+                    if piece.color == chess.WHITE and chess.square_rank(square) > 1:
+                        score += 20
+                    elif piece.color == chess.BLACK and chess.square_rank(square) < 6:
+                        score -= 20
+                
+                # Penalty for early queen development
+                if piece.piece_type == chess.QUEEN:
+                    if piece.color == chess.WHITE and chess.square_rank(square) > 1:
+                        score -= 30
+                    elif piece.color == chess.BLACK and chess.square_rank(square) < 6:
+                        score += 30
+                
+                # Severe penalty for early king movement
+                if piece.piece_type == chess.KING:
+                    if len(list(board.move_stack)) < 20:  # Early game
+                        if piece.color == chess.WHITE and square != chess.E1:
+                            score -= 100
+                        elif piece.color == chess.BLACK and square != chess.E8:
+                            score += 100
+        
         return score
+
+    def _calculate_mvv_lva_score(self, move: chess.Move, board: chess.Board) -> float:
+        """Calculate MVV-LVA (Most Valuable Victim - Least Valuable Attacker) score for a capture move."""
+        if not board.is_capture(move):
+            return 0.0
+            
+        # Piece values for MVV-LVA calculation
+        mvv_lva_values = {
+            chess.PAWN: 100,
+            chess.KNIGHT: 320,
+            chess.BISHOP: 330,
+            chess.ROOK: 500,
+            chess.QUEEN: 900,
+            chess.KING: 20000
+        }
+        
+        victim = board.piece_at(move.to_square)
+        attacker = board.piece_at(move.from_square)
+        
+        if victim is None or attacker is None:
+            return 0.0
+            
+        # MVV-LVA score = Victim value * 100 - Attacker value
+        # This ensures capturing a queen with a pawn is better than with a queen
+        return mvv_lva_values[victim.piece_type] * 100 - mvv_lva_values[attacker.piece_type]
+
+    def _evaluate_castling_state(self, board: chess.Board) -> float:
+        """Evaluate castling opportunities and king safety"""
+        score = 0.0
+        
+        # If we've castled, big bonus
+        if board.has_castling_rights(chess.WHITE):
+            if not board.king(chess.WHITE) == chess.E1:  # King has moved
+                score -= self.pst.piece_values[chess.KING] * 0.1
+        else:
+            # Lost castling rights without castling
+            if board.king(chess.WHITE) == chess.E1:  # Still on starting square
+                score -= self.pst.piece_values[chess.KING] * 0.2
+                
+        if board.has_castling_rights(chess.BLACK):
+            if not board.king(chess.BLACK) == chess.E8:  # King has moved
+                score += self.pst.piece_values[chess.KING] * 0.1
+        else:
+            # Lost castling rights without castling
+            if board.king(chess.BLACK) == chess.E8:  # Still on starting square
+                score += self.pst.piece_values[chess.KING] * 0.2
+                
+        return score
+
+    def evaluate_position(self, board: chess.Board) -> float:
+        """Calculate the score for the current position following the evaluation hierarchy."""
+        try:
+            # 1. Critical Short Circuits
+            # Check for checkmate
+            if board.is_checkmate():
+                return float('-inf') if board.turn else float('inf')
+            
+            # Check for stalemate
+            if board.is_stalemate():
+                return 0.0  # Neutral score for stalemate
+                
+            # 2. Primary Scoring Components
+            material_score = self._evaluate_material(board) * 100  # Convert to centipawns
+            
+            pst_score = 0.0
+            for square in chess.SQUARES:
+                piece = board.piece_at(square)
+                if piece:
+                    pst_score += self.pst.get_piece_square_value(piece.piece_type, square, piece.color)
+                    
+            # 3. Secondary Scoring Components
+            castling_score = self._evaluate_castling_state(board)
+            development_score = self._evaluate_piece_development(board)
+            
+            # Combine all scores with proper weighting
+            total_score = (
+                material_score * 1.0 +  # Material is most important
+                pst_score * 0.5 +      # Position is second
+                castling_score * 0.3 +  # Castling rights are important early
+                development_score * 0.2  # Development guides early game
+            )
+            
+            # Update score dataset for metrics
+            self.score_dataset.update({
+                'fen': board.fen(),
+                'material_score': material_score,
+                'pst_score': pst_score,
+                'castling_score': castling_score,
+                'total_score': total_score
+            })
+            
+            return total_score
+            
+        except Exception as e:
+            print(f"Error in position evaluation: {str(e)}")
+            return 0.0  # Fallback score
     
     def evaluate_position_from_perspective(self, board: chess.Board, color: Optional[chess.Color] = chess.WHITE) -> float:
         """Calculate position evaluation from specified player's perspective by delegating to scoring_calculator."""
@@ -241,5 +386,11 @@ class v7p3rScore:
         
         # Get a final evaluation score
         self.score_dataset['evaluation'] = score
+        
+        # Add development score
+        score += self._evaluate_piece_development(board)
+        
+        # Mobility evaluation
+        score += len(list(board.legal_moves)) * 0.1
         
         return score

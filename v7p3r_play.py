@@ -30,9 +30,9 @@ from v7p3r_stockfish_handler import StockfishHandler
 
 class v7p3rChess(ChessCore):
     def __init__(self, config_name: Optional[str] = None):
-        """
-        config: ChessGameConfig object containing all configuration parameters.
-        """
+        """Initialize the chess game with configuration."""
+        super().__init__()  # Initialize ChessCore
+        
         # Initialize Pygame (even in headless mode, for internal timing)
         pygame.init()
         self.clock = pygame.time.Clock()
@@ -48,44 +48,50 @@ class v7p3rChess(ChessCore):
                 self.puzzle_config = self.config_manager.get_puzzle_config()
             else:
                 self.config_name = config_name
-                self.config_manager = v7p3rConfig(config_path=os.path.join('configs',f"{self.config_name}.json"))
+                self.config_manager = v7p3rConfig(config_name=config_name)
+                self.config = self.config_manager.get_config()
                 self.game_config = self.config_manager.get_game_config()
                 self.engine_config = self.config_manager.get_engine_config()
                 self.stockfish_config = self.config_manager.get_stockfish_config()
+                self.puzzle_config = self.config_manager.get_puzzle_config()
+
+            # Game configuration
+            self.white_player = self.game_config.get('white_player', 'v7p3r')
+            self.black_player = self.game_config.get('black_player', 'stockfish')
+            self.starting_position = self.game_config.get('starting_position', 'default')
+            
+            # Engine configurations
+            self.white_engine_config = self.engine_config if self.white_player == 'v7p3r' else None
+            self.black_engine_config = self.engine_config if self.black_player == 'v7p3r' else None
+                
+            # Initialize game state
+            self.board = chess.Board()
+            self.headless = self.game_config.get('headless', True)
+            self.metrics_enabled = self.game_config.get('record_metrics', True)
+            self.current_player = chess.WHITE
+            
+            # Initialize components
+            self.engine = v7p3rEngine(self.engine_config)
+            self.rules_manager = self.engine.rules_manager
+            self.stockfish = None if self.headless else StockfishHandler(self.stockfish_config)
+            
+            # Initialize game record
+            self.game = chess.pgn.Game()
+            self._setup_game_headers()
+            
         except Exception as e:
+            print(f"Error initializing game: {str(e)}")
             raise
 
-        # Initialize Engines
-        self.engine = v7p3rEngine(self.engine_config)
-        
-        # Initialize metrics system
-        self.metrics = get_metrics_instance()
-        self.current_game_id = None
-        
-        try:
-            self.stockfish = StockfishHandler(stockfish_config=self.stockfish_config)
-        except Exception as e:
-            raise
+    def _setup_game_headers(self):
+        """Set up the PGN headers for the game"""
+        self.game.headers["Event"] = "v7p3r Engine Chess Game"
+        self.game.headers["Site"] = self.game_config.get('site', 'Local')
+        self.game.headers["Date"] = datetime.datetime.now().strftime("%Y.%m.%d")
+        self.game.headers["Round"] = "#"
+        self.game.headers["White"] = self.white_player
+        self.game.headers["Black"] = self.black_player
 
-        # Initialize new engines based on availability and configuration
-        self.engines = {
-            'v7p3r': self.engine,
-            'stockfish': self.stockfish
-        }
-        
-        # Game Settings
-        self.game_count = self.game_config.get("game_count", 1)
-        self.white_player = self.game_config.get("white_player", "v7p3r")
-        self.black_player = self.game_config.get("black_player", "stockfish")
-        self.starting_position = self.game_config.get("starting_position", "default")
-        
-        # Prepare engine configurations for metrics
-        self.white_engine_config = self._get_engine_config_for_player(self.white_player)
-        self.black_engine_config = self._get_engine_config_for_player(self.black_player)
-
-        # Initialize board and new game
-        self.new_game()
-    
     def new_game(self):
         """Reset the game state for a new game"""
         # Call parent new_game method
@@ -386,6 +392,103 @@ class v7p3rChess(ChessCore):
                 'max_depth': 0
             }
 
+    def _make_engine_move(self, board: chess.Board, color: chess.Color) -> Optional[chess.Move]:
+        """Make a move using the v7p3r engine with enhanced evaluation"""
+        try:
+            # Get game phase for context
+            game_phase = self.rules_manager.get_game_phase(board)
+            
+            # Record state before move
+            prev_state = {
+                'fen': board.fen(),
+                'phase': game_phase,
+                'move_number': board.fullmove_number,
+                'color': 'White' if color == chess.WHITE else 'Black'
+            }
+            
+            # Get engine move
+            move = self.engine.get_move(board, color)
+            
+            # Verify move validity
+            if not move or not board.is_legal(move):
+                print(f"Warning: Engine returned invalid move: {move}")
+                # Get emergency move using simple search
+                legal_moves = list(board.legal_moves)
+                if legal_moves:
+                    move = legal_moves[0]
+                else:
+                    return None
+                    
+            # Record metrics
+            if self.metrics_enabled:
+                metrics = {
+                    'move': move.uci(),
+                    'prev_state': prev_state,
+                    'evaluation': self.engine.get_current_evaluation(),
+                    'nodes_searched': self.engine.get_nodes_searched(),
+                    'time_taken': self.engine.get_last_move_time(),
+                    'game_phase': game_phase
+                }
+                self.record_metrics(metrics)
+                
+            return move
+            
+        except Exception as e:
+            print(f"Error in engine move: {str(e)}")
+            # Emergency fallback
+            legal_moves = list(board.legal_moves)
+            return legal_moves[0] if legal_moves else None
+
+    def play_game(self):
+        """Main game loop with enhanced move processing"""
+        try:
+            while not self.board.is_game_over():
+                self.clock.tick(MAX_FPS)  # Control game loop timing
+                
+                # Handle events and display
+                if not self.headless:
+                    self._handle_events()
+                    self._update_display()
+                
+                # Make moves based on current turn
+                if self.board.turn == chess.WHITE:
+                    if self.game_config['white_player'] == 'v7p3r':
+                        move = self._make_engine_move(self.board, chess.WHITE)
+                    else:
+                        move = self._make_opponent_move(self.board, chess.WHITE)
+                else:
+                    if self.game_config['black_player'] == 'v7p3r':
+                        move = self._make_engine_move(self.board, chess.BLACK)
+                    else:
+                        move = self._make_opponent_move(self.board, chess.BLACK)
+                
+                # Apply move if valid
+                if move and self.board.is_legal(move):
+                    self.board.push(move)
+                    self._update_game_record(move)
+                    
+                    # Check for game end conditions
+                    if self.board.is_checkmate():
+                        print("Checkmate!")
+                        break
+                    elif self.board.is_stalemate():
+                        print("Stalemate!")
+                        break
+                    elif self.board.can_claim_draw():
+                        print("Draw position reached!")
+                        break
+                        
+                else:
+                    print("Invalid move received, ending game")
+                    break
+                    
+            # Game over, record final state
+            self._record_game_end()
+            
+        except Exception as e:
+            print(f"Error in game loop: {str(e)}")
+            self._record_game_end(error=str(e))
+
     # =============================================
     # ============ MAIN GAME LOOP =================
 
@@ -479,6 +582,65 @@ class v7p3rChess(ChessCore):
         
         print(move_display)
         
+    def _handle_events(self):
+        """Handle pygame events"""
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self._record_game_end()
+                pygame.quit()
+                sys.exit()
+
+    def _update_display(self):
+        """Update the game display"""
+        if not self.headless:
+            # Implementation for display update would go here
+            pass
+
+    def _make_opponent_move(self, board: chess.Board, color: chess.Color) -> Optional[chess.Move]:
+        """Get move from opponent (e.g., Stockfish)"""
+        try:
+            if self.stockfish:
+                move = self.stockfish.get_move(board)
+                return move if move and board.is_legal(move) else None
+        except Exception as e:
+            print(f"Error getting opponent move: {str(e)}")
+        return None
+
+    def _update_game_record(self, move: chess.Move):
+        """Update the game record with the new move"""
+        node = self.game.add_variation(move)
+        evaluation = self.engine.get_current_evaluation() if hasattr(self.engine, 'get_current_evaluation') else 0.0
+        node.comment = f"Eval: {evaluation:.2f}"
+        
+        # Save PGN after each move
+        with open("active_game.pgn", "w") as f:
+            print(self.game, file=f, end="\n\n")
+
+    def record_metrics(self, metrics: dict):
+        """Record game metrics"""
+        if self.metrics_enabled:
+            game_metric = GameMetric(
+                move=metrics['move'],
+                evaluation=metrics['evaluation'],
+                nodes_searched=metrics['nodes_searched'],
+                time_taken=metrics['time_taken'],
+                game_phase=metrics['game_phase']
+            )
+            get_metrics_instance().record_game_metric(game_metric)
+
+    def _record_game_end(self, error: str = None):
+        """Record the end of the game"""
+        if error:
+            self.game.headers["Result"] = "*"
+            self.game.headers["Termination"] = f"Error: {error}"
+        else:
+            result = self.board.result()
+            self.game.headers["Result"] = result
+            
+        # Save final PGN
+        with open("active_game.pgn", "w") as f:
+            print(self.game, file=f, end="\n\n")
+            
 if __name__ == "__main__":
     # Process command line arguments
     if CONFIG_NAME == "default_config":

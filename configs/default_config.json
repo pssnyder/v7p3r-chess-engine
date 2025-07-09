@@ -8,12 +8,19 @@
     "engine_config": {
         "ruleset": "default_ruleset",
         "search_algorithm": "minimax",
-        "depth": 6,
-        "max_depth": 8,
+        "depth": 4,
+        "max_depth": 6,
         "use_game_phase": true,
         "use_quiescence": true,
+        "use_mvv_lva": true,
+        "mvv_lva_settings": {
+            "use_safety_checks": true,
+            "use_position_context": true,
+            "safety_margin": 200,
+            "position_bonus": 50
+        },
         "order_moves": true,
-        "max_ordered_moves": 20,
+        "max_ordered_moves": 10,
         "strict_draw_prevention": true
     },
     "stockfish_config": {
@@ -38,23 +45,23 @@
     },
     "puzzle_config": {
         "puzzle_database": {
-            "db_path": "puzzles/puzzle_data.db",
-            "selection": {
-            "min_rating": 800,
-            "max_rating": 3000,
-            "batch_size": 50,
-            "themes": []
+            "db_path": "puzzle_data.db",
+                "selection": {
+                "min_rating": 800,
+                "max_rating": 3000,
+                "batch_size": 50,
+                "themes": []
             },
             "adaptive_elo": {
-            "enabled": true,
-            "starting_elo": 1200,
-            "increment": 100,
-            "decrement": 50,
-            "success_threshold": 0.8
+                "enabled": true,
+                "starting_elo": 1200,
+                "increment": 100,
+                "decrement": 50,
+                "success_threshold": 0.8
             },
             "maintenance": {
-            "auto_vacuum": true,
-            "max_attempts_per_puzzle": 10
+                "auto_vacuum": true,
+                "max_attempts_per_puzzle": 10
             }
         },
         "puzzle_solver": {
@@ -73,6 +80,13 @@
             "display": {
                 "show_solution": false
             }
+        },
+        "position_config": {
+            "max_rating": 2000,
+            "themes": ["mate"],
+            "max_moves": 10,
+            "position_limit": 25,
+            "query_type": "loose"
         }
     },
     "metrics_config": {
