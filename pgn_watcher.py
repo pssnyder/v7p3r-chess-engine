@@ -233,79 +233,103 @@ class PGNWatcher:
     def run(self):
         running = True
         self.logger.info("Starting PGN Watcher loop")
+        last_event_check = time.time()
+        last_file_check = time.time()
+        
         while running:
-            for e in pygame.event.get():
-                if e.type == pygame.QUIT:
+            current_time = time.time()
+            
+            # Handle events every 16ms (roughly 60 FPS)
+            if current_time - last_event_check >= 0.016:
+                for e in pygame.event.get():
+                    if e.type == pygame.QUIT:
+                        running = False
+                last_event_check = current_time
+            
+            # Check file modifications every 100ms
+            if current_time - last_file_check >= 0.1:
+                try:
+                    mtime = os.path.getmtime(self.pgn_path)
+                    if mtime != self.last_mtime:
+                        self.last_mtime = mtime
+                        self.logger.debug(f"PGN file changed, reloading: {self.pgn_path}")
+                        self._reload_pgn()
+                except FileNotFoundError:
+                    # Don't log this every time, only when the status changes
+                    if self.last_mtime != 0:
+                        self.logger.warning(f"PGN file not found: {self.pgn_path}")
+                        self.last_mtime = 0
+                except Exception as e:
+                    self.logger.error(f"Error checking PGN file: {e}")
+                last_file_check = current_time
+            
+            # Update display if needed, limited to 30 FPS
+            if self.game.screen and self.game.display_needs_update:
+                try:
+                    self.game.update_display()
+                except pygame.error as e:
+                    self.logger.error(f"Error updating display: {e}")
                     running = False
-            # poll file modification
-            try:
-                mtime = os.path.getmtime(self.pgn_path)
-                if mtime != self.last_mtime:
-                    self.last_mtime = mtime
-                    self.logger.debug(f"PGN file changed, reloading: {self.pgn_path}")
-                    self._reload_pgn()
-            except FileNotFoundError:
-                # Don't log this every time, only when the status changes
-                if self.last_mtime != 0:
-                    self.logger.warning(f"PGN file not found: {self.pgn_path}")
-                    self.last_mtime = 0
-                
-            # redraw if needed
-            if self.game.screen:
-                self.game.update_display()
-            self.clock.tick(10)
+            
+            # Sleep a tiny amount to prevent CPU spinning
+            time.sleep(0.001)
         self.logger.info("PGN Watcher loop ended")
         pygame.quit()
 
     def _reload_pgn(self):
-        try:
-            # read the PGN and replay mainline
-            with open(self.pgn_path, "r") as f:
-                game = chess.pgn.read_game(f)
-            
-            if game:
-                board = game.board()
-                for mv in game.mainline_moves():
-                    board.push(mv)
+        max_retries = 3
+        retry_delay = 0.1
+        
+        for attempt in range(max_retries):
+            try:
+                # read the PGN and replay mainline with a timeout
+                start_time = time.time()
+                with open(self.pgn_path, "r") as f:
+                    game = chess.pgn.read_game(f)
+                    
+                    # Check if reading took too long
+                    if time.time() - start_time > 1.0:  # 1 second timeout
+                        raise TimeoutError("PGN file read took too long")
                 
-                # update renderer state
-                self.game.board = board
-                self.game.selected_square = None
-                self.game.mark_display_dirty()
+                if game:
+                    board = game.board()
+                    moves = list(game.mainline_moves())
+                    
+                    # Apply moves with timeout check
+                    for mv in moves:
+                        if time.time() - start_time > 2.0:  # 2 second total timeout
+                            raise TimeoutError("Move application took too long")
+                        board.push(mv)
+                    
+                    # update renderer state
+                    self.game.board = board
+                    self.game.selected_square = None
+                    self.game.mark_display_dirty()
+                    
+                    # Extract basic game info
+                    white = game.headers.get('White', 'Unknown')
+                    black = game.headers.get('Black', 'Unknown')
+                    self.logger.info(f"Loaded game: {white} vs {black}")
+                    
+                    # Only get last move if moves were made
+                    if moves:
+                        last_move = moves[-1]
+                        self.logger.info(f"Last move: {last_move.uci()}")
                 
-                # Extract player names and evaluation
-                white = game.headers.get('White', 'Unknown')
-                black = game.headers.get('Black', 'Unknown')
+                return  # Success, exit retry loop
                 
-                # Extract evaluation if present
-                eval_str = ""
-                for key in ("Eval", "Evaluation"):
-                    if key in game.headers:
-                        eval_str = f" (Eval: {game.headers[key]})"
-                        break
-                
-                # Get the last move if any moves have been made
-                last_move_str = ""
-                moves = list(game.mainline_moves())
-                if moves:
-                    last_move = moves[-1]
-                    last_move_str = f" | Last move: {last_move.uci()}"
-                
-                # Log game information
-                self.logger.info(f"Loaded game: {white} vs {black}{last_move_str}")
-                self.logger.info(f"Current position: {board.fen()}{eval_str}")
-                
-                # Get game comment with evaluation if available
-                last_node = game
-                for _ in moves:
-                    if not last_node.variations:
-                        break
-                    last_node = last_node.variations[0]
-                
-                if last_node.comment:
-                    self.logger.info(f"Position comment: {last_node.comment}")
-        except Exception as e:
-            self.logger.error(f"Error reloading PGN: {e}")
+            except (IOError, PermissionError) as e:
+                if attempt < max_retries - 1:
+                    self.logger.warning(f"Retry {attempt + 1}/{max_retries}: Could not read PGN: {e}")
+                    time.sleep(retry_delay)
+                else:
+                    self.logger.error(f"Failed to read PGN after {max_retries} attempts: {e}")
+            except Exception as e:
+                if isinstance(e, TimeoutError):
+                    self.logger.error(f"Timeout while reading PGN: {e}")
+                else:
+                    self.logger.error(f"Unexpected error reloading PGN: {e}")
+                break  # Don't retry on timeout or unexpected errors
 
 
 if __name__ == "__main__":

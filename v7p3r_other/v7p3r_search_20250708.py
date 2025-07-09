@@ -77,7 +77,7 @@ class v7p3rSearch:
         }
 
     def search(self, board: chess.Board, color: chess.Color):
-        """Search handler: delegates to the selected search algorithm, which is responsible for root move selection."""
+        """Perform a search for the best move for the given player."""
         try:
             if self.monitoring_enabled and self.logger:
                 self.logger.info(f"SEARCH START: search_algorithm={self.search_algorithm}, depth={self.depth}, "
@@ -96,19 +96,20 @@ class v7p3rSearch:
             self.pv_move_stack = [{}]
             self.root_move = chess.Move.null()  # Reset root move for this search
 
+
             # Check for checkmates
             checkmate_move = self._checkmate_search(self.root_board, self.depth if self.depth >= 5 else 5)
             if checkmate_move != chess.Move.null() and board.is_legal(checkmate_move):
-                self.pv_move_stack = [{
+                self.pv_move_stack = [{ # Initialize principal variation with the checkmate move
                     'move_number': 1,
                     'move': checkmate_move,
-                    'color': self.current_perspective,
+                    'color': self.current_perspective,  # FIXED: Use consistent perspective
                     'evaluation': self.scoring_calculator.evaluate_position_from_perspective(self.root_board, self.current_perspective)
-                }]
+                    }]
                 if self.monitoring_enabled and self.logger:
                     self.logger.info(f"SEARCH: Checkmate move found: {checkmate_move} | FEN: {board.fen()}")
                 return checkmate_move
-
+            
             # Check for book moves
             try:
                 if self.monitoring_enabled and self.logger:
@@ -120,16 +121,16 @@ class v7p3rSearch:
                 if self.monitoring_enabled and self.logger:
                     self.logger.error(f"SEARCH ERROR in get_book_move: {e}")
                 book_move = None
-
+                
             if book_move and self.root_board.is_legal(book_move):
-                self.root_move = book_move
+                self.root_move = book_move  # Set the root move to the book move
                 self.evaluation = self.scoring_calculator.evaluate_position_from_perspective(self.root_board, color)
-                self.pv_move_stack = [{
+                self.pv_move_stack = [{ # Initialize principal variation with the book move
                     'move_number': 1,
                     'move': book_move,
-                    'color': self.current_perspective,
+                    'color': self.current_perspective,  # FIXED: Use consistent perspective
                     'evaluation': self.scoring_calculator.evaluate_position_from_perspective(self.root_board, self.current_perspective)
-                }]
+                    }]
                 if self.monitoring_enabled and self.logger:
                     self.logger.info(f"Opening book move found: {book_move} | FEN: {self.root_board.fen()}")
                 return book_move
@@ -137,31 +138,128 @@ class v7p3rSearch:
             if self.monitoring_enabled and self.logger:
                 self.logger.info(f"== EVALUATION (Player: {self.color_name}) == | Search Type: {self.search_algorithm} | Depth: {self.depth} | Max Depth: {self.max_depth} == ")
 
-            # Delegate to the selected search algorithm, which is responsible for root move selection
-            if self.search_algorithm == 'minimax':
-                move, score = self._minimax_root(self.root_board, self.depth, color)
-            elif self.search_algorithm == 'negamax':
-                move, score = self._negamax_root(self.root_board, self.depth, color)
-            elif self.search_algorithm == 'simple':
-                move = self._simple_search(self.root_board)
-                score = self.scoring_calculator.evaluate_position_from_perspective(self.root_board, color)
-            elif self.search_algorithm == 'quiescence':
-                move = self._quiescence_root(self.root_board, color)
-                score = self.scoring_calculator.evaluate_position_from_perspective(self.root_board, color)
-            elif self.search_algorithm == 'random':
-                move = self._random_search(self.root_board)
-                score = self.scoring_calculator.evaluate_position_from_perspective(self.root_board, color)
+            legal_moves = list(self.root_board.legal_moves)
+            if self.monitoring_enabled and self.logger:
+                self.logger.info(f"SEARCH: Found {len(legal_moves)} legal moves")
+            
+            if self.move_ordering_enabled:
+                if self.monitoring_enabled and self.logger:
+                    self.logger.info(f"SEARCH: Ordering moves for depth {self.depth}")
+                legal_moves = self.move_organizer.order_moves(self.root_board, legal_moves, depth=self.depth, cutoff=0)
+                if self.monitoring_enabled and self.logger:
+                    self.logger.info(f"SEARCH: Ordered moves, first few: {legal_moves[:3] if len(legal_moves) >= 3 else legal_moves}")
             else:
                 if self.monitoring_enabled and self.logger:
-                    self.logger.error(f"Unknown search algorithm: {self.search_algorithm}")
-                move = chess.Move.null()
-                score = 0.0
+                    self.logger.info(f"SEARCH: Using unordered moves for depth {self.depth}")
 
-            if self.monitoring_enabled and self.logger:
-                self.logger.info(f"SEARCH: Algorithm returned move {move} with score {score}")
+            # if only one move returned,then instantly send through
+            if len(legal_moves) == 1: 
+                if self.monitoring_enabled and self.logger:
+                    self.logger.info(f"Only one legal move found: {legal_moves[0]} | FEN: {self.root_board.fen()}")
+                return legal_moves[0]
+                
+            if not legal_moves:
+                if self.monitoring_enabled and self.logger:
+                    self.logger.error(f"[Error] No legal moves found for player: {self.color_name} | FEN: {self.root_board.fen()}")
+                return chess.Move.null()
 
-            return move
+            best_score_overall = -float('inf')
+            best_move = chess.Move.null()
+            for move in legal_moves:
+                self.root_move = move  # Set the root move for this search
+                self.pv_move_stack = [{ # Initialize principal variation with the move
+                    'move_number': 1,
+                    'move': move,
+                    'color': self.current_perspective,  # FIXED: Use consistent perspective
+                    'evaluation': self.scoring_calculator.evaluate_position_from_perspective(self.root_board, self.current_perspective)
+                    }]
+                if self.monitoring_enabled and self.logger:
+                    self.logger.info(f"SEARCH: Examining move {move} | FEN: {self.root_board.fen()}")
+                    
+                temp_board = self.root_board.copy()
+                temp_board.push(move)
+                current_move_score = 0.0
 
+                # Check for immediate checkmate
+                if temp_board.is_checkmate():
+                    if self.monitoring_enabled and self.logger:
+                        self.logger.info(f"Checkmate move found: {move} | FEN: {temp_board.fen()}")
+                    return move
+
+                try:
+                    if self.monitoring_enabled and self.logger:
+                        self.logger.info(f"SEARCH: About to run {self.search_algorithm} for move {move}")
+                        self.logger.info(f"SEARCH: search_algorithm type={type(self.search_algorithm)}, value='{self.search_algorithm}'")
+                    
+                    if self.search_algorithm == 'minimax':
+                        if self.monitoring_enabled and self.logger:
+                            self.logger.info(f"SEARCH: Selected MINIMAX algorithm")
+                            self.logger.info(f"SEARCH: Calling _minimax_search")
+                            self.logger.info(f"SEARCH: temp_board type={type(temp_board)}, depth={self.depth}")
+                        # For minimax at the root, we use maximizing=False because we just made our move
+                        # and now we're looking at opponent's responses (opponent is minimizing our score)
+                        current_move_score = self._minimax_search(temp_board, self.depth, -float('inf'), float('inf'), False)
+                        if self.monitoring_enabled and self.logger:
+                            self.logger.info(f"SEARCH: _minimax_search returned: {current_move_score}, type={type(current_move_score)}")
+                    elif self.search_algorithm == 'negamax':
+                        if self.monitoring_enabled and self.logger:
+                            self.logger.info(f"SEARCH: Selected NEGAMAX algorithm")
+                            self.logger.info(f"SEARCH: Calling _negamax_search")
+                        # For negamax, we negate the score from the root call because after making our move,
+                        # the board's perspective has switched to the opponent. Negating flips it back to our view.
+                        current_move_score = -self._negamax_search(temp_board, self.depth, -float('inf'), float('inf'))
+                        if self.monitoring_enabled and self.logger:
+                            self.logger.info(f"SEARCH: _negamax_search returned score: {current_move_score}")
+                    elif self.search_algorithm == 'simple':
+                        if self.monitoring_enabled and self.logger:
+                            self.logger.info(f"SEARCH: Selected SIMPLE algorithm")
+                            self.logger.info(f"SEARCH: Calling _simple_search")
+                            initial_eval = self.scoring_calculator.evaluate_position_from_perspective(temp_board, self.current_perspective)
+                            self.logger.info(f"SEARCH: Initial position evaluation: {initial_eval:.2f}")
+                        # Reset node counter before search
+                        self.nodes_searched = 0
+                        current_move_score = self._simple_search(temp_board, self.depth, color)
+                        # Add a safety check in case the search got stuck
+                        if self.nodes_searched > 20000:
+                            if self.monitoring_enabled and self.logger:
+                                self.logger.warning(f"Search exceeded node limit of 20000, search may have issues")
+                        if self.monitoring_enabled and self.logger:
+                            self.logger.info(f"SEARCH: _simple_search returned score: {current_move_score}")
+                    elif self.search_algorithm == 'evaluation':
+                        if self.monitoring_enabled and self.logger:
+                            self.logger.info(f"SEARCH: Calling scoring_calculator.evaluate_position_from_position")
+                            self.logger.info(f"SEARCH: scoring_calculator={self.scoring_calculator}, type={type(self.scoring_calculator)}")
+                        current_move_score = self.scoring_calculator.evaluate_position_from_perspective(temp_board, color)
+                    elif self.search_algorithm == 'quiescence':
+                        if self.monitoring_enabled and self.logger:
+                            self.logger.info(f"SEARCH: Calling _quiescence_search")
+                        current_move_score = self._quiescence_search(temp_board, color, -float('inf'), float('inf'), True)
+                    elif self.search_algorithm == 'random':
+                        if self.monitoring_enabled and self.logger:
+                            self.logger.info(f"SEARCH: Calling random.uniform")
+                        current_move_score = random.uniform(-1.0, 1.0)
+                    else:
+                        raise ValueError(f"Unknown search algorithm: {self.search_algorithm}")
+                        
+                    if self.monitoring_enabled and self.logger:
+                        self.logger.info(f"SEARCH: {self.search_algorithm} returned score: {current_move_score}")
+                except Exception as e:
+                    if self.monitoring_enabled and self.logger:
+                        self.logger.error(f"Error in search algorithm '{self.search_algorithm}' for move {move}: {e}. | FEN: {temp_board.fen()}")
+                        self.logger.error(f"Exception type: {type(e)}")
+                        import traceback
+                        self.logger.error(f"Traceback: {traceback.format_exc()}")
+                if current_move_score > best_score_overall:
+                    best_score_overall = current_move_score
+                    best_move = move
+                    if self.monitoring_enabled and self.logger:
+                        self.logger.info(f"New best move: {move}, score: {current_move_score:.3f}")
+
+                if self.monitoring_enabled and self.logger:
+                    self.logger.info(f"Root search iteration: Move={move}, Score={current_move_score:.2f}, Best Move So Far={best_move}, Best Score={best_score_overall:.2f}")
+
+            return best_move
+            
         except Exception as e:
             if self.monitoring_enabled and self.logger:
                 self.logger.error(f"CRITICAL ERROR in search method: {e}")
@@ -171,6 +269,7 @@ class v7p3rSearch:
                 self.logger.error(f"Board FEN: {board.fen()}")
                 self.logger.error(f"Player: {self.color_name}")
                 self.logger.error(f"Search algorithm: {self.search_algorithm}")
+            
             # Return a random legal move as fallback
             legal_moves = list(board.legal_moves)
             if legal_moves:
@@ -179,58 +278,193 @@ class v7p3rSearch:
                     self.logger.error(f"Returning fallback move: {fallback_move}")
                 return fallback_move
             return chess.Move.null()
-
-    def _minimax_root(self, board: chess.Board, depth: int, color: chess.Color):
-        """Root node for minimax: iterates over legal moves and calls minimax recursively."""
+    
+    def _simple_search(self, board: chess.Board, depth: int, color: chess.Color) -> float:
+        """Simple search algorithm that evaluates move sequences where each move improves or maintains position quality.
+        
+        The search works by:
+        1. For each opponent move, we find our best counter-move
+        2. If our counter-move maintains or improves our position compared to before, we search deeper
+        3. If all counter-moves are worse than our previous position, we still pick the best one
+        
+        This ensures the engine always plays the move that leads to the best possible position,
+        while preferring variations where position quality continuously improves.
+        """
+        # Direct log without conditional checks
+        self.logger.info(f"SIMPLE-DIRECT: Called with depth={depth}, color={color}")
+        
+        # Guard against excessive recursion or invalid depth
+        if depth < 0:
+            depth = 0
+        
+        # Hard depth limit to prevent excessive recursion
+        if self.nodes_searched > 10000:  # Safety limit to prevent hanging
+            eval_result = self.scoring_calculator.evaluate_position_from_perspective(board, self.current_perspective)
+            if board.turn != self.current_perspective:
+                eval_result = -eval_result
+            return eval_result
+            
+        # Store a counter on the instance to track recursive call depth
+        if not hasattr(self, '_search_recursion_depth'):
+            self._search_recursion_depth = 0
+        
+        self._search_recursion_depth += 1
+        if self._search_recursion_depth > 20:  # Set a reasonable limit to prevent infinite recursion
+            self._search_recursion_depth -= 1
+            eval_result = self.scoring_calculator.evaluate_position_from_perspective(board, self.current_perspective)
+            if board.turn != self.current_perspective:
+                eval_result = -eval_result
+            return eval_result
+            
+        self.nodes_searched += 1
+        
+        # Terminal condition - reached max depth or game over
+        if depth <= 0 or board.is_game_over():
+            # Evaluate from our consistent perspective
+            eval_result = self.scoring_calculator.evaluate_position_from_perspective(board, self.current_perspective)
+            
+            # Adjust score based on whose turn it is
+            if board.turn != self.current_perspective:
+                eval_result = -eval_result
+                
+            if self.monitoring_enabled and self.verbose_output_enabled and self.logger:
+                self.logger.info(f"SIMPLE: Leaf node evaluation from {self.color_name}'s perspective: {eval_result:.2f} | FEN: {board.fen()}")
+            
+            # For positions that aren't quiet, use quiescence search if enabled
+            if depth <= 0 and self.quiescence_enabled and (board.is_check() or self._position_is_tactical(board)):
+                # Make sure we're passing the correct perspective to quiescence search
+                q_score = self._quiescence_search(board, self.current_perspective, -float('inf'), float('inf'), 
+                                                 board.turn == self.current_perspective, 0)
+                return q_score
+            
+            return eval_result
+            
+        # Get current position evaluation before making any moves (for comparison)
+        current_position_score = self.scoring_calculator.evaluate_position_from_perspective(board, self.current_perspective)
+        if board.turn != self.current_perspective:
+            current_position_score = -current_position_score
+            
+        # Internal node: explore moves
         best_score = -float('inf')
         best_move = chess.Move.null()
-        maximizing = True if color == chess.WHITE else False
+        
+        # Get legal moves at this position
         legal_moves = list(board.legal_moves)
+        if not legal_moves:
+            # Game over - evaluate terminal position
+            if board.is_checkmate():
+                # If we're in checkmate (our turn and no moves), return worst possible score
+                if board.turn == self.current_perspective:
+                    return -float('inf')
+                # If opponent is in checkmate, return best possible score
+                else:
+                    return float('inf')
+            # Draw - neutral score
+            return 0.0
+            
+        if self.monitoring_enabled and self.logger:
+            self.logger.info(f"SIMPLE: Found {len(legal_moves)} legal moves at depth {depth}")
+        
+        # Apply move ordering if enabled
         if self.move_ordering_enabled:
-            legal_moves = self.move_organizer.order_moves(board, legal_moves, depth=depth, cutoff=0)
-        for move in legal_moves:
-            temp_board = board.copy()
-            temp_board.push(move)
-            score = self._minimax_search(temp_board, depth - 1, -float('inf'), float('inf'), not maximizing)
             if self.monitoring_enabled and self.logger:
-                self.logger.info(f"MINIMAX ROOT: Move {move} got score {score}")
-            if score > best_score:
-                best_score = score
-                best_move = move
-        return best_move, best_score
-
-    def _negamax_root(self, board: chess.Board, depth: int, color: chess.Color):
-        """Root node for negamax: iterates over legal moves and calls negamax recursively."""
-        best_score = -float('inf')
-        best_move = chess.Move.null()
-        legal_moves = list(board.legal_moves)
-        if self.move_ordering_enabled:
-            legal_moves = self.move_organizer.order_moves(board, legal_moves, depth=depth, cutoff=0)
-        for move in legal_moves:
-            temp_board = board.copy()
-            temp_board.push(move)
-            score = -self._negamax_search(temp_board, depth - 1, -float('inf'), float('inf'))
+                self.logger.info(f"SIMPLE: Ordering moves for depth {depth} with cutoff {self.max_ordered_moves}")
+            ordered_moves = self.move_organizer.order_moves(board, legal_moves, depth=depth, cutoff=self.max_ordered_moves)
+            legal_moves = ordered_moves
             if self.monitoring_enabled and self.logger:
-                self.logger.info(f"NEGAMAX ROOT: Move {move} got score {score}")
-            if score > best_score:
-                best_score = score
-                best_move = move
-        return best_move, best_score
-
-    def _simple_search(self, board: chess.Board):
-        """Simple search: returns the first legal move."""
-        legal_moves = list(board.legal_moves)
-        return legal_moves[0] if legal_moves else chess.Move.null()
-
-    def _random_search(self, board: chess.Board):
-        """Random search: returns a random legal move."""
-        legal_moves = list(board.legal_moves)
-        return random.choice(legal_moves) if legal_moves else chess.Move.null()
-
-    def _quiescence_root(self, board: chess.Board, color: chess.Color):
-        """Stub for quiescence root (implement as needed)."""
-        # For now, just return a random move
-        return self._random_search(board)
+                self.logger.info(f"SIMPLE: Received {len(legal_moves)} ordered moves at depth {depth}")
+        
+        # For each legal move
+        for move in legal_moves:
+            if self.monitoring_enabled and self.verbose_output_enabled and self.logger:
+                self.logger.info(f"SIMPLE: Examining move {move} at depth {depth}")
+                
+            # Apply move to the board
+            board.push(move)
+            
+            # If this move results in checkmate, return immediately with best score
+            if board.is_checkmate():
+                # If current player (who just moved) delivered checkmate
+                if board.turn != self.current_perspective:
+                    board.pop()
+                    return float('inf')  # We checkmated the opponent
+                else:
+                    board.pop()
+                    return -float('inf')  # We got checkmated
+            
+            # If this move results in stalemate or draw, return draw score
+            if board.is_stalemate() or board.is_insufficient_material() or \
+               board.is_seventyfive_moves() or board.is_fivefold_repetition():
+                board.pop()
+                if board.is_check():
+                    return 999999999  # We checkmated the opponent
+                else:
+                    return 0  # Stalemate
+                
+            # Find our best counter-move to this opponent move
+            counter_best_score = -float('inf')
+            found_improving_move = False
+            
+            # Limit the search depth for counter-moves to prevent recursion
+            counter_depth = max(0, depth - 1)  # Ensure we don't go negative
+            
+            # Get counter-moves - these are the opponent's responses
+            counter_moves = list(board.legal_moves)
+            
+            # Limit the number of counter-moves to consider to prevent explosion
+            max_counter_moves = 5
+            if len(counter_moves) > max_counter_moves:
+                # Try to order counter moves if we're going to limit them
+                counter_moves = self.move_organizer.order_moves(board, counter_moves, depth=0, cutoff=max_counter_moves)
+            
+            for counter_move in counter_moves:
+                board.push(counter_move)
+                
+                # Evaluate position after our counter-move
+                counter_score = self.scoring_calculator.evaluate_position_from_perspective(board, self.current_perspective)
+                if board.turn != self.current_perspective:
+                    counter_score = -counter_score
+                
+                # If this counter-move improves or maintains our position, search deeper
+                if counter_score >= current_position_score:
+                    found_improving_move = True
+                    if self.monitoring_enabled and self.verbose_output_enabled and self.logger:
+                        self.logger.info(f"SIMPLE: Counter-move {counter_move} improves position from {current_position_score:.2f} to {counter_score:.2f}")
+                    
+                    # Search deeper with this promising counter-move
+                    # Make sure we're decrementing the depth to avoid infinite recursion
+                    if counter_depth > 0:  # Only search deeper if we have depth left
+                        # Simple search always recursively calls itself
+                        if self.monitoring_enabled and self.logger:
+                            self.logger.info(f"SIMPLE: Recursively calling _simple_search at depth {counter_depth}")
+                        
+                        deeper_score = self._simple_search(board, counter_depth, color)
+                        
+                        if deeper_score > counter_best_score:
+                            counter_best_score = deeper_score
+                    else:
+                        # Use the evaluation directly if we can't search deeper
+                        if counter_score > counter_best_score:
+                            counter_best_score = counter_score
+                
+                # Even if this move doesn't improve our position, track it in case we need to fall back
+                elif counter_score > counter_best_score:
+                    counter_best_score = counter_score
+                    
+                board.pop()  # Undo counter-move
+                
+            # If we found no improving moves, use the best score we found anyway
+            score = counter_best_score
+            
+            if self.monitoring_enabled and self.verbose_output_enabled and self.logger:
+                improving_str = "found improving move" if found_improving_move else "no improving moves"
+                self.logger.info(f"SIMPLE: After opponent's {move}, {improving_str}, best score: {score:.2f}")
+        
+        # Decrement the recursion depth counter before returning
+        if hasattr(self, '_search_recursion_depth'):
+            self._search_recursion_depth -= 1
+            
+        return best_score
 
     def _minimax_search(self, board: chess.Board, depth: int, alpha: float, beta: float, maximizing_player: bool):
         """Minimax search with alpha-beta pruning. Returns score (float)."""

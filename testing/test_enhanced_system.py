@@ -26,7 +26,7 @@ test_config = {
         "search_algorithm": "minimax",
         "depth": 2,                          # Lower depth for faster testing
         "max_depth": 2,
-        "max_moves": 4,
+        "max_ordered_moves": 4,
         "use_game_phase": True,
         "monitoring_enabled": True,
         "verbose_output": False,             # Reduce verbosity for cleaner output

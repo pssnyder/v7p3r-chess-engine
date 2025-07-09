@@ -18,6 +18,44 @@
       "capture_order_modifier": 999.0,
       "promotion_order_modifier": 99.0
   },
+  "centipawn_ruleset": {
+      "ruleset_name": "centipawn_ruleset",
+      "checkmate_threats_modifier": 9900.0,
+      "material_score_modifier": 1.0,
+      "material_count_modifier": 1.0,
+      "pst_score_modifier": 1.0,
+      "piece_captures_modifier": 1.0,
+      "center_control_modifier": 1.0,
+      "piece_development_modifier": 1.0,
+      "board_coverage_modifier": 0.5,
+      "castling_modifier": 1.0,
+      "castling_protection_modifier": 1.0,
+      "piece_coordination_modifier": 0.5,
+      "rook_coordination_modifier": 0.5,
+      "checkmate_order_modifier": 99999.0,
+      "check_order_modifier": 9999.0,
+      "capture_order_modifier": 999.0,
+      "promotion_order_modifier": 99.0
+  },
+  "king_safety_ruleset": {
+      "ruleset_name": "king_safety_ruleset",
+      "checkmate_threats_modifier": 9900.0,
+      "material_score_modifier": 1.0,
+      "material_count_modifier": 1.0,
+      "pst_score_modifier": 1.0,
+      "piece_captures_modifier": 1.0,
+      "center_control_modifier": 1.0,
+      "piece_development_modifier": 1.0,
+      "board_coverage_modifier": 0.5,
+      "castling_modifier": 2.0,
+      "castling_protection_modifier": 2.0,
+      "piece_coordination_modifier": 0.5,
+      "rook_coordination_modifier": 0.5,
+      "checkmate_order_modifier": 99999.0,
+      "check_order_modifier": 9999.0,
+      "capture_order_modifier": 999.0,
+      "promotion_order_modifier": 99.0
+  },
   "aggresive_ruleset": {
       "evaluation_name": "aggressive_ruleset",
       "checkmate_threats_modifier": 999999999.0,
@@ -207,5 +245,14 @@
       "check_order_modifier": 0.0,
       "capture_order_modifier": 0.0,
       "promotion_order_modifier": 0.0
+    },
+    "new_ruleset_20250708": {
+        "ruleset_name": "new_ruleset_20250708",
+        "checkmate_threats_modifier": 1.0,
+        "material_count_modifier": 1.0,
+        "material_score_modifier": 1.0,
+        "pst_score_modifier": 1.0,
+        "piece_captures_modifier": 1.0,
+        "castling_modifier": 1.0
     }
 }

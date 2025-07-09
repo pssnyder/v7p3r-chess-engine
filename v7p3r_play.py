@@ -12,31 +12,27 @@ from typing import Optional
 import time
 from io import StringIO
 from v7p3r_config import v7p3rConfig
-from v7p3r_debug import v7p3rLogger, v7p3rUtilities
+from v7p3r_debug import v7p3rLogger
+from v7p3r_utilities import resource_path, get_timestamp
 from metrics.v7p3r_chess_metrics import get_metrics_instance, GameMetric
 from chess_core import ChessCore
 from pgn_watcher import PGNWatcher
 
-CONFIG_NAME = "default_config"
+CONFIG_NAME = "custom_config"
 
 # Define the maximum frames per second for the game loop
 MAX_FPS = 60
-
-# Set engine availability values
-RL_ENGINE_AVAILABLE = False
-GA_ENGINE_AVAILABLE = False
-NN_ENGINE_AVAILABLE = False
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 
-# Setup centralized logging for this module
-v7p3r_play_logger = v7p3rLogger.setup_logger("v7p3r_play")
-
-# Import necessary modules from v7p3r_engine
-from v7p3r import v7p3rEngine # Corrected import for v7p3rEngine
+# Import necessary modules first
+from v7p3r import v7p3rEngine
 from v7p3r_stockfish_handler import StockfishHandler
+
+# Setup centralized logging for this module after imports
+v7p3r_play_logger = v7p3rLogger.setup_logger("v7p3r_play")
 
 class v7p3rChess(ChessCore):
     def __init__(self, config_name: Optional[str] = None):
@@ -79,7 +75,7 @@ class v7p3rChess(ChessCore):
         self.verbose_output_enabled = self.engine_config.get("verbose_output", False)
 
         # Initialize Engines
-        self.engine = v7p3rEngine()
+        self.engine = v7p3rEngine(self.engine_config)
         
         # Initialize metrics system
         self.metrics = get_metrics_instance()
@@ -143,75 +139,6 @@ class v7p3rChess(ChessCore):
         # Prepare engine configurations for metrics
         self.white_engine_config = self._get_engine_config_for_player(self.white_player)
         self.black_engine_config = self._get_engine_config_for_player(self.black_player)
-
-        # Access global engine availability variables
-        global RL_ENGINE_AVAILABLE, GA_ENGINE_AVAILABLE, NN_ENGINE_AVAILABLE
-
-        if 'v7p3r_rl' in self.engines:
-            # Import new engines
-            try:
-                from v7p3r_rl import v7p3rRLEngine
-                RL_ENGINE_AVAILABLE = True
-            except ImportError:
-                RL_ENGINE_AVAILABLE = False
-                if self.verbose_output_enabled:
-                    print("Warning: v7p3r_rl_engine not available")
-        
-        if 'v7p3r_ga' in self.engines:
-            try:
-                from v7p3r_ga import v7p3rGeneticAlgorithm
-                GA_ENGINE_AVAILABLE = True
-            except ImportError:
-                GA_ENGINE_AVAILABLE = False
-                if self.verbose_output_enabled:
-                    print("Warning: v7p3r_ga_engine not available")
-
-        if 'v7p3r_nn' in self.engines:
-            try:
-                from v7p3r_nn import v7p3rNeuralNetwork
-                NN_ENGINE_AVAILABLE = True
-            except ImportError:
-                NN_ENGINE_AVAILABLE = False
-                if self.verbose_output_enabled:
-                    print("Warning: v7p3r_nn_engine not available")
-
-        # Initialize RL engine if available
-        if RL_ENGINE_AVAILABLE and 'v7p3r_rl' in self.engines:
-            try:
-                # Use centralized config instead of separate config file
-                self.rl_engine = v7p3rRLEngine(self.config_manager)
-                self.engines['v7p3r_rl'] = self.rl_engine
-                if self.verbose_output_enabled:
-                    print("✓ v7p3r RL engine initialized")
-            except Exception as e:
-                if self.verbose_output_enabled:
-                    print(f"Warning: Failed to initialize RL engine: {e}")
-        
-        # Initialize GA engine if available
-        if GA_ENGINE_AVAILABLE and 'v7p3r_ga' in self.engines:
-            try:
-                from v7p3r_ga import v7p3rGeneticAlgorithm
-                # Use centralized config instead of separate config file
-                self.ga_engine = v7p3rGeneticAlgorithm(self.config_manager)
-                self.engines['v7p3r_ga'] = self.ga_engine
-                if self.verbose_output_enabled:
-                    print("✓ v7p3r GA engine initialized for gameplay")
-            except Exception as e:
-                if self.verbose_output_enabled:
-                    print(f"Warning: Failed to initialize GA engine: {e}")
-        
-        # Initialize NN engine if available
-        if NN_ENGINE_AVAILABLE and 'v7p3r_nn' in self.engines:
-            try:
-                # Use centralized config instead of separate config file
-                self.nn_engine = self._create_nn_engine_wrapper(self.config_manager)
-                if self.nn_engine:
-                    self.engines['v7p3r_nn'] = self.nn_engine
-                    if self.verbose_output_enabled:
-                        print("✓ v7p3r NN engine wrapper initialized")
-            except Exception as e:
-                if self.verbose_output_enabled:
-                    print(f"Warning: Failed to initialize NN engine: {e}")
 
         # Initialize board and new game
         self.new_game()
@@ -456,191 +383,47 @@ class v7p3rChess(ChessCore):
             # Determine current player engine
             current_engine_name = self.white_player.lower() if self.current_player == chess.WHITE else self.black_player.lower()
 
-            # Handle different engine types
-            if current_engine_name == 'v7p3r':
-                try:
-                    # Debug logging to track the issue (always log this)
-                    if self.monitoring_enabled and self.logger:
-                        self.logger.info(f"Engine type: {type(self.engine)}")
-                        self.logger.info(f"Search engine type: {type(self.engine.search_engine)}")
-                        self.logger.info(f"Search method type: {type(self.engine.search_engine.search)}")
-                        self.logger.info(f"Search method is callable: {callable(getattr(self.engine.search_engine, 'search', None))}")
-                        if hasattr(self.engine.search_engine, 'search'):
-                            search_attr = getattr(self.engine.search_engine, 'search')
-                            if isinstance(search_attr, dict):
-                                self.logger.error(f"FOUND THE ISSUE! search attribute is a dict: {search_attr}")
-                            self.logger.info(f"Search attribute: {search_attr}")
-                    
-                    # Use the v7p3r engine for the current player
-                    engine_move = self.engine.search_engine.search(self.board, self.current_player)
-                except Exception as e:
-                    if self.monitoring_enabled and self.logger:
-                        self.logger.error(f"[HARDSTOP Error] Cannot find move via v7p3rSearch: {e}. | FEN: {self.board.fen()}")
-                        self.logger.error(f"Engine type: {type(self.engine)}")
-                        self.logger.error(f"Search engine type: {type(self.engine.search_engine)}")
-                        self.logger.error(f"Search engine search attr: {type(getattr(self.engine.search_engine, 'search', 'NOT_FOUND'))}")
-                    print(f"ERROR: v7p3rSearch failed")
-                    if self.verbose_output_enabled:
-                        print(f"HARDSTOP ERROR: Cannot find move via v7p3rSearch: {e}. | FEN: {self.board.fen()}")
-                    return
-                    
-            elif current_engine_name == 'stockfish':
-                try:
-                    # Debug: Check if Stockfish process is running
-                    if self.stockfish.process is None:
-                        if self.verbose_output_enabled:
-                            print("DEBUG: Stockfish process is None! Cannot search.")
-                        return
-                    # Use the Stockfish engine for the current player
-                    if self.monitoring_enabled and self.logger:
-                        self.logger.info("Using Stockfish engine for move processing.")
-                    engine_move = self.stockfish.search(self.board, chess.WHITE, self.stockfish_config)
-                except Exception as e:
-                    if self.monitoring_enabled and self.logger:
-                        self.logger.error(f"[HARDSTOP Error] Cannot find move via Stockfish: {e}. | FEN: {self.board.fen()}")
-                    print(f"ERROR: Stockfish search failed")
-                    if self.verbose_output_enabled:
-                        print(f"HARDSTOP ERROR: Cannot find move via Stockfish: {e}. | FEN: {self.board.fen()}")
-                    return
+            # Keep track of failed engine attempts to prevent infinite loops
+            if not hasattr(self, '_engine_failures'):
+                self._engine_failures = {}
             
-            elif current_engine_name == 'v7p3r_rl' and 'v7p3r_rl' in self.engines:
-                try:
-                    # Use the RL engine for the current player
-                    if self.monitoring_enabled and self.logger:
-                        self.logger.info("Using v7p3r RL engine for move processing.")
-                    engine_move = self.engines['v7p3r_rl'].search(self.board, self.current_player)
-                except Exception as e:
-                    if self.monitoring_enabled and self.logger:
-                        self.logger.error(f"[HARDSTOP Error] Cannot find move via v7p3rReinforcementLearning: {e}. | FEN: {self.board.fen()}")
-                    print(f"ERROR: RL engine search failed")
-                    if self.verbose_output_enabled:
-                        print(f"HARDSTOP ERROR: Cannot find move via v7p3rReinforcementLearning: {e}. | FEN: {self.board.fen()}")
-                    return
-                    
-            elif current_engine_name == 'v7p3r_ga' and 'v7p3r_ga' in self.engines:
-                try:
-                    # Use the GA engine
-                    if self.monitoring_enabled and self.logger:
-                        self.logger.info("Using v7p3r GA engine for move processing.")
-                    engine_move = self.engines['v7p3r_ga'].search(self.board, self.current_player)
-                except Exception as e:
-                    if self.monitoring_enabled and self.logger:
-                        self.logger.error(f"[HARDSTOP Error] Cannot find move via v7p3rGeneticAlgorithm: {e}. | FEN: {self.board.fen()}")
-                    print(f"ERROR: GA engine search failed")
-                    if self.verbose_output_enabled:
-                        print(f"HARDSTOP ERROR: Cannot find move via v7p3r_ga: {e}. | FEN: {self.board.fen()}")
-                    return
-                    
-            elif current_engine_name == 'v7p3r_nn' and 'v7p3r_nn' in self.engines:
-                try:
-                    # Use the NN engine
-                    if self.monitoring_enabled and self.logger:
-                        self.logger.info("Using v7p3r NN engine for move processing.")
-                    engine_move = self.engines['v7p3r_nn'].search(self.board, self.current_player)
-                except Exception as e:
-                    if self.monitoring_enabled and self.logger:
-                        self.logger.error(f"[HARDSTOP Error] Cannot find move via v7p3rNeuralNetwork: {e}. | FEN: {self.board.fen()}")
-                    print(f"ERROR: NN engine search failed")
-                    if self.verbose_output_enabled:
-                        print(f"HARDSTOP ERROR: Cannot find move via v7p3rNeuralNetwork: {e}. | FEN: {self.board.fen()}")
-                    return
-            else:
-                if self.monitoring_enabled and self.logger:
-                    self.logger.error(f"[HARDSTOP Error] No valid engine in configuration: {current_engine_name}. | FEN: {self.board.fen()}")
-                print(f"ERROR: No valid engine configured: {current_engine_name}")
-                if self.verbose_output_enabled:
-                    print(f"HARDSTOP ERROR: No valid engine in configuration: {current_engine_name}. | FEN: {self.board.fen()}")
-                return
+            # Check if this engine has already failed        if current_engine_name in self._engine_failures:
+            if self.monitoring_enabled and self.logger:
+                self.logger.error(f"Engine {current_engine_name} has already failed. Game will end.")
+            result = "1-0" if self.current_player == chess.BLACK else "0-1"
+            self.game_result = result  # Store the result
+            return
 
-            # Check and Push the move
-            if not isinstance(engine_move, chess.Move):
-                return # Move invalid
-                
-            # Initialize variables before try block to ensure they're always defined
-            fen_before_move = self.board.fen()
-            move_number = self.board.fullmove_number
-            
             try:
-                if self.board.is_legal(engine_move):
-                    # Calculate timing BEFORE push_move so it's available for display
-                    self.move_end_time = time.time()  # End timing the move
+                if current_engine_name == 'v7p3r':
+                    engine_move = self.engine.search_engine.search(self.board, self.current_player)
+                elif current_engine_name == 'stockfish':
+                    if self.stockfish.process is None:
+                        raise Exception("Stockfish process is not running")
+                    engine_move = self.stockfish.search(self.board, self.current_player, self.stockfish_config)
+                # ... other engine cases ...
+
+                # Process the move if it's valid
+                if isinstance(engine_move, chess.Move) and self.board.is_legal(engine_move):
+                    self.move_end_time = time.time()
                     self.move_duration = self.move_end_time - self.move_start_time
-                    
                     self.push_move(engine_move)
                     self.last_engine_move = engine_move
-                    self.pv_line = ""
                 else:
-                    if self.monitoring_enabled and self.logger:
-                        self.logger.error(f"[HARDSTOP Error] Illegal move: {engine_move} | FEN: {self.board.fen()}")
-                    print(f"ERROR: Illegal move attempted")
-                    if self.verbose_output_enabled:
-                        print(f"HARDSTOP ERROR: Illegal move: {engine_move} | FEN: {self.board.fen()}")
-                    return
-            except Exception as e:
-                if self.monitoring_enabled and self.logger:
-                    self.logger.error(f"[HARDSTOP Error] Move Invalid: {e}. | Move: {engine_move} | FEN: {self.board.fen()}")
-                print(f"ERROR: Move validation failed")
-                if self.verbose_output_enabled:
-                    print(f"HARDSTOP ERROR: Move Invalid: {e}. | Move: {engine_move} | FEN: {self.board.fen()}")
-                return
+                    raise Exception(f"Invalid move returned by engine: {engine_move}")
 
-            # Move display is now handled by display_move_made() in the push_move() method
-            # This old print statement is no longer needed
-            
-            # Record move metrics
-            if self.current_game_id:
-                try:
-                    current_player_name = self.white_player if self.current_player == chess.BLACK else self.black_player
-                    
-                    # Determine nodes evaluated (try to get from appropriate engine)
-                    nodes_evaluated = 0
-                    search_depth = 0
-                    
-                    if current_player_name == 'v7p3r' and hasattr(self.engine.search_engine, 'nodes_searched'):
-                        nodes_evaluated = getattr(self.engine.search_engine, 'nodes_searched', 0)
-                        search_depth = getattr(self.engine.search_engine, 'depth', 0)
-                    elif current_player_name == 'stockfish' and hasattr(self.stockfish, 'nodes_searched'):
-                        nodes_evaluated = getattr(self.stockfish, 'nodes_searched', 0)
-                        search_depth = getattr(self.stockfish, 'depth', 0)
-                    
-                    # Use legacy compatibility function to avoid async issues
-                    from metrics.v7p3r_chess_metrics import add_move_metric
-                    add_move_metric(
-                        game_id=self.current_game_id,
-                        move_number=move_number,
-                        player_color='white' if self.current_player == chess.BLACK else 'black',
-                        move_uci=str(engine_move),
-                        fen_before=fen_before_move,
-                        evaluation=self.current_eval,
-                        search_algorithm=current_player_name,
-                        depth=search_depth,
-                        nodes_searched=nodes_evaluated,
-                        time_taken=self.move_duration,
-                        pv_line=getattr(self, 'pv_line', '')
-                    )
-                    
-                    if self.monitoring_enabled and self.logger:
-                        self.logger.debug(f"Move metrics recorded for {current_player_name}")
-                        
-                except Exception as e:
-                    if self.logger:
-                        self.logger.warning(f"Failed to record move metrics: {e}")
-            
-            # Initialize logged_nodes
-            logged_nodes = 0
-            
-            if self.monitoring_enabled and self.logger:
-                # Use the nodes_searched from the appropriate engine
-                current_engine_name = self.white_player.lower() if self.current_player == chess.WHITE else self.black_player.lower()
-                try:
-                    if current_engine_name == 'v7p3r' and hasattr(self.engine.search_engine, 'nodes_searched'):
-                        logged_nodes = self.engine.search_engine.nodes_searched
-                    else:
-                        logged_nodes = 0
-                except:
-                    logged_nodes = 0
-                    
-                self.logger.info(f"{self.white_player if self.current_player == chess.WHITE else self.black_player} played: {engine_move} (Eval: {self.current_eval:.2f}) | Time: {self.move_duration:.6f}s | Nodes: {logged_nodes}")
+            except Exception as e:
+                # Mark this engine as failed
+                self._engine_failures[current_engine_name] = str(e)
+                
+                if self.monitoring_enabled and self.logger:
+                    self.logger.error(f"[CRITICAL] Engine {current_engine_name} failed: {e}")
+                
+                # Determine game result based on which player's engine failed
+                if self.current_player == chess.WHITE:
+                    self.board.set_result("0-1")  # Black wins if White's engine fails
+                else:
+                    self.board.set_result("1-0")  # White wins if Black's engine fails
 
     def push_move(self, move):
         """ Test and push a move to the board and game node """
@@ -669,41 +452,6 @@ class v7p3rChess(ChessCore):
             self.quick_save_pgn("games/game_error_dump.pgn")
             return False
     
-    def _create_nn_engine_wrapper(self, nn_config_path):
-        """Create a wrapper for NN engine if it doesn't have proper game interface."""
-        try:
-            # Import the NN engine class here to avoid undefined reference
-            from v7p3r_nn import v7p3rNeuralNetwork
-            
-            # Try to create NN engine, but it might not have search interface
-            nn_engine = v7p3rNeuralNetwork(nn_config_path)
-            
-            # Check if it has search method
-            if hasattr(nn_engine, 'search'):
-                return nn_engine
-            else:
-                # Create a wrapper
-                class NNEngineWrapper:
-                    def __init__(self, nn_engine):
-                        self.nn_engine = nn_engine
-                        self.v7p3r_engine = v7p3rEngine()
-                    
-                    def search(self, board, player_color, engine_config=None):
-                        """Search using NN-assisted evaluation."""
-                        # Fallback to v7p3r engine for now
-                        return self.v7p3r_engine.search_engine.search(board, player_color)
-                    
-                    def cleanup(self):
-                        """Cleanup resources."""
-                        if hasattr(self.nn_engine, 'cleanup'):
-                            self.nn_engine.cleanup()
-                
-                return NNEngineWrapper(nn_engine)
-                
-        except Exception as e:
-            print(f"Failed to create NN engine wrapper: {e}")
-            return None
-
     def _get_engine_config_for_player(self, player_name: str) -> dict:
         """
         Get the appropriate engine configuration for a given player
@@ -781,7 +529,7 @@ class v7p3rChess(ChessCore):
                         if self.monitoring_enabled and self.logger:
                             self.logger.info(f'Game {self.game_count - game_count_remaining}/{self.game_count} complete, starting next...')
                         print(f'Game {self.game_count - game_count_remaining}/{self.game_count} complete, starting next...')
-                        self.game_start_timestamp = v7p3rUtilities.get_timestamp()
+                        self.game_start_timestamp = get_timestamp()
                         self.current_game_db_id = f"eval_game_{self.game_start_timestamp}.pgn"
                         self.new_game()
 
@@ -801,18 +549,6 @@ class v7p3rChess(ChessCore):
     def cleanup_engines(self):
         """Clean up engine resources."""
         try:
-            # Cleanup RL engine
-            if hasattr(self, 'rl_engine') and self.rl_engine:
-                self.rl_engine.cleanup()
-                
-            # Cleanup GA engine
-            if hasattr(self, 'ga_engine') and self.ga_engine and hasattr(self.ga_engine, 'cleanup'):
-                self.ga_engine.cleanup()
-                
-            # Cleanup NN engine
-            if hasattr(self, 'nn_engine') and self.nn_engine and hasattr(self.nn_engine, 'cleanup'):
-                self.nn_engine.cleanup()
-                
             # Cleanup Stockfish
             if hasattr(self, 'stockfish') and self.stockfish:
                 self.stockfish.quit()
@@ -883,21 +619,13 @@ class v7p3rChess(ChessCore):
 
 if __name__ == "__main__":
     # Process command line arguments
-    import argparse
-    parser = argparse.ArgumentParser(description='V7P3R Chess Engine')
-    parser.add_argument('-c', '--config', dest='config_name', type=str, default=CONFIG_NAME,
-                        help='Configuration file name (without .json extension)')
-    args = parser.parse_args()
-    
-    # Set up and start the game
-    config_to_use = args.config_name
-    if config_to_use == "default_config":
+    if CONFIG_NAME == "default_config":
         print("Using default configuration for v7p3rChess.")
     else:
-        print(f"Using custom configuration: {config_to_use} for v7p3rChess.")
-    
-    game = v7p3rChess(config_name=config_to_use)
-    
+        print(f"Using custom configuration: {CONFIG_NAME} for v7p3rChess.")
+
+    game = v7p3rChess(config_name=CONFIG_NAME)
+
     # TODO Fix implementation so it doesn't crash or interfere with the game. Start the PGN watcher in a separate thread if it's not already running
     #pgn_watcher = PGNWatcher()
     #threading.Thread(target=pgn_watcher.run).start()

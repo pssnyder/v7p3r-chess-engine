@@ -32,7 +32,7 @@ class v7p3rOrdering:
         
         # Move Ordering Settings
         self.move_ordering_enabled = self.engine_config.get('move_ordering_enabled', True)
-        self.max_moves = self.engine_config.get('max_moves', 10)  # Default to 10 moves if not set
+        self.max_ordered_moves = self.engine_config.get('max_ordered_moves', 10)  # Default to 10 moves if not set
 
     def order_moves(self, board: chess.Board, moves, depth: int = 0, cutoff: int = 0) -> list:
         """Order moves for better alpha-beta pruning efficiency"""
@@ -49,19 +49,19 @@ class v7p3rOrdering:
             
             score = self._order_move_score(board, move)
             move_scores.append((move, score))
-            if score > 1000000: # shortcut to instantly return a move that scores over 1 Mil
+            if score > 10000: # shortcut to instantly return a move that scores over 10k
                 return [move]
 
         move_scores.sort(key=lambda x: x[1], reverse=True)
         
-        # Get max_moves setting from engine config if cutoff is not specified
-        max_moves = cutoff if cutoff > 0 else self.max_moves
-        if max_moves > 0 and len(move_scores) > max_moves:
+        # Get max_ordered_moves setting from engine config if cutoff is not specified
+        max_ordered_moves = cutoff if cutoff > 0 else self.max_ordered_moves
+        if max_ordered_moves > 0 and len(move_scores) > max_ordered_moves:
             original_count = len(move_scores)
-            move_scores = move_scores[:max_moves]
+            move_scores = move_scores[:max_ordered_moves]
             # Only log truncation for significant reductions to avoid excessive logging
-            if original_count - max_moves > 5:
-                log_msg = f"MOVE_TRUNCATION: Truncated move list from {original_count} to {max_moves} moves at depth {depth}"
+            if original_count - max_ordered_moves > 5:
+                log_msg = f"MOVE_TRUNCATION: Truncated move list from {original_count} to {max_ordered_moves} moves at depth {depth}"
                 if self.monitoring_enabled and self.logger:
                     self.logger.info(log_msg)
         
@@ -72,29 +72,29 @@ class v7p3rOrdering:
         return [move for move, _ in move_scores]
 
     def _order_move_score(self, board: chess.Board, move: chess.Move) -> float:
-        """Calculate a score for a move for ordering purposes."""
+        """Calculate a score for a move for ordering purposes.
+        Focus on checkmates, checks, captures, and promotions."""
         score = 0.0
 
         temp_board = board.copy()
         temp_board.push(move)
         if temp_board.is_checkmate():
             temp_board.pop()
-            # Get checkmate move bonus from the current ruleset
-            return self.scoring_calculator.ruleset.get('checkmate_order_modifier', 999999999.0)
+            return 99999.0 # Score over 10K for checkmate moves
         
         if temp_board.is_check(): # Check after move is made
-            score += self.scoring_calculator.ruleset.get('check_order_modifier', 99999.0)
+            score += 9999.0
 
         temp_board.pop()
         if temp_board.is_capture(move):
-            score += self.scoring_calculator.ruleset.get('capture_order_modifier', 5000.0)
+            score += 999.0
             victim_type = temp_board.piece_type_at(move.to_square)
             aggressor_type = temp_board.piece_type_at(move.from_square)
             if victim_type and aggressor_type:
                 score += (self.engine_config.get('piece_values', {}).get(victim_type, 0) * 10) - self.engine_config.get('piece_values', {}).get(aggressor_type, 0)
 
         if move.promotion:
-            score += self.scoring_calculator.ruleset.get('promotion_order_modifier', 3000.0)
+            score += 90.0
             if move.promotion == chess.QUEEN:
-                score += self.engine_config.get('piece_values', {}).get(chess.QUEEN, 9.0) * 100 # Ensure piece_values is used
+                score += 9.0
         return score

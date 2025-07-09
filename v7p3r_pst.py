@@ -247,7 +247,7 @@ class v7p3rPST:
                 else:
                     total_score -= value
                     
-        return total_score / 100.0  # Convert centipawns to pawn units
+        return total_score  # Already in centipawn units
 
 # Example usage and testing
 if __name__ == "__main__":

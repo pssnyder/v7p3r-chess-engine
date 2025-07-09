@@ -6,11 +6,10 @@ It provides handler functionality for search algorithms, evaluation functions, a
 """
 
 import chess
-import logging
+
 import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
-import datetime
 from v7p3r_search import v7p3rSearch
 from v7p3r_score import v7p3rScore
 from v7p3r_ordering import v7p3rOrdering
@@ -19,43 +18,13 @@ from v7p3r_book import v7p3rBook
 from v7p3r_pst import v7p3rPST
 from v7p3r_config import v7p3rConfig
 from v7p3r_rules import v7p3rRules
+from v7p3r_debug import v7p3rLogger
+
 
 # =====================================
 # ========== LOGGING SETUP ============
-def get_timestamp():
-    return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-
-# Create logging directory relative to project root
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
-log_dir = os.path.join(project_root, 'logging')
-if not os.path.exists(log_dir):
-    os.makedirs(log_dir, exist_ok=True)
-
-# Setup individual logger for this file
-timestamp = get_timestamp()
-#log_filename = f"v7p3r_{timestamp}.log"
-log_filename = "v7p3r.log"  # Use a single log file for simplicity
-log_file_path = os.path.join(log_dir, log_filename)
-
-#v7p3r_logger = logging.getLogger(f"v7p3r_{timestamp}")
-v7p3r_logger = logging.getLogger("v7p3r")
-v7p3r_logger.setLevel(logging.DEBUG)
-
-if not v7p3r_logger.handlers:
-    from logging.handlers import RotatingFileHandler
-    file_handler = RotatingFileHandler(
-        log_file_path,
-        maxBytes=10*1024*1024,
-        backupCount=3,
-        delay=True
-    )
-    formatter = logging.Formatter(
-        '%(asctime)s | %(funcName)-15s | %(message)s',
-        datefmt='%H:%M:%S'
-    )
-    file_handler.setFormatter(formatter)
-    v7p3r_logger.addHandler(file_handler)
-    v7p3r_logger.propagate = False
+# Use the centralized logger setup from v7p3r_debug
+v7p3r_logger = v7p3rLogger.setup_logger("v7p3r")
 
 # =====================================
 # ========== ENGINE CLASS =============
@@ -105,7 +74,14 @@ class v7p3rEngine:
         self.move_organizer = v7p3rOrdering(self.scoring_calculator)
         self.time_manager = v7p3rTime()
         self.opening_book = v7p3rBook()
-        self.search_engine = v7p3rSearch(self.scoring_calculator, self.move_organizer, self.time_manager, self.opening_book)
+        # Pass the engine_config to the v7p3rSearch constructor
+        self.search_engine = v7p3rSearch(
+            scoring_calculator=self.scoring_calculator, 
+            move_organizer=self.move_organizer, 
+            time_manager=self.time_manager, 
+            opening_book=self.opening_book,
+            engine_config=self.engine_config
+        )
 
         # Debug: Check if all components are properly initialized
         if self.logger:

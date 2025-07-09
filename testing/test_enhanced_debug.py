@@ -21,7 +21,7 @@ def test_enhanced_metrics_debug():
     config = {
         "engine_config": {
             "depth": 3,
-            "max_moves": 5,  # Very short game
+            "max_ordered_moves": 5,  # Very short game
             "monitoring_enabled": True
         },
         "stockfish_config": {

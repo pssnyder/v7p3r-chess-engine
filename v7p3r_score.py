@@ -62,21 +62,16 @@ class v7p3rScore:
             'piece': None,
             'color': None,
             'current_player': None,
-            'self.v7p3r_thinking': False,
             'evaluation': 0.0,
             'game_phase': self.game_phase,
             'endgame_factor': self.endgame_factor,
-            'checkmate_threats': 0.0,
+            'checkmate_threats_score': 0.0,
+            'material_count': 0.0,
             'material_score': 0.0,
             'pst_score': 0.0,
-            'piece_captures': 0.0,
-            'center_control': 0.0,
-            'piece_development': 0.0,
-            'board_coverage': 0.0,
-            'castling': 0.0,
-            'castling_protection': 0.0,
-            'piece_coordination': 0.0,
-            'rook_coordination': 0.0
+            'piece_captures_score': 0.0,
+            'castling_score': 0.0,
+            'total_score': 0.0,
         }
 
     # =================================
@@ -219,66 +214,53 @@ class v7p3rScore:
         self.color_name = "White" if color == chess.WHITE else "Black"
         self.score_dataset['color'] = self.color_name
         
-        # Only log detailed info when monitoring is enabled and verbose is true
-        detailed_logging = self.monitoring_enabled and self.verbose_output_enabled and self.logger
-        
-        # Optimize computation: Start with most important factors first
-        
         # CHECKMATE THREATS - Most critical factor
-        checkmate_threats_score = self.rules_manager._checkmate_threats(board, color) or 0.0
+        checkmate_threats_score = self.rules_manager.checkmate_threats(board, color) or 0.0
         score += checkmate_threats_score
-        
-        # MATERIAL SCORE - Second most important factor
-        material_score = self.rules_manager._material_score(board, color) or 0.0
+        self.score_dataset['checkmate_threats_score'] = checkmate_threats_score
+
+        # MATERIAL COUNT
+        material_count = self.rules_manager.material_count(board, color) or 0.0
+        score += material_count
+        self.score_dataset['material_count'] = material_count
+
+        # MATERIAL SCORE
+        material_score = self.rules_manager.material_score(board, color) or 0.0
         score += material_score
-        
-        # Store these critical values for logging
-        self.score_dataset['checkmate_threats'] = checkmate_threats_score
         self.score_dataset['material_score'] = material_score
         
-        # Decide if we need more detailed evaluation
-        # Early return if we're in a very clear position (queen + multiple pieces advantage)
-        if abs(material_score) > 1500 and not board.is_check():  # Big material advantage and not in check
-            if detailed_logging:
-                self.logger.info(f"[Scoring Calc] Early return due to large material advantage: {material_score:.3f}")
+        # Stop Check - Return if we're in a very clear position (queen + multiple pieces advantage)
+        if (material_count > 10 or material_score > 1500) and not board.is_check():  # Big material advantage and not in check
+            if self.monitoring_enabled and self.logger:
+                self.logger.info(f"[Scoring Calc] Early return due to large advantage: {score:.3f}")
             
-            # Ensure the score is within reasonable bounds
-            material_score = max(-2000, min(2000, material_score))
-            return material_score
+            return score
         
         # GAME PHASE
         if self.use_game_phase:
             self._calculate_game_phase(board)
         
         # PST SCORE
-        pst_score = self.rules_manager._pst_score(board, color, self.endgame_factor) or 0.0
+        pst_score = self.rules_manager.pst_score(board, color, self.endgame_factor) or 0.0
         score += pst_score
         self.score_dataset['pst_score'] = pst_score
         
         # PIECE CAPTURES
-        piece_captures_score = self.rules_manager._piece_captures(board, color) or 0.0
+        piece_captures_score = self.rules_manager.piece_captures(board, color) or 0.0
         score += piece_captures_score
         self.score_dataset['piece_captures'] = piece_captures_score
         
-        # CENTER CONTROL
-        center_control_score = self.rules_manager._center_control(board, color) or 0.0
-        score += center_control_score
-        self.score_dataset['center_control'] = center_control_score
+        # CASTLING
+        castling_score = self.rules_manager.castling(board, color) or 0.0
+        score += castling_score
+        self.score_dataset['castling_score'] = castling_score
         
-        # PIECE DEVELOPMENT
-        piece_development_score = self.rules_manager._piece_development(board, color) or 0.0
-        score += piece_development_score
-        self.score_dataset['piece_development'] = piece_development_score
+        # Get a final evaluation score
+        self.score_dataset['evaluation'] = score
         
-        # Normalize score to reasonable centipawn range if needed
-        # Only normalize if it's not a checkmate score
-        if abs(score) < 9000:  # Not a checkmate or near-checkmate evaluation
-            # Clip extreme scores that aren't mate scores
-            score = max(-2000, min(2000, score))
-        
-        # Log only the final score unless detailed logging is enabled
+        # Log the final score
         if self.monitoring_enabled and self.logger:
             self.logger.info(f"[Scoring Calc] Final score for {self.color_name}: {score:.3f}")
-            
-        self.score_dataset['evaluation'] = score
+            self.logger.debug(f"[Scoring Dataset] {self.score_dataset}")
+
         return score

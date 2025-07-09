@@ -13,7 +13,7 @@
         "use_game_phase": true,
         "use_quiescence": true,
         "order_moves": true,
-        "max_moves": 8,
+        "max_ordered_moves": 8,
         "strict_draw_prevention": true,
         "monitoring_enabled": true,
         "verbose_output": false,
