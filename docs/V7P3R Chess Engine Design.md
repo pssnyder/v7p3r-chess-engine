@@ -2,9 +2,62 @@
 Chess AI Design and Evaluation Rule Statements  
 This document serves as a living design and brainstorming document outlining the current engine's functional goals and expectations.
 
-| AI Config: Color Selection Core Engine Type Search Algorithm Ruleset Depth Logging Level Performance Controls Efficiency Accuracy Risk Game Outcome Strictness | Piece Values in centipawns: King \= 20000 points Queen \= 900 points Rook \= 500 points Bishop \= 325 points Knight \= 300 points Pawn \= 100 point | Performance Considerations: Alpha Beta Pruning Move Ordering and Limiting Critical Move Short Circuiting Max Node Limiters Time Management Depth Limiting Iterative Deepening Opening Book Quiescence Checks Endgame Patterns Draw Prevention |
-| :---- | :---- | :---- |
-| **Search Types:** Simple \- Best Immediate Eval Minimax \- Player Maxes, Opponent Mins Negamax \- Best Overall Quiescence \- Active Positions Only Random \- Any Legal Move | **Engine Modules:** Core Chess Game V7P3R Engine Config Move Selection Search Scoring Rules Performance Move Ordering Quiescence Time Manager | **Utilities:** PGN Watcher Live Ruleset/Puzzle Tuner Metrics (Game and Move Evaluation) Stockfish Handler Utilities Class Path tools Datetime tools Debug tools |
+**Engine Configuration:**
+
+* Color Setting: White or Black  
+* Core Engine Type: v7p3r, v7p3r\_nn, v7p3r\_rl, stockfish  
+* Search Algorithm: random, minimax, negamax, simple  
+* Ruleset: default, custom  
+* Depth: 1-20  
+* Performance Controls  
+  * Efficiency: Alpha Beta Pruning, Move Ordering, Move Search Limiting, Search Node Limiting, Depth Limiting, Iterative Deepening, Time Management (not implemented)  
+  * Accuracy: Opening Book, Endgame Patterns  
+  * Risk: Critical Move Short Circuiting, Quiescence Checks  
+  * Game Outcome Strictness: Stalemate Prevention, Draw Avoidance
+
+**Piece Values in centipawns:**
+
+* King \= 20000 points  
+* Queen \= 900 points  
+* Rook \= 500 points  
+* Bishop \= 325 points  
+* Knight \= 300 points  
+* Pawn \= 100 point
+
+**Search Types:**
+
+* Simple: find the best immediate eval, fallback search type  
+* Minimax: engine tries to maximize eval, opponent tries to minimize  
+* Negamax: engine chooses best overall eval for each move  
+* Random: plays any legal move
+
+**Engine Modules:**
+
+* Core Modules  
+  * Chess Game: pygame components  
+  * V7P3R Engine: engine handler  
+  * Config: engine and game config  
+* Move Selection Modules  
+  * Search: search handler  
+  * Scoring: move selection  
+  * Rules: position evaluation  
+* Performance and Risk Modules  
+  * Move Ordering: move prioritization and move exploration limiting based on Quiescence  
+  * Quiescence: active position identification, examines move risk to achieve quieter positions  
+  * MVV-LVA: most-valuable-victim/least-valuable-attacker logic for enhanced material scoring  
+  * Tempo: game ending condition checking (Checkmate, Stalemate, Draw)  
+  * Time Manager: time triggered performance controls to dynamically adjust engine move duration
+
+**Utilities:**
+
+* PGN Watcher  
+* Live Ruleset/Puzzle Tuner  
+* Metrics (Game and Move Evaluation)  
+* Stockfish Handler  
+* Utilities Class  
+  * Path tools  
+  * Datetime tools  
+  * Debug tools
 
 **Basic Evaluation Scoring Rules:**  
 Critical Short Circuits:

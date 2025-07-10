@@ -34,6 +34,11 @@ class v7p3rScore:
         # Scoring Setup
         self.ruleset_name = self.engine_config.get('ruleset', 'default_ruleset')
         self.ruleset = self.config_manager.get_ruleset()
+        
+        # Ensure ruleset is a dictionary, not a string
+        if isinstance(self.ruleset, str):
+            self.ruleset = {}
+            
         self.use_game_phase = self.engine_config.get('use_game_phase', True)
         self.white_player = self.game_config.get('white_player', 'v7p3r')
         self.black_player = self.game_config.get('black_player', 'v7p3r')
@@ -138,29 +143,32 @@ class v7p3rScore:
         return score
 
     def _calculate_mvv_lva_score(self, move: chess.Move, board: chess.Board) -> float:
-        """Calculate MVV-LVA (Most Valuable Victim - Least Valuable Attacker) score for a capture move."""
+        """Enhanced MVV-LVA with piece values from config and safety evaluation"""
         if not board.is_capture(move):
             return 0.0
             
-        # Piece values for MVV-LVA calculation
-        mvv_lva_values = {
-            chess.PAWN: 100,
-            chess.KNIGHT: 320,
-            chess.BISHOP: 330,
-            chess.ROOK: 500,
-            chess.QUEEN: 900,
-            chess.KING: 20000
-        }
-        
         victim = board.piece_at(move.to_square)
         attacker = board.piece_at(move.from_square)
         
         if victim is None or attacker is None:
             return 0.0
             
-        # MVV-LVA score = Victim value * 100 - Attacker value
-        # This ensures capturing a queen with a pawn is better than with a queen
-        return mvv_lva_values[victim.piece_type] * 100 - mvv_lva_values[attacker.piece_type]
+        # Use piece values from config or fallback to defaults
+        piece_values = self.rules_manager.piece_values
+        
+        victim_value = piece_values.get(victim.piece_type, 100)
+        attacker_value = piece_values.get(attacker.piece_type, 100)
+        
+        # MVV-LVA: Most Valuable Victim - Least Valuable Attacker
+        # Prioritize capturing valuable pieces with less valuable pieces
+        mvv_lva_score = victim_value * 10 - attacker_value
+        
+        # Add position context - capturing towards center is slightly better
+        center_squares = [chess.D4, chess.E4, chess.D5, chess.E5]
+        if move.to_square in center_squares:
+            mvv_lva_score += 10
+            
+        return mvv_lva_score
 
     def _evaluate_castling_state(self, board: chess.Board) -> float:
         """Evaluate castling opportunities and king safety"""
@@ -186,36 +194,46 @@ class v7p3rScore:
         return score
 
     def evaluate_position(self, board: chess.Board) -> float:
-        """Calculate the score for the current position following the evaluation hierarchy."""
+        """Calculate the score for the current position following the proper evaluation hierarchy."""
         try:
-            # 1. Critical Short Circuits
-            # Check for checkmate
+            # 1. Terminal Conditions (Short Circuits)
+            # Check for checkmate first - highest priority
             if board.is_checkmate():
-                return float('-inf') if board.turn else float('inf')
+                return float('inf') if board.turn == chess.BLACK else float('-inf')
             
-            # Check for stalemate
+            # Check for stalemate - second priority
             if board.is_stalemate():
-                return 0.0  # Neutral score for stalemate
+                return float('-inf')  # Stalemate is bad for the engine
                 
-            # 2. Primary Scoring Components
+            # Check for other draws
+            if board.can_claim_draw():
+                return -100.0  # Small penalty for draws
+                
+            # 2. Primary Scoring Components (Material, PST, MVV-LVA)
             material_score = self._evaluate_material(board) * 100  # Convert to centipawns
             
+            # Piece-Square Table evaluation
             pst_score = 0.0
             for square in chess.SQUARES:
                 piece = board.piece_at(square)
                 if piece:
-                    pst_score += self.pst.get_piece_square_value(piece.piece_type, square, piece.color)
-                    
-            # 3. Secondary Scoring Components
-            castling_score = self._evaluate_castling_state(board)
-            development_score = self._evaluate_piece_development(board)
+                    pst_score += self.pst.get_pst_value(piece, square, piece.color)
             
-            # Combine all scores with proper weighting
+            # MVV-LVA evaluation for captures
+            capture_score = 0.0
+            for move in board.legal_moves:
+                if board.is_capture(move):
+                    capture_score += self._calculate_mvv_lva_score(move, board) * 0.1
+                    
+            # 3. Secondary Scoring Components (Castling rights)
+            castling_score = self._evaluate_castling_state(board)
+            
+            # Combine all scores with proper weighting according to hierarchy
             total_score = (
-                material_score * 1.0 +  # Material is most important
-                pst_score * 0.5 +      # Position is second
-                castling_score * 0.3 +  # Castling rights are important early
-                development_score * 0.2  # Development guides early game
+                material_score * 1.0 +      # Primary: Material is most important
+                pst_score * 0.5 +           # Primary: Position is second
+                capture_score * 0.3 +       # Primary: Capture potential
+                castling_score * 0.2        # Secondary: Castling rights
             )
             
             # Update score dataset for metrics
@@ -223,6 +241,7 @@ class v7p3rScore:
                 'fen': board.fen(),
                 'material_score': material_score,
                 'pst_score': pst_score,
+                'piece_captures_score': capture_score,
                 'castling_score': castling_score,
                 'total_score': total_score
             })

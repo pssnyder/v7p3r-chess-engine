@@ -19,9 +19,9 @@
             "safety_margin": 200,
             "position_bonus": 50
         },
-        "order_moves": true,
+        "use_move_ordering": true,
         "max_ordered_moves": 10,
-        "strict_draw_prevention": true
+        "use_draw_prevention": true
     },
     "stockfish_config": {
         "stockfish_path": "stockfish/stockfish-windows-x86-64-avx2.exe",

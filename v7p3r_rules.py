@@ -41,6 +41,11 @@ class v7p3rRules:
         # Initialize required components with defaults if not provided
         self.fallback_modifier = 100
         self.ruleset = ruleset if ruleset is not None else {}
+        
+        # Ensure ruleset is a dictionary, not a string
+        if isinstance(self.ruleset, str):
+            self.ruleset = {}
+            
         self.pst = pst if pst is not None else self._create_default_pst()
         
         # Initialize scoring counters
@@ -303,7 +308,7 @@ class v7p3rRules:
 
     def find_checkmate_in_n(self, board: chess.Board, n: int, color: chess.Color) -> chess.Move:
         """
-        Find a checkmate in n moves if it exists.
+        Optimized checkmate finder within n moves.
         Returns the first move of the mating sequence if found, otherwise null move.
         
         Args:
@@ -318,47 +323,73 @@ class v7p3rRules:
         if board.turn != color:
             return chess.Move.null()
             
-        # Check immediate checkmate
+        # Get legal moves and prioritize checks and captures for efficiency
         legal_moves = list(board.legal_moves)
+        prioritized_moves = []
+        other_moves = []
+        
         for move in legal_moves:
-            board_copy = board.copy()
-            board_copy.push(move)
+            temp_board = board.copy()
+            temp_board.push(move)
             
-            if board_copy.is_checkmate():
+            # Immediate checkmate check
+            if temp_board.is_checkmate():
+                temp_board.pop()
                 return move
                 
-        # If no immediate checkmate, look deeper if we still have depth
+            # Prioritize checks and captures for deeper search
+            if temp_board.is_check() or board.is_capture(move):
+                prioritized_moves.append(move)
+            else:
+                other_moves.append(move)
+            temp_board.pop()
+                
+        # If no immediate checkmate and we have depth remaining, search deeper
         if n > 1:
-            for move in legal_moves:
+            # Search prioritized moves first (checks and captures)
+            for move in prioritized_moves + other_moves:
                 board_copy = board.copy()
                 board_copy.push(move)
                 
-                # Skip if opponent can checkmate us
+                # Quick check: if opponent has no legal moves, this is checkmate
+                opponent_moves = list(board_copy.legal_moves)
+                if not opponent_moves:
+                    board_copy.pop()
+                    continue
+                
+                # Check if opponent can deliver immediate checkmate (avoid)
                 opponent_can_mate = False
-                for opponent_move in board_copy.legal_moves:
+                for opponent_move in opponent_moves:
                     opponent_board = board_copy.copy()
                     opponent_board.push(opponent_move)
                     if opponent_board.is_checkmate():
                         opponent_can_mate = True
                         break
+                    opponent_board.pop()
                         
                 if opponent_can_mate:
+                    board_copy.pop()
                     continue
                     
-                # For each opponent reply
+                # Check if all opponent responses lead to our checkmate
                 all_replies_fail = True
-                for opponent_move in board_copy.legal_moves:
+                for opponent_move in opponent_moves:
                     opponent_board = board_copy.copy()
                     opponent_board.push(opponent_move)
                     
-                    # If we can't find a mate after opponent's best defense
+                    # Recursively check if we can still mate after opponent's response
                     if self.find_checkmate_in_n(opponent_board, n-2, color) == chess.Move.null():
                         all_replies_fail = False
+                        opponent_board.pop()
                         break
+                    opponent_board.pop()
                         
-                # If all opponent replies lead to mate
-                if all_replies_fail and board_copy.legal_moves:
+                # If all opponent replies lead to mate, this is our winning move
+                if all_replies_fail and opponent_moves:
+                    board_copy.pop()
                     return move
+                    
+                board_copy.pop()
                     
         return chess.Move.null()
 
@@ -399,8 +430,8 @@ class v7p3rRules:
                 # Use PST to evaluate position improvement
                 piece = board.piece_at(move.from_square)
                 if piece:
-                    from_value = self.pst.get_piece_square_value(piece.piece_type, move.from_square, piece.color)
-                    to_value = self.pst.get_piece_square_value(piece.piece_type, move.to_square, piece.color)
+                    from_value = self.pst.get_pst_value(piece, move.from_square, piece.color)
+                    to_value = self.pst.get_pst_value(piece, move.to_square, piece.color)
                     score += (to_value - from_value)
                     
                 if score > best_score:

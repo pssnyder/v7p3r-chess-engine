@@ -143,9 +143,23 @@ class v7p3rTuner:
             current_move_number += 1
             if current_move_number % 2 == 1: 
                 # Odd moves are meant to be played automatically
-                self.board.push_uci(solution_move)
-                played_moves.append(solution_move)
-                print(f"Last played move {current_move_number}/{total_moves}: {solution_move} | FEN: {self.board.fen()}")
+                try:
+                    # Validate the move before pushing
+                    move = chess.Move.from_uci(solution_move)
+                    if move in self.board.legal_moves:
+                        self.board.push_uci(solution_move)
+                        played_moves.append(solution_move)
+                        print(f"Last played move {current_move_number}/{total_moves}: {solution_move} | FEN: {self.board.fen()}")
+                    else:
+                        print(f"ERROR: Solution move {solution_move} is not legal in position {self.board.fen()}")
+                        print(f"Legal moves: {[move.uci() for move in self.board.legal_moves]}")
+                        break
+                except ValueError as e:
+                    print(f"ERROR: Invalid move format '{solution_move}': {e}")
+                    break
+                except Exception as e:
+                    print(f"ERROR: Failed to execute move '{solution_move}': {e}")
+                    break
                 continue
             else:
                 # If it's an even move, we need to let the engine play

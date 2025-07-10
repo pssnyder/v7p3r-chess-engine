@@ -69,11 +69,12 @@ class v7p3rChess(ChessCore):
             self.headless = self.game_config.get('headless', True)
             self.metrics_enabled = self.game_config.get('record_metrics', True)
             self.current_player = chess.WHITE
+            self.game_count = self.game_config.get('game_count', 1)  # Default to 1 game
             
             # Initialize components
             self.engine = v7p3rEngine(self.engine_config)
             self.rules_manager = self.engine.rules_manager
-            self.stockfish = None if self.headless else StockfishHandler(self.stockfish_config)
+            self.stockfish = StockfishHandler(self.stockfish_config)  # Always initialize Stockfish
             
             # Initialize game record
             self.game = chess.pgn.Game()
@@ -600,7 +601,7 @@ class v7p3rChess(ChessCore):
         """Get move from opponent (e.g., Stockfish)"""
         try:
             if self.stockfish:
-                move = self.stockfish.get_move(board)
+                move = self.stockfish.search(board, color, self.stockfish_config)
                 return move if move and board.is_legal(move) else None
         except Exception as e:
             print(f"Error getting opponent move: {str(e)}")

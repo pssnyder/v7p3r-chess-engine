@@ -19,9 +19,9 @@
             "safety_margin": 200,
             "position_bonus": 50
         },
-        "order_moves": true,
+        "use_move_ordering": true,
         "max_ordered_moves": 5,
-        "strict_draw_prevention": false
+        "use_draw_prevention": false
     },
     "puzzle_config": {
         "puzzle_database": {

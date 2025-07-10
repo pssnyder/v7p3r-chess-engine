@@ -31,7 +31,7 @@ class v7p3rSearch:
         self.search_algorithm = self.engine_config.get('search_algorithm', 'simple')
         self.depth = self.engine_config.get('depth', 3)
         self.max_depth = self.engine_config.get('max_depth', 5)
-        self.strict_draw_prevention = self.engine_config.get('strict_draw_prevention', False)
+        self.draw_prevention_enabled = self.engine_config.get('use_draw_prevention', False)
         self.quiescence_enabled = self.engine_config.get('use_quiescence', True)
         self.move_ordering_enabled = self.engine_config.get('use_move_ordering', True)
         self.max_ordered_moves = self.engine_config.get('max_ordered_moves', 5)
@@ -113,42 +113,48 @@ class v7p3rSearch:
         return best_move
 
     def search(self, board: chess.Board, color: chess.Color):
-        """Enhanced search handler with proper evaluation hierarchy"""
+        """Enhanced search handler with proper evaluation hierarchy per alignment plan"""
         try:
             self.root_board = board.copy()
             self.nodes_searched = 0
             self.pv_move_stack = []
+            self.color = color
             
-            # 1. Try book moves first
+            # 1. Check book moves first
             book_move = self.opening_book.get_book_move(board)
             if book_move and board.is_legal(book_move):
+                print(f"Using book move: {book_move.uci()}")
                 return book_move
                 
-            # 2. Check for immediate checkmate
+            # 2. Check for immediate checkmate within 5 moves
             mate_move = self.rules_manager.find_checkmate_in_n(board, 5, color)
-            if mate_move and board.is_legal(mate_move):
+            if mate_move and mate_move != chess.Move.null() and board.is_legal(mate_move):
+                print(f"Found checkmate in ≤5 moves: {mate_move.uci()}")
                 return mate_move
                 
-            # 3. Use iterative deepening if enabled
+            # 3. Start iterative deepening if enabled
             if self.engine_config.get('use_iterative_deepening', True):
                 move = self.iterative_deepening_search(board, color)
-                if move and board.is_legal(move):
+                if move and move != chess.Move.null() and board.is_legal(move):
                     return move
                     
-            # 4. Fallback to standard search
-            move, _ = self._minimax_root(board, self.depth, color)
-            
-            # 5. Verify move doesn't cause immediate problems
-            if self.strict_draw_prevention:
-                test_board = board.copy()
-                test_board.push(move)
-                if test_board.is_stalemate() or test_board.can_claim_draw():
-                    # Find an alternative move
-                    alternative_move = self.rules_manager.find_non_stalemate_move(board)
-                    if alternative_move and board.is_legal(alternative_move):
-                        return alternative_move
+            # 4. Standard search with move ordering
+            move = self.ordered_depth_search(board, color)
+            if move and move != chess.Move.null() and board.is_legal(move):
+                # 5. Verify move doesn't cause stalemate (draw prevention)
+                if self.draw_prevention_enabled:
+                    test_board = board.copy()
+                    test_board.push(move)
+                    if test_board.is_stalemate() or test_board.can_claim_draw():
+                        # Find an alternative move
+                        alternative_move = self.rules_manager.find_non_stalemate_move(board)
+                        if alternative_move and alternative_move != chess.Move.null() and board.is_legal(alternative_move):
+                            print(f"Avoiding stalemate, using alternative: {alternative_move.uci()}")
+                            return alternative_move
+                return move
                         
-            return move if board.is_legal(move) else self._simple_search(board)
+            # 6. Final fallback to simple search
+            return self._simple_search(board)
 
         except Exception as e:
             print(f"Error in search: {str(e)}")
@@ -546,3 +552,12 @@ class v7p3rSearch:
                 or temp_board.is_variant_draw()):
                 return True  # Return true if a draw condition is found
         return False  # Return false if no drawing moves are found
+
+    def ordered_depth_search(self, board: chess.Board, color: chess.Color) -> chess.Move:
+        """Perform depth search with proper move ordering"""
+        try:
+            move, _ = self._minimax_root(board, self.depth, color)
+            return move if move and move != chess.Move.null() else self._simple_search(board)
+        except Exception as e:
+            print(f"Error in ordered depth search: {str(e)}")
+            return self._simple_search(board)

@@ -12,9 +12,9 @@
         "max_depth": 7,
         "use_game_phase": true,
         "use_quiescence": true,
-        "order_moves": true,
+        "use_move_ordering": true,
         "max_ordered_moves": 8,
-        "strict_draw_prevention": true
+        "use_draw_prevention": true
     },
     "stockfish_config": {
         "stockfish_path": "stockfish/stockfish-windows-x86-64-avx2.exe",
