@@ -140,7 +140,7 @@ See [TEST_GUIDE.md](docs/TEST_GUIDE.md) for detailed instructions and interpreta
 - `v7p3r_rl_models/` — Trained RL models and configurations
 
 ### Metrics
-- `metrics/v7p3r_chess_metrics.py` — Engine performance metrics dashboard
+- `metrics/v7p3r_metrics.py` — Engine performance metrics dashboard
 - `metrics/metrics_store.py` — Metrics database and storage
 - `metrics/elo_tracker.py` — ELO tracking and analysis tools
 

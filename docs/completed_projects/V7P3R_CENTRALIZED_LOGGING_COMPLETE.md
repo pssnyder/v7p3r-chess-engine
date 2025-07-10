@@ -39,7 +39,7 @@ All modules have been successfully refactored to use the centralized `v7p3rLogge
 #### Tier 5 - Utility Modules (Completed Today) ✅
 17. ✅ `v7p3r_live_tuner.py` - Centralized logging implemented
 18. ✅ `v7p3r_config_gui.py` - Centralized logging implemented
-19. ✅ `metrics/v7p3r_chess_metrics.py` - Centralized logging implemented
+19. ✅ `metrics/v7p3r_metrics.py` - Centralized logging implemented
 20. ✅ `metrics/pgn_quick_metrics.py` - Centralized logging implemented
 
 ## Implementation Details
@@ -127,7 +127,7 @@ All 20 target files have been successfully refactored:
 - v7p3r_ga.py, v7p3r_ga_training.py, v7p3r_ga_cuda_accelerator.py
 
 **Utilities (4 files)**
-- v7p3r_live_tuner.py, v7p3r_config_gui.py, metrics/v7p3r_chess_metrics.py, metrics/pgn_quick_metrics.py
+- v7p3r_live_tuner.py, v7p3r_config_gui.py, metrics/v7p3r_metrics.py, metrics/pgn_quick_metrics.py
 
 ## Testing Status
 - ✅ Files compile without syntax errors

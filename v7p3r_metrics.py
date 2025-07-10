@@ -1,9 +1,19 @@
-# metrics/v7p3r_chess_metrics.py
+# metrics/v7p3r_metrics.py
 """
 V7P3R Chess Engine Metrics System
 A unified, modern metrics collection and analysis system for the V7P3R chess engine.
 Features async data collection, Streamlit dashboard, and robust database handling.
 """
+
+import os
+import site
+import sys
+
+# Add site-packages to path
+site_packages = site.getsitepackages()
+for path in site_packages:
+    if path not in sys.path:
+        sys.path.append(path)
 
 import asyncio
 import sqlite3
@@ -11,12 +21,23 @@ import json
 import os
 import threading
 from dataclasses import dataclass
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, List
 from pathlib import Path
 import pandas as pd
 
+# Update dashboard availability check
+try:
+    import streamlit as st
+    import plotly.express as px
+    import plotly.graph_objects as go
+    DASHBOARD_AVAILABLE = True
+except ImportError as e:
+    print(f"Dashboard import error: {str(e)}")
+    print(f"Python executable: {sys.executable}")
+    print(f"sys.path: {sys.path}")
+    DASHBOARD_AVAILABLE = False
+    
 # Add parent directory to path for imports
-import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Database path
@@ -25,24 +46,24 @@ DB_PATH = BASE_DIR / "chess_metrics.db"
 
 @dataclass
 class GameMetric:
-    """Data structure for game-level metrics."""
-    game_id: str
+    """Data structure for game-level metrics matching database schema."""
+    game_id: str  # PRIMARY KEY
     timestamp: str
-    v7p3r_color: str  # 'white' or 'black'
-    opponent: str  # 'stockfish' or other engine name
-    result: str  # 'win', 'loss', 'draw'
+    v7p3r_color: str
+    opponent: str
+    result: str
     total_moves: int
-    game_duration: float  # seconds
+    game_duration: float
     opening_name: Optional[str] = None
     final_position_fen: Optional[str] = None
     termination_reason: Optional[str] = None
-    
+
 @dataclass
 class MoveMetric:
-    """Data structure for move-level metrics."""
+    """Data structure for move-level metrics matching database schema."""
     game_id: str
     move_number: int
-    player: str  # 'v7p3r' or 'opponent'
+    player: str
     move_notation: str
     position_fen: str
     evaluation_score: Optional[float] = None
@@ -54,11 +75,11 @@ class MoveMetric:
     quiescence_nodes: Optional[int] = None
     transposition_hits: Optional[int] = None
     move_ordering_efficiency: Optional[float] = None
-    
-@dataclass  
+
+@dataclass
 class EngineConfig:
-    """Data structure for engine configuration snapshots."""
-    config_id: str
+    """Data structure for engine configuration matching database schema."""
+    config_id: str  # PRIMARY KEY
     timestamp: str
     search_depth: int
     time_limit: float
@@ -68,7 +89,6 @@ class EngineConfig:
     use_move_ordering: bool
     hash_size_mb: int
     additional_params: Optional[Dict[str, Any]] = None
-
 
 class v7p3rMetrics:
     """
@@ -82,31 +102,7 @@ class v7p3rMetrics:
         self._initialize_database()
     
     def _initialize_database(self):
-        """Initialize database tables if they don't exist."""
-        # Check if database exists and has old schema
-        needs_migration = False
-        if self.db_path.exists():
-            try:
-                with sqlite3.connect(self.db_path) as conn:
-                    cursor = conn.cursor()
-                    # Check if we have the old schema by looking for old table names
-                    cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
-                    existing_tables = [row[0] for row in cursor.fetchall()]
-                    
-                    # If we have old tables but not new ones, we need to migrate
-                    if ('game_results' in existing_tables or 'move_metrics' in existing_tables) and 'games' not in existing_tables:
-                        needs_migration = True
-                        
-                        # Backup the old database
-                        backup_path = self.db_path.with_suffix('.db.backup')
-                        import shutil
-                        shutil.copy2(self.db_path, backup_path)
-                        
-                        # Remove old database to start fresh
-                        self.db_path.unlink()
-            except Exception as e:
-                raise
-        
+        """Initialize database tables with exact schema."""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             
@@ -126,7 +122,7 @@ class v7p3rMetrics:
                 )
             """)
             
-            # Moves table  
+            # Moves table
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS moves (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -268,46 +264,103 @@ class v7p3rMetrics:
             return False
 
     
+    async def update_game_metadata(self, game_id: str, metadata: Dict[str, Any]) -> bool:
+        """Update additional game metadata fields."""
+        try:
+            with self._lock:
+                with sqlite3.connect(self.db_path) as conn:
+                    cursor = conn.cursor()
+                    
+                    # Build the update query dynamically based on provided metadata
+                    valid_columns = {'opening_name', 'final_position_fen', 'termination_reason'}
+                    updates = []
+                    values = []
+                    
+                    for key, value in metadata.items():
+                        if key in valid_columns:
+                            updates.append(f"{key} = ?")
+                            values.append(value)
+                    
+                    if not updates:
+                        return False
+                        
+                    values.append(game_id)  # For WHERE clause
+                    update_query = f"UPDATE games SET {', '.join(updates)} WHERE game_id = ?"
+                    
+                    cursor.execute(update_query, values)
+                    conn.commit()
+                    return True
+                    
+        except Exception as e:
+            print(f"Error updating game metadata: {str(e)}")
+            return False
+    
     # Analysis methods
     async def get_game_summary(self, game_id: str) -> Optional[Dict[str, Any]]:
-        """Get comprehensive summary for a specific game."""
+        """Get comprehensive summary for a specific game with enhanced metrics."""
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 
                 # Get game info
-                cursor.execute("SELECT * FROM games WHERE game_id = ?", (game_id,))
+                cursor.execute("""
+                    SELECT g.*,
+                           COUNT(DISTINCT m.move_number) as total_moves,
+                           AVG(CASE WHEN m.player = 'v7p3r' THEN m.evaluation_score END) as avg_evaluation,
+                           AVG(CASE WHEN m.player = 'v7p3r' THEN m.search_depth END) as avg_depth,
+                           AVG(CASE WHEN m.player = 'v7p3r' THEN m.nodes_evaluated END) as avg_nodes,
+                           AVG(CASE WHEN m.player = 'v7p3r' THEN m.time_taken END) as avg_time,
+                           AVG(CASE WHEN m.player = 'v7p3r' THEN m.quiescence_nodes END) as avg_quiescence_nodes,
+                           AVG(CASE WHEN m.player = 'v7p3r' THEN m.transposition_hits END) as avg_transposition_hits,
+                           AVG(CASE WHEN m.player = 'v7p3r' THEN m.move_ordering_efficiency END) as avg_move_ordering
+                    FROM games g
+                    LEFT JOIN moves m ON g.game_id = m.game_id
+                    WHERE g.game_id = ?
+                    GROUP BY g.game_id
+                """, (game_id,))
+                
                 game_row = cursor.fetchone()
                 if not game_row:
                     return None
                 
-                # Get column names
+                # Get column names including the calculated fields
                 cursor.execute("PRAGMA table_info(games)")
                 game_columns = [col[1] for col in cursor.fetchall()]
+                game_columns.extend([
+                    'total_moves', 'avg_evaluation', 'avg_depth', 'avg_nodes',
+                    'avg_time', 'avg_quiescence_nodes', 'avg_transposition_hits',
+                    'avg_move_ordering'
+                ])
+                
                 game_data = dict(zip(game_columns, game_row))
                 
-                # Get move statistics
+                # Get move sequence
                 cursor.execute("""
-                    SELECT COUNT(*) as total_moves,
-                           AVG(evaluation_score) as avg_evaluation,
-                           AVG(search_depth) as avg_depth,
-                           AVG(nodes_evaluated) as avg_nodes,
-                           AVG(time_taken) as avg_time
-                    FROM moves WHERE game_id = ? AND player = 'v7p3r'
+                    SELECT move_notation, position_fen, evaluation_score,
+                           search_depth, nodes_evaluated, time_taken,
+                           best_move, pv_line
+                    FROM moves
+                    WHERE game_id = ?
+                    ORDER BY move_number ASC
                 """, (game_id,))
                 
-                stats = cursor.fetchone()
-                if stats:
-                    game_data.update({
-                        'total_v7p3r_moves': stats[0],
-                        'avg_evaluation': stats[1],
-                        'avg_search_depth': stats[2],
-                        'avg_nodes_evaluated': stats[3],
-                        'avg_time_per_move': stats[4]
-                    })
+                moves_data = cursor.fetchall()
+                if moves_data:
+                    game_data['moves'] = [{
+                        'notation': move[0],
+                        'position': move[1],
+                        'evaluation': move[2],
+                        'depth': move[3],
+                        'nodes': move[4],
+                        'time': move[5],
+                        'best_move': move[6],
+                        'pv_line': move[7]
+                    } for move in moves_data]
                 
                 return game_data
+                
         except Exception as e:
+            print(f"Error in get_game_summary: {str(e)}")
             return None
     
     async def get_performance_trends(self, limit: int = 50) -> pd.DataFrame:
@@ -357,15 +410,14 @@ def get_metrics_instance(db_path: Optional[Path] = None) -> v7p3rMetrics:
 
 # Streamlit Dashboard
 def create_streamlit_dashboard():
-    """
-    Create a Streamlit dashboard for visualizing chess engine metrics.
-    Run this function to launch the dashboard.
-    """
-    try:
-        import streamlit as st
-        import plotly.express as px
-        import plotly.graph_objects as go
+    """Create a Streamlit dashboard for visualizing chess engine metrics."""
+    if not DASHBOARD_AVAILABLE:
+        print("Dashboard requires additional dependencies. Install with:")
+        print("pip install streamlit plotly")
+        return False
         
+    try:
+        # Streamlit configuration
         st.set_page_config(
             page_title="V7P3R Chess Engine Analytics",
             page_icon="♔",
@@ -388,8 +440,9 @@ def create_streamlit_dashboard():
         # Initialize metrics
         metrics = get_metrics_instance()
         
-        # Sidebar
+        # Sidebar filters
         st.sidebar.header("🎛️ Dashboard Controls")
+        num_games = st.sidebar.slider("Number of games to analyze", min_value=5, max_value=100, value=20)
         
         # Main dashboard sections
         tab1, tab2, tab3, tab4 = st.tabs(["📊 Overview", "🎯 Game Analysis", "⚙️ Engine Config", "📈 Performance Trends"])
@@ -397,8 +450,13 @@ def create_streamlit_dashboard():
         with tab1:
             st.header("📊 Engine Performance Overview")
             
-            # Get recent games
-            games_df = asyncio.run(metrics.get_performance_trends(limit=20))
+            # Get recent games with error handling
+            try:
+                games_df = asyncio.run(metrics.get_performance_trends(limit=num_games))
+                games_df = games_df.fillna(0)  # Replace NaN with 0 for numeric calculations
+            except Exception as e:
+                st.error(f"Error loading game data: {str(e)}")
+                games_df = pd.DataFrame()
             
             if not games_df.empty:
                 col1, col2, col3, col4 = st.columns(4)
@@ -408,7 +466,7 @@ def create_streamlit_dashboard():
                     st.metric("Total Games", total_games)
                 
                 with col2:
-                    wins = len(games_df[games_df['result'] == 'win'])
+                    wins = len(games_df[games_df['result'].str.lower() == 'win'])
                     win_rate = (wins / total_games * 100) if total_games > 0 else 0
                     st.metric("Win Rate", f"{win_rate:.1f}%")
                 
@@ -420,14 +478,33 @@ def create_streamlit_dashboard():
                     avg_nodes = games_df['avg_nodes'].mean()
                     st.metric("Avg Nodes/Move", f"{avg_nodes:,.0f}" if pd.notnull(avg_nodes) else "N/A")
                 
-                # Performance over time
-                st.subheader("🏆 Win Rate Trend")
-                games_df['win'] = (games_df['result'] == 'win').astype(int)
-                games_df['game_number'] = range(len(games_df))
+                # Performance over time chart
+                st.subheader("🏆 Performance Trends")
                 
-                fig = px.line(games_df, x='game_number', y='win', 
-                             title="Win Rate Over Recent Games",
-                             labels={'game_number': 'Game Number', 'win': 'Win (1) / Loss (0)'})
+                # Convert game results to numeric values for plotting
+                games_df['result_numeric'] = games_df['result'].map({'win': 1, 'draw': 0.5, 'loss': 0})
+                
+                # Create a rolling average of results
+                games_df['rolling_performance'] = games_df['result_numeric'].rolling(window=5, min_periods=1).mean()
+                
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(
+                    x=games_df.index,
+                    y=games_df['rolling_performance'],
+                    mode='lines+markers',
+                    name='Performance (5-game rolling avg)',
+                    line=dict(color='#00ff00', width=2),
+                    marker=dict(size=8)
+                ))
+                
+                fig.update_layout(
+                    title="Performance Trend (1.0 = Win, 0.5 = Draw, 0.0 = Loss)",
+                    xaxis_title="Game Number",
+                    yaxis_title="Performance",
+                    yaxis=dict(range=[0, 1]),
+                    hovermode='x unified'
+                )
+                
                 st.plotly_chart(fig, use_container_width=True)
                 
             else:
@@ -444,24 +521,47 @@ def create_streamlit_dashboard():
                     format_func=lambda x: f"{x} ({games_df[games_df['game_id']==x]['result'].iloc[0]})"
                 )
                 
+                # Detailed game analysis
                 if selected_game:
                     game_summary = asyncio.run(metrics.get_game_summary(selected_game))
                     if game_summary:
-                        col1, col2 = st.columns(2)
+                        st.subheader("📊 Game Details")
+                        
+                        # Layout with columns
+                        col1, col2, col3 = st.columns([1, 1, 1])
                         
                         with col1:
-                            st.subheader("🎮 Game Info")
+                            st.markdown("### 🎮 Game Info")
                             st.write(f"**Result:** {game_summary.get('result', 'N/A')}")
                             st.write(f"**V7P3R Color:** {game_summary.get('v7p3r_color', 'N/A')}")
                             st.write(f"**Opponent:** {game_summary.get('opponent', 'N/A')}")
-                            st.write(f"**Duration:** {game_summary.get('game_duration', 0):.1f}s")
+                            st.write(f"**Duration:** {game_summary.get('game_duration', 0.0):.1f}s")
+                            st.write(f"**Total Moves:** {game_summary.get('total_moves', 0)}")
                         
                         with col2:
-                            st.subheader("📈 Performance Stats")
-                            st.write(f"**Avg Evaluation:** {game_summary.get('avg_evaluation', 0):.2f}")
-                            st.write(f"**Avg Search Depth:** {game_summary.get('avg_search_depth', 0):.1f}")
-                            st.write(f"**Avg Nodes/Move:** {game_summary.get('avg_nodes_evaluated', 0):,.0f}")
-                            st.write(f"**Avg Time/Move:** {game_summary.get('avg_time_per_move', 0):.3f}s")
+                            st.markdown("### 📈 Performance")
+                            eval_score = game_summary.get('avg_evaluation')
+                            st.write(f"**Avg Evaluation:** {eval_score:.2f if eval_score is not None else 'N/A'}")
+                            depth = game_summary.get('avg_search_depth')
+                            st.write(f"**Avg Search Depth:** {depth:.1f if depth is not None else 'N/A'}")
+                            nodes = game_summary.get('avg_nodes_evaluated')
+                            st.write(f"**Avg Nodes/Move:** {nodes:,.0f if nodes is not None else 'N/A'}")
+                            
+                        with col3:
+                            st.markdown("### ⚡ Engine Stats")
+                            time_per_move = game_summary.get('avg_time_per_move')
+                            st.write(f"**Avg Time/Move:** {time_per_move:.3f if time_per_move is not None else 'N/A'}s")
+                            if game_summary.get('opening_name'):
+                                st.write(f"**Opening:** {game_summary['opening_name']}")
+                            if game_summary.get('termination_reason'):
+                                st.write(f"**Termination:** {game_summary['termination_reason']}")
+                        
+                        # Add final position display if available
+                        if game_summary.get('final_position_fen'):
+                            st.subheader("📋 Final Position")
+                            st.code(game_summary['final_position_fen'])
+                    else:
+                        st.warning("⚠️ Could not load detailed game data")
             else:
                 st.info("🎲 No games available for analysis.")
         
@@ -470,26 +570,64 @@ def create_streamlit_dashboard():
             
             config_df = asyncio.run(metrics.get_engine_config_history())
             if not config_df.empty:
-                st.dataframe(config_df, use_container_width=True)
+                st.subheader("📊 Current Configuration")
                 
-                # Configuration trends
-                st.subheader("📊 Configuration Trends")
-                fig = px.line(config_df, x='timestamp', y='search_depth',
-                             title="Search Depth Over Time")
+                # Get most recent config
+                latest_config = config_df.iloc[0]
+                
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.markdown("### 🔍 Search Settings")
+                    st.write(f"**Search Depth:** {latest_config['search_depth']}")
+                    st.write(f"**Time Limit:** {latest_config['time_limit']}s")
+                    st.write(f"**Hash Size:** {latest_config['hash_size_mb']} MB")
+                
+                with col2:
+                    st.markdown("### 🛠️ Features")
+                    st.write(f"**Iterative Deepening:** {'✅' if latest_config['use_iterative_deepening'] else '❌'}")
+                    st.write(f"**Transposition Table:** {'✅' if latest_config['use_transposition_table'] else '❌'}")
+                    st.write(f"**Quiescence Search:** {'✅' if latest_config['use_quiescence_search'] else '❌'}")
+                    st.write(f"**Move Ordering:** {'✅' if latest_config['use_move_ordering'] else '❌'}")
+                
+                st.subheader("📈 Configuration History")
+                
+                # Create trends for numeric parameters
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(
+                    x=config_df['timestamp'],
+                    y=config_df['search_depth'],
+                    mode='lines+markers',
+                    name='Search Depth'
+                ))
+                fig.update_layout(title='Search Depth History')
                 st.plotly_chart(fig, use_container_width=True)
+                
+                # Show full configuration history
+                st.dataframe(config_df.style.format({
+                    'time_limit': '{:.1f}',
+                    'hash_size_mb': '{:,.0f}'
+                }))
             else:
                 st.info("⚙️ No configuration history available.")
         
         with tab4:
-            st.header("📈 Advanced Performance Trends")
+            st.header("📈 Advanced Performance Analysis")
             
-            games_df = asyncio.run(metrics.get_performance_trends(limit=100))
+            games_df = asyncio.run(metrics.get_performance_trends(limit=num_games))
             if not games_df.empty:
-                # Multiple metrics
-                metric_options = ['avg_evaluation', 'avg_depth', 'avg_nodes', 'avg_time']
+                # Add rolling averages for key metrics
+                metrics_to_plot = {
+                    'avg_evaluation': 'Average Evaluation',
+                    'avg_depth': 'Average Search Depth',
+                    'avg_nodes': 'Average Nodes Evaluated',
+                    'avg_time': 'Average Time per Move'
+                }
+                
+                # Let user select metrics to display
                 selected_metrics = st.multiselect(
-                    "Select metrics to display:",
-                    metric_options,
+                    "Select metrics to analyze:",
+                    list(metrics_to_plot.keys()),
                     default=['avg_evaluation', 'avg_depth']
                 )
                 
@@ -497,147 +635,65 @@ def create_streamlit_dashboard():
                     fig = go.Figure()
                     
                     for metric in selected_metrics:
-                        if metric in games_df.columns:
-                            fig.add_trace(go.Scatter(
-                                x=games_df.index,
-                                y=games_df[metric],
-                                mode='lines+markers',
-                                name=metric.replace('avg_', '').replace('_', ' ').title()
-                            ))
+                        # Create rolling average
+                        rolling_data = games_df[metric].rolling(window=5, min_periods=1).mean()
+                        
+                        # Use a simpler hovertemplate to avoid linting issues
+                        fig.add_trace(go.Scatter(
+                            x=games_df.index,
+                            y=rolling_data,
+                            mode='lines+markers',
+                            name=metrics_to_plot[metric],
+                            customdata=[[metrics_to_plot[metric], val] for val in rolling_data],
+                            hovertemplate='%{customdata[0]}: %{customdata[1]:.2f}<br>Game: %{x}<extra></extra>'
+                        ))
                     
                     fig.update_layout(
-                        title="Performance Metrics Over Time",
+                        title="Performance Metrics (5-game rolling average)",
                         xaxis_title="Game Number",
-                        yaxis_title="Metric Value"
+                        yaxis_title="Metric Value",
+                        hovermode='x unified'
                     )
                     st.plotly_chart(fig, use_container_width=True)
+                    
+                    # Show summary statistics
+                    st.subheader("📊 Summary Statistics")
+                    summary_stats = games_df[selected_metrics].describe()
+                    st.dataframe(summary_stats.style.format("{:.2f}"))
             else:
-                st.info("📈 No performance data available.")
+                st.info("📈 No performance data available for analysis.")
         
         # Footer
         st.markdown("---")
-        st.markdown("🎯 **V7P3R Chess Engine** | Analytics Dashboard v2.0")
+        st.markdown("🎯 **V7P3R Chess Engine** | Analytics Dashboard v2.1")
         
-    except ImportError:
+    except Exception as e:
+        print(f"Dashboard error: {str(e)}")
         return False
     
     return True
 
-
 def run_dashboard():
     """Run the Streamlit dashboard."""
-    if create_streamlit_dashboard():
-        print("Dashboard created successfully. Run with: streamlit run this_file.py")
-    else:
-        print("Failed to create dashboard. Make sure streamlit is installed.")
-
-
-# Legacy compatibility functions (for smooth transition)
-def add_game_result(game_id: str, timestamp: str, winner: str, game_pgn: str, 
-                   white_player: str, black_player: str, game_length: int,
-                   white_engine_config: str, black_engine_config: str):
-    """Legacy compatibility function."""
-    metrics = get_metrics_instance()
-    game_metric = GameMetric(
-        game_id=game_id,
-        timestamp=timestamp,
-        v7p3r_color='white' if white_player == 'v7p3r' else 'black',
-        opponent=black_player if white_player == 'v7p3r' else white_player,
-        result=winner,
-        total_moves=game_length,
-        game_duration=0.0,  # Will be updated later
-        final_position_fen=None
-    )
-    # Use synchronous recording via run in thread
     try:
-        # Try async first
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            asyncio.create_task(metrics.record_game_start(game_metric))
-        else:
-            asyncio.run(metrics.record_game_start(game_metric))
-    except RuntimeError:
-        # Fallback: synchronous recording
-        try:
-            import sqlite3
-            with sqlite3.connect(metrics.db_path) as conn:
-                cursor = conn.cursor()
-                cursor.execute("""
-                    INSERT OR REPLACE INTO games 
-                    (game_id, timestamp, v7p3r_color, opponent, result, total_moves,
-                     game_duration, opening_name, final_position_fen, termination_reason)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    game_metric.game_id, game_metric.timestamp, game_metric.v7p3r_color,
-                    game_metric.opponent, game_metric.result, game_metric.total_moves,
-                    game_metric.game_duration, game_metric.opening_name,
-                    game_metric.final_position_fen, game_metric.termination_reason
-                ))
-                conn.commit()
-        except Exception as e:
-            raise
+        # Get absolute path to this script
+        script_path = os.path.abspath(__file__)
+        
+        # Use subprocess to properly launch Streamlit
+        import subprocess
+        subprocess.run(["streamlit", "run", script_path], check=True)
+        return True
+        
+    except Exception as e:
+        print(f"Error launching dashboard: {str(e)}")
+        print("Try running directly with: streamlit run v7p3r_metrics.py")
+        return False
 
-
-def add_move_metric(game_id: str, move_number: int, player_color: str, 
-                   move_uci: str, fen_before: str, evaluation: float,
-                   search_algorithm: str, depth: int, nodes_searched: int,
-                   time_taken: float, pv_line: str):
-    """Legacy compatibility function."""
-    metrics = get_metrics_instance()
-    move_metric = MoveMetric(
-        game_id=game_id,
-        move_number=move_number,
-        player='v7p3r' if search_algorithm != 'stockfish' else 'opponent',
-        move_notation=move_uci,
-        position_fen=fen_before,
-        evaluation_score=evaluation,
-        search_depth=depth,
-        nodes_evaluated=nodes_searched,
-        time_taken=time_taken,
-        pv_line=pv_line
-    )
-    # Use synchronous recording via run in thread
-    try:
-        # Try async first
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            asyncio.create_task(metrics.record_move(move_metric))
-        else:
-            asyncio.run(metrics.record_move(move_metric))
-    except RuntimeError:
-        # Fallback: synchronous recording
-        try:
-            import sqlite3
-            with sqlite3.connect(metrics.db_path) as conn:
-                cursor = conn.cursor()
-                cursor.execute("""
-                    INSERT INTO moves 
-                    (game_id, move_number, player, move_notation, position_fen,
-                     evaluation_score, search_depth, nodes_evaluated, time_taken,
-                     best_move, pv_line, quiescence_nodes, transposition_hits,
-                     move_ordering_efficiency)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    move_metric.game_id, move_metric.move_number, move_metric.player,
-                    move_metric.move_notation, move_metric.position_fen,
-                    move_metric.evaluation_score, move_metric.search_depth,
-                    move_metric.nodes_evaluated, move_metric.time_taken,
-                    move_metric.best_move, move_metric.pv_line,
-                    move_metric.quiescence_nodes, move_metric.transposition_hits,
-                    move_metric.move_ordering_efficiency
-                ))
-                conn.commit()
-        except Exception as e:
-            raise
-
-
-# Main entry point
+# Main entry point 
 if __name__ == "__main__":
-    import sys
-    
-    if len(sys.argv) > 1 and sys.argv[1] == "dashboard":
-        run_dashboard()
+    if "streamlit" in sys.modules:
+        # Being run by Streamlit
+        create_streamlit_dashboard()
     else:
-        # Default behavior - just initialize metrics system
-        metrics = get_metrics_instance()
-        print("To run dashboard: python chess_metrics.py dashboard")
+        # Direct script execution
+        run_dashboard()

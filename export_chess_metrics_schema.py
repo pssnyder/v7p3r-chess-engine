@@ -1,6 +1,6 @@
 import sqlite3
 
-conn = sqlite3.connect("metrics/chess_metrics.db")
+conn = sqlite3.connect("chess_metrics.db")
 cursor = conn.cursor()
 
 cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")

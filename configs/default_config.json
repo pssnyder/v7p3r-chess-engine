@@ -1,6 +1,6 @@
 {
     "game_config": {
-        "game_count": 1,
+        "game_count": 10,
         "starting_position": "default",
         "white_player": "v7p3r",
         "black_player": "stockfish"
@@ -8,8 +8,8 @@
     "engine_config": {
         "ruleset": "default_ruleset",
         "search_algorithm": "minimax",
-        "depth": 4,
-        "max_depth": 6,
+        "depth": 6,
+        "max_depth": 8,
         "use_game_phase": true,
         "use_quiescence": true,
         "use_mvv_lva": true,
@@ -20,7 +20,7 @@
             "position_bonus": 50
         },
         "use_move_ordering": true,
-        "max_ordered_moves": 10,
+        "max_ordered_moves": 20,
         "use_draw_prevention": true
     },
     "stockfish_config": {

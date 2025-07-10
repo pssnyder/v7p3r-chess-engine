@@ -25,7 +25,7 @@ After analyzing the existing codebase, the following v7p3r modules currently hav
 16. `v7p3r_ga_cuda_accelerator.py`
 17. `v7p3r_ga.py`
 18. `v7p3r_config_gui.py`
-19. `metrics/v7p3r_chess_metrics.py`
+19. `metrics/v7p3r_metrics.py`
 
 ### Common Redundant Code Pattern Found:
 Each file contains ~40-50 lines of identical logging setup code:
@@ -143,7 +143,7 @@ Refactor modules in order of complexity/dependency:
 #### Tier 5 - Utility Modules:
 17. `v7p3r_live_tuner.py`
 18. `v7p3r_config_gui.py`
-19. `metrics/v7p3r_chess_metrics.py`
+19. `metrics/v7p3r_metrics.py`
 
 ### Phase 3: Testing and Validation
 1. **Unit Testing**: Test each refactored module individually

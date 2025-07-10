@@ -170,17 +170,17 @@ class v7p3rSearch:
         if self.move_ordering_enabled:
             legal_moves = self.move_organizer.order_moves(board, legal_moves, depth=depth, cutoff=0)
         
-        print("\nEvaluating moves at root level:")
+        #print("\nEvaluating moves at root level:")
         for move in legal_moves:
             temp_board = board.copy()
             temp_board.push(move)
             score = self._minimax_search(temp_board, depth - 1, -float('inf'), float('inf'), not maximizing)
-            print(f"Move: {move.uci()}, Score: {score}")
+            #print(f"Move: {move.uci()}, Score: {score}")
             
             if score > best_score:
                 best_score = score
                 best_move = move
-                print(f"New best move: {best_move.uci()} with score {best_score}")
+                #print(f"New best move: {best_move.uci()} with score {best_score}")
         
         return best_move, best_score
 

@@ -12,11 +12,12 @@ import time
 from io import StringIO
 from v7p3r_config import v7p3rConfig
 from v7p3r_utilities import resource_path, get_timestamp
-from v7p3r_chess_metrics import get_metrics_instance, GameMetric, MoveMetric
+from v7p3r_metrics import get_metrics_instance, GameMetric, MoveMetric, EngineConfig
 from chess_core import ChessCore
 from pgn_watcher import PGNWatcher
 from v7p3r import v7p3rEngine
 from v7p3r_stockfish_handler import StockfishHandler
+import asyncio
 
 CONFIG_NAME = "default_config"
 
@@ -65,7 +66,7 @@ class v7p3rChess:
             self.current_player = chess.WHITE
             self.game_count = self.game_config.get('game_count', 1)
             self.engines = {}
-            self.current_game_id = None
+            self.current_game_id = ""  # Initialize as empty string instead of None
             self.game_start_timestamp = get_timestamp()
             self.game_start_time = time.time()
             self.current_eval = 0.0
@@ -77,14 +78,17 @@ class v7p3rChess:
             self.rules_manager = self.engine.rules_manager
             self.stockfish = StockfishHandler(self.stockfish_config)
             
-            # Set up initial game state
-            self._setup_game()
+            # Initialize metrics
+            self.metrics = get_metrics_instance()
+            self.metrics_tasks = []
+            
+            # Set up initial game state will happen in run()
             
         except Exception as e:
             print(f"Error initializing game: {str(e)}")
             raise
 
-    def _setup_game(self):
+    async def _setup_game(self):
         """Set up a new game"""
         # Initialize chess core with starting position
         self.chess_core.new_game(self.starting_position)
@@ -99,29 +103,89 @@ class v7p3rChess:
         # Initialize game ID and save initial state
         self.current_game_id = f"eval_game_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
         self.chess_core.quick_save_pgn("active_game.pgn")
+        
+        # Initialize game metrics
+        if self.metrics_enabled:
+            game_metric = GameMetric(
+                game_id=self.current_game_id,
+                timestamp=self.game_start_timestamp,
+                v7p3r_color='white' if self.white_player == 'v7p3r' else 'black',
+                opponent='stockfish' if 'stockfish' in [self.white_player, self.black_player] else 'other',
+                result='pending',
+                total_moves=0,
+                game_duration=0.0
+            )
+            # Add task to record game start
+            self.metrics_tasks.append(
+                asyncio.create_task(self.metrics.record_game_start(game_metric))
+            )
+            
+            # Record engine configuration
+            if self.white_player == 'v7p3r' or self.black_player == 'v7p3r':
+                config = EngineConfig(
+                    config_id=f"config_{self.game_start_timestamp}",
+                    timestamp=self.game_start_timestamp,
+                    search_depth=self.engine_config.get('search_depth', 3),
+                    time_limit=self.engine_config.get('time_limit', 5.0),
+                    use_iterative_deepening=self.engine_config.get('use_iterative_deepening', True),
+                    use_transposition_table=self.engine_config.get('use_transposition_table', True),
+                    use_quiescence_search=self.engine_config.get('use_quiescence_search', True),
+                    use_move_ordering=self.engine_config.get('use_move_ordering', True),
+                    hash_size_mb=self.engine_config.get('hash_size', 128),
+                    additional_params=self.engine_config
+                )
+                task = asyncio.create_task(self.metrics.save_engine_config(config))
+                await task
 
-    def push_move(self, move):
+    async def push_move(self, move):
         """Push a move and update game state"""
         try:
             # Calculate move time
             move_time = self.move_duration if hasattr(self, 'move_duration') and self.move_duration > 0 else 0.0
-            
-            # Display the move that was made
-            self.display_move_made(move, move_time)
-            
+                        
             # Get evaluation before making the move
             score = self.engine.scoring_calculator.evaluate_position(self.chess_core.board)
             formatted_score = f"{score:+.2f}"
             self.current_eval = score
-            
+
             # Push the move using chess_core
             if self.chess_core.push_move(move):
+                # Display the move that was made
+                self.display_move_made(move, move_time)
+                
                 # Add evaluation comment
                 if self.chess_core.game_node.parent:
                     self.chess_core.game_node.comment = f"Eval: {formatted_score}"
                 
                 # Save updated game state
                 self.chess_core.quick_save_pgn("active_game.pgn")
+                
+                # Record move metrics
+                if self.metrics_enabled and self.current_game_id:
+                    # Get search stats safely
+                    search_engine = self.engine.search_engine
+                    search_stats = getattr(search_engine, 'stats', {})
+                    
+                    move_metric = MoveMetric(
+                        game_id=self.current_game_id,
+                        move_number=len(self.chess_core.board.move_stack),
+                        player='v7p3r' if (self.current_player == chess.WHITE and self.white_player == 'v7p3r') or 
+                                        (self.current_player == chess.BLACK and self.black_player == 'v7p3r') else 'opponent',
+                        move_notation=move.uci(),
+                        position_fen=self.chess_core.board.fen(),
+                        evaluation_score=self.current_eval,
+                        search_depth=search_stats.get('depth', None),
+                        nodes_evaluated=search_stats.get('nodes', None),
+                        time_taken=self.move_duration,
+                        best_move=str(move),
+                        pv_line=search_stats.get('pv', None),
+                        quiescence_nodes=search_stats.get('quiescence_nodes', None),
+                        transposition_hits=search_stats.get('tt_hits', None),
+                        move_ordering_efficiency=search_stats.get('move_ordering_efficiency', None)
+                    )
+                    # Await the move recording directly instead of adding to tasks list
+                    await self.metrics.record_move(move_metric)
+
                 return True
             return False
             
@@ -130,7 +194,7 @@ class v7p3rChess:
             self.chess_core.quick_save_pgn("games/game_error_dump.pgn")
             return False
 
-    def new_game(self):
+    async def new_game(self):
         """Reset the game state for a new game"""
         
         # Add engine-specific initialization
@@ -144,26 +208,24 @@ class v7p3rChess:
         self.chess_core.set_headers(white_player=self.white_player, black_player=self.black_player, event="v7p3r Engine Chess Game")
         self.chess_core.quick_save_pgn("active_game.pgn")
         
-        # Initialize metrics for new game
-        self.current_game_id = f"eval_game_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        # Initialize metrics for new game with timestamp
+        game_timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+        self.current_game_id = f"eval_game_{game_timestamp}"
         
-        # Record game start in metrics (use a safer approach for async)
-        try:
-            # Use legacy compatibility function to avoid async issues
-            from v7p3r_chess_metrics import add_game_result
-            add_game_result(
+        # Record new game in metrics
+        if self.metrics_enabled:
+            game_metric = GameMetric(
                 game_id=self.current_game_id,
                 timestamp=datetime.datetime.now().isoformat(),
-                winner='pending',
-                game_pgn='',
-                white_player=self.white_player,
-                black_player=self.black_player,
-                game_length=0,
-                white_engine_config=str(self.white_engine_config),
-                black_engine_config=str(self.black_engine_config)
+                v7p3r_color='white' if self.white_player == 'v7p3r' else 'black',
+                opponent='stockfish' if 'stockfish' in [self.white_player, self.black_player] else 'other',
+                result='pending',
+                total_moves=0,
+                game_duration=0.0
             )
-        except Exception as e:
-            raise
+            self.metrics_tasks.append(
+                asyncio.create_task(self.metrics.record_game_start(game_metric))
+            )
 
     def record_evaluation(self):
         """Record evaluation score in PGN comments"""
@@ -181,7 +243,7 @@ class v7p3rChess:
         if self.chess_core.game_node:
             self.chess_core.game_node.comment = f"Eval: {formatted_score}"
 
-    def save_game_data(self):
+    async def save_game_data(self):
         """Save the game data to local files and database."""
         games_dir = "games"
         os.makedirs(games_dir, exist_ok=True)
@@ -196,37 +258,31 @@ class v7p3rChess:
         pgn_filepath = f"games/{game_id}.pgn"
         self.chess_core.quick_save_pgn(pgn_filepath)
         
-        # Update metrics if enabled
+        # Update final game metrics
         if self.metrics_enabled and self.current_game_id:
-            try:
-                # Calculate final game metrics
-                game_duration = time.time() - self.game_start_time
-                total_moves = len(list(self.chess_core.game.mainline_moves()))
-                
-                # Get metrics instance
-                metrics = get_metrics_instance()
-                
-                # Map result to database format
-                result_map = {
-                    "1-0": "win" if self.white_player == "v7p3r" else "loss",
-                    "0-1": "win" if self.black_player == "v7p3r" else "loss",
-                    "1/2-1/2": "draw",
-                    "*": "incomplete"
-                }
-                game_result = result_map.get(result, "incomplete")
-                
-                # Update database with final result
-                with sqlite3.connect(metrics.db_path) as conn:
-                    cursor = conn.cursor()
-                    cursor.execute("""
-                        UPDATE games
-                        SET result = ?, game_length = ?, end_time = ?
-                        WHERE game_id = ?
-                    """, (game_result, total_moves, datetime.datetime.now().isoformat(), self.current_game_id))
-                    conn.commit()
-                    
-            except Exception as e:
-                print(f"Error saving game metrics: {str(e)}")
+            game_duration = time.time() - self.game_start_time
+            total_moves = len(list(self.chess_core.game.mainline_moves()))
+            result = self.chess_core.get_board_result()
+            outcome = self.chess_core.board.outcome()
+            
+            # Map chess result to metrics result
+            result_map = {
+                "1-0": "win" if self.white_player == "v7p3r" else "loss",
+                "0-1": "loss" if self.white_player == "v7p3r" else "win",
+                "1/2-1/2": "draw",
+                "*": "incomplete"
+            }
+            
+            # Update game result in metrics
+            task = asyncio.create_task(self.metrics.update_game_result(
+                game_id=self.current_game_id,
+                result=result_map.get(result, "incomplete"),
+                total_moves=total_moves,
+                game_duration=game_duration,
+                final_position_fen=self.chess_core.board.fen(),
+                termination_reason=outcome.termination.name if outcome else None
+            ))
+            await task
 
     def display_move_made(self, move: chess.Move, move_time: float):
         """Display information about a move that was made."""
@@ -235,7 +291,7 @@ class v7p3rChess:
             time_str = f"{move_time:.3f}s" if move_time > 0 else "0.000s"
             
             # Get player name
-            current_player = "White" if self.chess_core.board.turn else "Black"
+            current_player = "White" if not self.chess_core.board.turn else "Black"
             player_name = self.white_player if current_player == "White" else self.black_player
             
             # Print move info
@@ -244,8 +300,8 @@ class v7p3rChess:
         except Exception as e:
             print(f"Error displaying move: {str(e)}")
 
-    def process_engine_move(self):
-        """Process move for the engine"""
+    async def process_engine_move(self):
+        """Process move for the engine with enhanced metrics collection"""
         try:
             engine_move = chess.Move.null()
             self.current_eval = 0.0
@@ -257,23 +313,47 @@ class v7p3rChess:
             self.move_start_time = time.time()
             self.move_duration = 0
             
-            print(f"{self.white_player if self.current_player == chess.WHITE else self.black_player} is thinking...")
+            current_player_name = self.white_player if self.current_player == chess.WHITE else self.black_player
+            print(f"{current_player_name} is thinking...")
+            
+            # Track search statistics
+            search_stats = {}
             
             # Get the move from appropriate engine
-            if self.current_player == chess.WHITE and self.white_player == 'v7p3r':
+            if current_player_name == 'v7p3r':
+                # Collect detailed metrics for v7p3r engine
                 engine_move = self.engine.search_engine.search(self.chess_core.board, self.current_player)
-            elif self.current_player == chess.BLACK and self.black_player == 'v7p3r':
-                engine_move = self.engine.search_engine.search(self.chess_core.board, self.current_player)
-            elif self.current_player == chess.WHITE and self.white_player == 'stockfish':
-                engine_move = self.stockfish.search(self.chess_core.board, self.current_player, self.stockfish_config)
-            elif self.current_player == chess.BLACK and self.black_player == 'stockfish':
+                search_stats = getattr(self.engine.search_engine, 'stats', {})
+                # Enrich stats with engine state
+                search_stats.update({
+                    'transposition_table_size': len(getattr(self.engine.search_engine, 'transposition_table', {})),
+                    'use_quiescence': self.engine_config.get('use_quiescence_search', True),
+                    'use_ordering': self.engine_config.get('use_move_ordering', True)
+                })
+            elif current_player_name == 'stockfish':
                 engine_move = self.stockfish.search(self.chess_core.board, self.current_player, self.stockfish_config)
             
             # Process the move
             if isinstance(engine_move, chess.Move) and self.chess_core.board.is_legal(engine_move):
                 self.move_end_time = time.time()
                 self.move_duration = self.move_end_time - self.move_start_time
-                self.push_move(engine_move)
+                
+                # Get current game state for metrics
+                current_fen = self.chess_core.board.fen()
+                is_check = self.chess_core.board.is_check()
+                is_capture = self.chess_core.board.is_capture(engine_move)
+                
+                # Set current evaluation based on position
+                if current_player_name == 'v7p3r':
+                    self.current_eval = self.engine.scoring_calculator.evaluate_position(self.chess_core.board)
+                else:
+                    # Use stockfish eval if available, otherwise use v7p3r's eval
+                    self.current_eval = getattr(self.stockfish, 'last_score', None)
+                    if self.current_eval is None:
+                        self.current_eval = self.engine.scoring_calculator.evaluate_position(self.chess_core.board)
+                
+                # Push the move and update metrics
+                await self.push_move(engine_move)
                 self.last_engine_move = engine_move
                 return True
                 
@@ -281,29 +361,38 @@ class v7p3rChess:
             print(f"Error processing engine move: {str(e)}")
         return False
 
-    def handle_game_end(self):
+    async def handle_game_end(self):
         """Check if the game is over and handle end conditions."""
         if self.chess_core.board.is_game_over():
             result = self.chess_core.get_board_result()
             print(f"\nGame over: {result}")
-            self.save_game_data()
+            await self.save_game_data()
             return True
         return False
 
-    def run(self):
+    async def run(self):
         """Main game loop"""
         try:
-            while not self.chess_core.board.is_game_over():
-                # Process moves
-                if not self.process_engine_move():
-                    break
+            # Initial setup
+            await self._setup_game()
+            
+            running = True
+            while running:
+                # Process engine moves when it's an engine's turn
+                if (self.current_player == chess.WHITE and self.white_player != 'human') or \
+                   (self.current_player == chess.BLACK and self.black_player != 'human'):
+                    await self.process_engine_move()
                     
                 # Handle game end
-                if self.handle_game_end():
+                if await self.handle_game_end():
                     break
                     
                 # Maintain game loop timing
                 self.clock.tick(MAX_FPS)
+                
+            # Ensure all metrics tasks complete
+            if self.metrics_enabled and self.metrics_tasks:
+                await asyncio.gather(*self.metrics_tasks)
                 
         except KeyboardInterrupt:
             print("\nGame interrupted by user")
@@ -313,6 +402,9 @@ class v7p3rChess:
             print(f"Error in game loop: {str(e)}")
             self.chess_core.quick_save_pgn("games/error_game.pgn")
 
-if __name__ == "__main__":
+async def main():
     game = v7p3rChess()
-    game.run()
+    await game.run()
+
+if __name__ == "__main__":
+    asyncio.run(main())
