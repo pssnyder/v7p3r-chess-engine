@@ -27,6 +27,8 @@ if parent_dir not in sys.path:
 # Import necessary modules first
 from v7p3r import v7p3rEngine
 from v7p3r_stockfish_handler import StockfishHandler
+from v7p3r_chess_metrics import GameMetric, MoveMetric
+import sqlite3
 
 class v7p3rChess(ChessCore):
     def __init__(self, config_name: Optional[str] = None):
@@ -70,6 +72,10 @@ class v7p3rChess(ChessCore):
             self.metrics_enabled = self.game_config.get('record_metrics', True)
             self.current_player = chess.WHITE
             self.game_count = self.game_config.get('game_count', 1)  # Default to 1 game
+            self.engines = {}  # Initialize engines dictionary
+            self.current_game_id = None
+            self.game_start_timestamp = get_timestamp()
+            self.game_start_time = time.time()
             
             # Initialize components
             self.engine = v7p3rEngine(self.engine_config)
@@ -195,22 +201,18 @@ class v7p3rChess(ChessCore):
                 game_duration = time.time() - self.game_start_time
                 total_moves = len(list(self.game.mainline_moves()))
                 
-                # Update database with final game result
+                # Update database with final result
                 from v7p3r_chess_metrics import get_metrics_instance
                 metrics = get_metrics_instance()
                 
                 # Determine winner for database format
-                if result == "1-0":
-                    db_result = "white_win"
-                elif result == "0-1":
-                    db_result = "black_win"  
-                elif result == "1/2-1/2":
-                    db_result = "draw"
-                else:
-                    db_result = "incomplete"
-                
-                # Get final position
-                final_fen = self.board.fen()
+                result_map = {
+                    "1-0": "win" if self.white_player == "v7p3r" else "loss",
+                    "0-1": "win" if self.black_player == "v7p3r" else "loss",
+                    "1/2-1/2": "draw",
+                    "*": "incomplete"
+                }
+                game_result = result_map.get(result, "incomplete")
                 
                 # Get termination reason
                 if self.board.is_checkmate():
@@ -226,20 +228,34 @@ class v7p3rChess(ChessCore):
                 else:
                     termination = "normal"
                 
-                # Update game result in database
-                try:
-                    import sqlite3
-                    with sqlite3.connect(metrics.db_path) as conn:
-                        cursor = conn.cursor()
-                        cursor.execute("""
-                            UPDATE games 
-                            SET result = ?, total_moves = ?, game_duration = ?,
-                                final_position_fen = ?, termination_reason = ?
-                            WHERE game_id = ?
-                        """, (db_result, total_moves, game_duration, final_fen, termination, self.current_game_id))
-                        conn.commit()
-                except Exception as e:
-                    raise
+                # Update final game record
+                final_game_metric = GameMetric(
+                    game_id=self.current_game_id,
+                    timestamp=self.game_start_timestamp,
+                    v7p3r_color='white' if self.white_player == 'v7p3r' else 'black',
+                    opponent=self.black_player if self.white_player == 'v7p3r' else self.white_player,
+                    result=game_result,
+                    total_moves=total_moves,
+                    game_duration=game_duration,
+                    final_position_fen=self.board.fen(),
+                    termination_reason=termination
+                )
+                
+                # Record the final game state in the database
+                with sqlite3.connect(metrics.db_path) as conn:
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        UPDATE games SET
+                            result = ?, total_moves = ?, game_duration = ?,
+                            final_position_fen = ?, termination_reason = ?
+                        WHERE game_id = ?
+                    """, (
+                        game_result, total_moves, game_duration,
+                        final_game_metric.final_position_fen,
+                        final_game_metric.termination_reason,
+                        self.current_game_id
+                    ))
+                    conn.commit()
                   
             except Exception as e:
                 # Fallback: Save JSON config file for metrics processing
@@ -335,11 +351,18 @@ class v7p3rChess(ChessCore):
             # Display the move that was made
             self.display_move_made(move, move_time)
             
-            # Record evaluation if using v7p3r engine
-            if self.engine.name.lower() == 'v7p3r':
-                self.record_evaluation()
+            # Record evaluation and add it to the last node's comment
+            score = self.engine.scoring_calculator.evaluate_position(self.board)
+            formatted_score = f"{score:+.2f}"
+            self.current_eval = score
             
-            # The active_game.pgn is already updated in the parent chess_core.py push_move method
+            # Find the last node and add the evaluation
+            last_node = self.game.end()
+            last_node.comment = f"Eval: {formatted_score}"
+            
+            # Save current game state to active_game.pgn
+            with open("active_game.pgn", "w") as f:
+                print(self.game, file=f, end="\n\n")
             
             return True
         except Exception as e:
@@ -618,18 +641,30 @@ class v7p3rChess(ChessCore):
             print(self.game, file=f, end="\n\n")
 
     def record_metrics(self, metrics: dict):
-        """Record game metrics"""
-        if self.metrics_enabled:
-            game_metric = GameMetric(
-                move=metrics['move'],
-                evaluation=metrics['evaluation'],
-                nodes_searched=metrics['nodes_searched'],
-                time_taken=metrics['time_taken'],
-                game_phase=metrics['game_phase']
-            )
-            get_metrics_instance().record_game_metric(game_metric)
+        """Record move-level metrics in the database"""
+        if self.metrics_enabled and self.current_game_id:
+            # Record move in the moves table
+            with sqlite3.connect(get_metrics_instance().db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    INSERT INTO moves (
+                        game_id, move_number, player, move_notation, position_fen,
+                        evaluation_score, search_depth, nodes_evaluated
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    self.current_game_id,
+                    len(list(self.game.mainline_moves())),
+                    'v7p3r' if (self.board.turn == chess.WHITE and self.white_player == 'v7p3r') or 
+                              (self.board.turn == chess.BLACK and self.black_player == 'v7p3r') else 'opponent',
+                    metrics.get('move', ''),
+                    self.board.fen(),
+                    metrics.get('evaluation'),
+                    metrics.get('depth'),
+                    metrics.get('nodes_searched')
+                ))
+                conn.commit()
 
-    def _record_game_end(self, error: str = None):
+    def _record_game_end(self, error: Optional[str] = ""):
         """Record the end of the game"""
         if error:
             self.game.headers["Result"] = "*"
