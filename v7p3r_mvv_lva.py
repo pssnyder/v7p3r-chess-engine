@@ -27,13 +27,12 @@ class v7p3rMVVLVA:
         self.rules_manager = rules_manager
         
         # MVV-LVA settings
-        mvv_lva_settings = self.engine_config.get('mvv_lva_settings', {})
-        self.use_mvv_lva = self.engine_config.get('use_mvv_lva', True)
-        self.use_safety_checks = mvv_lva_settings.get('use_safety_checks', True)
-        self.use_position_context = mvv_lva_settings.get('use_position_context', True)
-        self.safety_margin = mvv_lva_settings.get('safety_margin', 200)
-        self.position_bonus = mvv_lva_settings.get('position_bonus', 50)
-        
+        self.use_mvv_lva = True
+        self.use_safety_checks = True
+        self.use_position_context = True
+        self.safety_margin = 200
+        self.position_bonus = 50
+
         # Initialize piece values
         self.piece_values = self.engine_config.get('piece_values', {
             chess.PAWN: 100,
@@ -57,33 +56,41 @@ class v7p3rMVVLVA:
             return 0.0
             
         # Basic MVV-LVA score
-        victim_value = self.piece_values[victim.piece_type]
-        attacker_value = self.piece_values[attacker.piece_type]
-        base_score = victim_value * 100 - attacker_value
+        victim_value = self.piece_values.get(victim.piece_type, 100)  # Default to 100 if not found
+        attacker_value = self.piece_values.get(attacker.piece_type, 100)  # Default to 100 if not found
+        base_score = float(victim_value * 100 - attacker_value)  # Ensure we're working with floats
         
-        # Safety evaluation
+        # Safety evaluation - only if rules_manager is available and properly initialized
         safety_score = 0.0
-        if self.use_safety_checks and self.rules_manager:
-            is_protected = self._is_square_protected(board, move.to_square, not attacker.color)
-            temp_board = board.copy()
-            temp_board.push(move)
-            attacker_threatened = self._is_square_attacked(temp_board, move.to_square, attacker.color)
-            
-            if is_protected and attacker_threatened:
-                safety_score -= self.safety_margin
-            elif not is_protected and not attacker_threatened:
-                safety_score += self.safety_margin
+        if self.use_safety_checks and self.rules_manager is not None:
+            try:
+                is_protected = self._is_square_protected(board, move.to_square, not attacker.color)
+                temp_board = board.copy()
+                temp_board.push(move)
+                attacker_threatened = self._is_square_attacked(temp_board, move.to_square, attacker.color)
+                
+                if is_protected and attacker_threatened:
+                    safety_score -= self.safety_margin
+                elif not is_protected and not attacker_threatened:
+                    safety_score += self.safety_margin
+            except:
+                pass  # Ignore safety calculations if they fail
         
-        # Position context bonus
+        # Position context bonus - only if rules_manager is available and has the right method
         position_bonus = 0.0
-        if self.use_position_context and self.rules_manager and hasattr(self.rules_manager, 'evaluate_piece_mobility'):
-            mobility_before = self.rules_manager.evaluate_piece_mobility(board, move.from_square)
-            temp_board = board.copy()
-            temp_board.push(move)
-            mobility_after = self.rules_manager.evaluate_piece_mobility(temp_board, move.to_square)
-            position_bonus = (mobility_after - mobility_before) * self.position_bonus
+        if self.use_position_context and self.rules_manager is not None:
+            try:
+                if hasattr(self.rules_manager, 'evaluate_piece_mobility'):
+                    mobility_before = self.rules_manager.evaluate_piece_mobility(board, move.from_square)
+                    temp_board = board.copy()
+                    temp_board.push(move)
+                    mobility_after = self.rules_manager.evaluate_piece_mobility(temp_board, move.to_square)
+                    position_bonus = float((mobility_after - mobility_before) * self.position_bonus)
+            except:
+                pass  # Ignore position bonus calculations if they fail
         
-        return base_score + safety_score + position_bonus
+        final_score = base_score + safety_score + position_bonus
+        return float(final_score)  # Ensure we return a float
     
     def _is_square_protected(self, board: chess.Board, square: chess.Square, color: bool) -> bool:
         """Check if a square is protected by any piece of the given color."""
@@ -99,3 +106,5 @@ class v7p3rMVVLVA:
         scored_moves = [(move, self.calculate_mvv_lva_score(move, board)) for move in moves]
         scored_moves.sort(key=lambda x: x[1], reverse=True)
         return [move for move, _ in scored_moves]
+
+

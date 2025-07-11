@@ -131,7 +131,7 @@ class v7p3rEngine:
             
             # 5. Update engine state
             self._update_state(
-                self.search_engine.evaluation,
+                self.scoring_calculator.evaluate_position(board),
                 self.search_engine.nodes_searched,
                 time.time() - start_time
             )

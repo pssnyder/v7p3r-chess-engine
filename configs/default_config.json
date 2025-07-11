@@ -1,27 +1,31 @@
 {
     "game_config": {
-        "game_count": 10,
+        "game_count": 1,
         "starting_position": "default",
         "white_player": "v7p3r",
-        "black_player": "stockfish"
+        "black_player": "stockfish",
+        "time_control": false,
+        "game_time": 300,
+        "time_increment": 5
     },
     "engine_config": {
         "ruleset": "default_ruleset",
         "search_algorithm": "minimax",
         "depth": 6,
         "max_depth": 8,
+        "use_iterative_deepening": true,
+        "use_transposition_table": true,
+        "use_checkmate_detection": true,
+        "use_stalemate_detection": true,
+        "use_draw_prevention": true,
         "use_game_phase": true,
         "use_quiescence": true,
         "use_mvv_lva": true,
-        "mvv_lva_settings": {
-            "use_safety_checks": true,
-            "use_position_context": true,
-            "safety_margin": 200,
-            "position_bonus": 50
-        },
+        "use_primary_scoring": true,
+        "use_secondary_scoring": true,
+        "use_ab_pruning": true,
         "use_move_ordering": true,
-        "max_ordered_moves": 20,
-        "use_draw_prevention": true
+        "max_ordered_moves": 20
     },
     "stockfish_config": {
         "stockfish_path": "stockfish/stockfish-windows-x86-64-avx2.exe",

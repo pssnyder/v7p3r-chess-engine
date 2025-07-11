@@ -1,11 +1,19 @@
 # v7p3r_search.py
 
+"""v7p3r Search Module
+This module handles the main search functionality for the v7p3r chess engine.
+It contains the search handler and core search algorithms (minimax, negamax, simple, random).
+"""
+
 import sys
 import os
 import chess
 import random
+from typing import Optional, Dict, List, Tuple
 from v7p3r_config import v7p3rConfig
 from v7p3r_utilities import get_timestamp
+from v7p3r_deepsearch import v7p3rDeepSearch
+from v7p3r_quiescence import v7p3rQuiescence
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if parent_dir not in sys.path:
@@ -27,10 +35,17 @@ class v7p3rSearch:
         self.opening_book = opening_book
         self.rules_manager = rules_manager
 
-        # Search Setup
+        # Initialize Advanced Search Modules
+        self.deep_search = v7p3rDeepSearch(time_manager, self.engine_config)
+        self.quiescence = v7p3rQuiescence(scoring_calculator, move_organizer, rules_manager, self.engine_config)
+
+        # Search Configuration
         self.search_algorithm = self.engine_config.get('search_algorithm', 'simple')
         self.depth = self.engine_config.get('depth', 3)
         self.max_depth = self.engine_config.get('max_depth', 5)
+        
+        # Search Control Flags
+        self.ab_pruning_enabled = self.engine_config.get('use_ab_pruning', True)
         self.draw_prevention_enabled = self.engine_config.get('use_draw_prevention', False)
         self.quiescence_enabled = self.engine_config.get('use_quiescence', True)
         self.move_ordering_enabled = self.engine_config.get('use_move_ordering', True)
@@ -39,35 +54,8 @@ class v7p3rSearch:
         # Initialize search state
         self.root_board = chess.Board()
         self.nodes_searched = 0
-        self.root_move = chess.Move.null()
-        self.current_move = chess.Move.null()
-        self.pv_move_stack = [{}]
-        self.color = chess.WHITE
-        self.color_name = 'White' if self.color == chess.WHITE else 'Black'
-        self.current_perspective = self.color
-        self.current_turn = self.root_board.turn
-        self.evaluation = 0.0
-        self.best_move = chess.Move.null()
-        self.best_score = -float('inf')
-        self.fen = self.root_board.fen()
-        self.search_id_counter = 0  # Counter for generating unique search IDs
-        self.search_id = f"search[{self.search_id_counter}]_{get_timestamp()}"  # Unique ID for each search instance
-
-        # Initialize search dataset
-        self.search_dataset = {
-            'search_id': self.search_id,
-            'search_algorithm': self.search_algorithm,
-            'depth': self.depth,
-            'max_depth': self.max_depth,
-            'nodes_searched': 0,
-            'best_move': chess.Move.null(),
-            'best_score': -float('inf'),
-            'pv_move_stack': [],
-            'color_name': self.color_name,
-            'fen': self.fen,
-            'evaluation': 0.0,
-            'root_board_fen': self.root_board.fen(),
-        }
+        self.stats = {'depth': 0, 'nodes': 0, 'score': 0.0, 'time': 0.0, 'pv': []}
+        self.pv_move_stack = []
 
     def _update_pv_line(self, move: chess.Move, score: float, depth: int):
         """Update the principal variation line with a new move"""
@@ -78,486 +66,454 @@ class v7p3rSearch:
             'nodes': self.nodes_searched
         })
 
-    def _should_stop_search(self, avg_score: float) -> bool:
-        """Determine if we should stop searching based on node count and score"""
-        if self.nodes_searched >= 1000000:  # Hard limit
-            return True
+    def find_checkmate_in_n(self, board: chess.Board, n: int) -> chess.Move:
+        """Find a checkmate sequence within n moves"""
+        if n <= 0:
+            return chess.Move.null()
+
+        # Check if we're in checkmate already
+        if board.is_checkmate():
+            return chess.Move.null()
+
+        legal_moves = list(board.legal_moves)
+        
+        # First check if any move directly leads to checkmate
+        for move in legal_moves:
+            board.push(move)
+            if board.is_checkmate():
+                board.pop()
+                return move
+            board.pop()
+
+        # Then look for forced checkmate sequences
+        for move in legal_moves:
+            board.push(move)
+            opponent_moves = list(board.legal_moves)
             
-        # If we've searched a lot of nodes and have a very good score, we can stop
-        if self.nodes_searched >= 100000 and avg_score > 500:  # Good advantage
-            return True
+            # If opponent has no legal moves and it's not checkmate, it's stalemate
+            if not opponent_moves:
+                if not board.is_checkmate():  # Avoid stalemate
+                    board.pop()
+                    continue
             
+            all_replies_lead_to_mate = True
+            for opponent_move in opponent_moves:
+                board.push(opponent_move)
+                # Recursively search for checkmate with reduced depth
+                if self.find_checkmate_in_n(board, n - 2) == chess.Move.null():
+                    all_replies_lead_to_mate = False
+                board.pop()
+                if not all_replies_lead_to_mate:
+                    break
+            
+            board.pop()
+            if all_replies_lead_to_mate:
+                return move
+                
+        return chess.Move.null()
+
+    def _should_stop_search(self, avg_score: float, depth: int, start_time: float) -> bool:
+        """Enhanced search stopping conditions"""
+        current_time = self.time_manager.get_current_time()
+        time_elapsed = current_time - start_time
+        allocated_time = self.time_manager.get_allocated_move_time()
+
+        # Time-based stopping
+        if time_elapsed >= allocated_time * 0.95:  # Use 95% of allocated time
+            return True
+
+        # Node-based stopping
+        if self.nodes_searched >= 1_000_000:  # Hard node limit
+            return True
+
+        # Score-based stopping
+        if depth >= 3:  # Only consider scores after reasonable depth
+            if avg_score > 500 and self.nodes_searched > 50_000:  # Clear advantage
+                return True
+            if avg_score > 900 and self.nodes_searched > 10_000:  # Near checkmate
+                return True
+
+        # PV-based stopping
+        if len(self.pv_move_stack) > 1:
+            last_two_scores = [entry['score'] for entry in self.pv_move_stack[-2:]]
+            if abs(last_two_scores[1] - last_two_scores[0]) < 0.01:  # Score stabilized
+                if self.nodes_searched > 25_000:  # Minimum node count
+                    return True
+
         return False
 
     def iterative_deepening_search(self, board: chess.Board, color: chess.Color) -> chess.Move:
-        """Perform iterative deepening search starting from depth 1"""
+        """Perform iterative deepening search with early exit conditions"""
+        start_time = self.time_manager.get_current_time()
         best_move = chess.Move.null()
         best_score = float('-inf')
+        previous_best_moves = []
         
         for current_depth in range(1, self.max_depth + 1):
-            move, score = self._minimax_root(board, current_depth, color)
+            self.depth = current_depth
+            moves = list(board.legal_moves)
             
-            # If we found a significantly better move, update our best
-            if score > best_score + 50:  # 50 centipawn threshold
-                best_move = move
-                best_score = score
+            # Get and order moves
+            moves = self._get_ordered_moves(board, moves, depth=current_depth)
+            
+            alpha = float('-inf')
+            beta = float('inf')
+            current_best_move = chess.Move.null()
+            current_best_score = float('-inf')
+            
+            for move in moves:
+                board.push(move)
+                score = -self._negamax(board, current_depth - 1, -beta, -alpha, not (board.turn == color))
+                board.pop()
                 
-            # If we found a winning position, no need to search deeper
-            if score > 5000:  # Winning advantage
+                if score > current_best_score:
+                    current_best_score = score
+                    current_best_move = move
+                    self._update_pv_line(move, score, current_depth)
+                
+                alpha = max(alpha, score)
+                
+                # Check if we should stop searching
+                if self._should_stop_search(current_best_score, current_depth, start_time):
+                    break
+            
+            # Update best move if we completed the depth
+            if current_best_move != chess.Move.null():
+                best_move = current_best_move
+                best_score = current_best_score
+                # Keep track of best moves for move ordering
+                previous_best_moves.insert(0, best_move)
+                if len(previous_best_moves) > 3:  # Keep last 3 best moves
+                    previous_best_moves.pop()
+            
+            # Early exit conditions
+            if best_score > 5000:  # Found checkmate
                 break
-                
-            # If we're taking too long, stop here
-            if self._should_stop_search(best_score):
+            if self.time_manager.should_stop():
                 break
-                
+            
+            # Update stats
+            self.stats.update({
+                'depth': current_depth,
+                'nodes': self.nodes_searched,
+                'score': best_score,
+                'time': self.time_manager.get_current_time() - start_time,
+                'pv': [str(m['move']) for m in self.pv_move_stack if 'move' in m]
+            })
+        
         return best_move
 
-    def search(self, board: chess.Board, color: chess.Color):
-        """Enhanced search handler with proper evaluation hierarchy per alignment plan"""
-        try:
-            self.root_board = board.copy()
-            self.nodes_searched = 0
-            self.pv_move_stack = []
-            self.color = color
-            
-            # 1. Check book moves first
-            book_move = self.opening_book.get_book_move(board)
-            if book_move and board.is_legal(book_move):
-                print(f"Using book move: {book_move.uci()}")
+    def search(self, board: chess.Board, color: chess.Color) -> chess.Move:
+        """Main search handler that routes to the appropriate search algorithm"""
+        self.nodes_searched = 0
+        self.root_board = board
+        start_time = self.time_manager.get_current_time()
+
+        # First check for book moves if available
+        if self.opening_book:
+            book_move = self.opening_book.get_move(board)
+            if book_move:
                 return book_move
-                
-            # 2. Check for immediate checkmate within 5 moves
-            mate_move = self.rules_manager.find_checkmate_in_n(board, 5, color)
-            if mate_move and mate_move != chess.Move.null() and board.is_legal(mate_move):
-                print(f"Found checkmate in ≤5 moves: {mate_move.uci()}")
-                return mate_move
-                
-            # 3. Start iterative deepening if enabled
-            if self.engine_config.get('use_iterative_deepening', True):
-                move = self.iterative_deepening_search(board, color)
-                if move and move != chess.Move.null() and board.is_legal(move):
-                    return move
-                    
-            # 4. Standard search with move ordering
-            move = self.ordered_depth_search(board, color)
-            if move and move != chess.Move.null() and board.is_legal(move):
-                # 5. Verify move doesn't cause stalemate (draw prevention)
-                if self.draw_prevention_enabled:
-                    test_board = board.copy()
-                    test_board.push(move)
-                    if test_board.is_stalemate() or test_board.can_claim_draw():
-                        # Find an alternative move
-                        alternative_move = self.rules_manager.find_non_stalemate_move(board)
-                        if alternative_move and alternative_move != chess.Move.null() and board.is_legal(alternative_move):
-                            print(f"Avoiding stalemate, using alternative: {alternative_move.uci()}")
-                            return alternative_move
-                return move
-                        
-            # 6. Final fallback to simple search
-            return self._simple_search(board)
 
-        except Exception as e:
-            print(f"Error in search: {str(e)}")
-            # Fallback to simple search
-            return self._simple_search(board)
+        # Route to appropriate search algorithm
+        if self.search_algorithm == 'minimax':
+            best_move = self._minimax_root(board, color)
+        elif self.search_algorithm == 'negamax':
+            best_move = self._negamax_root(board, color)
+        elif self.search_algorithm == 'random':
+            best_move = self._random_search(board)
+        else:  # 'simple' or fallback
+            best_move = self._simple_search(board, color)
 
-    def _minimax_root(self, board: chess.Board, depth: int, color: chess.Color):
-        """Root node for minimax: iterates over legal moves and calls minimax recursively."""
-        best_score = -float('inf')
-        best_move = chess.Move.null()
-        maximizing = True if color == chess.WHITE else False
-        legal_moves = list(board.legal_moves)
-        if self.move_ordering_enabled:
-            legal_moves = self.move_organizer.order_moves(board, legal_moves, depth=depth, cutoff=0)
-        
-        #print("\nEvaluating moves at root level:")
-        for move in legal_moves:
-            temp_board = board.copy()
-            temp_board.push(move)
-            score = self._minimax_search(temp_board, depth - 1, -float('inf'), float('inf'), not maximizing)
-            #print(f"Move: {move.uci()}, Score: {score}")
-            
-            if score > best_score:
-                best_score = score
-                best_move = move
-                #print(f"New best move: {best_move.uci()} with score {best_score}")
-        
-        return best_move, best_score
-
-    def _negamax_root(self, board: chess.Board, depth: int, color: chess.Color):
-        """Root node for negamax: iterates over legal moves and calls negamax recursively."""
-        best_score = -float('inf')
-        best_move = chess.Move.null()
-        legal_moves = list(board.legal_moves)
-        if self.move_ordering_enabled:
-            legal_moves = self.move_organizer.order_moves(board, legal_moves, depth=depth, cutoff=0)
-        for move in legal_moves:
-            temp_board = board.copy()
-            temp_board.push(move)
-            score = -self._negamax_search(temp_board, depth - 1, -float('inf'), float('inf'))
-            if score > best_score:
-                best_score = score
-                best_move = move
-        return best_move, best_score
-
-    def _simple_search(self, board: chess.Board):
-        """Simple search: returns the first legal move."""
-        legal_moves = list(board.legal_moves)
-        return legal_moves[0] if legal_moves else chess.Move.null()
-
-    def _random_search(self, board: chess.Board):
-        """Random search: returns a random legal move."""
-        legal_moves = list(board.legal_moves)
-        return random.choice(legal_moves) if legal_moves else chess.Move.null()
-
-    def _quiescence_root(self, board: chess.Board, color: chess.Color):
-        """Stub for quiescence root (implement as needed)."""
-        # For now, just return a random move
-        return self._random_search(board)
-
-    def _minimax_search(self, board: chess.Board, depth: int, alpha: float, beta: float, maximizing_player: bool):
-        """Minimax search with alpha-beta pruning. Returns score (float)."""
-        self.nodes_searched += 1
-        
-        # Terminal condition - reached max depth or game over
-        if depth <= 0 or board.is_game_over():
-            # Always evaluate from the current perspective
-            eval_result = self.scoring_calculator.evaluate_position_from_perspective(board, self.current_perspective)
-            
-            # For minimax, if we're minimizing (opponent's turn), we need to negate the score
-            # because minimax alternates between maximizing and minimizing players
-            # The evaluation is already from our perspective, so we only negate for minimizing player
-            if not maximizing_player:
-                eval_result = -eval_result
-                
-            # For positions that aren't quiet, use quiescence search if enabled
-            if depth <= 0 and self.quiescence_enabled and (board.is_check() or self._position_is_tactical(board)):
-                q_score = self._quiescence_search(board, self.current_perspective, alpha, beta, maximizing_player)
-                return q_score
-                
-            return eval_result
-        
-        # Internal node: explore moves
-        best_score = -float('inf') if maximizing_player else float('inf')
-        
-        legal_moves = list(board.legal_moves)
-        if not legal_moves:
-            # No legal moves, must be checkmate or stalemate
-            if board.is_check():
-                return -999999999 if maximizing_player else 999999999  # Checkmate
-            else:
-                return 0  # Stalemate
-                
-        # Determine appropriate depth cutoff based on current depth
-        cutoff = min(max(2, self.max_ordered_moves // (self.depth - depth + 1)), self.max_ordered_moves) if self.move_ordering_enabled else 0
-        
-        if self.move_ordering_enabled:
-            # Order moves for better alpha-beta pruning efficiency
-            ordered_moves = self.move_organizer.order_moves(board, legal_moves, depth=depth, cutoff=cutoff)
-        else:
-            ordered_moves = legal_moves
-            
-        for move in ordered_moves:
-            board.push(move)
-            
-            # Recursive minimax call
-            score = self._minimax_search(board, depth - 1, alpha, beta, not maximizing_player)
+        # Check for draw prevention if enabled
+        if self.draw_prevention_enabled and best_move != chess.Move.null():
+            board.push(best_move)
+            is_draw = board.is_stalemate() or board.is_insufficient_material() or board.can_claim_draw()
             board.pop()
             
-            if not isinstance(score, (int, float)):
-                score = 0.0
+            if is_draw:
+                # Try to find alternative move
+                legal_moves = list(board.legal_moves)
+                legal_moves.remove(best_move)
+                if legal_moves:
+                    backup_move = self._simple_search(board, color, exclude_moves=[best_move])
+                    if backup_move != chess.Move.null():
+                        best_move = backup_move
 
-            if maximizing_player:
+        return best_move
+
+    def _simple_search(self, board: chess.Board, color: chess.Color, exclude_moves: Optional[List[chess.Move]] = None) -> chess.Move:
+        """Simple search that evaluates moves at depth 1"""
+        best_move = chess.Move.null()
+        best_score = float('-inf')
+        legal_moves = list(board.legal_moves)
+        
+        # Remove excluded moves if any
+        if exclude_moves:
+            legal_moves = [move for move in legal_moves if move not in exclude_moves]
+
+        # Order moves
+        legal_moves = self._get_ordered_moves(board, legal_moves, depth=1)
+
+        for move in legal_moves:
+            board.push(move)
+            
+            # Quick checkmate detection
+            if board.is_checkmate():
+                score = 20000
+            else:
+                score = self.scoring_calculator.calculate_score(board, color)
+                
+                # Add quiescence evaluation if enabled
+                if self.quiescence_enabled:
+                    score = self.quiescence.quiescence_search(board, float('-inf'), float('inf'), color)
+                    
+            board.pop()
+            
+            if score > best_score:
+                best_score = score
+                best_move = move
+
+        return best_move
+
+    def _random_search(self, board: chess.Board) -> chess.Move:
+        """Random move selector that still respects move ordering and quiescence"""
+        legal_moves = list(board.legal_moves)
+        
+        if not legal_moves:
+            return chess.Move.null()
+            
+        # Order moves if enabled to prefer better moves in random selection
+        if self.move_ordering_enabled:
+            legal_moves = self.move_organizer.order_moves(board, legal_moves, depth=0, cutoff=self.max_ordered_moves)
+                
+        return random.choice(legal_moves)
+
+    def _minimax_root(self, board: chess.Board, color: chess.Color) -> chess.Move:
+        """Root minimax search with iterative deepening"""
+        best_move = chess.Move.null()
+        start_time = self.time_manager.get_current_time()
+        current_depth = self.deep_search.get_starting_depth()
+
+        while True:
+            moves = list(board.legal_moves)
+            moves = self._get_ordered_moves(board, moves, depth=current_depth)
+
+            best_score = float('-inf')
+            alpha = float('-inf')
+            beta = float('inf')
+
+            for move in moves:
+                board.push(move)
+                score = self._minimax(board, current_depth - 1, alpha, beta, False, color)
+                board.pop()
+
                 if score > best_score:
                     best_score = score
-                alpha = max(alpha, best_score)
+                    best_move = move
+                    
+                if self.ab_pruning_enabled:
+                    alpha = max(alpha, score)
+
+            self.deep_search.update_history(current_depth, best_score, best_move)
+
+            # Check if we should continue deeper
+            if not self.deep_search.should_increase_depth(current_depth, best_score, start_time):
+                break
+
+            current_depth = self.deep_search.get_next_depth(current_depth)
+
+        return best_move
+
+    def _minimax(self, board: chess.Board, depth: int, alpha: float, beta: float, is_maximizing: bool, color: chess.Color) -> float:
+        """Minimax algorithm with alpha-beta pruning"""
+        self.nodes_searched += 1
+
+        # Base case: check terminal states
+        if board.is_checkmate():
+            return -20000 if is_maximizing else 20000
+        elif board.is_stalemate() or board.is_insufficient_material() or board.can_claim_draw():
+            return 0
+
+        # Base case: depth reached
+        if depth <= 0:
+            score = self.scoring_calculator.calculate_score(board, color)
+            # Add quiescence search if enabled
+            if self.quiescence_enabled:
+                score = self.quiescence.quiescence_search(board, alpha, beta, color)
+            return score
+
+        moves = list(board.legal_moves)
+        moves = self._get_ordered_moves(board, moves, depth=depth)
+
+        if is_maximizing:
+            max_eval = float('-inf')
+            for move in moves:
+                board.push(move)
+                eval = self._minimax(board, depth - 1, alpha, beta, False, color)
+                board.pop()
+                max_eval = max(max_eval, eval)
+                if self.ab_pruning_enabled:
+                    alpha = max(alpha, eval)
+                    if beta <= alpha:
+                        break
+            return max_eval
+        else:
+            min_eval = float('inf')
+            for move in moves:
+                board.push(move)
+                eval = self._minimax(board, depth - 1, alpha, beta, True, color)
+                board.pop()
+                min_eval = min(min_eval, eval)
+                if self.ab_pruning_enabled:
+                    beta = min(beta, eval)
+                    if beta <= alpha:
+                        break
+            return min_eval
+
+    def _negamax_root(self, board: chess.Board, color: chess.Color) -> chess.Move:
+        """Root negamax search with iterative deepening"""
+        best_move = chess.Move.null()
+        start_time = self.time_manager.get_current_time()
+        current_depth = self.deep_search.get_starting_depth()
+
+        while True:
+            moves = list(board.legal_moves)
+            moves = self._get_ordered_moves(board, moves, depth=current_depth)
+
+            best_score = float('-inf')
+            alpha = float('-inf')
+            beta = float('inf')
+
+            for move in moves:
+                board.push(move)
+                score = -self._negamax(board, current_depth - 1, -beta, -alpha, not color)
+                board.pop()
+
+                if score > best_score:
+                    best_score = score
+                    best_move = move
+                    
+                if self.ab_pruning_enabled:
+                    alpha = max(alpha, score)
+
+            self.deep_search.update_history(current_depth, best_score, best_move)
+
+            # Check if we should continue deeper
+            if not self.deep_search.should_increase_depth(current_depth, best_score, start_time):
+                break
+
+            current_depth = self.deep_search.get_next_depth(current_depth)
+
+        return best_move
+
+    def _negamax(self, board: chess.Board, depth: int, alpha: float, beta: float, color: chess.Color) -> float:
+        """Negamax algorithm with alpha-beta pruning"""
+        self.nodes_searched += 1
+
+        # Base case: check terminal states
+        if board.is_checkmate():
+            return -20000
+        elif board.is_stalemate() or board.is_insufficient_material() or board.can_claim_draw():
+            return 0
+
+        # Base case: depth reached
+        if depth <= 0:
+            score = self.scoring_calculator.calculate_score(board, color)
+            # Add quiescence search if enabled
+            if self.quiescence_enabled:
+                score = self.quiescence.quiescence_search(board, alpha, beta, color)
+            return score
+
+        moves = list(board.legal_moves)
+        moves = self._get_ordered_moves(board, moves, depth=depth)
+
+        max_score = float('-inf')
+        for move in moves:
+            board.push(move)
+            score = -self._negamax(board, depth - 1, -beta, -alpha, not color)
+            board.pop()
+            
+            max_score = max(max_score, score)
+            if self.ab_pruning_enabled:
+                alpha = max(alpha, score)
+                if beta <= alpha:
+                    break
+
+        return max_score
+
+    def _get_ordered_moves(self, board: chess.Board, moves, depth: int = 0) -> List[chess.Move]:
+        """Helper method to consistently order moves with proper parameters"""
+        moves = list(moves) if not isinstance(moves, list) else moves
+        if not moves:
+            return []
+            
+        if self.move_ordering_enabled:
+            return self.move_organizer.order_moves(board, moves, depth=depth, cutoff=self.max_ordered_moves)
+        return moves
+
+    def _search_position(self, board: chess.Board, depth: int, alpha: float = float('-inf'), beta: float = float('inf'), maximize: bool = True) -> Tuple[float, Optional[chess.Move]]:
+        """Enhanced search with short-circuit detection and PV tracking"""
+        self.nodes_searched += 1
+
+        # 1. Immediate position evaluation (checkmate, stalemate)
+        if board.is_checkmate():
+            score = float('inf') if not maximize else float('-inf')
+            return score, None
+            
+        if board.is_stalemate():
+            return 0.0, None
+
+        # 2. Base case - at max depth or no moves available
+        if depth <= 0:
+            if self.quiescence_enabled:
+                score = self.quiescence.search(board, alpha, beta)  # Use quiescence search's own depth configuration
+            else:
+                score = self.scoring_calculator.evaluate_position(board)
+            return score, None
+
+        # 3. Generate and order moves
+        legal_moves = list(board.legal_moves)
+        if not legal_moves:
+            return self.scoring_calculator.evaluate_position(board), None
+
+        if self.move_ordering_enabled:
+            ordered_moves = self.move_organizer.order_moves(board, legal_moves)
+            if ordered_moves:  # Only use if we got valid ordered moves
+                legal_moves = ordered_moves[:self.max_ordered_moves] + [m for m in legal_moves if m not in ordered_moves[:self.max_ordered_moves]]
+
+        # 4. Principal Variation Move Search
+        best_move = None
+        best_score = float('-inf') if maximize else float('inf')
+
+        for move in legal_moves:
+            # Apply move
+            board.push(move)
+            
+            # Recursively search
+            score, _ = self._search_position(board, depth - 1, alpha, beta, not maximize)
+            
+            # Undo move
+            board.pop()
+            
+            # Update best score/move
+            if maximize:
+                if score > best_score:
+                    best_score = score
+                    best_move = move
+                    alpha = max(alpha, best_score)
             else:
                 if score < best_score:
                     best_score = score
-                beta = min(beta, best_score)
+                    best_move = move
+                    beta = min(beta, best_score)
 
             # Alpha-beta pruning
-            if alpha >= beta:
+            if self.ab_pruning_enabled and beta <= alpha:
                 break
 
-        return best_score
-        
-    def _position_is_tactical(self, board: chess.Board) -> bool:
-        """Determine if the position is tactical (captures available)"""
-        for move in board.legal_moves:
-            if board.is_capture(move) or move.promotion:
-                return True
-        return False
+        # 5. Update PV line if we found a good move
+        if best_move:
+            self._update_pv_line(best_move, best_score, depth)
 
-    def _negamax_search(self, board: chess.Board, depth: int, alpha: float, beta: float) -> float:
-        """Negamax search with alpha-beta pruning and basic tactical extensions."""
-        self.nodes_searched += 1
-        
-        # Terminal condition - reached max depth or game over
-        if depth <= 0 or board.is_game_over():
-            # Always evaluate from the current perspective
-            eval_result = self.scoring_calculator.evaluate_position_from_perspective(board, self.current_perspective)
-            
-            # In negamax, we need to flip the sign if it's not the current player's turn
-            # This ensures scores are always from the perspective of the player to move
-            if board.turn != self.current_perspective:
-                eval_result = -eval_result
-
-            # For positions that aren't quiet, use quiescence search if enabled
-            if depth <= 0 and self.quiescence_enabled and (board.is_check() or self._position_is_tactical(board)):
-                q_score = self._quiescence_search(board, self.current_perspective, alpha, beta, board.turn == self.current_perspective)
-                return q_score
-            
-            return eval_result
-            
-        # Internal node: explore moves
-        best_score = -float('inf')
-        best_move = chess.Move.null()
-        legal_moves = list(board.legal_moves)
-        
-        if not legal_moves:
-            # No legal moves, must be checkmate or stalemate
-            if board.is_check():
-                return -999999999  # Checkmate
-            else:
-                return 0  # Stalemate
-                
-        # Determine appropriate depth cutoff based on current depth
-        cutoff = min(max(2, self.max_ordered_moves // (self.depth - depth + 1)), self.max_ordered_moves) if self.move_ordering_enabled else 0
-        
-        if self.move_ordering_enabled:
-            # Order moves for better alpha-beta pruning efficiency
-            ordered_moves = self.move_organizer.order_moves(board, legal_moves, depth=depth, cutoff=cutoff)
-        else:
-            ordered_moves = legal_moves
-            
-        moves_evaluated = 0
-        for move in ordered_moves:
-            moves_evaluated += 1
-                
-            board.push(move)
-            # Recursive negamax call with flipped perspectives
-            score = -self._negamax_search(board, depth-1, -beta, -alpha)
-            board.pop()
-            
-            # Update best score
-            if score > best_score:
-                best_score = score
-                best_move = move
-                if depth == self.depth:  # At root, update principal variation
-                    self.pv_move_stack.append({
-                        'move_number': depth,
-                        'move': best_move,
-                        'score': best_score,
-                        'color': self.current_perspective
-                    })
-                    
-            # Alpha-beta pruning
-            alpha = max(alpha, score)
-            if alpha >= beta:
-                break  # Beta cutoff
-
-        return best_score
-
-    def _quiescence_search(self, board: chess.Board, color: chess.Color, alpha: float, beta: float, maximizing_player: bool, current_ply: int = 0) -> float:
-        """Quiescence search to handle tactical positions."""
-        # Safety check to prevent infinite recursion
-        # HARD LIMIT to prevent infinite recursion - early exit if we're too deep
-        max_q_depth = 2  # Reduced hard limit for quiescence search
-        if current_ply >= max_q_depth or self.nodes_searched > 10000:
-            eval_result = self.scoring_calculator.evaluate_position_from_perspective(board, self.current_perspective)
-            # Adjust evaluation for the player to move
-            if not maximizing_player:
-                eval_result = -eval_result
-            return eval_result
-            
-        # Get a static evaluation first, always from the consistent perspective
-        stand_pat_score = self.scoring_calculator.evaluate_position_from_perspective(board, self.current_perspective)
-        # Adjust evaluation for the player to move
-        if not maximizing_player:
-            stand_pat_score = -stand_pat_score
-            
-        # Check for immediate game-ending conditions with huge scores
-        if board.is_checkmate():
-            # Determine if the current perspective is being checkmated
-            if board.turn == self.current_perspective:
-                # Current perspective is checkmated - very bad
-                checkmate_score = -999999999
-            else:
-                # Opponent is checkmated - very good
-                checkmate_score = 999999999
-                
-            return checkmate_score
-        
-        # Handle standing pat
-        if maximizing_player:
-            if stand_pat_score >= beta:
-                return beta
-            alpha = max(alpha, stand_pat_score)
-        else:
-            if stand_pat_score <= alpha:
-                return alpha
-            beta = min(beta, stand_pat_score)
-            
-        # Consider check evasions and good captures only
-        if board.is_check():
-            # Must consider all legal moves to escape check
-            moves_to_consider = list(board.legal_moves)
-        else:
-            # Only consider captures and promotions
-            captures = []
-            for move in board.legal_moves:
-                if board.is_capture(move) or move.promotion:
-                    captures.append(move)
-                    
-            moves_to_consider = captures
-            
-        # If no good tactical moves, return stand pat
-        if not moves_to_consider:
-            return stand_pat_score
-        
-        # Limit number of moves to examine in quiescence to prevent explosion
-        if len(moves_to_consider) > 5:
-            moves_to_consider = self.move_organizer.order_moves(board, moves_to_consider, depth=0, cutoff=5)
-        
-        # For very limited quiescence search to prevent infinite loops
-        # Only explore the top 3 captures maximum
-        if current_ply > 0 and len(moves_to_consider) > 3:
-            moves_to_consider = moves_to_consider[:3]
-            
-        for move in moves_to_consider:
-            board.push(move)
-            # For negamax-style quiescence search, we swap the perspective and negate the score
-            score = -self._quiescence_search(board, color, -beta, -alpha, not maximizing_player, current_ply + 1)
-            board.pop()
-            self.nodes_searched += 1
-            
-            # In quiescence search when maximizing, we want higher scores
-            if maximizing_player:
-                if score > alpha:
-                    alpha = score
-                    if alpha >= beta:
-                        break
-            # When minimizing, we want lower scores
-            else:
-                if score < beta:
-                    beta = score
-                    if alpha >= beta:
-                        break
-        
-        return alpha if maximizing_player else beta
-
-    def _checkmate_search(self, board: chess.Board, ply: int = 5, first_move: chess.Move = chess.Move.null(), potential_checkmate_moves: list[chess.Move] = []) -> chess.Move:
-        """Identify forced checkmate patterns within the given depth if greater than 5 otherwise (interpreted as 5 ply search)."""
-        # Base cases
-        if ply <= 0:
-            return chess.Move.null()
-        
-        if board.is_game_over():
-            if board.is_checkmate():
-                # Found checkmate, return the first move that started this sequence
-                return first_move
-            else:
-                # Game over but not checkmate (stalemate, etc.)
-                return chess.Move.null()
-        
-        legal_moves = list(board.legal_moves)
-        if not legal_moves:
-            return chess.Move.null()
-        
-        # Determine if we're looking for attacking moves (odd ply) or defensive moves (even ply)
-        # In mate search, we want: attacker move -> defender move -> attacker move -> etc.
-        is_attacking_turn = (ply % 2 == 1)  # Odd ply = attacker's turn, even ply = defender's turn
-        
-        if is_attacking_turn:
-            # Attacker's turn: look for forcing moves (checks, captures, threats)
-            # Prioritize checking moves and captures
-            checking_moves = []
-            other_moves = []
-            
-            for move in legal_moves:
-                temp_board = board.copy()
-                temp_board.push(move)
-                if temp_board.is_check():
-                    checking_moves.append(move)
-                else:
-                    other_moves.append(move)
-            
-            # Try checking moves first, then other moves
-            moves_to_try = checking_moves + other_moves
-            
-            for move in moves_to_try:
-                # Set first_move if this is the start of the sequence
-                current_first_move = move if first_move == chess.Move.null() else first_move
-                
-                temp_board = board.copy()
-                temp_board.push(move)
-                
-                # Check if this move immediately gives checkmate
-                if temp_board.is_checkmate():
-                    return current_first_move
-                
-                # If this move gives check, continue searching for forced mate
-                if temp_board.is_check():
-                    # Recursively search from defender's perspective
-                    mate_move = self._checkmate_search(temp_board, ply - 1, current_first_move, potential_checkmate_moves)
-                    if mate_move != chess.Move.null():
-                        return current_first_move
-                
-                # For non-checking moves, only continue if we're at high depth (looking for quiet setups)
-                elif ply > 3:
-                    mate_move = self._checkmate_search(temp_board, ply - 1, current_first_move, potential_checkmate_moves)
-                    if mate_move != chess.Move.null():
-                        return current_first_move
-        
-        else:
-            # Defender's turn: try all legal moves to see if any can escape mate
-            # If ALL moves lead to mate, then we have a forced mate
-            defender_can_escape = False
-            
-            for move in legal_moves:
-                temp_board = board.copy()
-                temp_board.push(move)
-                
-                # Check if this defensive move escapes mate
-                mate_move = self._checkmate_search(temp_board, ply - 1, first_move, potential_checkmate_moves)
-                
-                if mate_move == chess.Move.null():
-                    # Defender found an escape
-                    defender_can_escape = True
-                    break
-            
-            # If defender cannot escape any move, mate is forced
-            if not defender_can_escape:
-                return first_move
-        
-        return chess.Move.null()  # No forced mate found
-
-    def _draw_search(self, board: chess.Board, first_move: chess.Move = chess.Move.null()) -> bool:
-        """Identify draw patterns within the given depth (interpreted as ply)."""
-        legal_moves = list(board.legal_moves)  # Use legal moves to avoid illegal checks
-        if board.is_game_over() or not legal_moves:
-            return True  # Game over or no legal moves
-
-        for move in legal_moves:
-            first_move = move if first_move == chess.Move.null() else first_move
-            temp_board = board.copy()
-            temp_board.push(move)
-            if (temp_board.is_stalemate()
-                or temp_board.is_insufficient_material()
-                or temp_board.can_claim_fifty_moves()
-                or temp_board.can_claim_threefold_repetition()
-                or temp_board.is_seventyfive_moves()
-                or temp_board.is_fivefold_repetition()
-                or temp_board.is_variant_draw()):
-                return True  # Return true if a draw condition is found
-        return False  # Return false if no drawing moves are found
-
-    def ordered_depth_search(self, board: chess.Board, color: chess.Color) -> chess.Move:
-        """Perform depth search with proper move ordering"""
-        try:
-            move, _ = self._minimax_root(board, self.depth, color)
-            return move if move and move != chess.Move.null() else self._simple_search(board)
-        except Exception as e:
-            print(f"Error in ordered depth search: {str(e)}")
-            return self._simple_search(board)
+        return best_score, best_move

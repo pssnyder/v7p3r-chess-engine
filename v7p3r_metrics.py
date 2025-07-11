@@ -2,7 +2,7 @@
 """
 V7P3R Chess Engine Metrics System
 A unified, modern metrics collection and analysis system for the V7P3R chess engine.
-Features async data collection, Streamlit dashboard, and robust database handling.
+Features async data collection, Streamlit dashboard integration, and robust database handling.
 """
 
 import os
@@ -45,6 +45,27 @@ BASE_DIR = Path(__file__).parent
 DB_PATH = BASE_DIR / "chess_metrics.db"
 
 @dataclass
+class MoveMetric:
+    """Data structure for move-level metrics"""
+    game_id: str
+    move_number: int
+    player: str
+    move_notation: str
+    position_fen: str
+    evaluation_score: float
+    search_depth: Optional[int]
+    nodes_evaluated: Optional[int]
+    time_taken: float
+    best_move: str
+    pv_line: Optional[List[str]]
+    quiescence_nodes: Optional[int]
+    transposition_hits: Optional[int]
+    move_ordering_efficiency: Optional[float]
+    remaining_time: Optional[float] = None
+    time_control_enabled: bool = False
+    increment: float = 0.0
+
+@dataclass
 class GameMetric:
     """Data structure for game-level metrics matching database schema."""
     game_id: str  # PRIMARY KEY
@@ -54,27 +75,14 @@ class GameMetric:
     result: str
     total_moves: int
     game_duration: float
+    time_control_enabled: bool = False
+    game_time: float = 0.0
+    increment: float = 0.0
     opening_name: Optional[str] = None
     final_position_fen: Optional[str] = None
     termination_reason: Optional[str] = None
 
-@dataclass
-class MoveMetric:
-    """Data structure for move-level metrics matching database schema."""
-    game_id: str
-    move_number: int
-    player: str
-    move_notation: str
-    position_fen: str
-    evaluation_score: Optional[float] = None
-    search_depth: Optional[int] = None
-    nodes_evaluated: Optional[int] = None
-    time_taken: Optional[float] = None
-    best_move: Optional[str] = None
-    pv_line: Optional[str] = None
-    quiescence_nodes: Optional[int] = None
-    transposition_hits: Optional[int] = None
-    move_ordering_efficiency: Optional[float] = None
+
 
 @dataclass
 class EngineConfig:
@@ -116,6 +124,9 @@ class v7p3rMetrics:
                     result TEXT NOT NULL,
                     total_moves INTEGER NOT NULL,
                     game_duration REAL NOT NULL,
+                    time_control_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+                    game_time REAL NOT NULL DEFAULT 0.0,
+                    increment REAL NOT NULL DEFAULT 0.0,
                     opening_name TEXT,
                     final_position_fen TEXT,
                     termination_reason TEXT
@@ -127,6 +138,22 @@ class v7p3rMetrics:
                 CREATE TABLE IF NOT EXISTS moves (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     game_id TEXT NOT NULL,
+                    move_number INTEGER NOT NULL,
+                    player TEXT NOT NULL,
+                    move_notation TEXT NOT NULL,
+                    position_fen TEXT NOT NULL,
+                    evaluation_score REAL NOT NULL,
+                    search_depth INTEGER,
+                    nodes_evaluated INTEGER,
+                    time_taken REAL NOT NULL,
+                    remaining_time REAL,
+                    time_control_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+                    increment REAL NOT NULL DEFAULT 0.0,
+                    best_move TEXT NOT NULL,
+                    pv_line TEXT,
+                    quiescence_nodes INTEGER,
+                    transposition_hits INTEGER,
+                    move_ordering_efficiency REAL,
                     move_number INTEGER NOT NULL,
                     player TEXT NOT NULL,
                     move_notation TEXT NOT NULL,
@@ -200,15 +227,17 @@ class v7p3rMetrics:
                         INSERT INTO moves 
                         (game_id, move_number, player, move_notation, position_fen,
                          evaluation_score, search_depth, nodes_evaluated, time_taken,
+                         remaining_time, time_control_enabled, increment,
                          best_move, pv_line, quiescence_nodes, transposition_hits,
                          move_ordering_efficiency)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, (
                         move_metric.game_id, move_metric.move_number, move_metric.player,
                         move_metric.move_notation, move_metric.position_fen,
                         move_metric.evaluation_score, move_metric.search_depth,
                         move_metric.nodes_evaluated, move_metric.time_taken,
-                        move_metric.best_move, move_metric.pv_line,
+                        move_metric.remaining_time, move_metric.time_control_enabled,
+                        move_metric.increment, move_metric.best_move, move_metric.pv_line,
                         move_metric.quiescence_nodes, move_metric.transposition_hits,
                         move_metric.move_ordering_efficiency
                     ))

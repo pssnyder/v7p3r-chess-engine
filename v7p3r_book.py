@@ -4,6 +4,7 @@
 
 import chess
 import random
+from typing import Optional, List, Tuple
 
 class v7p3rBook:
     """
@@ -878,6 +879,49 @@ class v7p3rBook:
         # No book move found - set off_book flag
         self.off_book = True
         return None
+
+    def get_move(self, board: chess.Board) -> Optional[chess.Move]:
+        """
+        Get a book move for the current position, if available.
+        
+        Args:
+            board: Current chess position
+            
+        Returns:
+            chess.Move: Selected book move, or None if no book moves available
+        """
+        try:
+            # If already off book, don't check
+            if self.off_book:
+                return None
+                
+            # Get moves for current position
+            book_entry = self.book.get(board.fen())
+            if not book_entry:
+                self.off_book = True
+                return None
+                
+            # Select move using weighted random choice
+            moves, weights = zip(*book_entry)
+            
+            # Filter out any invalid moves
+            valid_moves = []
+            valid_weights = []
+            for move, weight in zip(moves, weights):
+                if move in board.legal_moves:
+                    valid_moves.append(move)
+                    valid_weights.append(weight)
+            
+            if not valid_moves:
+                self.off_book = True
+                return None
+                
+            return random.choices(valid_moves, weights=valid_weights, k=1)[0]
+            
+        except Exception as e:
+            print(f"Warning: Error in opening book: {str(e)}")
+            self.off_book = True
+            return None
 
     def is_off_book(self):
         """

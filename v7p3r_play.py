@@ -9,10 +9,12 @@ import datetime
 import sqlite3
 from typing import Optional
 import time
+import random
 from io import StringIO
 from v7p3r_config import v7p3rConfig
 from v7p3r_utilities import resource_path, get_timestamp
 from v7p3r_metrics import get_metrics_instance, GameMetric, MoveMetric, EngineConfig
+from v7p3r_time import v7p3rTime
 from chess_core import ChessCore
 from pgn_watcher import PGNWatcher
 from v7p3r import v7p3rEngine
@@ -56,6 +58,11 @@ class v7p3rChess:
             self.black_player = self.game_config.get('black_player', 'stockfish')
             self.starting_position = self.game_config.get('starting_position', 'default')
             
+            # Time control configuration
+            self.time_control = self.game_config.get('time_control', False)
+            self.game_time = self.game_config.get('game_time', 300)  # 5 minutes default
+            self.time_increment = self.game_config.get('time_increment', 0)
+            
             # Engine configurations
             self.white_engine_config = self.engine_config if self.white_player == 'v7p3r' else None
             self.black_engine_config = self.engine_config if self.black_player == 'v7p3r' else None
@@ -93,12 +100,25 @@ class v7p3rChess:
         # Initialize chess core with starting position
         self.chess_core.new_game(self.starting_position)
         
-        # Set up game headers
+        # Initialize time management
+        if not hasattr(self, 'time_manager'):
+            self.time_manager = v7p3rTime()
+        
+        # Setup game clock with current configuration
+        self.time_manager.setup_game_clock({
+            'time_control': self.time_control,
+            'game_time': self.game_time,
+            'time_increment': self.time_increment
+        })
+        
+        # Set up game headers with time control info
+        time_control_str = f"{self.game_time//60}+{self.time_increment}" if self.time_control else "-"
         self.chess_core.set_headers(
             white_player=self.white_player,
             black_player=self.black_player,
             event="v7p3r Engine Chess Game"
         )
+        self.chess_core.game.headers["TimeControl"] = time_control_str  # Add time control info to headers
         
         # Initialize game ID and save initial state
         self.current_game_id = f"eval_game_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
@@ -140,22 +160,41 @@ class v7p3rChess:
     async def push_move(self, move):
         """Push a move and update game state"""
         try:
-            # Calculate move time
-            move_time = self.move_duration if hasattr(self, 'move_duration') and self.move_duration > 0 else 0.0
-                        
+            # End timing for the move
+            current_color = self.chess_core.board.turn
+            try:
+                move_time = self.time_manager.end_move_timer(current_color)
+                self.move_duration = move_time
+                
+                # Check for time out only if time control is enabled
+                if self.time_control and self.time_manager.is_time_up(current_color):
+                    result = "0-1" if current_color == chess.WHITE else "1-0"
+                    self.chess_core.game.headers["Result"] = result
+                    self.chess_core.game.headers["Termination"] = "time forfeit"
+                    return False
+            except Exception as e:
+                print(f"Warning: Time control error: {str(e)}")
+                self.move_duration = 0.0  # Fallback to zero duration
+            
             # Get evaluation before making the move
             score = self.engine.scoring_calculator.evaluate_position(self.chess_core.board)
             formatted_score = f"{score:+.2f}"
             self.current_eval = score
+            
+            # Get clock state for PGN comment
+            clock_state = self.time_manager.get_clock_state()
+            white_time = clock_state['white_time']
+            black_time = clock_state['black_time']
+            time_info = f" [%clk {white_time:.1f}]" if self.time_control else ""
 
             # Push the move using chess_core
             if self.chess_core.push_move(move):
                 # Display the move that was made
                 self.display_move_made(move, move_time)
                 
-                # Add evaluation comment
+                # Add evaluation and clock comment
                 if self.chess_core.game_node.parent:
-                    self.chess_core.game_node.comment = f"Eval: {formatted_score}"
+                    self.chess_core.game_node.comment = f"Eval: {formatted_score}{time_info}"
                 
                 # Save updated game state
                 self.chess_core.quick_save_pgn("active_game.pgn")
@@ -166,6 +205,10 @@ class v7p3rChess:
                     search_engine = self.engine.search_engine
                     search_stats = getattr(search_engine, 'stats', {})
                     
+                    # Get clock state for metrics
+                    clock_state = self.time_manager.get_clock_state()
+                    remaining_time = clock_state['white_time'] if current_color else clock_state['black_time']
+
                     move_metric = MoveMetric(
                         game_id=self.current_game_id,
                         move_number=len(self.chess_core.board.move_stack),
@@ -177,6 +220,9 @@ class v7p3rChess:
                         search_depth=search_stats.get('depth', None),
                         nodes_evaluated=search_stats.get('nodes', None),
                         time_taken=self.move_duration,
+                        remaining_time=clock_state['white_time'] if current_color else clock_state['black_time'],
+                        time_control_enabled=self.time_control,
+                        increment=clock_state['increment'],
                         best_move=str(move),
                         pv_line=search_stats.get('pv', None),
                         quiescence_nodes=search_stats.get('quiescence_nodes', None),
@@ -221,7 +267,10 @@ class v7p3rChess:
                 opponent='stockfish' if 'stockfish' in [self.white_player, self.black_player] else 'other',
                 result='pending',
                 total_moves=0,
-                game_duration=0.0
+                game_duration=0.0,
+                time_control_enabled=self.time_control,
+                game_time=self.game_time,
+                increment=self.time_increment
             )
             self.metrics_tasks.append(
                 asyncio.create_task(self.metrics.record_game_start(game_metric))
@@ -273,6 +322,9 @@ class v7p3rChess:
                 "*": "incomplete"
             }
             
+            # Get final clock state
+            clock_state = self.time_manager.get_clock_state()
+            
             # Update game result in metrics
             task = asyncio.create_task(self.metrics.update_game_result(
                 game_id=self.current_game_id,
@@ -287,18 +339,27 @@ class v7p3rChess:
     def display_move_made(self, move: chess.Move, move_time: float):
         """Display information about a move that was made."""
         try:
-            # Format move time
-            time_str = f"{move_time:.3f}s" if move_time > 0 else "0.000s"
+            # Format move time with proper handling of small values
+            if move_time == 0.0:  # No timing or error
+                time_str = "0ms"
+            elif move_time < 0.001:  # Under 1ms
+                time_str = "<1ms"
+            elif move_time < 1.0:  # Under 1 second, show ms
+                time_str = f"{int(move_time * 1000)}ms"
+            else:  # 1 second or more
+                time_str = f"{move_time:.2f}s"
             
             # Get player name
             current_player = "White" if not self.chess_core.board.turn else "Black"
             player_name = self.white_player if current_player == "White" else self.black_player
             
-            # Print move info
+            # Print move info with consistent formatting
             print(f"{current_player} ({player_name}): {move.uci()} ({time_str}) [Eval: {self.current_eval:+.2f}]")
             
         except Exception as e:
-            print(f"Error displaying move: {str(e)}")
+            # Fallback to basic display if there's an error
+            print(f"{move.uci()} [Eval: {self.current_eval:+.2f}]")
+            print(f"Error displaying move details: {str(e)}")
 
     async def process_engine_move(self):
         """Process move for the engine with enhanced metrics collection"""
@@ -309,9 +370,20 @@ class v7p3rChess:
             # Get current player
             self.current_player = self.chess_core.board.turn
             
-            # Start timing
+            # Start timing for both engine and game clock
             self.move_start_time = time.time()
             self.move_duration = 0
+            self.time_manager.start_move_timer(self.current_player)
+            
+            # Prepare time control info for the engine if needed
+            if self.time_control:
+                clock_state = self.time_manager.get_clock_state()
+                time_control = {
+                    'wtime': int(clock_state['white_time'] * 1000),  # Convert to milliseconds
+                    'btime': int(clock_state['black_time'] * 1000),
+                    'winc': int(clock_state['increment'] * 1000),
+                    'binc': int(clock_state['increment'] * 1000)
+                }
             
             current_player_name = self.white_player if self.current_player == chess.WHITE else self.black_player
             print(f"{current_player_name} is thinking...")
@@ -319,19 +391,57 @@ class v7p3rChess:
             # Track search statistics
             search_stats = {}
             
-            # Get the move from appropriate engine
+            # Get the move from appropriate engine with time control
             if current_player_name == 'v7p3r':
-                # Collect detailed metrics for v7p3r engine
-                engine_move = self.engine.search_engine.search(self.chess_core.board, self.current_player)
+                # First check opening book
+                book_move = self.engine.opening_book.get_move(self.chess_core.board)
+                if book_move:
+                    engine_move = book_move
+                else:
+                            # Setup time control
+                    if self.time_control:
+                        remaining_time = time_control['wtime'] if self.current_player else time_control['btime']
+                        increment = time_control['winc'] if self.current_player else time_control['binc']
+                        allocated_time = (remaining_time / 30.0 + increment * 0.8) / 1000.0  # Convert to seconds
+                        self.engine.time_manager.start_timer(allocated_time)
+
+                    # Get move from search engine
+                    try:
+                        engine_move = self.engine.search_engine.search(
+                            self.chess_core.board, 
+                            self.current_player
+                        )
+                    except Exception as e:
+                        print(f"Search error: {str(e)}")
+                        legal_moves = list(self.chess_core.board.legal_moves)
+                        engine_move = random.choice(legal_moves) if legal_moves else None
+
+                # Get search stats for metrics
                 search_stats = getattr(self.engine.search_engine, 'stats', {})
-                # Enrich stats with engine state
                 search_stats.update({
-                    'transposition_table_size': len(getattr(self.engine.search_engine, 'transposition_table', {})),
-                    'use_quiescence': self.engine_config.get('use_quiescence_search', True),
-                    'use_ordering': self.engine_config.get('use_move_ordering', True)
+                    'use_quiescence': self.engine_config.get('use_quiescence', True),
+                    'use_move_ordering': self.engine_config.get('use_move_ordering', True)
                 })
             elif current_player_name == 'stockfish':
-                engine_move = self.stockfish.search(self.chess_core.board, self.current_player, self.stockfish_config)
+                try:
+                    # Update Stockfish config with time control if enabled
+                    stockfish_config = self.stockfish_config.copy()
+                    if self.time_control:
+                        movetime = time_control['wtime'] if self.current_player else time_control['btime']
+                        stockfish_config['movetime'] = min(movetime // 30, 5000)  # Use ~1/30th of remaining time, max 5 seconds
+                    
+                    # Get move from Stockfish
+                    engine_move = self.stockfish.search(self.chess_core.board, self.current_player, stockfish_config)
+                    if not engine_move or not isinstance(engine_move, chess.Move):
+                        print("Warning: Invalid move from Stockfish, using random move")
+                        legal_moves = list(self.chess_core.board.legal_moves)
+                        if legal_moves:
+                            engine_move = random.choice(legal_moves)
+                except Exception as e:
+                    print(f"Error with Stockfish: {str(e)}")
+                    legal_moves = list(self.chess_core.board.legal_moves)
+                    if legal_moves:
+                        engine_move = random.choice(legal_moves)
             
             # Process the move
             if isinstance(engine_move, chess.Move) and self.chess_core.board.is_legal(engine_move):

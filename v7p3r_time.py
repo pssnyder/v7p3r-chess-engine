@@ -15,11 +15,19 @@ if parent_dir not in sys.path:
 
 class v7p3rTime:
     def __init__(self):
-        self.start_time = None
-        self.allocated_time = None
-        self.max_time = None
-        self.emergency_time = None
-
+        self.start_time: Optional[float] = None
+        self.allocated_time: Optional[float] = None
+        self.max_time: Optional[float] = None
+        self.emergency_time: Optional[float] = None
+        
+        # Game clock variables
+        self.white_time: float = float('inf')  # White's remaining time in seconds
+        self.black_time: float = float('inf')  # Black's remaining time in seconds
+        self.increment: float = 0.0            # Time increment in seconds
+        self.time_control_enabled: bool = False
+        self.game_start_time: Optional[float] = None
+        self.move_start_time: Optional[float] = None
+        
     def allocate_time(self, time_control: Dict[str, Any], board) -> float:
         """
         Allocate time for current move based on time control and position
@@ -220,6 +228,69 @@ class v7p3rTime:
             'allocated': self.allocated_time or 0.0
         }
 
+    def setup_game_clock(self, game_config: Dict[str, Any]):
+        """Initialize game clock based on game configuration"""
+        self.time_control_enabled = game_config.get('time_control', False)
+        if self.time_control_enabled:
+            game_time = game_config.get('game_time', 300)  # Default 5 minutes
+            self.white_time = float(game_time)
+            self.black_time = float(game_time)
+            self.increment = float(game_config.get('time_increment', 0))
+        else:
+            self.white_time = float('inf')
+            self.black_time = float('inf')
+            self.increment = 0.0
+            
+        self.game_start_time = time.time()
+        
+    def start_move_timer(self, color: bool):
+        """Start timing a move for the given color"""
+        self.move_start_time = time.time()
+        
+    def end_move_timer(self, color: bool) -> float:
+        """
+        End timing a move and update remaining time
+        Returns the move duration in seconds
+        """
+        if self.move_start_time is None:
+            return 0.0
+            
+        move_duration = time.time() - self.move_start_time
+        
+        # Update remaining time if time control is enabled
+        if self.time_control_enabled:
+            if color:  # White
+                self.white_time = max(0.0, self.white_time - move_duration + self.increment)
+            else:  # Black
+                self.black_time = max(0.0, self.black_time - move_duration + self.increment)
+            
+        self.move_start_time = None
+        return move_duration
+        
+    def get_remaining_time(self, color: bool) -> float:
+        """Get remaining time for the given color in seconds"""
+        return self.white_time if color else self.black_time
+        
+    def is_time_up(self, color: bool) -> bool:
+        """Check if a player has run out of time"""
+        return self.time_control_enabled and self.get_remaining_time(color) <= 0.0
+        
+    def get_clock_state(self) -> Dict[str, float]:
+        """Get current state of both clocks"""
+        return {
+            'white_time': self.white_time,
+            'black_time': self.black_time,
+            'increment': self.increment,
+            'time_control': self.time_control_enabled,
+            'game_duration': time.time() - self.game_start_time if self.game_start_time else 0.0
+        }
+
+    def get_current_time(self) -> float:
+        """Get current game time in seconds"""
+        if self.game_start_time is None:
+            return 0.0
+        return time.time() - self.game_start_time
+    
 # Example usage and testing
 if __name__ == "__main__":
     import chess
