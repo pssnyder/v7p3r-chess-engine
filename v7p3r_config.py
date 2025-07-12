@@ -1,38 +1,69 @@
+"""V7P3R Chess Engine Configuration Module
+
+This module handles all configuration management for the V7P3R chess engine.
+It provides a centralized configuration system with override capabilities,
+layered configuration loading, and type-safe access to all settings.
+"""
+
 import json
-import os
-from typing import Optional, Dict, Any
+from pathlib import Path
+from typing import Optional, Dict, Any, cast, Union
 import copy
+import os
+
+from v7p3r_paths import paths
+from v7p3r_config_types import (
+    V7P3RConfig, GameConfig, EngineConfig, StockfishConfig,
+    PuzzleConfig, MetricsConfig, NeuralNetworkConfig as NNConfig,
+    GeneticAlgorithmConfig as GAConfig,
+    ReinforcementLearningConfig as RLConfig
+)
 
 class v7p3rConfig:
     """
     Configuration class for the v7p3r chess engine.
-    This class generates the configuration settings for the engine, including game settings, engine settings, and Stockfish settings.
-    Supports centralized configuration management with override capabilities for all modules.
+    This class generates the configuration settings for the engine, including game settings, 
+    engine settings, and Stockfish settings. Supports centralized configuration management 
+    with override capabilities for all modules.
     """
-    def __init__(self, config_name: Optional[str] = None, overrides: Optional[Dict[str, Any]] = None):
-        if config_name is not None:
-            # If a specific config name is provided, use that to determine the path
-            config_path = os.path.join(os.path.dirname(__file__), 'configs', f'{config_name}.json')
-        else:
-            config_path = None
-        if config_path is not None and os.path.isfile(config_path):
-            self.config_path = config_path
-        else:
-            self.config_path = os.path.join(os.path.dirname(__file__), 'configs', 'default_config.json')
+    def __init__(self, config_path: Optional[Union[str, Path]] = None, overrides: Optional[Dict[str, Any]] = None):
+        """
+        Initialize configuration manager.
         
-        # Initialize all configuration sections
-        self.config = {}
-        self.game_config = {}
-        self.engine_config = {}
-        self.stockfish_config = {}
-        self.puzzle_config = {}
-        self.metrics_config = {}
-        self.v7p3r_nn_config = {}
-        self.v7p3r_ga_config = {}
-        self.v7p3r_rl_config = {}
-        self.rulesets = {}
-        self.ruleset_name = "default_ruleset"
-        self.ruleset = {}
+        Args:
+            config_path: Optional path to config file (Path or string, without .json)
+            overrides: Optional dictionary of configuration overrides
+        """
+        # Determine config path
+        if config_path is not None:
+            config_path_str = str(config_path) if isinstance(config_path, Path) else config_path
+            resolved_path = paths.get_config_path(config_path_str)
+            if resolved_path.is_file():
+                self.config_path = resolved_path
+            else:
+                self.config_path = paths.get_config_path('default_config')
+        else:
+            self.config_path = paths.get_config_path('default_config')
+        
+        # Initialize class attributes with type hints
+        self.config_path: Path
+        self.config: Dict[str, Any] = {}
+        self.game_config: GameConfig = cast(GameConfig, {})
+        self.engine_config: EngineConfig = cast(EngineConfig, {})
+        self.stockfish_config: StockfishConfig = cast(StockfishConfig, {})
+        self.puzzle_config: PuzzleConfig = cast(PuzzleConfig, {})
+        self.metrics_config: MetricsConfig = cast(MetricsConfig, {})
+
+        # Optional configs
+        self.nn_config: Optional[NNConfig] = None
+        self.ga_config: Optional[GAConfig] = None
+        self.rl_config: Optional[RLConfig] = None
+        self.v7p3r_nn_config: Dict[str, Any] = {}
+        self.v7p3r_ga_config: Dict[str, Any] = {}
+        self.v7p3r_rl_config: Dict[str, Any] = {}
+        self.rulesets: Dict[str, Any] = {}
+        self.ruleset_name: str = "default_ruleset"
+        self.ruleset: Dict[str, Any] = {}
 
         # Store overrides for later application
         self.overrides = overrides or {}
@@ -203,43 +234,43 @@ class v7p3rConfig:
         if not self.ruleset:
             raise ValueError("CRITICAL ERROR: No valid ruleset configuration loaded. Engine cannot start.")
 
-    def get_config(self):
+    def get_config(self) -> Dict[str, Any]:
         """Get the complete configuration dictionary"""
         return copy.deepcopy(self.config)
     
-    def get_game_config(self):
+    def get_game_config(self) -> GameConfig:
         """Get game-specific configuration"""
         return copy.deepcopy(self.game_config)
 
-    def get_engine_config(self):
+    def get_engine_config(self) -> EngineConfig:
         """Get engine-specific configuration"""
         return copy.deepcopy(self.engine_config)
 
-    def get_stockfish_config(self):
+    def get_stockfish_config(self) -> StockfishConfig:
         """Get Stockfish-specific configuration"""
         return copy.deepcopy(self.stockfish_config)
     
-    def get_puzzle_config(self):
+    def get_puzzle_config(self) -> PuzzleConfig:
         """Get puzzle-specific configuration"""
         return copy.deepcopy(self.puzzle_config)
     
-    def get_metrics_config(self):
+    def get_metrics_config(self) -> MetricsConfig:
         """Get metrics-specific configuration"""
         return copy.deepcopy(self.metrics_config)
     
-    def get_v7p3r_nn_config(self):
+    def get_v7p3r_nn_config(self) -> Dict[str, Any]:
         """Get Neural Network engine configuration"""
         return copy.deepcopy(self.v7p3r_nn_config)
     
-    def get_v7p3r_ga_config(self):
+    def get_v7p3r_ga_config(self) -> Dict[str, Any]:
         """Get Genetic Algorithm engine configuration"""
         return copy.deepcopy(self.v7p3r_ga_config)
     
-    def get_v7p3r_rl_config(self):
+    def get_v7p3r_rl_config(self) -> Dict[str, Any]:
         """Get Reinforcement Learning engine configuration"""
         return copy.deepcopy(self.v7p3r_rl_config)
     
-    def get_ruleset(self):
+    def get_ruleset(self) -> Dict[str, Any]:
         """Get the current ruleset configuration"""
         return copy.deepcopy(self.ruleset)
     
@@ -317,10 +348,10 @@ class v7p3rConfig:
             # Save current config temporarily
             temp_config = self.config.copy()
             self.config = base_config
-            new_instance = v7p3rConfig(self.config_path, override_dict)
+            new_instance = v7p3rConfig(str(self.config_path), override_dict)
             self.config = temp_config
         else:
-            new_instance = v7p3rConfig(self.config_path, override_dict)
+            new_instance = v7p3rConfig(str(self.config_path), override_dict)
         
         return new_instance
     
@@ -348,18 +379,18 @@ class v7p3rConfig:
         else:
             raise ValueError(f"Unknown engine: {engine_name}")
         
-        return v7p3rConfig(self.config_path, override_dict)
+        return v7p3rConfig(str(self.config_path), override_dict)
     
     def get_override_summary(self) -> Dict[str, Any]:
         """Get a summary of all currently applied overrides."""
         return copy.deepcopy(self.overrides)
     
-    def clear_overrides(self):
+    def clear_overrides(self) -> None:
         """Clear all configuration overrides and reload from file."""
         self.overrides = {}
         self._load_config()
 
-    def _get_default_engine_config(self):
+    def _get_default_engine_config(self) -> EngineConfig:
         """Get default engine configuration"""
         return {
             'depth': 20,
@@ -555,7 +586,7 @@ class v7p3rConfig:
             'piece_value_distance_weight_weight': 10,
         }
 
-    def _get_default_game_config(self):
+    def _get_default_game_config(self) -> GameConfig:
         """Get default game configuration"""
         return {
             "game_count": 1,
@@ -564,7 +595,7 @@ class v7p3rConfig:
             "black_player": "stockfish"
         }
 
-    def _get_default_puzzle_config(self):
+    def _get_default_puzzle_config(self) -> PuzzleConfig:
         """Get default puzzle configuration"""
         return {
             "puzzle_database": {
@@ -607,7 +638,7 @@ class v7p3rConfig:
             }
         }
 
-    def _get_default_metrics_config(self):
+    def _get_default_metrics_config(self) -> MetricsConfig:
         """Get default metrics configuration"""
         return {
             "metrics_to_track": [
@@ -641,7 +672,7 @@ class v7p3rConfig:
         except Exception as e:
             print(f"Error loading config from {config_path}: {str(e)}")
             # Fall back to defaults if loading fails
-            self.engine_config = self._get_default_engine_config()
-            self.game_config = self._get_default_game_config()
-            self.puzzle_config = self._get_default_puzzle_config()
-            self.metrics_config = self._get_default_metrics_config()
+            self.engine_config = cast(EngineConfig, self._get_default_engine_config())
+            self.game_config = cast(GameConfig, self._get_default_game_config())
+            self.puzzle_config = cast(PuzzleConfig, self._get_default_puzzle_config())
+            self.metrics_config = cast(MetricsConfig, self._get_default_metrics_config())

@@ -42,7 +42,7 @@
    - Best move finding speed
    - Tactical accuracy
 
-3. Complete test game using `v7p3r_play.py`:
+3. Complete test game using `play_chess.py`:
    - Run default config, unless custom config is needed
    - Run with all enhancements enabled
    - Check chess_metrics database for results

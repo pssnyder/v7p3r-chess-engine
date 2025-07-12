@@ -40,7 +40,7 @@ Successfully completed the refactor from YAML-based to JSON-based centralized co
 - `configs/default_config.json` - Centralized configuration file
 
 ### Engine Modules
-- `v7p3r_play.py` - Updated to use JSON config, fixed imports
+- `play_chess.py` - Updated to use JSON config, fixed imports
 - `v7p3r_ga.py` - Updated constructor and save methods
 - `v7p3r_ga_training.py` - Updated to use centralized config
 - `v7p3r_ga_ruleset_manager.py` - Converted to JSON format
@@ -139,11 +139,11 @@ ga_config = config_manager.apply_engine_specific_overrides('v7p3r_ga', ga_overri
 ### Basic Engine Initialization
 ```python
 from v7p3r_config import v7p3rConfig
-from v7p3r_play import v7p3rChess
+from play_chess import playChess
 
 # Use default configuration
 config_manager = v7p3rConfig()
-chess_game = v7p3rChess(config_manager.get_config())
+chess_game = playChess(config_manager.get_config())
 ```
 
 ### Custom Game Configuration
@@ -155,7 +155,7 @@ config_manager.set_override('stockfish_config.elo_rating', 2000)
 config_manager.set_override('game_config.game_count', 10)
 
 tournament_config = config_manager.get_config()
-chess_game = v7p3rChess(tournament_config)
+chess_game = playChess(tournament_config)
 ```
 
 ### Engine Training Configuration

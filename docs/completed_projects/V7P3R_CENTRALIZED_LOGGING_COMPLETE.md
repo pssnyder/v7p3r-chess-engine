@@ -19,10 +19,10 @@ All modules have been successfully refactored to use the centralized `v7p3rLogge
 4. ✅ `v7p3r_time.py`
 
 #### Tier 2 - Game Management (Previously Completed) ✅
-5. ✅ `v7p3r_play.py`
+5. ✅ `play_chess.py`
 6. ✅ `v7p3r_ordering.py`
 7. ✅ `v7p3r_pst.py`
-8. ✅ `v7p3r_stockfish_handler.py`
+8. ✅ `stockfish_handler.py`
 
 #### Tier 3 - AI/ML Modules (Completed Today) ✅
 9. ✅ `v7p3r_nn.py` - Centralized logging implemented
@@ -118,7 +118,7 @@ All 20 target files have been successfully refactored:
 - v7p3r_score.py, v7p3r_search.py, v7p3r_rules.py, v7p3r_time.py
 
 **Game Management (4 files)**  
-- v7p3r_play.py, v7p3r_ordering.py, v7p3r_pst.py, v7p3r_stockfish_handler.py
+- play_chess.py, v7p3r_ordering.py, v7p3r_pst.py, stockfish_handler.py
 
 **AI/ML Modules (5 files)**
 - v7p3r_nn.py, v7p3r_nn_training.py, v7p3r_nn_validation.py, v7p3r_rl.py, v7p3r_rl_training.py

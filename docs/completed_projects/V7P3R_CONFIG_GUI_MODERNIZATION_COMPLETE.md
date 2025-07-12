@@ -40,7 +40,7 @@ The V7P3R Config GUI has been modernized to align with the current configuration
 
 ### 5. Game Execution Updates
 
-- Fixed the chess game execution to work with the current v7p3rChess implementation
+- Fixed the chess game execution to work with the current playChess implementation
 - Improved error handling during game initialization and execution
 - Added proper cleanup for temporary files and resources
 

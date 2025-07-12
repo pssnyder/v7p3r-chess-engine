@@ -1,47 +1,25 @@
 """
-Utilities module for v7p3r Chess Engine providing common functionality.
+V7P3R Chess Engine Utilities Module
+
+This module provides common utility functions used across the engine.
+All path-related functionality has been moved to v7p3r_paths.py.
 """
-import os
-import sys
 import datetime
-import datetime
+from pathlib import Path
+from typing import Any, Union, Optional
 
-def resource_path(relative_path: str) -> str:
-    """
-    Get the absolute path to a resource file, works both in development and when packaged.
-    
-    Args:
-        relative_path: The relative path to the resource file
-        
-    Returns:
-        str: The absolute path to the resource
-    """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
-        return os.path.join(base_path, relative_path)
-    except Exception as e:
-        return os.path.join(os.path.dirname(os.path.abspath(__file__)), relative_path)
+from v7p3r_paths import paths  # Central path management
 
-def get_project_root() -> str:
-    """
-    Get the absolute path to the project root directory.
-    
-    Returns:
-        str: The absolute path to the project root
-    """
-    return os.path.dirname(os.path.abspath(__file__))
-
-def ensure_directory_exists(path: str) -> None:
+def ensure_directory_exists(path: Union[str, Path]) -> None:
     """
     Ensure that a directory exists, creating it if necessary.
     
     Args:
-        path: The path to the directory to check/create
+        path: The path to the directory to check/create, can be string or Path
     """
     try:
-        if not os.path.exists(path):
-            os.makedirs(path)
+        path = Path(path)
+        path.mkdir(parents=True, exist_ok=True)
     except Exception as e:
         print(f"Warning: Could not create directory {path}: {e}")
 
@@ -52,4 +30,25 @@ def get_timestamp() -> str:
     Returns:
         str: Current timestamp in YYYY-MM-DD_HH-MM-SS format
     """
-    return datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    return datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%SS")
+
+def get_resource_path(relative_path: Union[str, Path]) -> Path:
+    """
+    Get the absolute path to a resource file. Delegates to paths module.
+    
+    Args:
+        relative_path: The relative path to the resource file
+        
+    Returns:
+        Path: The absolute path to the resource
+    """
+    return paths.get_resource_path(relative_path)
+
+def get_project_root() -> Path:
+    """
+    Get the absolute path to the project root directory. Delegates to paths module.
+    
+    Returns:
+        Path: The absolute path to the project root
+    """
+    return paths.root_dir

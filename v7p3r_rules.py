@@ -455,3 +455,84 @@ class v7p3rRules:
             return 'middlegame'
         else:
             return 'endgame'
+    
+    def is_likely_draw(self, board: chess.Board) -> bool:
+        """
+        Detect likely draw positions including:
+        - Stalemate
+        - Insufficient material
+        - Draw claims (50 move rule, threefold repetition)
+        - Dead/blocked positions
+        """
+        if not board or board.is_game_over():
+            return board.is_stalemate() or board.is_insufficient_material() or board.can_claim_draw()
+            
+        # Basic draw conditions
+        if board.is_stalemate() or board.is_insufficient_material() or board.can_claim_draw():
+            return True
+            
+        # Count pieces by type
+        piece_counts = {
+            'P': len(board.pieces(chess.PAWN, chess.WHITE)),
+            'p': len(board.pieces(chess.PAWN, chess.BLACK)),
+            'N': len(board.pieces(chess.KNIGHT, chess.WHITE)),
+            'n': len(board.pieces(chess.KNIGHT, chess.BLACK)),
+            'B': len(board.pieces(chess.BISHOP, chess.WHITE)),
+            'b': len(board.pieces(chess.BISHOP, chess.BLACK)),
+            'R': len(board.pieces(chess.ROOK, chess.WHITE)),
+            'r': len(board.pieces(chess.ROOK, chess.BLACK)),
+            'Q': len(board.pieces(chess.QUEEN, chess.WHITE)),
+            'q': len(board.pieces(chess.QUEEN, chess.BLACK)),
+        }
+        
+        # Total material count
+        total_pieces = sum(piece_counts.values()) + 2  # +2 for kings
+        
+        # K vs K
+        if total_pieces == 2:
+            return True
+            
+        # K+B vs K or K+N vs K
+        if total_pieces == 3:
+            if piece_counts['B'] + piece_counts['b'] + piece_counts['N'] + piece_counts['n'] == 1:
+                return True
+                
+        # K+B vs K+B (same colored bishops)
+        if total_pieces == 4 and piece_counts['B'] + piece_counts['b'] == 2:
+            white_bishop_square = next(iter(board.pieces(chess.BISHOP, chess.WHITE)))
+            black_bishop_square = next(iter(board.pieces(chess.BISHOP, chess.BLACK)))
+            if (white_bishop_square + black_bishop_square) % 2 == 0:  # Same colored squares
+                return True
+                
+        # Check for blocked pawn structure
+        pawns = piece_counts['P'] + piece_counts['p']
+        if pawns > 0 and total_pieces == pawns + 2:  # Only kings and pawns
+            white_pawns = board.pieces(chess.PAWN, chess.WHITE)
+            black_pawns = board.pieces(chess.PAWN, chess.BLACK)
+            
+            all_blocked = True
+            for p in white_pawns:
+                file, rank = chess.square_file(p), chess.square_rank(p)
+                if rank < 7 and not board.piece_at(chess.square(file, rank + 1)):
+                    all_blocked = False
+                    break
+                    
+            if all_blocked:
+                for p in black_pawns:
+                    file, rank = chess.square_file(p), chess.square_rank(p)
+                    if rank > 0 and not board.piece_at(chess.square(file, rank - 1)):
+                        all_blocked = False
+                        break
+                        
+            if all_blocked:
+                return True
+                
+        # Check for K+B+B vs K draw (bishops on same color)
+        if (total_pieces == 4 and piece_counts['B'] == 2 and sum(piece_counts.values()) == 2) or \
+           (total_pieces == 4 and piece_counts['b'] == 2 and sum(piece_counts.values()) == 2):
+            bishops = board.pieces(chess.BISHOP, chess.WHITE) if piece_counts['B'] == 2 else board.pieces(chess.BISHOP, chess.BLACK)
+            bishop_squares = list(bishops)
+            if (bishop_squares[0] + bishop_squares[1]) % 2 == 0:  # Same colored squares
+                return True
+                
+        return False

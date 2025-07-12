@@ -4,7 +4,7 @@ import sys
 from typing import Optional
 import sqlite3
 import chess
-from v7p3r import v7p3rEngine
+from v7p3r_engine import v7p3rEngine
 from v7p3r_config import v7p3rConfig
 
 CONFIG_NAME = 'mvv_lva_test_config'  # Configuration file for MVV-LVA testing
@@ -27,7 +27,7 @@ class v7p3rTuner:
     """
     def __init__(self, config_name: Optional[str] = 'default_config'):
         # Load Configuration
-        self.config_manager = v7p3rConfig(config_name=config_name)
+        self.config_manager = v7p3rConfig(config_path=config_name)
         
         # Get configs
         self.engine_config = self.config_manager.get_engine_config()

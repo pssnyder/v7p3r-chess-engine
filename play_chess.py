@@ -1,4 +1,4 @@
-# v7p3r_play.py
+# play_chess.py
 
 import os
 import sys
@@ -12,13 +12,13 @@ import time
 import random
 from io import StringIO
 from v7p3r_config import v7p3rConfig
-from v7p3r_utilities import resource_path, get_timestamp
+from v7p3r_utilities import get_timestamp
 from v7p3r_metrics import get_metrics_instance, GameMetric, MoveMetric, EngineConfig
 from v7p3r_time import v7p3rTime
 from chess_core import ChessCore
-from pgn_watcher import PGNWatcher
-from v7p3r import v7p3rEngine
-from v7p3r_stockfish_handler import StockfishHandler
+from v7p3r_pgn_watcher import PGNWatcher
+from v7p3r_engine import v7p3rEngine
+from stockfish_handler import StockfishHandler
 import asyncio
 
 CONFIG_NAME = "default_config"
@@ -30,7 +30,7 @@ parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 
-class v7p3rChess:
+class playChess:
     def __init__(self, config_name: Optional[str] = None):
         """Initialize the chess game with configuration."""
         # Initialize Pygame (even in headless mode, for internal timing)
@@ -45,7 +45,7 @@ class v7p3rChess:
             if config_name is None:
                 self.config_manager = v7p3rConfig()
             else:
-                self.config_manager = v7p3rConfig(config_name=config_name)
+                self.config_manager = v7p3rConfig(config_path=config_name)
                 
             self.config = self.config_manager.get_config()
             self.game_config = self.config_manager.get_game_config()
@@ -152,7 +152,7 @@ class v7p3rChess:
                     use_quiescence_search=self.engine_config.get('use_quiescence_search', True),
                     use_move_ordering=self.engine_config.get('use_move_ordering', True),
                     hash_size_mb=self.engine_config.get('hash_size', 128),
-                    additional_params=self.engine_config
+                    additional_params=self.engine_config.get('additional_params', {})  # Convert EngineConfig to a dictionary
                 )
                 task = asyncio.create_task(self.metrics.save_engine_config(config))
                 await task
@@ -430,8 +430,8 @@ class v7p3rChess:
                         movetime = time_control['wtime'] if self.current_player else time_control['btime']
                         stockfish_config['movetime'] = min(movetime // 30, 5000)  # Use ~1/30th of remaining time, max 5 seconds
                     
-                    # Get move from Stockfish
-                    engine_move = self.stockfish.search(self.chess_core.board, self.current_player, stockfish_config)
+                    # Get move from Stockfish (convert TypedDict to regular dict)
+                    engine_move = self.stockfish.search(self.chess_core.board, self.current_player, dict(stockfish_config))
                     if not engine_move or not isinstance(engine_move, chess.Move):
                         print("Warning: Invalid move from Stockfish, using random move")
                         legal_moves = list(self.chess_core.board.legal_moves)
@@ -513,7 +513,7 @@ class v7p3rChess:
             self.chess_core.quick_save_pgn("games/error_game.pgn")
 
 async def main():
-    game = v7p3rChess()
+    game = playChess()
     await game.run()
 
 if __name__ == "__main__":

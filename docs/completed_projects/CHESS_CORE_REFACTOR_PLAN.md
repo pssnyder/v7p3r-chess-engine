@@ -1,7 +1,7 @@
 # Chess Core Refactor Plan
 
 ## Overview
-Refactor the `v7p3rChess` class by extracting generic chess functionality into a new `ChessCore` class in `chess_core.py`. This will reduce file size and improve maintainability while preserving all existing functionality.
+Refactor the `playChess` class by extracting generic chess functionality into a new `ChessCore` class in `chess_core.py`. This will reduce file size and improve maintainability while preserving all existing functionality.
 
 ## Proposed Architecture
 
@@ -31,8 +31,8 @@ Location: `chess_core.py`
 - `_format_time_for_display()`
 - Basic board state properties
 
-### v7p3rChess Class (Engine-Specific Components)
-Location: `v7p3r_play.py`
+### playChess Class (Engine-Specific Components)
+Location: `play_chess.py`
 
 **Responsibilities:**
 - V7P3R engine initialization and management
@@ -64,8 +64,8 @@ Location: `v7p3r_play.py`
 3. Add basic logging support
 4. Ensure all methods are engine-agnostic
 
-### Phase 2: Modify v7p3rChess to Inherit from ChessCore
-1. Change `v7p3rChess` to inherit from `ChessCore`
+### Phase 2: Modify playChess to Inherit from ChessCore
+1. Change `playChess` to inherit from `ChessCore`
 2. Remove duplicated methods that are now in the base class
 3. Override methods where engine-specific behavior is needed
 4. Maintain all existing functionality and interfaces
@@ -86,12 +86,12 @@ Location: `v7p3r_play.py`
 ## Risk Mitigation
 - Preserve all existing method signatures
 - Maintain backward compatibility
-- Keep the same public interface for v7p3rChess
+- Keep the same public interface for playChess
 - Thorough testing before considering complete
 
 ## Files to be Modified
 - `chess_core.py` - New core chess functionality
-- `v7p3r_play.py` - Simplified to engine-specific logic only
+- `play_chess.py` - Simplified to engine-specific logic only
 
 ## Dependencies
 No new external dependencies required. All existing imports and functionality preserved.

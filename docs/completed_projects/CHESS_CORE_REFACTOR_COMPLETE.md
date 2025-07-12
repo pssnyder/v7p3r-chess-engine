@@ -1,7 +1,7 @@
 # Chess Core Refactor Implementation Summary
 
 ## Overview
-Successfully completed the refactoring of the `v7p3rChess` class by extracting generic chess functionality into a new `ChessCore` base class. This has significantly reduced the size of `v7p3r_play.py` and improved code organization.
+Successfully completed the refactoring of the `playChess` class by extracting generic chess functionality into a new `ChessCore` base class. This has significantly reduced the size of `play_chess.py` and improved code organization.
 
 ## Implementation Completed
 
@@ -18,7 +18,7 @@ Successfully completed the refactoring of the `v7p3rChess` class by extracting g
 - PGN header management (`set_headers`)
 - Game information tracking (`get_game_info`)
 
-### 2. v7p3rChess Class Refactored (`v7p3r_play.py`)
+### 2. playChess Class Refactored (`play_chess.py`)
 **Now Inherits from ChessCore:**
 - Removed ~400 lines of duplicate code
 - Focused on engine-specific functionality
@@ -49,11 +49,11 @@ class ChessCore:
     # ... other core methods
 ```
 
-#### v7p3rChess Inheritance
+#### playChess Inheritance
 ```python
-class v7p3rChess(ChessCore):
+class playChess(ChessCore):
     def __init__(self, config_name: Optional[str] = None):
-        super().__init__(logger_name="v7p3r_play")
+        super().__init__(logger_name="play_chess")
         # Engine-specific initialization
     
     def new_game(self):
@@ -78,7 +78,7 @@ class v7p3rChess(ChessCore):
 ✓ Logging system integrated properly
 
 ### 5. Benefits Achieved
-- **Code Size Reduction**: ~400 lines removed from `v7p3r_play.py`
+- **Code Size Reduction**: ~400 lines removed from `play_chess.py`
 - **Better Organization**: Clear separation between generic chess and engine logic
 - **Reusability**: `ChessCore` can be used for other chess applications
 - **Maintainability**: Smaller, focused files are easier to work with
@@ -87,7 +87,7 @@ class v7p3rChess(ChessCore):
 ### 6. Testing Results
 - ✅ Files compile without errors
 - ✅ ChessCore can be instantiated independently  
-- ✅ v7p3rChess import successful
+- ✅ playChess import successful
 - ✅ Basic move functionality working
 - ✅ PGN generation working
 - ✅ Evaluation display working
@@ -95,7 +95,7 @@ class v7p3rChess(ChessCore):
 
 ## Files Modified
 - `chess_core.py` - New core chess functionality (292 lines)
-- `v7p3r_play.py` - Simplified to engine-specific logic (~500 lines reduced)
+- `play_chess.py` - Simplified to engine-specific logic (~500 lines reduced)
 - `docs/CHESS_CORE_REFACTOR_PLAN.md` - Implementation plan
 - `docs/CHESS_CORE_REFACTOR_COMPLETE.md` - This summary
 

@@ -22,7 +22,7 @@ Update the v7p3r_config_gui.py to align with current system architecture and fix
 
 ### 4. Modern GUI Features
 - Update engine options based on available modules
-- Fix import issues with v7p3rChess
+- Fix import issues with playChess
 - Support all configuration sections
 - Improve user experience with better validation
 
@@ -55,7 +55,7 @@ Update the v7p3r_config_gui.py to align with current system architecture and fix
 
 ### Phase 5: Testing and Validation
 1. Test config saving/loading
-2. Verify integration with v7p3rChess
+2. Verify integration with playChess
 3. Ensure all features work correctly
 
 ## Expected Outcome

@@ -218,6 +218,12 @@ class v7p3rPST:
         
         return table_value
     
+    def get_piece_square_value(self, piece_type, square, is_white, endgame_factor=0.0):
+        """Wrapper to use existing PST tables with the new interface.
+        This maintains compatibility without modifying the core PST logic."""
+        piece = chess.Piece(piece_type, chess.WHITE if is_white else chess.BLACK)
+        return self.get_pst_value(piece, square, piece.color, endgame_factor)
+    
     def evaluate_board_position(self, board, endgame_factor=0.0):
         """
         Evaluate the entire board using piece-square tables.

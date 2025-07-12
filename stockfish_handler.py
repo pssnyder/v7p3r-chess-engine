@@ -1,4 +1,4 @@
-# v7p3r_stockfish_handler.py
+# stockfish_handler.py
 
 import subprocess
 import threading
@@ -8,7 +8,7 @@ import time
 import sys
 import os
 from typing import Optional, Dict, Any, Callable
-from v7p3r_utilities import resource_path
+from v7p3r_paths import paths
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if parent_dir not in sys.path:
@@ -52,7 +52,7 @@ class StockfishHandler:
             if os.name == 'nt': # If Windows
                 creationflags = subprocess.CREATE_NO_WINDOW
 
-            stockfish_executable = resource_path(self.stockfish_path)
+            stockfish_executable = str(paths.get_resource_path(self.stockfish_path))
             
             # Try to verify Stockfish executable is valid
             if not os.path.exists(stockfish_executable):

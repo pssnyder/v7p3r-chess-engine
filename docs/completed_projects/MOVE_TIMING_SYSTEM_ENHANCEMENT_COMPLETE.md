@@ -94,7 +94,7 @@ All timing precision levels working correctly:
 - **Display**: Smart formatting based on magnitude
 
 ## Files Modified
-- `v7p3r_play.py`: 
+- `play_chess.py`: 
   - Added `_format_time_for_display()` method
   - Fixed timing calculation order
   - Updated display and logging precision

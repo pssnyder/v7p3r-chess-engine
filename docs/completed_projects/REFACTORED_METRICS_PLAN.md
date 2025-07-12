@@ -16,7 +16,7 @@ This document outlines the comprehensive refactoring of the V7P3R chess engine's
   - Position analysis (game phase, material balance, move classification)
   - Engine configuration tracking
 
-### 2. **Updated Game Play Integration** (`v7p3r_play.py`)
+### 2. **Updated Game Play Integration** (`play_chess.py`)
 - **Integration**: Refactored collector is now used in the main game loop
 - **Features**:
   - Automatic detection of refactored vs legacy metrics systems
@@ -187,7 +187,7 @@ python metrics/chess_metrics.py
 ### 2. **Test Complete Game Pipeline** (IMMEDIATE)
 ```bash
 # Run a complete game with v7p3r vs v7p3r to verify end-to-end metrics
-python v7p3r_play.py
+python play_chess.py
 # Then verify analytics
 python -m metrics.refactored_analytics_processor
 ```
@@ -248,7 +248,7 @@ python -m metrics.refactored_analytics_processor
 - ✅ `metrics/enhanced_metrics_store.py`
 - ✅ `metrics/refactored_analytics_processor.py`
 - ✅ `metrics/chess_metrics.py` (Dashboard)
-- ✅ `v7p3r_play.py` (Integration)
+- ✅ `play_chess.py` (Integration)
 
 ### 🎯 RECOMMENDED NEXT STEPS
 

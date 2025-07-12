@@ -20,7 +20,7 @@ if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 
 from v7p3r_config import v7p3rConfig
-from v7p3r_play import v7p3rChess
+from play_chess import playChess
 from v7p3r_score import v7p3rScore
 from v7p3r_search import v7p3rSearch
 from v7p3r_mvv_lva import v7p3rMVVLVA
@@ -40,7 +40,7 @@ class TestSearchImprovements(unittest.TestCase):
         })
         
         # Initialize engine components
-        self.engine = v7p3rChess('test_search_config.json')
+        self.engine = playChess('test_search_config.json')
         self.search = self.engine.engine.search_engine
         self.evaluator = self.engine.engine.scoring_calculator
         self.mvv_lva = self.engine.engine.search_engine.move_organizer.mvv_lva

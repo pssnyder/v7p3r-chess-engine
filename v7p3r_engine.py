@@ -83,16 +83,12 @@ class v7p3rEngine:
         self.pst = v7p3rPST()
         self.rules_manager = v7p3rRules(self.ruleset_name, self.pst)
         self.scoring_calculator = v7p3rScore(self.rules_manager, self.pst)
-        self.move_organizer = v7p3rOrdering(scoring_calculator=self.scoring_calculator)
+        self.ordering = v7p3rOrdering(scoring_calculator=self.scoring_calculator)
         self.time_manager = v7p3rTime()
         self.opening_book = v7p3rBook()
         self.search_engine = v7p3rSearch(
             self.scoring_calculator,
-            self.move_organizer,
-            self.time_manager,
-            self.opening_book,
-            self.rules_manager,
-            self.engine_config
+            self.time_manager
         )
         
         # State tracking
@@ -136,7 +132,7 @@ class v7p3rEngine:
                 time.time() - start_time
             )
             
-            return move
+            return move if move else chess.Move.null()
             
         except Exception as e:
             print(f"Error in get_move: {str(e)}")

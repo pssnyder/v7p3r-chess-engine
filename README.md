@@ -21,12 +21,12 @@ A sophisticated chess engine featuring advanced search algorithms, position eval
 
 2. Play against the engine:
    ```bash
-   python v7p3r_play.py
+   python play_chess.py
    ```
 
 3. Analyze a position:
    ```bash
-   python v7p3r.py --analyze "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+   python v7p3r_engine.py --analyze "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
    ```
 
 ---
@@ -34,7 +34,7 @@ A sophisticated chess engine featuring advanced search algorithms, position eval
 ## Core Engine Components
 
 ### v7p3r_engine (Traditional Engine)
-- `v7p3r.py` — Main engine logic and UCI interface
+- `v7p3r_engine.py` — Main engine logic and UCI interface
 - `v7p3r_search.py` — Alpha-beta search implementation  
 - `v7p3r_score.py` — Position evaluation and scoring
 - `v7p3r_ordering.py` — Move ordering for search optimization
@@ -42,7 +42,7 @@ A sophisticated chess engine featuring advanced search algorithms, position eval
 - `v7p3r_time.py` — Time management for tournament play
 - `v7p3r_pst.py` — Piece-square tables for evaluation
 - `stockfish_handler.py` — Interface for Stockfish integration
-- `v7p3r_play.py` — Interactive play interface
+- `play_chess.py` — Interactive play interface
 - `rulesets.yaml` — Configuration for different playing styles
 
 ---
@@ -77,10 +77,10 @@ Customize engine behavior by editing the appropriate configuration files before 
 ### Traditional Engine
 ```bash
 # Play a game against the traditional engine
-python v7p3r_play.py
+python play_chess.py
 
 # Analyze a position
-python v7p3r.py --analyze "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+python v7p3r_engine.py --analyze "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 ```
 
 ---
@@ -105,7 +105,7 @@ See [TEST_GUIDE.md](docs/TEST_GUIDE.md) for detailed instructions and interpreta
 ## Core Engine Components
 
 ### v7p3r_engine (Traditional Engine)
-- `v7p3r.py` — Main engine logic and UCI interface
+- `v7p3r_engine.py` — Main engine logic and UCI interface
 - `v7p3r_search.py` — Alpha-beta search implementation  
 - `v7p3r_score.py` — Position evaluation and scoring
 - `v7p3r_ordering.py` — Move ordering for search optimization
@@ -113,7 +113,7 @@ See [TEST_GUIDE.md](docs/TEST_GUIDE.md) for detailed instructions and interpreta
 - `v7p3r_time.py` — Time management for tournament play
 - `v7p3r_pst.py` — Piece-square tables for evaluation
 - `stockfish_handler.py` — Interface for Stockfish integration
-- `v7p3r_play.py` — Interactive play interface
+- `play_chess.py` — Interactive play interface
 - `rulesets.yaml` — Configuration for different playing styles
 
 ### v7p3r_nn_engine (Neural Network Engine)
@@ -236,10 +236,10 @@ The v7p3r engine offers four distinct approaches:
 ### Traditional Engine
 ```bash
 # Play a game against the traditional engine
-python v7p3r_play.py
+python play_chess.py
 
 # Analyze a position
-python v7p3r.py --analyze "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+python v7p3r_engine.py --analyze "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 ```
 
 ### Neural Network Engine  

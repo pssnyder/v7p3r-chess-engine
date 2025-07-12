@@ -38,7 +38,7 @@
 **Impact:** MEDIUM - Could cause evaluation inconsistencies during search
 
 ### 4. **POTENTIAL: Game Display Evaluation**
-**Location:** `v7p3r_play.py` line 354  
+**Location:** `play_chess.py` line 354  
 **Issue:** Uses `evaluate_position()` for display - should always show from White's perspective
 **Expected Behavior:** Should consistently show White's perspective for game display
 **Impact:** MEDIUM - Could confuse evaluation display

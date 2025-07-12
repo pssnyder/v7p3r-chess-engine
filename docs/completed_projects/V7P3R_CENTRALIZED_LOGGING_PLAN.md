@@ -9,14 +9,14 @@ After analyzing the existing codebase, the following v7p3r modules currently hav
 ### Files with Redundant Logging Setup (19 files):
 1. `v7p3r_score.py`
 2. `v7p3r_time.py`
-3. `v7p3r_stockfish_handler.py`
+3. `stockfish_handler.py`
 4. `v7p3r_search.py`
 5. `v7p3r_rules.py`
 6. `v7p3r_rl_training.py`
 7. `v7p3r_rl.py`
 8. `v7p3r_pst.py`
 9. `v7p3r_ordering.py`
-10. `v7p3r_play.py`
+10. `play_chess.py`
 11. `v7p3r_nn_validation.py`
 12. `v7p3r_nn_training.py`
 13. `v7p3r_nn.py`
@@ -123,10 +123,10 @@ Refactor modules in order of complexity/dependency:
 4. `v7p3r_time.py`
 
 #### Tier 2 - Game Management:
-5. `v7p3r_play.py`
+5. `play_chess.py`
 6. `v7p3r_ordering.py`
 7. `v7p3r_pst.py`
-8. `v7p3r_stockfish_handler.py`
+8. `stockfish_handler.py`
 
 #### Tier 3 - AI/ML Modules:
 9. `v7p3r_nn.py`

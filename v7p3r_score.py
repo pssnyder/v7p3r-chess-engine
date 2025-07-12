@@ -13,6 +13,7 @@ from typing import Optional
 from v7p3r_config import v7p3rConfig
 from v7p3r_utilities import get_timestamp
 from v7p3r_mvv_lva import v7p3rMVVLVA
+from v7p3r_tempo import v7p3rTempo  # Import tempo assessment
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if parent_dir not in sys.path:
@@ -30,6 +31,7 @@ class v7p3rScore:
         self.pst = pst
         self.rules_manager = rules_manager
         self.mvv_lva = v7p3rMVVLVA(rules_manager)
+        self.tempo = v7p3rTempo(self.config_manager, pst, rules_manager)  # Add tempo manager
 
         # Scoring Setup
         self.ruleset_name = self.engine_config.get('ruleset', 'default_ruleset')
@@ -75,6 +77,7 @@ class v7p3rScore:
             'pst_score': 0.0,
             'piece_captures_score': 0.0,
             'castling_score': 0.0,
+            'tempo_score': 0.0,  # Add tempo score
             'total_score': 0.0,
         }
 
@@ -198,83 +201,75 @@ class v7p3rScore:
                 
         return score
 
-    def evaluate_position(self, board: chess.Board, depth: int = 0) -> float:
-        """Evaluate a chess position following the strict evaluation hierarchy.
-        
-        Hierarchy:
-        1. Checkmate evaluation
-        2. Stalemate evaluation
-        3. Primary scoring (Material, PST)
-        4. Secondary scoring (Mobility, Castling rights)
-        """
-        # 1. Checkmate Evaluation (highest priority)
-        if board.is_checkmate():
-            if board.turn == chess.WHITE:
-                return float('-inf')  # Black wins
-            else:
-                return float('inf')   # White wins
-                
-        # 2. Stalemate Evaluation
-        if board.is_stalemate():
-            return 0.0  # Draw score, but we'll try to avoid this earlier in search
-            
-        # 3. Primary Scoring Components
+    def evaluate_position(self, board: chess.Board, color: chess.Color = chess.WHITE) -> float:
+        """Evaluate a chess position for the given color."""
+        # Initialize score accumulator
         score = 0.0
-        if self.use_primary_scoring:
-            # Material and PST evaluation
-            score += self._calculate_material_score(board)
-            score += self._calculate_pst_score(board)
-            
-            # MVV-LVA component for captures
-            if self.use_mvv_lva and board.move_stack:
-                last_move = board.peek()
-                if board.is_capture(last_move):
-                    score += self.mvv_lva.calculate_mvv_lva_score(last_move, board)
-                
-        # 4. Secondary Scoring Components
-        if self.use_secondary_scoring:
-            # Castling evaluation
-            score += self._evaluate_castling_status(board)
-            # Mobility evaluation
-            score += self._evaluate_mobility(board)
-            
-        # Perspective adjustment
-        return score if board.turn == chess.WHITE else -score
-    
-    def evaluate_position_from_perspective(self, board: chess.Board, color: Optional[chess.Color] = chess.WHITE) -> float:
-        """Calculate position evaluation from specified player's perspective by delegating to scoring_calculator."""
-        # Ensure we have a proper chess.Color value
-        if color is True or color is False:  # Raw boolean passed in
-            color = chess.WHITE if color else chess.BLACK
-            
-        self.color_name = "White" if color == chess.WHITE else "Black"
         
-        if not isinstance(color, chess.Color) or not board.is_valid():
-            return 0.0
-
-        # Game over checks for quick returns
-        checkmate_threats_modifier = self.ruleset.get('checkmate_threats_modifier', self.fallback_modifier)
-        # Ensure board.turn is converted to chess.Color for comparison
-        current_turn = chess.WHITE if board.turn else chess.BLACK
+        # 1. Check for checkmate/stalemate (highest priority)
         if board.is_checkmate():
-            return -1 * checkmate_threats_modifier if current_turn == color else checkmate_threats_modifier
-        if board.is_stalemate() or board.is_insufficient_material():
-            return 0.0
-
-        # Calculate direct scores for both sides
-        # Use a simplified score calculation for quiescence and deep searches
-        # to improve performance
-        white_score = self.calculate_score(board=board, color=chess.WHITE)
-        black_score = self.calculate_score(board=board, color=chess.BLACK)
-        
-        # Convert to score from the requested perspective
-        if color == chess.WHITE:
-            score = white_score - black_score
-        else:
-            score = black_score - white_score
+            return -1000000.0 if board.turn == color else 1000000.0
+        if board.is_stalemate():
+            return self.tempo.stalemate_modifier
             
-        self.score_dataset['evaluation'] = score
-        return score
+        # 2. Check for draws (second priority)
+        if board.is_repetition(3) or board.is_fifty_moves() or board.is_insufficient_material():
+            return self.tempo.draw_modifier
+
+        # 3. Get comprehensive position assessment (new)
+        assessment = self.tempo.assess_position(board, color)
+        phase = assessment['game_phase']
+        endgame_factor = assessment['endgame_factor']
+        tempo_score = assessment['tempo_score']
+        risk_score = assessment['risk_score']
+        zugzwang_risk = assessment['zugzwang_risk']
+        
+        # 4. Primary scoring components
+        if self.use_primary_scoring:
+            material_score = self._evaluate_material(board)
+            pst_score = self._evaluate_piece_square_tables(board)
+            mvv_lva_score = 0.0
+            if self.use_mvv_lva:
+                for move in board.legal_moves:
+                    mvv_lva_score += self.mvv_lva.calculate_mvv_lva_score(move, board) * (1 if board.turn == color else -1)
+            
+            # Apply phase-based weights
+            score += material_score * (1.0 + 0.2 * endgame_factor)  # Material more important in endgame
+            score += pst_score * (1.2 - 0.4 * endgame_factor)      # PST less important in endgame
+            score += mvv_lva_score * (1.0 - 0.3 * endgame_factor)  # Tactics less important in endgame
+
+        # 5. Secondary scoring components
+        if self.use_secondary_scoring:
+            castling_score = self._evaluate_castling(board)
+            captures_score = self._evaluate_piece_captures(board)
+            
+            # Apply phase-based weights
+            score += castling_score * (1.0 - endgame_factor)        # Castling irrelevant in endgame
+            score += captures_score * (1.0 + 0.5 * endgame_factor)  # Captures more important in endgame
+            
+        # 6. Apply tempo and risk adjustments
+        score += tempo_score * (1.0 + 0.5 * endgame_factor)  # Tempo more important in endgame
+        score += risk_score * (-1.0 if material_score > 0 else 0.5)  # Avoid risks when ahead
+        
+        # 7. Zugzwang handling
+        if zugzwang_risk < -0.5 and endgame_factor > 0.6:
+            score *= 0.8  # Significant penalty for zugzwang-prone positions in endgame
+        
+        # Update position history
+        self.tempo.update_position_score(board, score)
+        
+        # Update score dataset
+        self.score_dataset.update({
+            'fen': board.fen(),
+            'game_phase': phase,
+            'endgame_factor': endgame_factor,
+            'tempo_score': tempo_score,
+            'risk_score': risk_score,
+            'zugzwang_risk': zugzwang_risk,
+            'total_score': score
+        })
+        
+        return score if board.turn == color else -score
     
     # ==========================================
     # ========== GAME PHASE CALCULATION ========
@@ -503,3 +498,99 @@ class v7p3rScore:
         board.turn = original_turn
         
         return (white_mobility - black_mobility) * mobility_value
+
+    def _calculate_primary_score(self, board: chess.Board) -> float:
+        """Calculate primary score including material, PST, and MVV-LVA."""
+        if not self.use_primary_scoring:
+            return 0.0
+            
+        # Get material score
+        material_score = self._evaluate_material(board) * self.ruleset.get('material_weight', 1.0)
+        
+        # Get piece-square table score
+        pst_score = self.pst.evaluate_board_position(board) * self.ruleset.get('pst_weight', 0.5)
+        
+        # Get MVV-LVA based tactical score
+        tactical_score = 0.0
+        if self.use_mvv_lva:
+            for move in board.legal_moves:
+                if board.is_capture(move):
+                    # Add capture evaluation
+                    tactical_score += self.mvv_lva.calculate_mvv_lva_score(move, board)
+                # Add tactical pattern score
+                tactical_score += self.mvv_lva.evaluate_tactical_pattern(board, move)
+            tactical_score *= self.ruleset.get('tactical_weight', 0.3)
+        
+        # Update score dataset
+        self.score_dataset.update({
+            'material_score': material_score,
+            'pst_score': pst_score,
+            'piece_captures_score': tactical_score
+        })
+        
+        return material_score + pst_score + tactical_score
+
+    def _evaluate_piece_square_tables(self, board: chess.Board) -> float:
+        """Evaluate piece positions using piece-square tables."""
+        score = 0.0
+        for square in chess.SQUARES:
+            piece = board.piece_at(square)
+            if piece is None:
+                continue
+                
+            # Get PST value for the piece at its current position
+            score += self.pst.get_piece_square_value(piece.piece_type, square, piece.color == chess.WHITE)
+            
+        return score
+            
+    def _evaluate_castling(self, board: chess.Board) -> float:
+        """Evaluate castling status and king safety."""
+        score = 0.0
+        castling_bonus = 0.3  # Base bonus for having castling rights
+        
+        # Check white's castling rights
+        if board.has_kingside_castling_rights(chess.WHITE):
+            score += castling_bonus
+        if board.has_queenside_castling_rights(chess.WHITE):
+            score += castling_bonus
+            
+        # Check black's castling rights
+        if board.has_kingside_castling_rights(chess.BLACK):
+            score -= castling_bonus
+        if board.has_queenside_castling_rights(chess.BLACK):
+            score -= castling_bonus
+            
+        # Additional bonus if already castled
+        white_king_square = board.king(chess.WHITE)
+        black_king_square = board.king(chess.BLACK)
+        
+        if white_king_square is not None and white_king_square in (chess.G1, chess.C1):
+            score += 0.5  # Bonus for completed castling
+        if black_king_square is not None and black_king_square in (chess.G8, chess.C8):
+            score -= 0.5  # Bonus for completed castling
+            
+        return score
+        
+    def _evaluate_piece_captures(self, board: chess.Board) -> float:
+        """Evaluate piece capture potential using MVV-LVA."""
+        score = 0.0
+        
+        # Get all legal moves
+        for move in board.legal_moves:
+            if board.is_capture(move):
+                score += self.mvv_lva.calculate_mvv_lva_score(move, board)
+        
+        self.score_dataset['piece_captures_score'] = score
+        return score
+        
+    def _evaluate_tactical_patterns(self, board: chess.Board) -> float:
+        """Evaluate tactical patterns and threats."""
+        score = 0.0
+        
+        # Include MVV-LVA based tactical evaluation
+        capture_score = self._evaluate_piece_captures(board)
+        score += capture_score * 0.5  # Weight for tactical evaluation
+        
+        # Store scores
+        self.score_dataset['tactical_pattern_score'] = score
+        return score

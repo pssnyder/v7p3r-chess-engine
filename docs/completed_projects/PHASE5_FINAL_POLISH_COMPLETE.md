@@ -100,7 +100,7 @@ White (v7p3r): e2e4 (0.500s) [Eval: +2.80]
 - **PGN accuracy**: Comments use consistent evaluation format
 
 ## Files Modified
-- `v7p3r_play.py`: Fixed verbose output default, evaluation display, timing display, PGN comments
+- `play_chess.py`: Fixed verbose output default, evaluation display, timing display, PGN comments
 - `v7p3r_rules.py`: Fixed PST method call parameters
 
 ## Tests Created

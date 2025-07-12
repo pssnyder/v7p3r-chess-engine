@@ -35,7 +35,7 @@ The comprehensive refactoring of the V7P3R chess engine's metrics system has bee
 - **Features**: Performance analysis, game statistics, engine comparison, comprehensive reporting
 
 #### **4. Updated Game Integration**
-- **File**: `v7p3r_play.py`
+- **File**: `play_chess.py`
 - **Status**: ✅ OPERATIONAL
 - **Features**: Seamless integration with refactored collector, fallback to legacy systems
 
@@ -115,7 +115,7 @@ The refactored system maintains full backwards compatibility:
 ```
 Game Engine → Dataset Population → Metrics Collection → Database Storage → Analytics Processing → Dashboard Visualization
      ↓              ↓                      ↓                    ↓                    ↓                    ↓
-v7p3r_play.py → search_dataset/    → RefactoredEnhanced → chess_metrics_v2.db → RefactoredAnalytics → chess_metrics.py
+play_chess.py → search_dataset/    → RefactoredEnhanced → chess_metrics_v2.db → RefactoredAnalytics → chess_metrics.py
                 score_dataset         MetricsCollector                         Processor              /dashboard.html
 ```
 
@@ -125,7 +125,7 @@ v7p3r_play.py → search_dataset/    → RefactoredEnhanced → chess_metrics_v2
 - ✅ `metrics/refactored_analytics_processor.py` (NEW)
 - ✅ `metrics/chess_metrics.py` (UPDATED)
 - ✅ `web_applications/metrics_dashboard.html` (NEW)
-- ✅ `v7p3r_play.py` (UPDATED)
+- ✅ `play_chess.py` (UPDATED)
 - ✅ Test scripts and validation tools (NEW)
 
 ## 🔮 FUTURE ENHANCEMENTS (OPTIONAL)
