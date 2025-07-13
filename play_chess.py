@@ -16,7 +16,7 @@ from v7p3r_utilities import get_timestamp
 from metrics import get_metrics_instance, GameMetric, MoveMetric, EngineConfig
 from v7p3r_time import v7p3rTime
 from chess_core import ChessCore
-from v7p3r_pgn_watcher import PGNWatcher
+from pgn_watcher import PGNWatcher
 from v7p3r_engine import v7p3rEngine
 from stockfish_handler import StockfishHandler
 import asyncio

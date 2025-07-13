@@ -1,5 +1,11 @@
-![A chess board with pieces arranged mid-game, viewed from above, focused on the center area of the board.][image1]  
-Chess AI Design and Evaluation Rule Statements  
+---
+applyTo: '**'
+---
+Coding standards, domain knowledge, and preferences that AI should follow.
+
+The following is the current expected design and evaluation rule statements for the v7p3r chess engine.
+
+# v7p3r Chess Engine Design and Evaluation Rule Statements  
 This document serves as a living design and brainstorming document outlining the current engine's functional goals and expectations.
 
 **Engine Configuration:**

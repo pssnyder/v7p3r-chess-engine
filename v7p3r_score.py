@@ -608,3 +608,48 @@ class v7p3rScore:
         # Store scores
         self.score_dataset['tactical_pattern_score'] = score
         return score
+
+    def score_move(self, move: chess.Move, board: chess.Board) -> int:
+        """Score a move based on various scoring factors.
+        This method is used by the move ordering module to prioritize moves.
+        
+        Args:
+            move: The move to score
+            board: The current board position
+            
+        Returns:
+            int: A score representing the estimated value of the move
+        """
+        # Use MVV-LVA for captures
+        if board.is_capture(move):
+            return self.mvv_lva.score_move(move, board)
+        
+        # Check for check
+        board.push(move)
+        gives_check = board.is_check()
+        board.pop()
+        
+        if gives_check:
+            return 50  # Bonus for moves that give check
+        
+        # Evaluate positional improvement
+        score = 0
+        
+        # Piece development in opening
+        if self.game_phase == 'opening':
+            piece = board.piece_at(move.from_square)
+            if piece and piece.piece_type in [chess.KNIGHT, chess.BISHOP]:
+                # Bonus for developing pieces in opening
+                if (piece.color == chess.WHITE and chess.square_rank(move.from_square) == 1 and 
+                    chess.square_rank(move.to_square) > 1):
+                    score += 30
+                elif (piece.color == chess.BLACK and chess.square_rank(move.from_square) == 6 and 
+                      chess.square_rank(move.to_square) < 6):
+                    score += 30
+        
+        # Bonus for moves to the center
+        center_squares = [chess.D4, chess.E4, chess.D5, chess.E5]
+        if move.to_square in center_squares:
+            score += 20
+        
+        return score

@@ -1,35 +1,11 @@
 # v7p3r_engine.py
 
 """ v7p3r Engine
-This module impleme        # Engine components initialization in dependency order
-        # 1. Base components without dependencies
-        self.pst = v7p3rPST()
-        self.opening_book = v7p3rBook()
-        self.time_manager = v7p3rTime()
-        
-        # 2. Rules system
-        self.rules = v7p3rRules(self.ruleset_name, self.pst)
-        
-        # 3. Scoring system
-        self.scoring_calculator = v7p3rScore(self.rules, self.pst)
-        
-        # 4. Move organization
-        self.move_organizer = v7p3rOrdering(self.scoring_calculator)
-        
-        # 5. Main search engine with all dependencies
-        self.search_engine = v7p3rSearch(
-            self.scoring_calculator,
-            self.move_organizer,
-            self.time_manager,
-            self.opening_book,
-            self.rules,
-            self.engine_config
-        )gine for the v7p3r chess AI.
+This module implements the main engine for the v7p3r chess AI.
 It provides handler functionality for search algorithms, evaluation functions, and move ordering
 """
 
 import chess
-
 import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
@@ -41,6 +17,7 @@ from v7p3r_book import v7p3rBook
 from v7p3r_pst import v7p3rPST
 from v7p3r_config import v7p3rConfig
 from v7p3r_rules import v7p3rRules
+from v7p3r_mvv_lva import v7p3rMVVLVA
 
 # =====================================
 # ========== ENGINE CLASS =============
@@ -83,7 +60,8 @@ class v7p3rEngine:
         self.pst = v7p3rPST()
         self.rules_manager = v7p3rRules(self.ruleset_name, self.pst)
         self.scoring_calculator = v7p3rScore(self.rules_manager, self.pst)
-        self.ordering = v7p3rOrdering(scoring_calculator=self.scoring_calculator)
+        self.mvv_lva = v7p3rMVVLVA(self.rules_manager)
+        self.ordering = v7p3rOrdering(mvv_lva=self.mvv_lva)
         self.time_manager = v7p3rTime()
         self.opening_book = v7p3rBook()
         self.search_engine = v7p3rSearch(
@@ -128,7 +106,7 @@ class v7p3rEngine:
             # 5. Update engine state
             self._update_state(
                 self.scoring_calculator.evaluate_position(board),
-                self.search_engine.nodes_searched,
+                getattr(self.search_engine, 'nodes_searched', 0),
                 time.time() - start_time
             )
             

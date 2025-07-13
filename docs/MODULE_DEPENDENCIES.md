@@ -27,7 +27,7 @@ graph TD
 
     L[play_chess.py] --> A
     L --> M[metrics.py]
-    L --> N[v7p3r_pgn_watcher.py]
+    L --> N[pgn_watcher.py]
     
     O[puzzle_tuner.py] --> A
     O --> K
@@ -77,7 +77,7 @@ graph TD
 ### Interface Modules
 - `play_chess.py`: Game play interface
 - `metrics.py`: Performance metrics
-- `v7p3r_pgn_watcher.py`: PGN file monitoring
+- `pgn_watcher.py`: PGN file monitoring
 - `puzzle_tuner.py`: Real-time engine tuning
 
 ## Current Issues
