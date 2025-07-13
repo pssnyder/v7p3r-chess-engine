@@ -26,7 +26,7 @@ class v7p3rRules:
         self.game_config = self.config_manager.get_game_config()
         
         # Initialize MVV-LVA calculator
-        self.mvv_lva = v7p3rMVVLVA(self)
+        self.mvv_lva = v7p3rMVVLVA()
         
         # Initialize piece values
         self.piece_values = self.engine_config.get('piece_values', {
@@ -51,6 +51,8 @@ class v7p3rRules:
         # Initialize scoring counters
         self.score_counter = 0
         self.score_id = f"score[{self.score_counter}]_{get_timestamp()}"
+        
+        self.cached_legal_moves = {}
         
     def _create_default_pst(self):
         """Create a default piece-square table handler with basic functionality"""
@@ -392,6 +394,134 @@ class v7p3rRules:
                 board_copy.pop()
                     
         return chess.Move.null()
+
+    def is_check(self, board):
+        """Determine if the current player is in check"""
+        return board.is_check()
+        
+    def is_checkmate(self, board):
+        """Determine if the current player is in checkmate"""
+        return board.is_checkmate()
+        
+    def is_stalemate(self, board):
+        """Determine if the position is a stalemate"""
+        return board.is_stalemate()
+        
+    def get_legal_moves(self, board):
+        """Get all legal moves in the current position"""
+        board_hash = board.fen()
+        if board_hash in self.cached_legal_moves:
+            return self.cached_legal_moves[board_hash]
+            
+        legal_moves = list(board.legal_moves)
+        self.cached_legal_moves[board_hash] = legal_moves
+        return legal_moves
+        
+    def has_insufficient_material(self, board):
+        """Check if there is insufficient material to checkmate"""
+        return board.is_insufficient_material()
+        
+    def is_threefold_repetition(self, board):
+        """Check if the position has been repeated three times"""
+        return board.is_repetition(3)
+        
+    def is_fifty_move_rule(self, board):
+        """Check if fifty moves have been made without a pawn move or capture"""
+        return board.halfmove_clock >= 100
+        
+    def has_castling_rights(self, board, color):
+        """Check if a player still has castling rights"""
+        if color == chess.WHITE:
+            return bool(board.castling_rights & chess.BB_A1) or bool(board.castling_rights & chess.BB_H1)
+        else:
+            return bool(board.castling_rights & chess.BB_A8) or bool(board.castling_rights & chess.BB_H8)
+            
+    def get_captured_piece(self, board, move):
+        """Get the piece that was captured in a move, if any"""
+        target_square = move.to_square
+        return board.piece_at(target_square)
+        
+    def is_promotion(self, board, move):
+        """Check if a move is a pawn promotion"""
+        return move.promotion is not None
+        
+    def is_en_passant(self, board, move):
+        """Check if a move is an en passant capture"""
+        return board.is_en_passant(move)
+        
+    def get_piece_moves(self, board, square):
+        """Get all legal moves for a piece on a specific square"""
+        piece = board.piece_at(square)
+        if not piece:
+            return []
+            
+        legal_moves = []
+        for move in board.legal_moves:
+            if move.from_square == square:
+                legal_moves.append(move)
+        return legal_moves
+        
+    def is_pinned(self, board, square):
+        """Check if a piece is pinned to its king"""
+        return board.is_pinned(board.turn, square)
+        
+    def get_attacking_pieces(self, board, square, color):
+        """Get all pieces of a given color attacking a square"""
+        return [s for s in board.attackers(color, square)]
+        
+    def get_defended_pieces(self, board, color):
+        """Get all pieces that are defended by friendly pieces"""
+        defended = set()
+        for square in chess.SQUARES:
+            piece = board.piece_at(square)
+            if piece and piece.color == color:
+                if board.attackers(color, square):
+                    defended.add(square)
+        return defended
+        
+    def evaluate_king_safety(self, board, color):
+        """Evaluate the safety of a king"""
+        king_square = board.king(color)
+        if king_square is None:
+            return -float('inf')
+            
+        # Check attacking pieces
+        attackers = len(self.get_attacking_pieces(board, king_square, not color))
+        if attackers > 0:
+            return -100 * attackers
+            
+        # Evaluate pawn shield
+        pawn_shield = 0
+        rank = king_square >> 3
+        file = king_square & 7
+        shield_squares = self._get_pawn_shield_squares(rank, file, color)
+        for square in shield_squares:
+            piece = board.piece_at(square)
+            if piece and piece.piece_type == chess.PAWN and piece.color == color:
+                pawn_shield += 10
+                
+        return pawn_shield
+        
+    def _get_pawn_shield_squares(self, rank, file, color):
+        """Get squares that form the pawn shield in front of the king"""
+        squares = set()
+        if color == chess.WHITE:
+            shield_rank = rank + 1
+            if shield_rank <= 7:
+                if file > 0:
+                    squares.add(shield_rank * 8 + file - 1)
+                squares.add(shield_rank * 8 + file)
+                if file < 7:
+                    squares.add(shield_rank * 8 + file + 1)
+        else:
+            shield_rank = rank - 1
+            if shield_rank >= 0:
+                if file > 0:
+                    squares.add(shield_rank * 8 + file - 1)
+                squares.add(shield_rank * 8 + file)
+                if file < 7:
+                    squares.add(shield_rank * 8 + file + 1)
+        return squares
 
     def is_stalemate_threatened(self, board: chess.Board) -> bool:
         """Check if any legal move leads to stalemate"""

@@ -72,33 +72,17 @@ class TestV7P3ROrdering(unittest.TestCase):
         # Orders should be different with tempo consideration
         self.assertNotEqual(moves_with_tempo, moves_without_tempo)
         
-    def test_history_heuristic(self):
-        """Test history heuristic in move ordering."""
-        board = chess.Board()
-        # Make some moves to build history
-        moves = list(board.legal_moves)
-        if moves:
-            move = moves[0]
-            self.ordering.update_history_score(move, 2)  # Update history score
+    def test_move_scoring_constants(self):
+        """Test move scoring constants are properly set."""
+        self.assertGreater(self.ordering.QUEEN_PROMOTION_SCORE, self.ordering.OTHER_PROMOTION_SCORE)
+        self.assertGreater(self.ordering.OTHER_PROMOTION_SCORE, self.ordering.WINNING_CAPTURE_SCORE)
+        self.assertGreater(self.ordering.WINNING_CAPTURE_SCORE, self.ordering.EQUAL_CAPTURE_SCORE)
+        self.assertGreater(self.ordering.EQUAL_CAPTURE_SCORE, self.ordering.LOSING_CAPTURE_SCORE)
             
-            # Get ordered moves
-            ordered_moves = self.ordering.order_moves(board)
-            # First move should be the one with history
-            self.assertEqual(ordered_moves[0], move)
-            
-    def test_killer_move_ordering(self):
-        """Test killer move ordering."""
-        board = chess.Board()
-        # Set up a killer move
-        moves = list(board.legal_moves)
-        if moves:
-            killer = moves[0]
-            self.ordering.add_killer_move(killer, depth=2)
-            
-            # Get ordered moves
-            ordered_moves = self.ordering.order_moves(board)
-            # Killer move should be among first moves
-            self.assertIn(killer, ordered_moves[:3])
+    def test_mvv_lva_initialization(self):
+        """Test MVV-LVA scorer initialization."""
+        self.assertIsNotNone(self.ordering.mvv_lva)
+        self.assertIsNotNone(self.ordering.mvv_lva.rules_manager)
 
 if __name__ == '__main__':
     unittest.main()

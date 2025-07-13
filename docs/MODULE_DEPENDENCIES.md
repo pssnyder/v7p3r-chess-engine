@@ -26,10 +26,10 @@ graph TD
     H --> K[v7p3r_config.py]
 
     L[play_chess.py] --> A
-    L --> M[v7p3r_metrics.py]
+    L --> M[metrics.py]
     L --> N[v7p3r_pgn_watcher.py]
     
-    O[v7p3r_live_tuner.py] --> A
+    O[puzzle_tuner.py] --> A
     O --> K
 
     subgraph Core Engine Components
@@ -76,9 +76,9 @@ graph TD
 
 ### Interface Modules
 - `play_chess.py`: Game play interface
-- `v7p3r_metrics.py`: Performance metrics
+- `metrics.py`: Performance metrics
 - `v7p3r_pgn_watcher.py`: PGN file monitoring
-- `v7p3r_live_tuner.py`: Real-time engine tuning
+- `puzzle_tuner.py`: Real-time engine tuning
 
 ## Current Issues
 

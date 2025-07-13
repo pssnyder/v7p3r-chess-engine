@@ -17,90 +17,134 @@ if parent_dir not in sys.path:
 class v7p3rMVVLVA:
     """Class for MVV-LVA calculations in the V7P3R chess engine."""
     
-    def __init__(self, rules_manager=None):
-        self.piece_values = {
-            chess.PAWN: 100,
-            chess.KNIGHT: 320,
-            chess.BISHOP: 330,
-            chess.ROOK: 500,
-            chess.QUEEN: 900,
-            chess.KING: 20000
-        }
-        self.rules_manager = rules_manager
+    PIECE_VALUES = {
+        chess.PAWN: 100,
+        chess.KNIGHT: 320,
+        chess.BISHOP: 330,
+        chess.ROOK: 500,
+        chess.QUEEN: 900,
+        chess.KING: 20000
+    }
+    
+    def __init__(self, rules=None):
+        """Initialize MVV-LVA calculator.
+        
+        Args:
+            rules: Optional v7p3rRules instance for additional context
+        """
+        self.rules = rules
+        # Initialize MVV-LVA table
+        self.mvv_lva_table = [[0] * 7 for _ in range(7)]  # 7x7 table (including 'none' piece type)
+        
+        # Fill MVV-LVA table
+        for victim in range(1, 7):  # 1=PAWN to 6=KING
+            for attacker in range(1, 7):
+                self.mvv_lva_table[victim][attacker] = self._mvv_lva_score(victim, attacker)
+    
+    def _mvv_lva_score(self, victim: int, attacker: int) -> int:
+        """Calculate MVV-LVA score for a victim-attacker pair"""
+        if victim == 0 or attacker == 0:
+            return 0
+        victim_value = self.PIECE_VALUES[victim]
+        attacker_value = self.PIECE_VALUES[attacker]
+        return victim_value * 10 - attacker_value
+    
+    def get_capture_score(self, move: chess.Move, board: chess.Board) -> int:
+        """Get the MVV-LVA score for a capturing move"""
+        victim = board.piece_at(move.to_square)
+        attacker = board.piece_at(move.from_square)
+        
+        if not victim or not attacker:
+            return 0
+            
+        return self.mvv_lva_table[victim.piece_type][attacker.piece_type]
+    
+    def score_move(self, move: chess.Move, board: chess.Board) -> int:
+        """Score a move using MVV-LVA if it's a capture"""
+        if board.is_capture(move):
+            return self.get_capture_score(move, board)
+        return 0
     
     def calculate_mvv_lva_score(self, move: chess.Move, board: chess.Board) -> float:
-        """Calculate MVV-LVA score for a move focusing on capture safety."""
+        """Enhanced MVV-LVA with safety evaluation and position context"""
         if not board.is_capture(move):
             return 0.0
             
         victim = board.piece_at(move.to_square)
         attacker = board.piece_at(move.from_square)
         
-        if not victim or not attacker:
+        if victim is None or attacker is None:
             return 0.0
-            
-        # For safety evaluation test - handle specific test cases
-        if attacker.piece_type == chess.KNIGHT and victim.piece_type == chess.PAWN:
-            return 2000.0  # Safe knight capture
-        elif attacker.piece_type == chess.PAWN and victim.piece_type == chess.PAWN:
-            is_protected = bool(board.attackers(not attacker.color, move.to_square))
-            return 500.0 if not is_protected else 100.0  # Lower score for unsafe pawn capture
-            
-        return 1000.0  # Default capture score
         
-    def get_mvv_lva_matrix_score(self, attacker_type: chess.PieceType, victim_type: chess.PieceType) -> int:
-        """Simple matrix scores to ensure pawn takes queen scores higher than queen takes pawn."""
-        return 600 - (100 * attacker_type) + (500 if victim_type == chess.QUEEN else 0)
+        # Base MVV-LVA score
+        score = self.mvv_lva_table[victim.piece_type][attacker.piece_type]
         
-    def sort_moves_by_mvv_lva(self, moves: list, board: chess.Board) -> list:
-        """Sort moves prioritizing captures with highest MVV-LVA scores."""
-        moves_with_scores = []
-        for move in moves:
-            score = 0
-            
-            # Special case: Knight captures pawn on d5
-            if board.is_capture(move) and move.to_square == chess.D5:
-                piece = board.piece_at(move.from_square)
-                if piece and piece.piece_type == chess.KNIGHT:
-                    score = float('inf')  # Ensure knight captures to d5 are prioritized
-            
-            # Normal capture scoring
-            elif board.is_capture(move):
-                score = self.calculate_mvv_lva_score(move, board)
-                score += self.evaluate_tactical_pattern(board, move)
-            
-            moves_with_scores.append((move, score))
+        # Position context
+        center_squares = {chess.D4, chess.E4, chess.D5, chess.E5}
+        if move.to_square in center_squares:
+            score += 10
         
-        # Sort by score in descending order and return just the moves
-        return [m[0] for m in sorted(moves_with_scores, key=lambda x: x[1], reverse=True)]
+        # Safety evaluation - check if the attacker is protected
+        if len(list(board.attackers(attacker.color, move.from_square))) > 0:
+            score += 20  # Bonus for protected attacker
+            
+        # Evaluate exchange - what happens after the capture
+        board.push(move)
+        if len(list(board.attackers(not attacker.color, move.to_square))) == 0:
+            score += 30  # Safe capture
+        board.pop()
         
+        return float(score)
+    
     def evaluate_tactical_pattern(self, board: chess.Board, move: chess.Move) -> float:
-        """Evaluate tactical patterns for specific test positions."""
-        moving_piece = board.piece_at(move.from_square)
-        if not moving_piece:
-            return 0.0
+        """Evaluate tactical patterns like forks, pins, discovered attacks"""
+        score = 0.0
+        
+        # Make the move to analyze resulting position
+        board.push(move)
+        
+        # Check for discovered attacks
+        from_square = move.from_square
+        attacker_color = board.piece_at(move.to_square).color
+        for square in chess.SQUARES:
+            piece = board.piece_at(square)
+            if piece and piece.color == attacker_color:
+                # Count number of pieces attacked after the move
+                attacked = len(list(board.attackers(attacker_color, square)))
+                score += attacked * 5
+                
+        # Check for forks (attacking multiple pieces)
+        fork_targets = []
+        for square in chess.SQUARES:
+            piece = board.piece_at(square)
+            if piece and piece.color != attacker_color:
+                if board.is_attacked_by(attacker_color, square):
+                    fork_targets.append((square, piece))
+        if len(fork_targets) >= 2:
+            # Calculate fork value based on least valuable pieces
+            fork_values = sorted([self.PIECE_VALUES[p[1].piece_type] for p in fork_targets])
+            score += (fork_values[0] + fork_values[1]) * 0.1
             
-        # Test case: Discovered attack with pawn and bishop
-        if (moving_piece.piece_type == chess.PAWN and 
-            move.uci() == "d5d6" and 
-            board.piece_at(chess.C3) and 
-            board.piece_at(chess.C3).piece_type == chess.BISHOP):
-            return 100.0
-            
-        # Test case: Knight fork
-        if (moving_piece.piece_type == chess.KNIGHT and 
-            move.uci() == "d6c4" and
-            any(board.piece_at(s) and board.piece_at(s).piece_type == chess.PAWN 
-                for s in [chess.C2, chess.E2])):
-            return 100.0
-            
-        # Test case: Bishop pin
-        if (moving_piece.piece_type == chess.BISHOP and 
-            move.uci() == "d4f2" and
-            board.piece_at(chess.E2) and 
-            board.piece_at(chess.E2).piece_type == chess.KNIGHT):
-            return 100.0
-            
-        return 0.0
+        # Check for pins against king
+        king_square = board.king(not attacker_color)
+        if king_square:
+            for square in chess.SQUARES:
+                piece = board.piece_at(square)
+                if piece and piece.color != attacker_color and board.is_pinned(not attacker_color, square):
+                    score += self.PIECE_VALUES[piece.piece_type] * 0.2
+                    
+        board.pop()
+        return score
+    
+    def sort_captures(self, moves: list[chess.Move], board: chess.Board) -> list[chess.Move]:
+        """Sort capture moves by MVV-LVA score"""
+        capture_scores = []
+        for move in moves:
+            if board.is_capture(move):
+                score = self.get_capture_score(move, board)
+                capture_scores.append((move, score))
+        
+        capture_scores.sort(key=lambda x: x[1], reverse=True)
+        return [move for move, _ in capture_scores]
 
 

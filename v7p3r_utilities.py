@@ -1,21 +1,18 @@
-"""
-V7P3R Chess Engine Utilities Module
+"""V7P3R Chess Engine Utilities Module.
 
-This module provides common utility functions used across the engine.
-All path-related functionality has been moved to v7p3r_paths.py.
+This module provides common utility functions used across the engine,
+including file/path operations and timestamp generation.
 """
 import datetime
 from pathlib import Path
-from typing import Any, Union, Optional
-
-from v7p3r_paths import paths  # Central path management
+from typing import Union
+from v7p3r_paths import paths
 
 def ensure_directory_exists(path: Union[str, Path]) -> None:
-    """
-    Ensure that a directory exists, creating it if necessary.
+    """Ensure that a directory exists, creating it if necessary.
     
     Args:
-        path: The path to the directory to check/create, can be string or Path
+        path: The path to the directory to check/create
     """
     try:
         path = Path(path)
@@ -24,31 +21,28 @@ def ensure_directory_exists(path: Union[str, Path]) -> None:
         print(f"Warning: Could not create directory {path}: {e}")
 
 def get_timestamp() -> str:
-    """
-    Get a formatted timestamp string.
+    """Get a formatted timestamp string.
     
     Returns:
-        str: Current timestamp in YYYY-MM-DD_HH-MM-SS format
+        A timestamp in YYYY-MM-DD_HH-MM-SS format
     """
     return datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%SS")
 
 def get_resource_path(relative_path: Union[str, Path]) -> Path:
-    """
-    Get the absolute path to a resource file. Delegates to paths module.
+    """Get the absolute path to a resource file.
     
     Args:
-        relative_path: The relative path to the resource file
+        relative_path: The relative path to the resource
         
     Returns:
-        Path: The absolute path to the resource
+        The absolute path to the resource
     """
     return paths.get_resource_path(relative_path)
 
 def get_project_root() -> Path:
-    """
-    Get the absolute path to the project root directory. Delegates to paths module.
+    """Get the absolute path to the project root directory.
     
     Returns:
-        Path: The absolute path to the project root
+        Path: The absolute path to the project root directory
     """
     return paths.root_dir

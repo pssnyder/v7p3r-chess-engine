@@ -30,7 +30,7 @@ class v7p3rScore:
         # Required Scoring Modules
         self.pst = pst
         self.rules_manager = rules_manager
-        self.mvv_lva = v7p3rMVVLVA(rules_manager)
+        self.mvv_lva = v7p3rMVVLVA()
         self.tempo = v7p3rTempo(self.config_manager, pst, rules_manager)  # Add tempo manager
 
         # Scoring Setup
@@ -388,8 +388,12 @@ class v7p3rScore:
             
             # MVV-LVA (Most Valuable Victim - Least Valuable Attacker)
             if self.use_mvv_lva:
-                # PIECE CAPTURES
-                piece_captures_score = self.rules_manager.piece_captures(board, color) or 0.0
+                # Calculate MVV-LVA based capture scores
+                piece_captures_score = 0.0
+                for move in board.legal_moves:
+                    if board.is_capture(move):
+                        mvv_lva_score = self.mvv_lva.calculate_mvv_lva_score(move, board)
+                        piece_captures_score += mvv_lva_score * (1.0 if board.turn == color else -1.0)
                 score += piece_captures_score
                 self.score_dataset['piece_captures'] = piece_captures_score
 
@@ -514,11 +518,15 @@ class v7p3rScore:
         tactical_score = 0.0
         if self.use_mvv_lva:
             for move in board.legal_moves:
-                if board.is_capture(move):
-                    # Add capture evaluation
-                    tactical_score += self.mvv_lva.calculate_mvv_lva_score(move, board)
-                # Add tactical pattern score
-                tactical_score += self.mvv_lva.evaluate_tactical_pattern(board, move)
+                # Get MVV-LVA capture score
+                capture_score = self.mvv_lva.calculate_mvv_lva_score(move, board)
+                tactical_score += capture_score
+                
+                # Add tactical pattern evaluation
+                if capture_score > 0 or board.gives_check(move):
+                    pattern_score = self.mvv_lva.evaluate_tactical_pattern(board, move)
+                    tactical_score += pattern_score
+            
             tactical_score *= self.ruleset.get('tactical_weight', 0.3)
         
         # Update score dataset
@@ -575,10 +583,16 @@ class v7p3rScore:
         """Evaluate piece capture potential using MVV-LVA."""
         score = 0.0
         
-        # Get all legal moves
+        # Calculate capture scores
         for move in board.legal_moves:
             if board.is_capture(move):
-                score += self.mvv_lva.calculate_mvv_lva_score(move, board)
+                # Get MVV-LVA tactical score
+                mvv_lva_score = self.mvv_lva.calculate_mvv_lva_score(move, board)
+                score += mvv_lva_score
+                
+                # Add tactical pattern evaluation
+                pattern_score = self.mvv_lva.evaluate_tactical_pattern(board, move)
+                score += pattern_score
         
         self.score_dataset['piece_captures_score'] = score
         return score

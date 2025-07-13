@@ -1,4 +1,4 @@
-# metrics/v7p3r_metrics.py
+# metrics.py
 """
 V7P3R Chess Engine Metrics System
 A unified, modern metrics collection and analysis system for the V7P3R chess engine.
@@ -715,7 +715,7 @@ def run_dashboard():
         
     except Exception as e:
         print(f"Error launching dashboard: {str(e)}")
-        print("Try running directly with: streamlit run v7p3r_metrics.py")
+        print("Try running directly with: streamlit run metrics.py")
         return False
 
 # Main entry point 

@@ -14,7 +14,11 @@ if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 
 class v7p3rTime:
-    def __init__(self):
+    def __init__(self, base_time=300, increment=0):
+        self.base_time = base_time
+        self.increment = increment
+        self.is_infinite = False
+
         self.start_time: Optional[float] = None
         self.allocated_time: Optional[float] = None
         self.max_time: Optional[float] = None
@@ -55,15 +59,40 @@ class v7p3rTime:
         self.allocated_time = allocated
         return allocated
         
-    def get_allocated_move_time(self) -> float:
+    def get_allocated_move_time(self, board=None):
         """
         Get the currently allocated time for the move.
         Returns a default value if no time has been allocated.
+
+        Args:
+            board: Current chess position (optional, for adaptive time allocation)
+
+        Returns:
+            Allocated time in seconds
         """
-        if self.allocated_time is not None:
-            return self.allocated_time
-        return self._test_allocated_time
+        if self.is_infinite:
+            return float('inf')
         
+        # Basic time allocation with increment
+        allocated_time = max(1.0, self.base_time / 40.0 + self.increment)
+        
+        if board:
+            # Adjust time based on game phase and position complexity
+            game_phase = self._get_game_phase(board)
+            complexity = self._get_position_complexity(board)
+            allocated_time *= (1.0 + game_phase * 0.2 + complexity * 0.3)
+        
+        return min(allocated_time, self.base_time * 0.2)  # Never use more than 20% of remaining time
+
+    def _get_game_phase(self, board):
+        # Simple game phase detection
+        total_pieces = len(board.piece_map())
+        return 1.0 - (total_pieces - 4) / 28.0  # 32 pieces at start, minimum 4 pieces (2 kings + 2 pieces)
+
+    def _get_position_complexity(self, board):
+        # Basic position complexity measure
+        return min(1.0, len(list(board.legal_moves)) / 40.0)  # Normalize by typical number of moves
+
     def get_current_time(self) -> float:
         """Get current timestamp"""
         return time.time()

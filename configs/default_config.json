@@ -14,7 +14,7 @@
         "version": "0.8.5",
         "ruleset": "default_ruleset",
         "search_algorithm": "minimax",
-        "depth": 20,
+        "max_depth": 20,
         "multi_threaded": true,
         "use_transpositions": true,
         "use_tablebases": true,
@@ -23,7 +23,7 @@
         "null_move_threshold": 3,
         "use_late_move_reduction": true,
         "late_move_reduction_factor": 3,
-        "use_quiescence": false,
+        "use_quiescence": true,
         "use_game_phase": true,
         "use_mvv_lva": true,
         "mvv_lva_settings": {
@@ -32,7 +32,7 @@
             "safety_margin": 200,
             "position_bonus": 50
         },
-        "use_dtm": false,
+        "use_dtm": true,
         "dtm_depth": 10,
         "dtm_window": 5,
         "use_aspiration": true,

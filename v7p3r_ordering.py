@@ -4,235 +4,217 @@ This module provides functionality to order moves based on their potential effec
 import os
 import sys
 import chess
+from typing import Optional, List, Tuple, Dict
 from v7p3r_config import v7p3rConfig
 from v7p3r_mvv_lva import v7p3rMVVLVA
 
-# Import required types
-from typing import List, Optional, Tuple
-
-# Ensure the parent directory is in sys.path for imports
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-if parent_dir not in sys.path:
-    sys.path.insert(0, parent_dir)
-
 class v7p3rOrdering:
-    """Class for move ordering in the V7P3R chess engine."""
-    def __init__(self, scoring_calculator):
-        # Engine Configuration
-        self.config_manager = v7p3rConfig()
-        self.engine_config = self.config_manager.get_engine_config()
+    def __init__(self, mvv_lva: v7p3rMVVLVA | None = None):
+        self.mvv_lva = mvv_lva or v7p3rMVVLVA()
+        self.history_moves = {}
+        self.killer_moves = [[] for _ in range(100)]  # Dynamic lists for killer moves
+        self._counter_moves = {}  # Private counter moves dictionary
         
-        # Required Engine Modules
-        self.scoring_calculator = scoring_calculator
-        self.mvv_lva = v7p3rMVVLVA(scoring_calculator.rules_manager)
-        
-        # Move Ordering Settings
-        self.move_ordering_enabled = self.engine_config.get('move_ordering_enabled', True)
-        self.max_ordered_moves = self.engine_config.get('max_ordered_moves', 10)
-        
-        # History and killer move tracking
-        self.history_moves = {}  # {(piece_type, from_square, to_square): count}
-        self.killer_moves = [[] for _ in range(10)]  # Killer moves for different depths
-        self.max_killer_moves = 2
-        self.max_history_score = 1000.0
-
-        # Move score constants
-        self.QUEEN_PROMOTION_SCORE = 10000000.0  # Highest priority
-        self.OTHER_PROMOTION_SCORE = 5000000.0
-        self.WINNING_CAPTURE_SCORE = 1000000.0
-        self.EQUAL_CAPTURE_SCORE = 500000.0
-        self.LOSING_CAPTURE_SCORE = 100000.0
-
-    def order_moves_with_debug(self, board: chess.Board, max_moves: Optional[int] = None, tempo_bonus: float = 0.0) -> List[Tuple[chess.Move, float]]:
-        """Debug version that returns moves with their scores."""
-        if not max_moves:
-            max_moves = self.max_ordered_moves
-            
-        # Get all legal moves
-        all_moves = list(board.legal_moves)
-        if not all_moves:
+    def sort_moves(self, moves: list[chess.Move], board: chess.Board) -> list[chess.Move]:
+        """Sort moves based on likelihood of being best"""
+        if not moves:
             return []
             
-        # Score all moves
-        scored_moves = []
-        for move in all_moves:
-            score = 0.0
-            move_type = "Normal"
-            
-            # 1. Queen promotions (highest priority)
-            if move.promotion == chess.QUEEN:
-                score += self.QUEEN_PROMOTION_SCORE
-                move_type = "Queen promotion"
-                if board.is_capture(move):
-                    score += self.WINNING_CAPTURE_SCORE
-                    move_type += " with capture"
-                    
-            # 2. Other promotions
-            elif move.promotion:
-                score += self.OTHER_PROMOTION_SCORE
-                move_type = f"{chess.piece_name(move.promotion).capitalize()} promotion"
-                if board.is_capture(move):
-                    score += self.EQUAL_CAPTURE_SCORE
-                    move_type += " with capture"
-                    
-            # 3. Captures with MVV-LVA scoring
-            elif board.is_capture(move):
-                captured = board.piece_at(move.to_square)
-                attacker = board.piece_at(move.from_square)
-                if captured and attacker:
-                    cap_value = self.scoring_calculator.pst.piece_values.get(captured.piece_type, 0)
-                    att_value = self.scoring_calculator.pst.piece_values.get(attacker.piece_type, 0)
-                    mvv_lva_score = self.mvv_lva.calculate_mvv_lva_score(move, board)
-                    
-                    if cap_value > att_value:
-                        score += self.WINNING_CAPTURE_SCORE + mvv_lva_score * 1000.0
-                        move_type = f"Winning capture ({chess.piece_name(attacker.piece_type)} takes {chess.piece_name(captured.piece_type)})"
-                    elif cap_value == att_value:
-                        score += self.EQUAL_CAPTURE_SCORE + mvv_lva_score * 500.0
-                        move_type = f"Equal capture ({chess.piece_name(attacker.piece_type)} takes {chess.piece_name(captured.piece_type)})"
-                    else:
-                        score += self.LOSING_CAPTURE_SCORE + mvv_lva_score * 100.0
-                        move_type = f"Losing capture ({chess.piece_name(attacker.piece_type)} takes {chess.piece_name(captured.piece_type)})"
-                    
-                    if tempo_bonus > 0:
-                        score *= (1.0 + tempo_bonus)
-                        
-            # 4. Additional scoring
-            score += self._calculate_move_score(board, move, tempo_bonus)
-            scored_moves.append((move, score))
-            
-            # Debug output
-            if hasattr(self, 'debug_output'):
-                print(f"{move_type} {move.uci()}: {score}")
-            
-        # Sort by score descending
-        scored_moves.sort(key=lambda x: x[1], reverse=True)
+        move_scores = [(move, self._score_move(move, board)) for move in moves]
+        move_scores.sort(key=lambda x: x[1], reverse=True)
+        return [move for move, _ in move_scores]
         
-        # Debug top moves
-        if hasattr(self, 'debug_output'):
-            print("\nTop 5 scored moves:")
-            for move, score in scored_moves[:5]:
-                print(f"{move.uci()}: {score}")
-            
-        return scored_moves
-
-    def order_moves(self, board: chess.Board, max_moves: Optional[int] = None, tempo_bonus: float = 0.0) -> List[chess.Move]:
-        """Order moves based on likely quality."""
-        scored_moves = self.order_moves_with_debug(board, max_moves, tempo_bonus)
-        return [move for move, _ in scored_moves[:max_moves if max_moves else self.max_ordered_moves]]
-
-    def _calculate_move_score(self, board: chess.Board, move: chess.Move, tempo_bonus: float = 0.0) -> float:
-        """Calculate a comprehensive score for move ordering with tempo awareness."""
-        score = 0.0
+    def _score_move(self, move: chess.Move, board: chess.Board) -> int:
+        """Score a move based on various heuristics"""
+        score = 0
         
-        # Get game phase for context
-        _, endgame_factor = self.scoring_calculator.tempo.calculate_game_phase(board)
-        
-        # 1. Immediate promotions (highest priority)
-        if move.promotion:
-            promotion_value = 100000.0  # Base promotion value
-            if move.promotion == chess.QUEEN:
-                promotion_value += 10000.0  # Extra for queen
-            
-            # Add piece value bonus
-            promotion_value += self.scoring_calculator.pst.piece_values.get(move.promotion, 0) * 10.0
-            
-            # Extra for capturing promotions
-            if board.is_capture(move):
-                captured = board.piece_at(move.to_square)
-                if captured:
-                    promotion_value += self.scoring_calculator.pst.piece_values.get(captured.piece_type, 0) * 5.0
-            
-            score += promotion_value
-            
-        # 2. Captures and tactics (next highest priority)
+        # MVV-LVA scoring for captures
         if board.is_capture(move):
-            capture_value = 50000.0  # Base capture value
+            score += self.mvv_lva.score_move(move, board) * 10000
             
-            # Add MVV-LVA score with phase-based weight
-            mvv_lva_score = self.mvv_lva.calculate_mvv_lva_score(move, board)
-            capture_value += mvv_lva_score * (100.0 + 50.0 * endgame_factor)  # Higher weight in endgame
+        # History heuristic
+        history_score = self.get_history_score(move)
+        score += history_score * 100
             
-            # Extra bonus for winning captures
-            captured = board.piece_at(move.to_square)
-            attacker = board.piece_at(move.from_square)
-            if captured and attacker:
-                cap_value = self.scoring_calculator.pst.piece_values.get(captured.piece_type, 0)
-                att_value = self.scoring_calculator.pst.piece_values.get(attacker.piece_type, 0)
-                if cap_value > att_value:
-                    capture_value += (cap_value - att_value) * (10.0 + 5.0 * endgame_factor)
+        # Killer moves bonus
+        if self.is_killer_move(move, board.ply()):
+            score += 9000
             
-            score += capture_value
+        # Counter moves bonus
+        if self.is_counter_move(move, board):
+            score += 8000
             
-        # 3. Tempo and positional scoring
-        board_copy = board.copy()
-        board_copy.push(move)
-        position_assessment = self.scoring_calculator.tempo.assess_position(board_copy, board.turn)
+        # Promotions
+        if move.promotion:
+            score += 15000 + (move.promotion - chess.KNIGHT) * 1000
+            
+        # Mobility evaluation
+        score += self._evaluate_mobility(move, board)
         
-        # Apply tempo bonuses with phase consideration
-        tempo_score = position_assessment['tempo_score']
-        if tempo_score > 0:
-            score += tempo_score * (1000.0 + 500.0 * endgame_factor)
+        # Center control
+        score += self._evaluate_center_control(move)
         
-        # Consider zugzwang risk
-        if position_assessment['zugzwang_risk'] < -0.5 and endgame_factor > 0.6:
-            score *= 0.8  # Penalize moves that may lead to zugzwang
+        # Development in opening
+        if self._improves_development(move, board):
+            score += 500
+            
+        return score
         
-        # 4. Development and central control in opening/middlegame
-        if endgame_factor < 0.7:  # Not deep in endgame
-            piece = board.piece_at(move.from_square)
-            if piece:
-                # Development bonus for minor pieces
-                if piece.piece_type in [chess.KNIGHT, chess.BISHOP]:
-                    back_rank = 0 if board.turn == chess.WHITE else 7
-                    if chess.square_rank(move.from_square) == back_rank:
-                        score += 300.0  # Significant bonus for developing moves
-                
-                # Central control bonus
-                to_square_file = chess.square_file(move.to_square)
-                to_square_rank = chess.square_rank(move.to_square)
-                if 2 <= to_square_file <= 5 and 2 <= to_square_rank <= 5:
-                    score += 200.0  # Bonus for controlling central squares
+    def get_history_score(self, move: chess.Move) -> int:
+        """Get the history heuristic score for a move"""
+        move_key = (move.from_square, move.to_square)
+        return self.history_moves.get(move_key, 0)
         
-        # 5. Apply tempo bonus from parameter
-        if tempo_bonus > 0:
-            score *= (1.0 + tempo_bonus)
+    def is_killer_move(self, move: chess.Move, ply: int) -> bool:
+        """Check if move is a killer move at given ply"""
+        if ply >= len(self.killer_moves):
+            return False
+        return move in self.killer_moves[ply]
+        
+    def is_counter_move(self, move: chess.Move, board: chess.Board) -> bool:
+        """Check if move is a counter move to opponent's last move"""
+        if not board.move_stack:
+            return False
+        last_move = board.peek()
+        last_piece = board.piece_at(last_move.to_square)
+        if not last_piece:
+            return False
+        key = (last_move.to_square, last_piece.piece_type)
+        return self._counter_moves.get(key) == move
+        
+    def _evaluate_mobility(self, move: chess.Move, board: chess.Board) -> int:
+        """Evaluate how much the move improves piece mobility"""
+        score = 0
+        piece = board.piece_at(move.from_square)
+        
+        if not piece:
+            return 0
+            
+        # Make move
+        board.push(move)
+        
+        # Count attacked squares
+        attacked = len(list(board.attacks(move.to_square)))
+        score = attacked * 10
+        
+        # Unmake move
+        board.pop()
         
         return score
-
-    def _get_history_score(self, board: chess.Board, move: chess.Move) -> float:
-        """Get the score from the history table."""
+        
+    def _evaluate_center_control(self, move: chess.Move) -> int:
+        """Evaluate how well the move controls the center"""
+        center_squares = {27, 28, 35, 36}  # e4, d4, e5, d5
+        extended_center = {18, 19, 20, 21, 26, 29, 34, 37, 42, 43, 44, 45}
+        
+        score = 0
+        if move.to_square in center_squares:
+            score += 30
+        elif move.to_square in extended_center:
+            score += 15
+            
+        return score
+        
+    def _improves_development(self, move: chess.Move, board: chess.Board) -> bool:
+        """Check if move improves piece development"""
         piece = board.piece_at(move.from_square)
         if not piece:
-            return 0.0
-            
-        key = (piece.piece_type, move.from_square, move.to_square)
-        return self.history_moves.get(key, 0.0)
-
-    def _is_killer_move(self, move: chess.Move, depth: int) -> bool:
-        """Check if move is a killer move at the current depth."""
-        if depth >= len(self.killer_moves):
             return False
-        return move in self.killer_moves[depth]
-
-    def add_killer_move(self, move: chess.Move, depth: int) -> None:
-        """Add a killer move at the given depth."""
-        if depth >= len(self.killer_moves):
+            
+        # Development is only relevant in the opening
+        if board.fullmove_number > 10:
+            return False
+            
+        # Moving the same piece twice in the opening is generally bad
+        if piece.piece_type in (chess.KNIGHT, chess.BISHOP):
+            if move.from_square in self._get_starting_squares(piece.color):
+                return True
+                
+        return False
+        
+    def _get_starting_squares(self, color: chess.Color) -> set:
+        """Get starting squares for pieces of a given color"""
+        if color == chess.WHITE:
+            return {chess.B1, chess.G1, chess.C1, chess.F1}
+        return {chess.B8, chess.G8, chess.C8, chess.F8}
+        
+    def update_history(self, move: chess.Move, depth: int) -> None:
+        """Update history score for a move"""
+        move_key = (move.from_square, move.to_square)
+        self.history_moves[move_key] = self.history_moves.get(move_key, 0) + depth * depth
+        
+    def add_killer_move(self, move: chess.Move, ply: int) -> None:
+        """Add a killer move at the given ply"""
+        if ply >= len(self.killer_moves):
+            self.killer_moves.extend([[] for _ in range(ply - len(self.killer_moves) + 1)])
+        
+        if move not in self.killer_moves[ply]:
+            self.killer_moves[ply].insert(0, move)
+            if len(self.killer_moves[ply]) > 2:
+                self.killer_moves[ply].pop()
+                
+    def add_counter_move(self, prev_move: chess.Move, counter_move: chess.Move, board: chess.Board) -> None:
+        """Add a counter move for the given previous move"""
+        if not prev_move:
             return
             
-        if move not in self.killer_moves[depth]:
-            self.killer_moves[depth].insert(0, move)
-            if len(self.killer_moves[depth]) > self.max_killer_moves:
-                self.killer_moves[depth].pop()
-
-    def add_history_move(self, board: chess.Board, move: chess.Move) -> None:
-        """Add a move to the history table."""
-        piece = board.piece_at(move.from_square)
+        piece = board.piece_at(prev_move.to_square)
         if not piece:
             return
             
-        key = (piece.piece_type, move.from_square, move.to_square)
-        self.history_moves[key] = min(
-            self.history_moves.get(key, 0) + 1,
-            self.max_history_score
-        )
+        key = (prev_move.to_square, piece.piece_type)
+        self._counter_moves[key] = counter_move
+            
+    def clear_history(self) -> None:
+        """Clear history tables"""
+        self.history_moves.clear()
+        self.killer_moves = [[] for _ in range(100)]
+        self._counter_moves.clear()
+        
+    def order_moves(self, board: chess.Board, max_moves: Optional[int] = None, tempo_bonus: float = 0.0) -> list[chess.Move]:
+        """
+        Order legal moves for a given board position.
+        
+        Args:
+            board: The chess board position
+            max_moves: Optional maximum number of moves to return (None for all)
+            tempo_bonus: Optional tempo bonus to influence move ordering
+            
+        Returns:
+            Ordered list of chess moves
+        """
+        moves = list(board.legal_moves)
+        ordered_moves = self.sort_moves(moves, board)
+        
+        # Apply tempo bonus if specified
+        if tempo_bonus > 0:
+            # Re-score moves with tempo consideration
+            move_scores = []
+            for move in ordered_moves:
+                score = self._score_move(move, board)
+                # Add tempo bonus for central moves and developing pieces
+                if self._is_central_move(move) or self._improves_development(move, board):
+                    score += int(tempo_bonus * 500)  # Scale tempo bonus
+                move_scores.append((move, score))
+                
+            # Re-sort with tempo consideration
+            move_scores.sort(key=lambda x: x[1], reverse=True)
+            ordered_moves = [move for move, _ in move_scores]
+        
+        # Limit number of moves if specified
+        if max_moves and max_moves < len(ordered_moves):
+            return ordered_moves[:max_moves]
+            
+        return ordered_moves
+        
+    def _is_central_move(self, move: chess.Move) -> bool:
+        """Check if a move targets the center of the board."""
+        central_squares = [chess.D4, chess.E4, chess.D5, chess.E5]
+        return move.to_square in central_squares
+        
+    # Constants for move scoring
+    QUEEN_PROMOTION_SCORE = 15000
+    OTHER_PROMOTION_SCORE = 14000
+    WINNING_CAPTURE_SCORE = 10000
+    EQUAL_CAPTURE_SCORE = 9000
+    LOSING_CAPTURE_SCORE = 8000

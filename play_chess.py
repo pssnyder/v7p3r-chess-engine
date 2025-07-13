@@ -13,7 +13,7 @@ import random
 from io import StringIO
 from v7p3r_config import v7p3rConfig
 from v7p3r_utilities import get_timestamp
-from v7p3r_metrics import get_metrics_instance, GameMetric, MoveMetric, EngineConfig
+from metrics import get_metrics_instance, GameMetric, MoveMetric, EngineConfig
 from v7p3r_time import v7p3rTime
 from chess_core import ChessCore
 from v7p3r_pgn_watcher import PGNWatcher

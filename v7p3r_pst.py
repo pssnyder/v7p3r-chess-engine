@@ -10,267 +10,144 @@ if parent_dir not in sys.path:
 
 class v7p3rPST:
     """ Piece-Square Tables for chess position evaluation. """
+    
     def __init__(self):
-        # Initialize piece-square tables
-        self.tables = self._create_tables()
-        # Default Piece Values in centipawns
+        # Base piece values
         self.piece_values = {
-            chess.KING: 20000,  # Not used for material calculation, but for MVV-LVA
-            chess.QUEEN: 900,   # Standard centipawn value
-            chess.ROOK: 500,    # Standard centipawn value
-            chess.BISHOP: 330,  # Standard centipawn value
-            chess.KNIGHT: 320,  # Standard centipawn value
-            chess.PAWN: 100     # Standard centipawn value
+            chess.PAWN: 100,
+            chess.KNIGHT: 320,
+            chess.BISHOP: 330,
+            chess.ROOK: 500,
+            chess.QUEEN: 900,
+            chess.KING: 20000
         }
-    def _create_tables(self):
-        """Create all piece-square tables"""
-        # Generic table - encourages center control
-        self.PST_TABLE = [
-            [  0,  0,  0,  0,  0,  0,  0,  0],  # 8th rank
-            [ -5, 10, 10, 10, 10, 10, 10, -5],  # 7th rank 
-            [ -5, 10, 20, 20, 20, 20, 10, -5],  # 6th rank
-            [ -5, 10, 20, 30, 30, 20, 10, -5],  # 5th rank
-            [ -5, 10, 20, 30, 30, 20, 10, -5],  # 4th rank
-            [ -5, 10, 20, 20, 20, 20, 10, -5],  # 3rd rank
-            [ -5, 10, 10, 10, 10, 10, 10, -5],  # 2nd rank
-            [  0,  0,  0,  0,  0,  0,  0,  0]   # 1st rank
-        ]
+        
+        # Initialize piece-square tables
+        self.pst_tables = {
+            'P': [  # Pawn
+                [ 0,  0,  0,  0,  0,  0,  0,  0],
+                [50, 50, 50, 50, 50, 50, 50, 50],
+                [10, 10, 20, 30, 30, 20, 10, 10],
+                [ 5,  5, 10, 25, 25, 10,  5,  5],
+                [ 0,  0,  0, 20, 20,  0,  0,  0],
+                [ 5, -5,-10,  0,  0,-10, -5,  5],
+                [ 5, 10, 10,-20,-20, 10, 10,  5],
+                [ 0,  0,  0,  0,  0,  0,  0,  0]
+            ],
+            'N': [  # Knight
+                [-30,-20,-10,-10,-10,-10,-20,-30],  # Less penalty in corners
+                [-20,  0, 10, 10, 10, 10,  0,-20],
+                [-10, 10, 20, 25, 25, 20, 10,-10],  # Higher central values
+                [-10, 15, 25, 30, 30, 25, 15,-10],
+                [-10, 10, 25, 30, 30, 25, 10,-10],
+                [-10, 15, 20, 25, 25, 20, 15,-10],
+                [-20,  0, 10, 15, 15, 10,  0,-20],
+                [-30,-20,-10,-10,-10,-10,-20,-30]
+            ],
+            'B': [  # Bishop
+                [-20,-10,-10,-10,-10,-10,-10,-20],
+                [-10,  5,  0,  0,  0,  0,  5,-10],
+                [-10, 10, 10, 10, 10, 10, 10,-10],  # Higher values on diagonals
+                [-10,  0, 15, 20, 20, 15,  0,-10],
+                [-10,  5, 15, 20, 20, 15,  5,-10],
+                [-10,  0, 10, 10, 10, 10,  0,-10],
+                [-10,  5,  0,  0,  0,  0,  5,-10],
+                [-20,-10,-10,-10,-10,-10,-10,-20]
+            ],
+            'R': [  # Rook
+                [ 0,  0,  0,  0,  0,  0,  0,  0],
+                [ 5, 10, 10, 10, 10, 10, 10,  5],
+                [-5,  0,  0,  0,  0,  0,  0, -5],
+                [-5,  0,  0,  0,  0,  0,  0, -5],
+                [-5,  0,  0,  0,  0,  0,  0, -5],
+                [-5,  0,  0,  0,  0,  0,  0, -5],
+                [20, 20, 20, 20, 20, 20, 20, 20],  # 7th rank bonus
+                [ 0,  0,  0,  5,  5,  0,  0,  0]
+            ],
+            'Q': [  # Queen
+                [-20,-10,-10, -5, -5,-10,-10,-20],
+                [-10,  0,  0,  0,  0,  0,  0,-10],
+                [-10,  0,  5,  5,  5,  5,  0,-10],
+                [ -5,  0,  5,  5,  5,  5,  0, -5],
+                [  0,  0,  5,  5,  5,  5,  0, -5],
+                [-10,  5,  5,  5,  5,  5,  0,-10],
+                [-10,  0,  5,  0,  0,  0,  0,-10],
+                [-20,-10,-10, -5, -5,-10,-10,-20]
+            ],
+            'K': [  # King middlegame
+                [-30,-40,-40,-50,-50,-40,-40,-30],
+                [-30,-40,-40,-50,-50,-40,-40,-30],
+                [-30,-40,-40,-50,-50,-40,-40,-30],
+                [-30,-40,-40,-50,-50,-40,-40,-30],
+                [-20,-30,-30,-40,-40,-30,-30,-20],
+                [-10,-20,-20,-20,-20,-20,-20,-10],
+                [ 20, 20,  0,  0,  0,  0, 20, 20],
+                [ 20, 30, 10,  0,  0, 10, 30, 20]
+            ],
+            'K_endgame': [  # King endgame
+                [-50,-40,-30,-20,-20,-30,-40,-50],
+                [-30,-20,-10,  0,  0,-10,-20,-30],
+                [-30,-10, 20, 30, 30, 20,-10,-30],
+                [-30,-10, 30, 40, 40, 30,-10,-30],
+                [-30,-10, 30, 40, 40, 30,-10,-30],
+                [-30,-10, 20, 30, 30, 20,-10,-30],
+                [-30,-30,  0,  0,  0,  0,-30,-30],
+                [-50,-30,-30,-30,-30,-30,-30,-50]
+            ]
+        }
 
-        # Pawn table - encourages advancement and center control
-        self.PAWN_TABLE = [
-            [  0,  0,  0,  0,  0,  0,  0,  0],  # 8th rank (promotion)
-            [  0,  0,  0,  0,  0,  0,  0,  0],  # 7th rank 
-            [  0,  0,  0,  0,  0,  0,  0,  0],  # 6th rank
-            [  0,  0,  0,  0,  0,  0,  0,  0],  # 5th rank
-            [  5,  5, 10, 20, 20, 10,  5,  0],  # 4th rank
-            [  5,  5,-10, 10, 10,-10, -5,  5],  # 3rd rank
-            [  5, 10, 10,-20,-20, 10, 10,  5],  # 2nd rank
-            [  0,  0,  0,  0,  0,  0,  0,  0]   # 1st rank
-        ]
-
-        # Pawn middlegame table - encourages advancement and center control
-        self.PAWN_MG_TABLE = [
-            [  0,  0,  0,  0,  0,  0,  0,  0],  # 8th rank (promotion)
-            [ 50, 50, 50, 50, 50, 50, 50, 50],  # 7th rank 
-            [ 10, 10, 20, 30, 30, 20, 10, 10],  # 6th rank
-            [  5,  5, 10, 25, 25, 10,  5,  5],  # 5th rank
-            [  0,  0,  0, 20, 20,  0,  0,  0],  # 4th rank
-            [  5,  5,-10, 10, 10,-10, -5,  5],  # 3rd rank
-            [  5, 10, 10,-20,-20, 10, 10,  5],  # 2nd rank
-            [  0,  0,  0,  0,  0,  0,  0,  0]   # 1st rank
-        ]
-
-        # Pawn endgame table - encourages advancement and king safety in the endgame
-        self.PAWN_EG_TABLE = [
-            [  0,  0,  0,  0,  0,  0,  0,  0],  # 8th rank (promotion)
-            [ 90, 90, 90, 90, 90, 90, 90, 90],  # 7th rank (promotion square)
-            [ 70, 70, 70, 70, 70, 70, 70, 70],  # 6th rank
-            [ 50, 50, 50, 50, 50, 50, 50, 50],  # 5th rank
-            [ 30, 30, 30, 30, 30, 30, 30, 30],  # 4th rank
-            [ 10, 10, 10, 10, 10, 10, 10, 10],  # 3rd rank
-            [  0,  0,  0,  0,  0,  0,  0,  0],  # 2nd rank
-            [  0,  0,  0,  0,  0,  0,  0,  0]   # 1st rank
-        ]
+    def get_piece_square_value(self, piece_type: chess.PieceType, square: chess.Square, is_white: bool, endgame_factor: float = 0.0) -> float:
+        """Get the piece-square table value for a piece at a given square"""
+        piece_symbol = chess.piece_name(piece_type).upper()[0]
         
-        # Knight table - heavily penalizes rim placement
-        self.KNIGHT_TABLE = [
-            [-50,-40,-30,-30,-30,-30,-40,-50],
-            [-40,-20,  0,  5,  5,  0,-20,-40],
-            [-30,  5, 10, 15, 15, 10,  5,-30],
-            [-30,  0, 15, 20, 20, 15,  0,-30],
-            [-30,  5, 15, 20, 20, 15,  5,-30],
-            [-30,  0, 10, 15, 15, 10,  0,-30],
-            [-40,-20,  0,  0,  0,  0,-20,-40],
-            [-50,-40,-30,-30,-30,-30,-40,-50]
-        ]
-        
-        # Bishop table - encourages long diagonals
-        self.BISHOP_TABLE = [
-            [-20,-10,-10,-10,-10,-10,-10,-20],
-            [-10,  0,  0,  0,  0,  0,  0,-10],
-            [-10,  0,  5, 10, 10,  5,  0,-10],
-            [-10,  5,  5, 10, 10,  5,  5,-10],
-            [-10,  0, 10, 10, 10, 10,  0,-10],
-            [-10, 10, 10, 10, 10, 10, 10,-10],
-            [-10,  5,  0,  0,  0,  0,  5,-10],
-            [-20,-10,-20,-10,-10,-20,-10,-20]
-        ]
-        
-        # Rook table - encourages 7th rank and center files
-        self.ROOK_TABLE = [
-            [  0,  0,  0,  0,  0,  0,  0,  0],
-            [  5, 10, 10, 10, 10, 10, 10,  5],
-            [ -5,  0,  0,  0,  0,  0,  0, -5],
-            [ -5,  0,  0,  0,  0,  0,  0, -5],
-            [ -5,  0,  0,  0,  0,  0,  0, -5],
-            [ -5,  0,  0,  0,  0,  0,  0, -5],
-            [ -5,  0,  0,  0,  0,  0,  0, -5],
-            [  0,  0,  0,  5,  5,  0,  0,  0]
-        ]
-        
-        # Queen table - discourages early development
-        self.QUEEN_TABLE = [
-            [-20,-10,-10, -5, -5,-10,-10,-20],
-            [-10,  0,  0,  0,  0,  0,  0,-10],
-            [-10,  0,  5,  5,  5,  5,  0,-10],
-            [ -5,  0,  5,  5,  5,  5,  0, -5],
-            [  0,  0,  5,  5,  5,  5,  0, -5],
-            [-10,  5,  5,  5,  5,  5,  0,-10],
-            [-10,  0,  5,  0,  0,  0,  0,-10],
-            [-20,-10,-10, -5, -5,-10,-10,-20]
-        ]
-
-        # King table - encourages stability and castling protection
-        self.KING_TABLE = [ # Renamed from KING_TABLE for clarity
-            [-50,-50,-50,-50,-50,-50,-50,-50],
-            [-50,-50,-50,-50,-50,-50,-50,-50],
-            [-50,-50,-50,-50,-50,-50,-50,-50],
-            [-50,-50,-50,-50,-50,-50,-50,-50],
-            [-50,-50,-50,-50,-50,-50,-50,-50],
-            [-50,-50,-50,-50,-50,-50,-50,-50],
-            [-50,-50,-50,-50,-50,-50,-50,-50],
-            [  0,  0,  0, 50, 50,  0,  0,  0] # Adjusted slightly for castling bonus
-        ]
-
-        # King middlegame table - encourages castling and safety (middlegame)
-        self.KING_MG_TABLE = [ # Renamed from KING_TABLE for clarity
-            [-30,-40,-40,-50,-50,-40,-40,-30],
-            [-30,-40,-40,-50,-50,-40,-40,-30],
-            [-30,-40,-40,-50,-50,-40,-40,-30],
-            [-30,-40,-40,-50,-50,-40,-40,-30],
-            [-20,-30,-30,-40,-40,-30,-30,-20],
-            [-10,-20,-20,-20,-20,-20,-20,-10],
-            [  5,  5,-10,-10,-10,-10,  5,  5],
-            [ 20, 30, 10, -5, -5, 10, 30, 20] # Adjusted slightly for castling bonus
-        ]
-
-        # King endgame table (encourages activity and centralization)
-        self.KING_EG_TABLE = [
-            [-50, -40, -30, -20, -20, -30, -40, -50],
-            [-30, -20, -10,   0,   0, -10, -20, -30],
-            [-30, -10,  20,  30,  30,  20, -10, -30],
-            [-30, -10,  30,  40,  40,  30, -10, -30],
-            [-30, -10,  30,  40,  40,  30, -10, -30],
-            [-30, -10,  20,  30,  30,  20, -10, -30],
-            [-30, -30,   0,   0,   0,   0, -30, -30],
-            [-50, -30, -30, -30, -30, -30, -30, -50]
-        ]
-    
-    def get_piece_value(self, piece):
-        """
-        Get the piece value based on its type without using piece-square tables.
-        
-        Args:
-            piece: chess.Piece object
-        Returns:
-            Value in centipawns (positive is good for the piece's color)
-        """
-        if piece is None:
-            return 0
-        
-        # Get the piece value directly in centipawns
-        return self.piece_values.get(piece.piece_type, 0)
-    
-    def get_pst_value(self, piece, square, color, endgame_factor=0.0):
-        """
-        Get the piece-square table value for a piece on a specific square.
-        
-        Args:
-            piece: chess.Piece object
-            square: chess square (0-63)
-            color: chess.WHITE or chess.BLACK
-            endgame_factor: float between 0.0 (opening) and 1.0 (endgame)
-            
-        Returns:
-            Value in centipawns (positive is good for the piece's color)
-        """
-
-        file = chess.square_file(square)  # 0-7 (a-h)
-        rank = chess.square_rank(square)  # 0-7 (1-8)
-        
-        # For black pieces, flip the rank (black's perspective) to use the same table
-        if color == chess.BLACK:
-            rank = 7 - rank
-        
-        table_value = 0
-        if piece.piece_type == chess.PAWN:
-            # Interpolate between game phase pawn tables
-            op_value = self.PAWN_TABLE[rank][file] if endgame_factor <= 0.25 else 0
-            mg_value = self.PAWN_MG_TABLE[rank][file] if endgame_factor <= 0.75 else 0
-            eg_value = self.PAWN_EG_TABLE[rank][file] if endgame_factor > 0.75 else 0
-            table_value = (op_value * (1 - endgame_factor)) + (mg_value * (1 - endgame_factor)) + (eg_value * (1 - endgame_factor)) 
-        elif piece.piece_type == chess.KNIGHT:
-            table_value = self.KNIGHT_TABLE[rank][file]
-        elif piece.piece_type == chess.BISHOP:
-            table_value = self.BISHOP_TABLE[rank][file]
-        elif piece.piece_type == chess.ROOK:
-            table_value = self.ROOK_TABLE[rank][file]
-        elif piece.piece_type == chess.QUEEN:
-            table_value = self.QUEEN_TABLE[rank][file]
-        elif piece.piece_type == chess.KING:
-            # Interpolate between game phase king tables
-            op_value = self.KING_TABLE[rank][file] if endgame_factor <= 0.25 else 0
-            mg_value = self.KING_MG_TABLE[rank][file] if endgame_factor <= 0.75 else 0
-            eg_value = self.KING_EG_TABLE[rank][file] if endgame_factor > 0.75 else 0
-            table_value = (op_value * (1 - endgame_factor)) + (mg_value * (1 - endgame_factor)) + (eg_value * (1 - endgame_factor))
+        # Handle king separately for endgame
+        if piece_type == chess.KING and endgame_factor > 0.5:
+            table = self.pst_tables['K_endgame']
         else:
-            table_value = 0
-        
-        return table_value
-    
-    def get_piece_square_value(self, piece_type, square, is_white, endgame_factor=0.0):
-        """Wrapper to use existing PST tables with the new interface.
-        This maintains compatibility without modifying the core PST logic."""
-        piece = chess.Piece(piece_type, chess.WHITE if is_white else chess.BLACK)
-        return self.get_pst_value(piece, square, piece.color, endgame_factor)
-    
-    def evaluate_board_position(self, board, endgame_factor=0.0):
-        """
-        Evaluate the entire board using piece-square tables.
-        
-        Args:
-            board: chess.Board object
-            endgame_factor: float between 0.0 (middlegame) and 1.0 (endgame)
+            table = self.pst_tables[piece_symbol]
             
-        Returns:
-            Total piece-square table score (positive favors white)
-        """
-        total_score = 0
+        # Convert square to rank/file
+        rank = chess.square_rank(square)
+        file = chess.square_file(square)
+        
+        # Flip rank for black pieces
+        if not is_white:
+            rank = 7 - rank
+            
+        return float(table[rank][file])
+    
+    def get_piece_value(self, piece: chess.Piece) -> float:
+        """Get the base value of a piece"""
+        return float(self.piece_values[piece.piece_type])
+    
+    def evaluate_board_position(self, board: chess.Board) -> float:
+        """Evaluate the entire board position using piece-square tables"""
+        score = 0.0
+        endgame_factor = self._calculate_endgame_factor(board)
         
         for square in chess.SQUARES:
             piece = board.piece_at(square)
             if piece:
+                # Get base piece value
                 value = self.get_piece_value(piece)
-                if piece.color == chess.WHITE:
-                    total_score += value
-                else:
-                    total_score -= value
-                    
-        return total_score  # Already in centipawn units
-
-# Example usage and testing
-if __name__ == "__main__":
-    # Test the piece-square tables
-    pst = v7p3rPST()
-    board = chess.Board()
-    
-    print("Initial position PST evaluation:", pst.evaluate_board_position(board))
-    
-    # Test specific squares
-    print(f"Knight on h3 value (White): {pst.get_pst_value(chess.Piece(chess.KNIGHT, chess.WHITE), chess.H3, chess.WHITE)}")
-    print(f"Knight on e4 value (White): {pst.get_pst_value(chess.Piece(chess.KNIGHT, chess.WHITE), chess.E4, chess.WHITE)}")
-    print(f"Difference (White): {pst.get_pst_value(chess.Piece(chess.KNIGHT, chess.WHITE), chess.E4, chess.WHITE) - pst.get_pst_value(chess.Piece(chess.KNIGHT, chess.WHITE), chess.H3, chess.WHITE)} centipawns")
-
-    # Test black perspective
-    print(f"Knight on a6 value (Black): {pst.get_pst_value(chess.Piece(chess.KNIGHT, chess.BLACK), chess.A6, chess.BLACK)}")
-    print(f"Knight on d5 value (Black): {pst.get_pst_value(chess.Piece(chess.KNIGHT, chess.BLACK), chess.D5, chess.BLACK)}")
-
-    # Test endgame factor
-    endgame_board = chess.Board("8/8/8/8/8/8/P7/K7 w - - 0 1") # White pawn on 7th, King on 1st
-    print("\nEndgame board (PST with endgame_factor=0.0):", pst.evaluate_board_position(endgame_board, endgame_factor=0.0))
-    print("Endgame board (PST with endgame_factor=1.0):", pst.evaluate_board_position(endgame_board, endgame_factor=1.0))
-    
-    # Test King endgame positions
-    king_central_endgame_board = chess.Board("8/8/8/4k3/4K3/8/8/8 w - - 0 1")
-    print(f"\nKing central (endgame_factor=1.0) for White: {pst.get_pst_value(chess.Piece(chess.KING, chess.WHITE), chess.E4, chess.WHITE, endgame_factor=1.0)}")
-    print(f"King corner (endgame_factor=1.0) for White: {pst.get_pst_value(chess.Piece(chess.KING, chess.WHITE), chess.A1, chess.WHITE, endgame_factor=1.0)}")
+                # Add positional value from PST
+                value += self.get_piece_square_value(piece.piece_type, square, piece.color == chess.WHITE, endgame_factor)
+                # Apply color factor
+                score += value if piece.color == chess.WHITE else -value
+                
+        return score
+        
+    def _calculate_endgame_factor(self, board: chess.Board) -> float:
+        """Calculate endgame factor between 0.0 (middlegame) and 1.0 (endgame)"""
+        # Count material excluding kings
+        total_material = 0
+        for square in chess.SQUARES:
+            piece = board.piece_at(square)
+            if piece and piece.piece_type != chess.KING:
+                total_material += self.piece_values[piece.piece_type]
+                
+        # Max material = 2 queens + 4 rooks + 4 bishops + 4 knights + 16 pawns
+        max_material = 2 * 900 + 4 * 500 + 4 * 330 + 4 * 320 + 16 * 100
+        
+        # Convert to factor 0.0 to 1.0
+        return 1.0 - (total_material / max_material)

@@ -35,16 +35,14 @@ class v7p3rConfig:
             overrides: Optional dictionary of configuration overrides
         """
         # Determine config path
+        config_name = 'default_config'
         if config_path is not None:
-            config_path_str = str(config_path) if isinstance(config_path, Path) else config_path
-            resolved_path = paths.get_config_path(config_path_str)
-            if resolved_path.is_file():
-                self.config_path = resolved_path
+            if isinstance(config_path, Path):
+                config_name = config_path.stem
             else:
-                self.config_path = paths.get_config_path('default_config')
-        else:
-            self.config_path = paths.get_config_path('default_config')
-        
+                config_name = str(config_path)
+        self.config_path = paths.get_config_file(config_name)
+
         # Initialize class attributes with type hints
         self.config_path: Path
         self.config: Dict[str, Any] = {}
@@ -394,6 +392,7 @@ class v7p3rConfig:
         """Get default engine configuration"""
         return {
             'depth': 20,
+            'max_depth': 30,  # Maximum search depth
             'multi_threaded': True,
             'use_transpositions': True,
             'use_tablebases': True,
