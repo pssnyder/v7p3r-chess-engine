@@ -233,7 +233,7 @@ class v7p3rSearch:
                 self.pv_move_stack = [best_move]
                 
             # Check if we've used our allocated time
-            if self.time_manager and self.time_manager.is_time_up():
+            if self.time_manager and self.time_manager.is_time_up(color):
                 break
                 
         return best_move
