@@ -1,22 +1,14 @@
-streamlit
-pygame
 python-chess
 pyyaml
-cairosvg
-psutil
-pillow
+pygame
+numpy
 pandas
 torch
-numpy
+matplotlib
+seaborn
+psutil
+pillow
 dash
 plotly
-wmi
-seaborn
 firebase-admin>=6.2.0
-firebase-functions
-firebase-auth
-google-cloud-storage>=2.9.0
 google-cloud-firestore>=2.11.0
-# Performance monitoring and profiling
-matplotlib
-nvidia-ml-py3  # Optional: for GPU monitoring

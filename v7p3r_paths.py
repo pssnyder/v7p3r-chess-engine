@@ -4,9 +4,9 @@
 This module provides a singleton path manager that handles all path-related operations.
 """
 
-import os
 import sys
 import platform
+import os
 from pathlib import Path
 from typing import Dict, Union, Optional
 
@@ -25,6 +25,9 @@ class V7P3RPaths:
         if not self._initialized:
             self._initialize()
             V7P3RPaths._initialized = True
+        # Ensure 'configs' directory exists in both project root and cwd
+        (Path(__file__).resolve().parent / 'configs').mkdir(parents=True, exist_ok=True)
+        (Path(os.getcwd()) / 'configs').mkdir(parents=True, exist_ok=True)
     
     def _initialize(self):
         """Initialize path configuration."""
@@ -60,11 +63,25 @@ class V7P3RPaths:
         self._create_directories()
     
     def _create_directories(self):
-        """Create all required directories."""
-        # Create directories that should exist (skip files with extensions)
+        """Create all required directories and ensure required files exist."""
+        # List of required directories (including all parent directories for files)
+        required_dirs = [self.config_dir, self.stockfish_dir, self.training_dir, self.docs_dir, self.test_dir, self.metrics_dir, Path('configs')]
+        # Add parent directories for all file paths in self.paths
         for key, path in self.paths.items():
-            if isinstance(path, Path) and not path.suffix:  # Only create directories, not files
-                path.mkdir(parents=True, exist_ok=True)
+            if isinstance(path, Path):
+                if path.suffix:
+                    required_dirs.append(path.parent)
+                else:
+                    required_dirs.append(path)
+        # Remove duplicates
+        unique_dirs = set(required_dirs)
+        for dir_path in unique_dirs:
+            dir_path.mkdir(parents=True, exist_ok=True)
+        # Optionally, create empty files if they don't exist
+        for key, path in self.paths.items():
+            if isinstance(path, Path) and path.suffix:
+                if not path.exists():
+                    path.touch()
     
     def get_config_file(self, name: str = 'default_config') -> Path:
         """Get the path to a configuration file.
@@ -96,17 +113,34 @@ class V7P3RPaths:
         """Get the path to the active game PGN file."""
         return self.paths['active_game']
     
-    def get_config_path(self) -> Path:
-        """Get the path to the config directory."""
-        return self.paths['config']
+    def get_config_path(self, name: Optional[str] = None) -> Path:
+        """Get the path to the config directory or a specific config file as a Path object (compatible with both engine and tests)."""
+        # Always return relative to current working directory for test compatibility
+        cwd_config_dir = Path(os.getcwd()) / 'configs'
+        if name:
+            return cwd_config_dir / f"{name}.json"
+        return cwd_config_dir
+    
+    def get_metrics_db_path(self) -> Path:
+        """Get the path to the metrics database file."""
+        return self.paths['metrics'] / 'chess_metrics.db'
+
+    def get_puzzle_db_path(self) -> Path:
+        """Get the path to the puzzle database file."""
+        return self.paths['puzzle']
         
     def get_doc_path(self) -> Path:
         """Get the path to the documentation directory."""
         return self.paths['docs']
     
     def get_stockfish_path(self) -> Path:
-        """Get the path to the Stockfish binary."""
-        return self.paths['stockfish']
+        """Get the path to the Stockfish binary (platform-specific)."""
+        stockfish_path = self.paths['stockfish']
+        if platform.system().lower() == 'windows':
+            # Ensure .exe extension for Windows
+            if not str(stockfish_path).endswith('.exe'):
+                return stockfish_path.with_suffix('.exe')
+        return stockfish_path
         
     def get_training_path(self) -> Path:
         """Get the path to the training data directory."""

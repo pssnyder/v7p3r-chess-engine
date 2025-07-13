@@ -1,0 +1,15 @@
+{
+    "game_config": {
+        "game_count": 10
+    },
+    "engine_config": {
+        "depth": 8,
+        "use_draw_prevention": false,
+        "max_ordered_moves": 20
+    },
+    "stockfish_config": {
+        "elo_rating": 800,
+        "depth": 8,
+        "movetime": 2000
+    }
+}

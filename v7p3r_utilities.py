@@ -1,3 +1,9 @@
+def ensure_parent_in_syspath(filepath: str):
+    """Ensure the parent directory of the given file is in sys.path."""
+    import os, sys
+    parent_dir = os.path.abspath(os.path.join(os.path.dirname(filepath), '..'))
+    if parent_dir not in sys.path:
+        sys.path.insert(0, parent_dir)
 """V7P3R Chess Engine Utilities Module.
 
 This module provides common utility functions used across the engine,

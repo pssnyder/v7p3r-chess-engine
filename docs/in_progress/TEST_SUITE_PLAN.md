@@ -108,14 +108,18 @@ python -m unittest testing/test_performance.py -v
    - Opening book usage
    - Multi-threading support
    - Memory management
+   - Integration tests for module interactions and state management
+   - Test data generators and configuration scenarios
 
 2. Performance Testing
    - CPU profiling
    - Memory profiling
    - Thread synchronization
    - Cache efficiency
+   - Move ordering efficiency and search depth benchmarks
 
 3. Integration Testing
    - UCI protocol compliance
    - GUI interaction
    - External engine compatibility
+   - Error handling scenarios

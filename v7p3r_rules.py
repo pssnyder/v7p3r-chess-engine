@@ -12,9 +12,8 @@ from v7p3r_config import v7p3rConfig
 from v7p3r_mvv_lva import v7p3rMVVLVA
 from v7p3r_utilities import get_timestamp
 
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-if parent_dir not in sys.path:
-    sys.path.insert(0, parent_dir)
+from v7p3r_utilities import ensure_parent_in_syspath
+ensure_parent_in_syspath(__file__)
 
 # ==========================================
 # ========= RULE SCORING CLASS =========

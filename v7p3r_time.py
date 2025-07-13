@@ -9,9 +9,8 @@ import sys
 import time
 from typing import Optional, Dict, Any
 
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-if parent_dir not in sys.path:
-    sys.path.insert(0, parent_dir)
+from v7p3r_utilities import ensure_parent_in_syspath
+ensure_parent_in_syspath(__file__)
 
 class v7p3rTime:
     def __init__(self, base_time=300, increment=0):

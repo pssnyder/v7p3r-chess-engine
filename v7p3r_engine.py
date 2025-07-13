@@ -1,137 +1,86 @@
 # v7p3r_engine.py
 
-""" v7p3r Engine
-This module implements the main engine for the v7p3r chess AI.
-It provides handler functionality for search algorithms, evaluation functions, and move ordering
+"""V7P3R Engine
+This module coordinates the chess engine components for move generation.
 """
 
 import chess
-import sys
-import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
+from typing import Optional
 from v7p3r_search import v7p3rSearch
 from v7p3r_score import v7p3rScore
-from v7p3r_ordering import v7p3rOrdering
-from v7p3r_time import v7p3rTime
-from v7p3r_book import v7p3rBook
+from v7p3r_quiescence import v7p3rQuiescence
 from v7p3r_pst import v7p3rPST
 from v7p3r_config import v7p3rConfig
 from v7p3r_rules import v7p3rRules
-from v7p3r_mvv_lva import v7p3rMVVLVA
 
-# =====================================
-# ========== ENGINE CLASS =============
 class v7p3rEngine:
+    """Main engine class coordinating all components."""
+    
     def __init__(self, engine_config=None):
-        # Overrides
-        self.time_control = {    # Default to infinite time control
-            'infinite': True
-        }
-
-        # Base Engine Configuration
-        self.config_manager = v7p3rConfig()
-        if engine_config is not None:
-            self.engine_config = engine_config
-        else:
-            self.engine_config = self.config_manager.get_engine_config()  # Ensure it's always a dictionary
-
-        # Load engine config and default values
-        self.name = self.engine_config.get("name", "v7p3r")
-        self.version = self.engine_config.get("version", "0.0.0")
-        self.ruleset_name = self.engine_config.get("ruleset", "default_ruleset")
-        self.search_algorithm = self.engine_config.get("search_algorithm", "simple")
-        self.depth = self.engine_config.get("depth", 5)
-        self.max_depth = self.engine_config.get("max_depth", 8)
-        self.use_game_phase = self.engine_config.get("use_game_phase", True)
-        self.piece_values = self.engine_config.get("piece_values", {
-            chess.KING: 0.0,
-            chess.QUEEN: 9.0,
-            chess.ROOK: 5.0,
-            chess.BISHOP: 3.25,
-            chess.KNIGHT: 3.0,
-            chess.PAWN: 1.0
-        })  
+        """Initialize engine with configuration.
         
-        # Base Ruleset
-        self.ruleset = self.config_manager.get_ruleset()
+        Args:
+            engine_config: Optional engine configuration override
+        """
+        # Load configuration
+        self.config = v7p3rConfig()
+        self.engine_config = engine_config or self.config.get_engine_config()
         
-
-        # Required Engine Modules
-        self.pst = v7p3rPST()
-        self.rules_manager = v7p3rRules(self.ruleset_name, self.pst)
-        self.scoring_calculator = v7p3rScore(self.rules_manager, self.pst)
-        self.mvv_lva = v7p3rMVVLVA(self.rules_manager)
-        self.ordering = v7p3rOrdering(mvv_lva=self.mvv_lva)
-        self.time_manager = v7p3rTime()
-        self.opening_book = v7p3rBook()
-        self.search_engine = v7p3rSearch(
-            self.scoring_calculator,
-            self.time_manager
-        )
+        # Initialize components
+        self.pst = v7p3rPST()  # Piece square tables
+        self.rules = v7p3rRules()  # Game rules
+        self.score = v7p3rScore(self.pst)  # Position evaluation
+        self.quiescence = v7p3rQuiescence(self.score)  # Quiescence search
+        self.search = v7p3rSearch(self.score, self.quiescence)  # Main search
+        
+        # Engine settings
+        self.depth = self.engine_config.get('depth', 6)
         
         # State tracking
-        self.current_evaluation = 0.0
         self.nodes_searched = 0
-        self.last_move_time = 0.0
-        self.last_pv_line = []
-
-    def get_move(self, board: chess.Board, color: chess.Color) -> chess.Move:
-        """Get the best move for the current position following the evaluation hierarchy."""
-        import time
-        start_time = time.time()
+        self.current_score = 0.0
         
-        try:
-            # 1. Try book moves first
-            book_move = self.opening_book.get_book_move(board)
-            if book_move and board.is_legal(book_move):
-                self._update_state(0.0, 1, time.time() - start_time)
-                return book_move
-                
-            # 2. Check for immediate checkmate
-            mate_move = self.rules_manager.find_checkmate_in_n(board, 5, color)
-            if mate_move and board.is_legal(mate_move):
-                self._update_state(float('inf'), 1, time.time() - start_time)
-                return mate_move
-                
-            # 3. If we're in trouble, look for saving moves
-            if board.is_check():
-                # Search deeper in check positions
-                self.search_engine.depth = min(self.depth + 2, self.max_depth)
-            else:
-                self.search_engine.depth = self.depth
-                
-            # 4. Get move from search engine
-            move = self.search_engine.search(board, color)
-            
-            # 5. Update engine state
-            self._update_state(
-                self.scoring_calculator.evaluate_position(board),
-                getattr(self.search_engine, 'nodes_searched', 0),
-                time.time() - start_time
-            )
-            
-            return move if move else chess.Move.null()
-            
-        except Exception as e:
-            print(f"Error in get_move: {str(e)}")
-            # Emergency fallback - return first legal move
-            legal_moves = list(board.legal_moves)
-            return legal_moves[0] if legal_moves else chess.Move.null()
-            
-    def _update_state(self, evaluation: float, nodes: int, time_taken: float):
-        """Update engine state after a move calculation"""
-        self.current_evaluation = evaluation
-        self.nodes_searched = nodes
-        self.last_move_time = time_taken
+    def get_move(self, board: chess.Board) -> Optional[chess.Move]:
+        """Get the best move in the current position.
         
-    def get_current_evaluation(self) -> float:
-        """Get the evaluation of the current position"""
-        return self.current_evaluation
+        Args:
+            board: Current board position
+            
+        Returns:
+            Optional[chess.Move]: Best move found, or None if no moves available
+        """
+        # Get legal moves
+        moves = list(board.legal_moves)
+        if not moves:
+            return None
+            
+        # Check for immediate checkmate
+        if self.engine_config.get('use_checkmate_detection', True):
+            for move in moves:
+                board.push(move)
+                is_mate = board.is_checkmate()
+                board.pop()
+                if is_mate:
+                    return move
+                    
+        # Do full search
+        best_move = self.search.search(board)
+        if best_move:
+            return best_move
+            
+        # Fallback to first legal move
+        return moves[0]
         
-    def get_nodes_searched(self) -> int:
-        """Get the number of nodes searched in the last search"""
-        return self.nodes_searched
+    def make_move(self, board: chess.Board) -> Optional[chess.Move]:
+        """Make a move in the given position.
         
-    def get_last_move_time(self) -> float:
-        """Get the time taken for the last move calculation"""
-        return self.last_move_time
+        Args:
+            board: Current board position
+            
+        Returns:
+            Optional[chess.Move]: Move made, or None if no moves available
+        """
+        move = self.get_move(board)
+        if move:
+            board.push(move)
+        return move
