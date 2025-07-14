@@ -5,36 +5,37 @@
         "black_player": "stockfish"
     },
     "engine_config": {
-        "engine_id": "v7p3r_static_evaluation_dev",
+        "engine_id": "v7p3r_speed_test",
         "name": "v7p3r",
-        "version": "0.8.6",
-        "ruleset": "default_ruleset",
-        "search_algorithm": "minimax",
-        "depth": 6,
+        "version": "1.0.0",
+        "ruleset": "speed_ruleset",
+        "search_algorithm": "negamax",
+        "depth": 4,
         "use_tempo_scoring": true,
         "use_primary_scoring": true,
         "use_secondary_scoring": true,
         "use_checkmate_detection": true,
         "use_stalemate_awarness": true,
-        "use_draw_prevention": true,
+        "use_draw_prevention": false,
         "use_material_count": true,
         "use_material_score": true,
         "use_piece_square_positioning": true,
         "use_game_phase": true,
-        "use_quiescence": true,
+        "use_quiescence": false,
         "use_mvv_lva": true,
         "use_ab_pruning": true,
         "use_move_ordering": true,
-        "max_ordered_moves": 10
+        "max_ordered_moves": 6,
+        "use_opening_book": true
     },
     "stockfish_config": {
-        "engine_id": "stockfish_release_exe",
+        "engine_id": "stockfish_speed_test",
         "name": "stockfish",
         "version": "17.1",
         "stockfish_path": "stockfish.exe",
         "elo_rating": 400,
         "debug_mode": false,
-        "depth": 4
+        "depth": 3
     },
     "puzzle_config": {
         "puzzle_database": {
