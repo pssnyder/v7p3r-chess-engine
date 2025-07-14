@@ -29,9 +29,9 @@ scripts/*
 *.jsonl
 #*.db
 #*.db-*
-.db-shm
-.db-wal
-.db-journal
+*.db-shm
+*.db-wal
+*.db-journal
 #*.sqlite
 
 # Model files
