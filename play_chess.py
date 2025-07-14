@@ -104,6 +104,9 @@ class playChess:
         is_white = self.current_player == chess.WHITE
         player = self.white_player if is_white else self.black_player
         
+        # Print thinking message
+        print(f"\n{player.upper()} is thinking...")
+        
         # Get move from appropriate engine
         move = None
         if player == 'v7p3r':
@@ -111,9 +114,10 @@ class playChess:
         elif player == 'stockfish':
             move = await self.stockfish.get_move(self.board)
             
+        duration = time.time() - start_time
+            
         # Record move metrics
         if self.metrics_enabled and move:
-            duration = time.time() - start_time
             move_metric = MoveMetric(
                 game_id=self.current_game_id,
                 move_number=len(self.board.move_stack) + 1,
@@ -135,11 +139,41 @@ class playChess:
             )
             self.metrics.add_move(move_metric)
             
+            # Print move info
+            print(f"{player.upper()} plays: {self.board.san(move)} (eval: {self.current_eval:.2f}, time: {duration:.2f}s)")
+            print(f"Position: {self.board.fen()}")
+            
+            # Write PGN after each move
+            game = chess.pgn.Game()
+            game.headers["Event"] = "V7P3R vs Stockfish"
+            game.headers["Site"] = "Local"
+            game.headers["Date"] = datetime.datetime.now().strftime("%Y.%m.%d")
+            game.headers["Round"] = "1"
+            game.headers["White"] = self.white_player
+            game.headers["Black"] = self.black_player
+            
+            # Add all moves
+            node = game
+            for m in self.board.move_stack[:-1]:  # Exclude the move we just made
+                node = node.add_variation(m)
+                
+            # Add the latest move
+            if move:
+                node = node.add_variation(move)
+                
+            # Write to active_game.pgn
+            with open("active_game.pgn", "w") as f:
+                print(game, file=f, end="\n\n")
+            
         return move
 
     async def run(self):
         """Run the chess game."""
         try:
+            print("\nStarting new game...")
+            print(f"White: {self.white_player.upper()}")
+            print(f"Black: {self.black_player.upper()}\n")
+            
             # Setup initial game state
             await self._setup_game()
             
@@ -161,10 +195,18 @@ class playChess:
                 # Update display at reasonable FPS
                 self.clock.tick(MAX_FPS)
                 
+            # Announce game over
+            outcome = self.board.outcome()
+            if outcome:
+                winner = "White" if outcome.winner == chess.WHITE else "Black"
+                print(f"\nGame Over! {winner} wins by {outcome.termination}")
+                print(f"Final position: {self.board.fen()}")
+            else:
+                print("\nGame Over! Draw")
+                
             # Record game end metrics
             if self.metrics_enabled:
                 game_duration = time.time() - self.game_start_time
-                outcome = self.board.outcome()
                 game_metric = GameMetric(
                     game_id=self.current_game_id,
                     timestamp=get_timestamp(),

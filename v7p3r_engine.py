@@ -40,6 +40,11 @@ class v7p3rEngine:
         self.nodes_searched = 0
         self.current_score = 0.0
         
+    @property
+    def rules_manager(self):
+        """Return the rules manager for compatibility."""
+        return self.rules
+
     def get_move(self, board: chess.Board) -> Optional[chess.Move]:
         """Get the best move in the current position.
         
