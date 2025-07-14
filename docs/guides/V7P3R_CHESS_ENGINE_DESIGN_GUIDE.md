@@ -32,19 +32,21 @@ This document serves as a living design and brainstorming document outlining the
 **Engine Modules:**
 
 * Core Modules  
-  * Chess Game: pygame handler
-  * V7P3R Engine: engine handler  
-  * Config: engine config handler
-* Move Selection Modules
-  * Search: move search handler
-  * Negamax: primary search algorithm
-  * Scoring: move scoring
-  * Rules: position evaluation
-* Performance and Risk Modules
-  * Move Ordering: move prioritization and move limiting for increased move selection speed and preliminary move pruning
-  * Quiescence: active position identification, examines move risk to achieve quieter positions beyond max depth
-  * MVV-LVA: most-valuable-victim/least-valuable-attacker logic for enhanced capture and threat calculation
-  * Tempo: game continuance and game ending condition checking (Checkmate, Stalemate, Draw)
+  * Chess Game: pygame handler for game configuration, game state handling, and game output rendering, including game pgn recording and metrics module calls.
+  * V7P3R Engine: engine handler for game awareness, move generation, position evaluation, and final move selection
+  * Config: engine config handler for loading and managing engine configuration settings
+* Move Selection and Position Evaluation Modules
+  * Search: move search handler, centralized search control module, calls performance, risk, move tree iteration and move scoring modules
+  * Negamax: primary search algorithm, handles move tree iteration
+  * Scoring: move scoring and position evaluation module, handles overall scoring calulation, short circuit logic, and evaluation values, calls out to individual scoring and evaluation modules
+  * Rules: position specific score modifiers, move validators, and decision making module for the engine, sets guidelines and weighting of evaluation scores
+  * Move Ordering: move prioritization and legal move limiting for increased move selection speed and preliminary move pruning
+  * Tempo Calculation: critical priority scoring, priority move selection, and move avoidance, handles game phase, game continuance, and game ending condition checking for game state awareness, checkmate attacks/threats, stalemate avoidance, and draw prevention, can result in immediate move selection or complete principal variation avoidance
+  * Primary Scoring: after Tempo, first order priority scoring module, handles material count, material score, and calls to piece square table calculation and calls to mvv-lva capture and threat assessment modules
+  * Secondary Scoring: second order scoring module, handles castling and tactical decision scoring 
+  * Piece Square Tables: piece square table evaluation module, handles piece square table calculation and game phase detection
+  * MVV-LVA: simple module for most-valuable-victim/least-valuable-attacker logic for basic capture and threat awareness
+  * Quiescence: active/risky position identification, examines move risk to achieve quieter positions beyond max depth for additional safety
 
 **Utilities:**
 
