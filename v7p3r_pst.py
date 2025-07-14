@@ -54,9 +54,9 @@ class PieceSquareTables:
             -20,-10,-10,-10,-10,-10,-10,-20
         ]
         
-        # Rook PST - open files and 7th rank
+        # Rook PST - open files, 7th rank, central control
         self.rook_pst = [
-            0,  0,  0,  0,  0,  0,  0,  0,
+            0,  0,  0,  5,  5,  0,  0,  0,
             5, 10, 10, 10, 10, 10, 10,  5,
             -5,  0,  0,  0,  0,  0,  0, -5,
             -5,  0,  0,  0,  0,  0,  0, -5,

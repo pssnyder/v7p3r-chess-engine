@@ -48,6 +48,13 @@ class TempoCalculation:
         if board_copy.is_check():
             tempo_score += 100
         
+        # Special bonus: If in check and capturing the checking piece safely
+        if board.is_check() and board.is_capture(move):
+            if self._captures_checking_piece(board, move):
+                # Additional tempo bonus for resolving check via capture
+                tempo_score += 500
+                critical_move = True
+        
         return tempo_score, critical_move
     
     def _is_draw_position(self, board):
@@ -115,3 +122,18 @@ class TempoCalculation:
     def should_short_circuit(self, score):
         """Determine if we should short circuit based on tempo score"""
         return abs(score) >= self.mate_threat_bonus
+    
+    def _captures_checking_piece(self, board, move):
+        """Check if this move captures a piece that is giving check"""
+        if not board.is_capture(move) or not board.is_check():
+            return False
+        
+        # Get the square being captured
+        to_square = move.to_square
+        
+        # Get all attackers of the king
+        king_square = board.king(board.turn)
+        attackers = board.attackers(not board.turn, king_square)
+        
+        # Check if the capture target is one of the checking pieces
+        return to_square in attackers

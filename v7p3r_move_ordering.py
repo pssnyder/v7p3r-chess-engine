@@ -31,6 +31,21 @@ class MoveOrdering:
         
         return [move for move, score in scored_moves]
     
+    def _captures_checking_piece(self, board, move):
+        """Check if this move captures a piece that is giving check"""
+        if not board.is_capture(move) or not board.is_check():
+            return False
+        
+        # Get the square being captured
+        to_square = move.to_square
+        
+        # Get all attackers of the king
+        king_square = board.king(board.turn)
+        attackers = board.attackers(not board.turn, king_square)
+        
+        # Check if the capture target is one of the checking pieces
+        return to_square in attackers
+    
     def _score_move(self, board, move):
         """Score a move for ordering purposes"""
         score = 0
@@ -41,11 +56,25 @@ class MoveOrdering:
         if board_copy.is_checkmate():
             return 1000000
         
-        # 2. Captures get high priority (MVV-LVA)
+        # 2. Avoid repetition (heavy penalty)
+        if board_copy.is_repetition(2):  # Check for threefold repetition
+            return -500000
+        
+        # 3. If in check, prioritize safe captures of checking piece
+        if board.is_check():
+            if board.is_capture(move):
+                # Check if this capture targets the checking piece
+                if self._captures_checking_piece(board, move):
+                    # Verify it's a safe capture using MVV-LVA
+                    mvv_lva_score = self.mvv_lva.get_capture_score(board, move)
+                    if mvv_lva_score > 0:  # Positive score means safe/profitable
+                        return 100000 + mvv_lva_score  # Very high priority
+        
+        # 4. Captures get high priority (MVV-LVA)
         if board.is_capture(move):
             score += 10000 + self.mvv_lva.get_capture_score(board, move)
         
-        # 3. Checks get medium priority
+        # 5. Checks get medium priority
         if board_copy.is_check():
             score += 5000
         

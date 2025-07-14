@@ -39,7 +39,7 @@ class SearchController:
             return None
         
         # Choose search algorithm
-        if self.search_algorithm == 'negamax':
+        if self.search_algorithm in ['negamax', 'minimax']:
             best_move, score = self._negamax_root(board, our_color, legal_moves)
         elif self.search_algorithm == 'simple':
             best_move, score = self._simple_search(board, our_color, legal_moves)
@@ -47,8 +47,8 @@ class SearchController:
             best_move = random.choice(legal_moves)
             score = 0
         else:
-            # Fallback to simple search
-            best_move, score = self._simple_search(board, our_color, legal_moves)
+            # Fallback to negamax search
+            best_move, score = self._negamax_root(board, our_color, legal_moves)
         
         self.search_time = time.time() - start_time
         
@@ -92,10 +92,14 @@ class SearchController:
         """Negamax search with alpha-beta pruning"""
         self.nodes_searched += 1
         
+        # Check for repetition (penalize heavily)
+        if board.is_repetition(2):  # Check for threefold repetition
+            return -5000  # Penalize repetition
+        
         # Terminal conditions
         if depth == 0:
             return self.scoring.evaluate_position(board, our_color)
-        
+
         if board.is_checkmate():
             return -999999 + (self.max_depth - depth)  # Prefer quicker mates
         
@@ -126,6 +130,10 @@ class SearchController:
     def _negamax_no_pruning(self, board, depth, our_color):
         """Negamax search without alpha-beta pruning"""
         self.nodes_searched += 1
+        
+        # Check for repetition (penalize heavily)
+        if board.is_repetition(2):  # Check for threefold repetition
+            return -5000  # Penalize repetition
         
         # Terminal conditions
         if depth == 0:

@@ -24,9 +24,17 @@ MAX_FPS = 15
 IMAGES = {}
 
 class ChessGame:
-    def __init__(self, config_file="config.json"):
-        # Initialize pygame
-        pygame.init()
+    def __init__(self, config_file="config.json", headless=False):
+        # Initialize pygame only if not headless
+        self.headless = headless
+        if not headless:
+            pygame.init()
+        else:
+            # Initialize pygame with dummy driver for headless mode
+            import os
+            os.environ['SDL_VIDEODRIVER'] = 'dummy'
+            pygame.init()
+            pygame.display.set_mode((1, 1))  # Minimal display
         
         # Load configuration
         self.config = V7P3RConfig(config_file)
@@ -51,10 +59,14 @@ class ChessGame:
         self.game_start_time = None
         self.games_played = 0
         
-        # UI state
-        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
-        pygame.display.set_caption("V7P3R Chess Engine")
-        self.clock = pygame.time.Clock()
+        # UI state (only if not headless)
+        if not headless:
+            self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
+            pygame.display.set_caption("V7P3R Chess Engine")
+            self.clock = pygame.time.Clock()
+        else:
+            self.screen = None
+            self.clock = None
         self.selected_square = None
         self.display_needs_update = True
         
@@ -238,6 +250,9 @@ class ChessGame:
     
     def update_display(self):
         """Update the chess board display"""
+        if self.headless:
+            return
+            
         self.draw_board()
         self.draw_pieces()
         pygame.display.flip()
@@ -245,6 +260,9 @@ class ChessGame:
     
     def draw_board(self):
         """Draw the chess board"""
+        if self.headless or self.screen is None:
+            return
+            
         colors = [pygame.Color("#f0d9b5"), pygame.Color("#b58863")]
         for r in range(DIMENSION):
             for c in range(DIMENSION):
@@ -257,6 +275,9 @@ class ChessGame:
     
     def draw_pieces(self):
         """Draw pieces on the board"""
+        if self.headless or self.screen is None:
+            return
+            
         for r in range(DIMENSION):
             for c in range(DIMENSION):
                 square = chess.square(c, 7-r)  # Convert to chess coordinates

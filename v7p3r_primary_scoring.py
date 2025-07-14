@@ -68,8 +68,12 @@ class PrimaryScoring:
         for square in chess.SQUARES:
             piece = board.piece_at(square)
             if piece:
-                # Get PST value (from piece's perspective)
-                pst_square = square if piece.color == chess.WHITE else chess.square_mirror(square)
+                # Mirror squares for Black pieces so they're evaluated from their perspective
+                if piece.color == chess.WHITE:
+                    pst_square = square
+                else:
+                    pst_square = chess.square_mirror(square)
+                    
                 pst_value = self.pst.get_pst_value(piece.piece_type, pst_square, is_endgame)
                 
                 if piece.color == our_color:

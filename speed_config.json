@@ -8,7 +8,6 @@
         "engine_id": "v7p3r_speed_test",
         "name": "v7p3r",
         "version": "1.0.0",
-        "ruleset": "speed_ruleset",
         "search_algorithm": "negamax",
         "depth": 4,
         "use_tempo_scoring": true,
