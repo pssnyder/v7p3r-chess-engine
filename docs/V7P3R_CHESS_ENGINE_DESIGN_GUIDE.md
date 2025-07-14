@@ -3,12 +3,11 @@ This document serves as a living design and brainstorming document outlining the
 
 **Engine Configuration:**
 
-* Color Setting: White or Black  
-* Core Engine Type: v7p3r
-* Search Algorithm: negamax
-* Ruleset: default, custom
-* Depth: 1-10
-* Performance Controls
+* A config.json will be provided for reference of prefered configurable settings to start with, these will guide the mvp functionality of the engine
+* Core Engine Name: v7p3r, stockfish, chatfish, or any other engine name can be used (code can be updated to add specific engine handlers)
+* v7p3r Search Algorithm: negamax
+* v7p3r Depth: 1-10
+* v7p3r Performance Controls
   * Efficiency: Alpha Beta Pruning, Move Ordering with max move limit, Depth Limiting
   * Accuracy: Opening Book
   * Risk: Critical Move Short Circuiting, Quiescence Checks, MVV-LVA Calculation
@@ -37,6 +36,7 @@ This document serves as a living design and brainstorming document outlining the
   * Config: engine config handler for loading and managing engine configuration settings
 * Move Selection and Position Evaluation Modules
   * Search: move search handler, centralized search control module, calls performance, risk, move tree iteration and move scoring modules
+  * Book: Opening book containing basic openings to a max of 10 moves (London, Queens Gambit, Caro Kann, Scandinavian, French, Dutch, Vienna, and King's Indian)
   * Negamax: primary search algorithm, handles move tree iteration
   * Scoring: move scoring and position evaluation module, handles overall scoring calulation, short circuit logic, and evaluation values, calls out to individual scoring and evaluation modules
   * Rules: position specific score modifiers, move validators, and decision making module for the engine, sets guidelines and weighting of evaluation scores
@@ -50,32 +50,29 @@ This document serves as a living design and brainstorming document outlining the
 
 **Utilities:**
 
-* PGN Watcher  
-* Live Ruleset/Puzzle Tuner  
-* Metrics (Game and Move Evaluation)  
-* Stockfish Handler  
-* Utilities Class  
-  * Path tools  
-  * Datetime tools  
-  * Debug tools
+* PGN Watcher (to monitor the active_game.pgn file for performant game monitoring independent of the engine)
+* Live Ruleset/Puzzle Tuner (to batch test specific scoring actions on predetermined positions)
+* Metrics (to identify performance and move selection score issues)
+* Stockfish Handler (to activate the stockfish engine as an opponent for the v7p3r engine)
 
 **Basic Evaluation Scoring Rules:**  
-Critical Short Circuits:
+#### Critical Short Circuits:
 
 1. Checkmates: If the engine can play a mate within 5, then instantly return that principle variation. If the opponent has a checkmate during move search then exit that pv exploration and skip that move.  
 2. Stalemates: If the engine discovers a stalemate within the current principle variation, then exit that pv and skip that move.
 
-Primary Scores:
+#### Primary Scores:
 
 1. Material Count: Engine’s raw piece count.  
 2. Material Score: Engine’s piece value score using base piece values.  
-3. Piece Square Tables: Engine’s piece position score using piece-square tables.  
+3. Piece Square Tables: Engine’s piece position score using piece-square tables, specific to game phase (opening, middlegame, endgame).  
 4. Captures: Engine’s capture move scores using MVV-LVA calculation.  
    
 
-Secondary Scores:
+#### Secondary Scores:
 
 1. Castling: If the engine has castling rights and the move is to castle, then add the current engines total material score to the evaluation, else if the engine has castling rights and the move is a king or rook move and is not castling, then subtract the engines total material score.
+2. Tactics: If the engine has no critical or primary moves, if a pin, skewer, discovered attack, or the opponent has a hanging piece for safe attack, then increase that moves score over other non-tactical moves.
 
 **Engine Logic:**
 
