@@ -42,7 +42,9 @@ class GameRules:
             if (board_copy.is_stalemate() or 
                 board_copy.is_insufficient_material() or
                 board_copy.is_seventyfive_moves() or
-                board_copy.is_fivefold_repetition()):
+                board_copy.is_fivefold_repetition() or
+                board_copy.can_claim_threefold_repetition() or
+                board_copy.can_claim_fifty_moves()):
                 return True
         
         return False

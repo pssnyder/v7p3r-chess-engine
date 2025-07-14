@@ -126,12 +126,13 @@ class ChessGame:
         self.game_start_time = time.time()
         running = True
         
-        while running and not self.board.is_game_over():
+        while running and not self._is_game_over():
             # Handle pygame events
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-                    break
+            if not self.headless:
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        running = False
+                        break
             
             if not running:
                 break
@@ -236,8 +237,18 @@ class ChessGame:
             return "1/2-1/2"
         elif self.board.is_fivefold_repetition():
             return "1/2-1/2"
+        elif self.board.can_claim_threefold_repetition():  # Add threefold repetition check
+            return "1/2-1/2"
+        elif self.board.can_claim_fifty_moves():  # Add fifty-move rule check
+            return "1/2-1/2"
         else:
             return "1/2-1/2"  # Unfinished game
+    
+    def _is_game_over(self):
+        """Check if game is over including threefold repetition and fifty-move rule"""
+        return (self.board.is_game_over() or 
+                self.board.can_claim_threefold_repetition() or
+                self.board.can_claim_fifty_moves())
     
     def get_winning_engine(self, result):
         """Determine which engine won"""

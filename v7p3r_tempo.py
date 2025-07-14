@@ -62,7 +62,9 @@ class TempoCalculation:
         return (board.is_stalemate() or 
                 board.is_insufficient_material() or
                 board.is_seventyfive_moves() or
-                board.is_fivefold_repetition())
+                board.is_fivefold_repetition() or
+                board.can_claim_threefold_repetition() or
+                board.can_claim_fifty_moves())
     
     def _get_material_balance(self, board, our_color):
         """Get material balance from our perspective"""
