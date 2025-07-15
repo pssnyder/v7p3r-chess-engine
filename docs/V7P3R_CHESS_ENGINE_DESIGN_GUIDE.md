@@ -1,9 +1,10 @@
 # v7p3r Chess Engine Design and Evaluation Rule Statements  
 This document serves as a living design and brainstorming document outlining the current engine's functional goals and expectations.
 
-**Engine Configuration:**
+## Engine Configuration
+A config.json will be provided for reference of prefered configurable settings to start with, these will guide the mvp functionality of the engine. These config settings should not be expanded beyond simple boolean feature flags and up to 1 weight or control value per function (example: use_move_ordering has one configurable setting for max_ordered_moves to assist with performance and move duration, any other configurations will be permanently set within the move ordering with the best settings)
 
-* A config.json will be provided for reference of prefered configurable settings to start with, these will guide the mvp functionality of the engine
+### Configuration Options
 * Core Engine Name: v7p3r, stockfish, chatfish, or any other engine name can be used (code can be updated to add specific engine handlers)
 * v7p3r Search Algorithm: negamax
 * v7p3r Depth: 1-10
@@ -13,8 +14,8 @@ This document serves as a living design and brainstorming document outlining the
   * Risk: Critical Move Short Circuiting, Quiescence Checks, MVV-LVA Calculation
   * Game Outcome Strictness: Stalemate Prevention, Draw Avoidance
 
-**Piece Values in centipawns:**
-
+## Piece Values
+Piece values are in centipawns:
 * King \= 20000 points  
 * Queen \= 900 points  
 * Rook \= 500 points  
@@ -22,46 +23,52 @@ This document serves as a living design and brainstorming document outlining the
 * Knight \= 300 points  
 * Pawn \= 100 point
 
-**Search Types:**
-
-* Simple: find the best immediate eval based on checkmates, material count, score, and pst only, fallback search type
+## Search Types
+Engine will use a primary search type with a fallback and a random function for testing:
 * Negamax: primary search type, fully featured search with all performance options available, main search loop: engine chooses best overall eval for each turn in its depth, inverting calculation perspectives each move
+* Simple: find the best immediate eval based on checkmates, material count, score, and pst only, fallback search type
 * Random: plays any legal move, for testing purposes and opponent config
 
-**Engine Modules:**
+## Engine Modules
 
-* Core Modules  
-  * Chess Game: pygame handler for game configuration, game state handling, and game output rendering, including game pgn recording and metrics module calls.
-  * V7P3R Engine: engine handler for game awareness, move generation, position evaluation, and final move selection
-  * Config: engine config handler for loading and managing engine configuration settings
-* Move Selection and Position Evaluation Modules
-  * Search: move search handler, centralized search control module, calls performance, risk, move tree iteration and move scoring modules
-  * Book: Opening book containing basic openings to a max of 10 moves (London, Queens Gambit, Caro Kann, Scandinavian, French, Dutch, Vienna, and King's Indian)
-  * Negamax: primary search algorithm, handles move tree iteration
-  * Scoring: move scoring and position evaluation module, handles overall scoring calulation, short circuit logic, and evaluation values, calls out to individual scoring and evaluation modules
-  * Rules: position specific score modifiers, move validators, and decision making module for the engine, sets guidelines and weighting of evaluation scores
-  * Move Ordering: move prioritization and legal move limiting for increased move selection speed and preliminary move pruning
-  * Tempo Calculation: critical priority scoring, priority move selection, and move avoidance, handles game phase, game continuance, and game ending condition checking for game state awareness, checkmate attacks/threats, stalemate avoidance, and draw prevention, can result in immediate move selection or complete principal variation avoidance
-  * Primary Scoring: after Tempo, first order priority scoring module, handles material count, material score, and calls to piece square table calculation and calls to mvv-lva capture and threat assessment modules
-  * Secondary Scoring: second order scoring module, handles castling and tactical decision scoring 
-  * Piece Square Tables: piece square table evaluation module, handles piece square table calculation and game phase detection
-  * MVV-LVA: simple module for most-valuable-victim/least-valuable-attacker logic for basic capture and threat awareness
-  * Quiescence: active/risky position identification, examines move risk to achieve quieter positions beyond max depth for additional safety
+### Core Modules
+* Config: config handler for loading and managing game, engine, puzzle, metrics, and all other configuration settings
+* Chess Game: pygame handler for game configuration, game state handling, and game output rendering, including game pgn recording and metrics module calls. Leaves move calculation, scoring, and process intensive functions to the engine modules.
+* V7P3R Engine: engine handler for move examination, position evaluation, and final move selection (interface independent)
 
-**Utilities:**
+### Move Selection Handlers
+* Search: move search handler, centralized search control module, calls performance, risk, move tree iteration and move scoring modules
+* Negamax: primary search algorithm, handles move tree iteration
 
+### Position Evaluation Modules
+* Scoring: move scoring and position evaluation module, handles overall scoring calulation, short circuit logic, and evaluation values, calls out to individual scoring and evaluation modules
+* Rules: position specific score modifiers, move validators, and decision making module for the engine, sets guidelines and weighting of evaluation scores
+* Tempo Calculation: critical priority scoring, priority move selection, and move avoidance, handles game phase, game continuance, and game ending condition checking for game state awareness, checkmate attacks/threats, stalemate avoidance, and draw prevention, can result in immediate move selection or complete principal variation avoidance
+* Primary Scoring: after Tempo, first order priority scoring module, handles material count, material score, and calls to piece square table calculation and calls to mvv-lva capture and threat assessment modules
+* Secondary Scoring: second order scoring module, handles castling and tactical decision scoring 
+* Piece Square Tables: piece square table evaluation module, handles piece square table calculation and game phase detection
+* MVV-LVA: simple module for most-valuable-victim/least-valuable-attacker logic for basic capture and threat awareness
+
+### Performance and Accuracy Modules
+* Move Ordering: move prioritization and legal move limiting for increased move selection speed and preliminary move pruning
+* Book: Opening book containing basic openings to a max of 10 moves (London, Queens Gambit, Caro Kann, Scandinavian, French, Dutch, Vienna, and King's Indian)
+* Quiescence: active/risky position identification, examines move risk to achieve quieter positions beyond max depth for additional safety
+
+### Utility Modules
+* v7p3r Handler (play_chess file that controls the interface between gameplay and the v7p3r engine)
 * PGN Watcher (to monitor the active_game.pgn file for performant game monitoring independent of the engine)
 * Live Ruleset/Puzzle Tuner (to batch test specific scoring actions on predetermined positions)
 * Metrics (to identify performance and move selection score issues)
-* Stockfish Handler (to activate the stockfish engine as an opponent for the v7p3r engine)
+* Stockfish Handler (to activate the stockfish.exe engine for testing and as an opponent for the v7p3r engine)
 
-**Basic Evaluation Scoring Rules:**  
-#### Critical Short Circuits:
+## Basic Evaluation Scoring Rules
+
+### Critical Short Circuits:
 
 1. Checkmates: If the engine can play a mate within 5, then instantly return that principle variation. If the opponent has a checkmate during move search then exit that pv exploration and skip that move.  
 2. Stalemates: If the engine discovers a stalemate within the current principle variation, then exit that pv and skip that move.
 
-#### Primary Scores:
+### Primary Scores:
 
 1. Material Count: Engine’s raw piece count.  
 2. Material Score: Engine’s piece value score using base piece values.  
@@ -69,12 +76,12 @@ This document serves as a living design and brainstorming document outlining the
 4. Captures: Engine’s capture move scores using MVV-LVA calculation.  
    
 
-#### Secondary Scores:
+### Secondary Scores:
 
 1. Castling: If the engine has castling rights and the move is to castle, then add the current engines total material score to the evaluation, else if the engine has castling rights and the move is a king or rook move and is not castling, then subtract the engines total material score.
 2. Tactics: If the engine has no critical or primary moves, if a pin, skewer, discovered attack, or the opponent has a hanging piece for safe attack, then increase that moves score over other non-tactical moves.
 
-**Engine Logic:**
+## Engine Logic
 
 1. The engine configures its components and modules according to the selected config file.  
 2. The engine starts a chess game.  
