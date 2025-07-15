@@ -66,7 +66,8 @@ class AutomatedTester:
                     temp_config_path = f.name
                 
                 try:
-                    game = ChessGame(temp_config_path, headless=True)
+                    # Create a custom game class that will display move, duration, and evaluation
+                    game = self.create_monitored_game(temp_config_path, v7p3r_color)
                     
                     # Run single game and time it
                     game_start = time.time()
@@ -128,6 +129,118 @@ class AutomatedTester:
         
         return results, win_rate_decisive
     
+    def create_monitored_game(self, config_path, v7p3r_color):
+        """Create a game with a custom run_single_game method that displays move, duration, and evaluation"""
+        from v7p3r_game import ChessGame
+        import chess
+        import pygame
+        
+        # Create a subclass of ChessGame with enhanced move reporting
+        class MonitoredChessGame(ChessGame):
+            def run_single_game(self):
+                """Override run_single_game to add enhanced move reporting"""
+                self.reset_for_new_game()
+                
+                # Record game start
+                white_config = self.config.get_engine_config() if self.white_player == 'v7p3r' else None
+                black_config = self.config.get_engine_config() if self.black_player == 'v7p3r' else None
+                self.game_id = self.metrics.record_game_start(
+                    self.white_player, self.black_player, white_config, black_config
+                )
+                
+                self.game_start_time = time.time()
+                running = True
+                
+                while running and not self._is_game_over():
+                    # Handle pygame events
+                    if not self.headless:
+                        for event in pygame.event.get():
+                            if event.type == pygame.QUIT:
+                                running = False
+                                break
+                    
+                    if not running:
+                        break
+                    
+                    # Determine current player
+                    current_player = self.white_player if self.board.turn == chess.WHITE else self.black_player
+                    
+                    print(f"\nMove {self.move_number} - {current_player} to play")
+                    
+                    # Get move from appropriate engine
+                    move_start_time = time.time()
+                    move = self.get_engine_move(current_player)
+                    move_time = time.time() - move_start_time
+                    
+                    if move is None:
+                        print(f"No move available for {current_player}")
+                        break
+                    
+                    # Get evaluation before making the move
+                    v7p3r_eval = self.v7p3r_engine.get_evaluation(self.board)
+                    
+                    # Make the move
+                    if move in self.board.legal_moves:
+                        # Record move analysis
+                        evaluation = self.v7p3r_engine.get_evaluation(self.board) if current_player == 'v7p3r' else None
+                        player_color = 'white' if self.board.turn == chess.WHITE else 'black'
+                        
+                        self.metrics.record_move(
+                            self.game_id, self.move_number, player_color, move.uci(),
+                            evaluation_score=evaluation, search_time=move_time
+                        )
+                        
+                        # Enhanced move reporting - show move, duration, and evaluation
+                        eval_sign = "+" if v7p3r_eval > 0 else "" if v7p3r_eval == 0 else "-"
+                        eval_abs = abs(v7p3r_eval)
+                        eval_display = f"{eval_sign}{eval_abs:.2f}"
+                        
+                        # Add evaluation interpretation
+                        eval_interp = ""
+                        if abs(v7p3r_eval) < 0.3:
+                            eval_interp = "Equal"
+                        elif abs(v7p3r_eval) < 0.7:
+                            eval_interp = "Slight advantage"
+                        elif abs(v7p3r_eval) < 1.5:
+                            eval_interp = "Advantage"
+                        elif abs(v7p3r_eval) < 3.0:
+                            eval_interp = "Clear advantage"
+                        elif abs(v7p3r_eval) < 5.0:
+                            eval_interp = "Winning position"
+                        else:
+                            eval_interp = "Decisive advantage"
+                            
+                        # Add who has the advantage
+                        if v7p3r_eval > 0.3:
+                            eval_interp += " for White"
+                        elif v7p3r_eval < -0.3:
+                            eval_interp += " for Black"
+                            
+                        # Format based on whether this is V7P3R's move or not
+                        if current_player == 'v7p3r':
+                            print(f"V7P3R Move: {move} | Time: {move_time:.2f}s | Evaluation: {eval_display} ({eval_interp})")
+                        else:
+                            print(f"Stockfish Move: {move} | V7P3R Evaluation: {eval_display} ({eval_interp})")
+                        
+                        self.board.push(move)
+                        
+                        if self.board.turn == chess.WHITE:
+                            self.move_number += 1
+                        
+                        # Update display
+                        self.update_display()
+                        self.write_pgn()
+                        
+                    else:
+                        print(f"Illegal move attempted: {move}")
+                        break
+                
+                # Game finished
+                self.finish_game()
+                
+        # Create and return our enhanced game
+        return MonitoredChessGame(config_path, headless=True)
+    
     def get_last_game_result(self, v7p3r_was_white):
         """Get the result of the last game from the database"""
         try:
@@ -154,6 +267,37 @@ class AutomatedTester:
             print(f"Error getting game result: {e}")
             return 'loss'  # Default to loss on error
 
+def test_single_game():
+    """Run a single test game with enhanced move reporting"""
+    tester = AutomatedTester()
+    
+    # Create temporary config with v7p3r as white
+    config = V7P3RConfig()
+    config.config['game_config']['game_count'] = 1
+    config.config['game_config']['white_player'] = 'v7p3r'
+    config.config['game_config']['black_player'] = 'stockfish'
+    config.config['stockfish_config']['elo_rating'] = 400
+    
+    import tempfile
+    import json
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        json.dump(config.config, f, indent=2)
+        temp_config_path = f.name
+    
+    try:
+        # Create and run game with move/eval display
+        game = tester.create_monitored_game(temp_config_path, "White")
+        game.run_games()
+    except Exception as e:
+        print(f"Error running test game: {e}")
+    finally:
+        # Clean up
+        import os
+        try:
+            os.unlink(temp_config_path)
+        except:
+            pass
+
 def main():
     """Run the test suite"""
     import argparse
@@ -165,8 +309,17 @@ def main():
                        help='Stockfish ELO rating (default: 400)')
     parser.add_argument('--time-limit', '-t', type=float, default=30.0,
                        help='Time limit per move in seconds (default: 30)')
+    parser.add_argument('--verbose', '-v', action='store_true',
+                       help='Display more detailed output')
+    parser.add_argument('--single', '-s', action='store_true',
+                       help='Run a single test game with enhanced move reporting')
     
     args = parser.parse_args()
+    
+    # Run a single test game if requested
+    if args.single:
+        test_single_game()
+        return 0
     
     tester = AutomatedTester()
     try:

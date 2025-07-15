@@ -38,6 +38,23 @@ class SearchController:
         if not legal_moves:
             return None
         
+        # FIRST PRIORITY: Check for free material captures
+        hanging_captures = self.move_ordering.get_hanging_piece_captures(board)
+        if hanging_captures:
+            # Short circuit if we found hanging pieces to capture
+            # No need for deep search - always take free material!
+            self.search_time = time.time() - start_time
+            return hanging_captures[0]
+        
+        # SECOND PRIORITY: Check for checkmate in one
+        for move in legal_moves:
+            board.push(move)
+            is_checkmate = board.is_checkmate()
+            board.pop()
+            if is_checkmate:
+                self.search_time = time.time() - start_time
+                return move  # Immediate checkmate - no need to search further
+        
         # Choose search algorithm
         if self.search_algorithm in ['negamax', 'minimax']:
             best_move, score = self._negamax_root(board, our_color, legal_moves)
@@ -109,7 +126,11 @@ class SearchController:
         # Generate and order moves
         legal_moves = list(board.legal_moves)
         if self.use_move_ordering:
-            legal_moves = self.move_ordering.order_moves(board, legal_moves, self.max_ordered_moves)
+            # Use the enhanced material-prioritized move ordering
+            legal_moves = self.move_ordering.order_moves_with_material_priority(board, legal_moves)
+            # Limit moves if needed
+            if self.max_ordered_moves and len(legal_moves) > self.max_ordered_moves:
+                legal_moves = legal_moves[:self.max_ordered_moves]
         
         best_score = float('-inf')
         
@@ -148,7 +169,11 @@ class SearchController:
         # Generate moves
         legal_moves = list(board.legal_moves)
         if self.use_move_ordering:
-            legal_moves = self.move_ordering.order_moves(board, legal_moves, self.max_ordered_moves)
+            # Use the enhanced material-prioritized move ordering
+            legal_moves = self.move_ordering.order_moves_with_material_priority(board, legal_moves)
+            # Limit moves if needed
+            if self.max_ordered_moves and len(legal_moves) > self.max_ordered_moves:
+                legal_moves = legal_moves[:self.max_ordered_moves]
         
         best_score = float('-inf')
         
@@ -166,7 +191,23 @@ class SearchController:
         best_move = None
         best_score = float('-inf')
         
+        # Check first for free material captures
+        hanging_captures = self.move_ordering.get_hanging_piece_captures(board)
+        if hanging_captures:
+            # Short circuit if we found hanging pieces to capture
+            # Always pick the highest value hanging piece first
+            return hanging_captures[0], 10000  # Very high score
+        
+        # Score all moves if no hanging pieces
         for move in legal_moves:
+            # First check if this is a free material capture
+            if board.is_capture(move):
+                is_free, material_gain = self.move_ordering.mvv_lva.is_free_capture(board, move)
+                if is_free and material_gain >= 100:  # At least a pawn value
+                    # Short circuit for free material
+                    return move, 9000 + material_gain
+            
+            # Regular move evaluation if not a free capture
             score, details, critical = self.scoring.evaluate_move(board, move, our_color, depth=1)
             
             if score > best_score:

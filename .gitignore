@@ -22,6 +22,7 @@ v7p3r_rl_models/*
 venv/*
 .history/*
 scripts/*
+analysis_results/*
 
 # Data files
 *.pgn

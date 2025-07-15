@@ -60,7 +60,19 @@ class MoveOrdering:
         if board_copy.is_repetition(2):  # Check for threefold repetition
             return -500000
         
-        # 3. If in check, prioritize safe captures of checking piece
+        # 3. FREE MATERIAL CAPTURES - Extremely high priority!
+        if board.is_capture(move):
+            is_free, material_gain = self.mvv_lva.is_free_capture(board, move)
+            if is_free:
+                # SHORT CIRCUIT for free material - highest priority after checkmate
+                if material_gain >= 500:  # Rook or higher
+                    return 900000 + material_gain
+                elif material_gain >= 300:  # Knight/Bishop
+                    return 800000 + material_gain
+                else:  # Pawn or small material
+                    return 700000 + material_gain
+        
+        # 4. If in check, prioritize safe captures of checking piece
         if board.is_check():
             if board.is_capture(move):
                 # Check if this capture targets the checking piece
@@ -70,11 +82,12 @@ class MoveOrdering:
                     if mvv_lva_score > 0:  # Positive score means safe/profitable
                         return 100000 + mvv_lva_score  # Very high priority
         
-        # 4. Captures get high priority (MVV-LVA)
+        # 5. All other captures (MVV-LVA enhanced evaluation)
         if board.is_capture(move):
-            score += 10000 + self.mvv_lva.get_capture_score(board, move)
+            mvv_lva_score = self.mvv_lva.get_capture_score(board, move)
+            score += 10000 + mvv_lva_score
         
-        # 5. Checks get medium priority
+        # 6. Checks get medium priority
         if board_copy.is_check():
             score += 5000
         
@@ -128,3 +141,50 @@ class MoveOrdering:
         """Get history heuristic score (placeholder for future implementation)"""
         # History heuristic tracks how often moves cause cutoffs
         return 0
+    
+    def get_hanging_piece_captures(self, board):
+        """Get moves that capture hanging (undefended) pieces"""
+        hanging_captures = []
+        
+        # Use the enhanced MVV-LVA to find hanging pieces
+        hanging_pieces = self.mvv_lva.find_hanging_pieces(board, board.turn)
+        
+        # Find moves that capture these hanging pieces
+        legal_moves = list(board.legal_moves)
+        for move in legal_moves:
+            if board.is_capture(move):
+                target_square = move.to_square
+                # Check if this move captures a hanging piece
+                for hanging_square, hanging_piece, value in hanging_pieces:
+                    if target_square == hanging_square:
+                        hanging_captures.append((move, value))
+                        break
+        
+        # Sort by value (highest first)
+        hanging_captures.sort(key=lambda x: x[1], reverse=True)
+        return [move for move, value in hanging_captures]
+    
+    def order_moves_with_material_priority(self, board, moves):
+        """Enhanced move ordering that prioritizes free material captures"""
+        if not moves:
+            return []
+        
+        # First, get any hanging piece captures
+        hanging_captures = self.get_hanging_piece_captures(board)
+        
+        # Score all moves
+        scored_moves = []
+        for move in moves:
+            # Skip hanging captures (we'll add them first)
+            if move in hanging_captures:
+                continue
+            score = self._score_move(board, move)
+            scored_moves.append((move, score))
+        
+        # Sort non-hanging moves by score
+        scored_moves.sort(key=lambda x: x[1], reverse=True)
+        
+        # Return hanging captures first, then other moves by score
+        ordered_moves = hanging_captures + [move for move, score in scored_moves]
+        
+        return ordered_moves
