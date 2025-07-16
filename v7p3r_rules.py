@@ -5,6 +5,7 @@ Handles game rules, position validation, and decision guidelines.
 """
 
 import chess
+from v7p3r_utils import get_game_phase, is_draw_position
 
 class GameRules:
     def __init__(self, config):
@@ -38,33 +39,15 @@ class GameRules:
             board_copy = board.copy()
             board_copy.push(move)
             
-            # Check for various draw conditions
-            if (board_copy.is_stalemate() or 
-                board_copy.is_insufficient_material() or
-                board_copy.is_seventyfive_moves() or
-                board_copy.is_fivefold_repetition() or
-                board_copy.can_claim_threefold_repetition() or
-                board_copy.can_claim_fifty_moves()):
+            # Check for various draw conditions using utility function
+            if is_draw_position(board_copy):
                 return True
         
         return False
     
     def get_game_phase(self, board):
-        """Determine the current game phase"""
-        # Count total pieces (excluding kings)
-        piece_count = 0
-        for square in chess.SQUARES:
-            piece = board.piece_at(square)
-            if piece and piece.piece_type != chess.KING:
-                piece_count += 1
-        
-        # Simple phase detection
-        if piece_count >= 24:  # Most pieces on board
-            return "opening"
-        elif piece_count >= 12:  # Medium number of pieces
-            return "middlegame"
-        else:  # Few pieces left
-            return "endgame"
+        """Determine the current game phase using standardized utility function"""
+        return get_game_phase(board)
     
     def is_critical_position(self, board):
         """Check if position requires special attention"""

@@ -1,16 +1,16 @@
 {
     "game_config": {
         "game_count": 1,
-        "white_player": "v7p3r_engine",
+        "white_player": "v7p3r",
         "black_player": "stockfish"
     },
     "engine_config": {
-        "engine_id": "v7p3r_static_evaluation_engine_dev",
-        "name": "v7p3r_engine",
+        "engine_id": "v7p3r_capture_escape_test",
+        "name": "v7p3r",
         "version": "0.8.6",
         "search_algorithm": "negamax",
         "depth": 6,
-        "use_opening_book": true,
+        "use_opening_book": false,
         "use_move_ordering": true,
         "max_ordered_moves": 10,
         "use_ab_pruning": true,
@@ -26,8 +26,8 @@
         "use_piece_square_positioning": true,
         "use_mvv_lva": true,
         "use_secondary_scoring": true,
-        "use_castling": true,
-        "use_tactics": true,
+        "use_castling": false,
+        "use_tactics": false,
         "use_captures_to_escape_check": true
     },
     "stockfish_config": {
@@ -39,22 +39,10 @@
         "debug_mode": false,
         "depth": 4
     },
-    "puzzle_config": {
-        "puzzle_database": {
-            "db_path": "puzzle_data.db",
-                "selection": {
-                "min_rating": 800,
-                "max_rating": 3000,
-                "batch_size": 50,
-                "themes": []
-            }
-        },
-        "position_config": {
-            "max_rating": 2000,
-            "themes": ["mate"],
-            "max_moves": 10,
-            "position_limit": 25,
-            "query_type": "loose"
-        }
+    "reporting_config": {
+        "generate_detailed_reports": true,
+        "export_games_pgn": true,
+        "save_game_history": true,
+        "pgn_output_folder": "pgn_game_records"
     }
 }

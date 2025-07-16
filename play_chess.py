@@ -23,6 +23,8 @@ def main():
                        help='Search depth for v7p3r (overrides config)')
     parser.add_argument('--stockfish-elo', type=int,
                        help='Stockfish ELO rating (overrides config)')
+    parser.add_argument('--background', action='store_true',
+                       help='Run in background mode without visual display (default now)')
     
     args = parser.parse_args()
     

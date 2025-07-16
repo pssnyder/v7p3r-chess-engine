@@ -7,6 +7,12 @@ Handles material count, material score, and piece square table evaluation.
 import chess
 from v7p3r_pst import PieceSquareTables
 from v7p3r_mvv_lva import MVVLVA
+from v7p3r_utils import (
+    get_material_balance, 
+    evaluate_exchange,
+    find_hanging_pieces,
+    PIECE_VALUES
+)
 
 class PrimaryScoring:
     def __init__(self):
@@ -44,20 +50,8 @@ class PrimaryScoring:
         return our_pieces - their_pieces
     
     def _get_material_score(self, board, our_color):
-        """Get material value difference"""
-        our_material = 0
-        their_material = 0
-        
-        for square in chess.SQUARES:
-            piece = board.piece_at(square)
-            if piece:
-                value = self.pst.get_piece_value(piece.piece_type)
-                if piece.color == our_color:
-                    our_material += value
-                else:
-                    their_material += value
-        
-        return our_material - their_material
+        """Get material value difference using standard utility function"""
+        return get_material_balance(board, our_color)
     
     def _get_pst_score(self, board, our_color):
         """Get piece square table evaluation"""
@@ -84,18 +78,33 @@ class PrimaryScoring:
         return our_pst - their_pst
     
     def _get_capture_potential(self, board, our_color):
-        """Evaluate immediate capture opportunities"""
-        capture_score = 0
-        
+        """Evaluate immediate capture opportunities using enhanced logic"""
+        # Look for immediate favorable exchanges
+        exchange_score = 0
         for move in board.legal_moves:
             if board.is_capture(move):
                 # Only consider captures by our pieces
                 moving_piece = board.piece_at(move.from_square)
                 if moving_piece and moving_piece.color == our_color:
-                    mvv_lva_score = self.mvv_lva.get_capture_score(board, move)
-                    capture_score += mvv_lva_score // 100  # Scale down MVV-LVA scores
+                    # Calculate exchange value
+                    exchange_value = evaluate_exchange(board, move)
+                    if exchange_value > 0:
+                        exchange_score += exchange_value
         
-        return capture_score
+        # Find hanging pieces (undefended or underdefended pieces)
+        hanging_pieces = find_hanging_pieces(board, our_color)
+        hanging_score = sum(value for _, _, value in hanging_pieces)
+        
+        # MVV-LVA score for additional insight
+        mvv_lva_score = 0
+        for move in board.legal_moves:
+            if board.is_capture(move):
+                moving_piece = board.piece_at(move.from_square)
+                if moving_piece and moving_piece.color == our_color:
+                    mvv_lva_score += self.mvv_lva.get_capture_score(board, move) // 100  # Scale down
+        
+        # Total capture potential
+        return exchange_score + hanging_score + mvv_lva_score
     
     def get_material_balance(self, board, our_color):
         """Get current material balance for external use"""

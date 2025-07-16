@@ -15,7 +15,7 @@ class ScoringSystem:
         self.config = config
         self.tempo = TempoCalculation()
         self.primary = PrimaryScoring()
-        self.secondary = SecondaryScoring()
+        self.secondary = SecondaryScoring(config)
         self.quiescence = QuiescenceSearch()
         
         # Configuration flags

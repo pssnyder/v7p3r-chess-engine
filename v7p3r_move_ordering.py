@@ -6,6 +6,7 @@ Prioritizes moves for better alpha-beta pruning and search efficiency.
 
 import chess
 from v7p3r_mvv_lva import MVVLVA
+from v7p3r_utils import is_capture_that_escapes_check, evaluate_exchange
 
 class MoveOrdering:
     def __init__(self):
@@ -31,20 +32,7 @@ class MoveOrdering:
         
         return [move for move, score in scored_moves]
     
-    def _captures_checking_piece(self, board, move):
-        """Check if this move captures a piece that is giving check"""
-        if not board.is_capture(move) or not board.is_check():
-            return False
-        
-        # Get the square being captured
-        to_square = move.to_square
-        
-        # Get all attackers of the king
-        king_square = board.king(board.turn)
-        attackers = board.attackers(not board.turn, king_square)
-        
-        # Check if the capture target is one of the checking pieces
-        return to_square in attackers
+    # Using is_capture_that_escapes_check from v7p3r_utils
     
     def _score_move(self, board, move):
         """Score a move for ordering purposes"""
@@ -76,11 +64,11 @@ class MoveOrdering:
         if board.is_check():
             if board.is_capture(move):
                 # Check if this capture targets the checking piece
-                if self._captures_checking_piece(board, move):
-                    # Verify it's a safe capture using MVV-LVA
-                    mvv_lva_score = self.mvv_lva.get_capture_score(board, move)
-                    if mvv_lva_score > 0:  # Positive score means safe/profitable
-                        return 100000 + mvv_lva_score  # Very high priority
+                if is_capture_that_escapes_check(board, move):
+                    # Verify it's a safe capture using evaluate_exchange
+                    exchange_value = evaluate_exchange(board, move)
+                    if exchange_value >= 0:  # Safe or profitable
+                        return 100000 + exchange_value  # Very high priority
         
         # 5. All other captures (MVV-LVA enhanced evaluation)
         if board.is_capture(move):

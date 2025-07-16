@@ -175,7 +175,7 @@ class ChessMetrics:
         
         return self._execute_with_retry(_record_operation)
     
-    def update_engine_performance(self, engine_name, opponent_name, result):
+    def update_engine_performance(self, engine_name, opponent_name, result, white_player=None, black_player=None):
         """Update engine performance statistics"""
         def _update_operation():
             with sqlite3.connect(self.db_path, timeout=30.0) as conn:
@@ -194,13 +194,12 @@ class ChessMetrics:
                     # Update existing record
                     record_id, wins, losses, draws, total_games = row
                     
-                    if result == "1-0" and engine_name == "white":
+                    # Check which color the engine was playing and determine win/loss
+                    if (result == "1-0" and white_player == engine_name) or \
+                       (result == "0-1" and black_player == engine_name):
                         wins += 1
-                    elif result == "0-1" and engine_name == "black":
-                        wins += 1
-                    elif result == "1-0" and engine_name == "black":
-                        losses += 1
-                    elif result == "0-1" and engine_name == "white":
+                    elif (result == "1-0" and black_player == engine_name) or \
+                         (result == "0-1" and white_player == engine_name):
                         losses += 1
                     elif result == "1/2-1/2":
                         draws += 1
@@ -215,10 +214,10 @@ class ChessMetrics:
                     
                 else:
                     # Create new record
-                    wins = 1 if ((result == "1-0" and engine_name == "white") or 
-                               (result == "0-1" and engine_name == "black")) else 0
-                    losses = 1 if ((result == "1-0" and engine_name == "black") or 
-                                 (result == "0-1" and engine_name == "white")) else 0
+                    wins = 1 if ((result == "1-0" and white_player == engine_name) or 
+                               (result == "0-1" and black_player == engine_name)) else 0
+                    losses = 1 if ((result == "1-0" and black_player == engine_name) or 
+                                 (result == "0-1" and white_player == engine_name)) else 0
                     draws = 1 if result == "1/2-1/2" else 0
                     
                     cursor.execute('''

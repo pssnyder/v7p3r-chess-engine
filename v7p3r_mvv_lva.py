@@ -5,18 +5,12 @@ Evaluates capture moves for move ordering and scoring.
 """
 
 import chess
+from v7p3r_utils import PIECE_VALUES, evaluate_exchange
 
 class MVVLVA:
     def __init__(self):
-        # Piece values for MVV-LVA (slightly different ordering than PST)
-        self.piece_values = {
-            chess.PAWN: 100,
-            chess.KNIGHT: 300,
-            chess.BISHOP: 320,
-            chess.ROOK: 500,
-            chess.QUEEN: 900,
-            chess.KING: 10000
-        }
+        # Use standardized piece values from utils
+        self.piece_values = PIECE_VALUES
         
         # MVV-LVA table [victim][attacker]
         self.mvv_lva_table = {}
@@ -58,8 +52,8 @@ class MVVLVA:
         # Basic MVV-LVA score
         base_score = self.mvv_lva_table[captured_piece.piece_type][capturing_piece.piece_type]
         
-        # Check if this is a FREE MATERIAL capture
-        material_gain = self._evaluate_capture_sequence(board, move)
+        # Use the standardized utility to evaluate the exchange
+        material_gain = evaluate_exchange(board, move)
         
         # SHORT CIRCUIT: If we win significant free material, prioritize massively
         if material_gain >= 100:  # At least a pawn worth of material
@@ -74,57 +68,8 @@ class MVVLVA:
         
         return base_score + material_gain
     
-    def _evaluate_capture_sequence(self, board, move):
-        """Evaluate the material outcome of a capture sequence"""
-        # Make a copy of the board to simulate the capture
-        test_board = board.copy()
-        test_board.push(move)
-        
-        # Get the capturing piece and target square
-        capturing_piece = board.piece_at(move.from_square)
-        target_square = move.to_square
-        captured_piece = board.piece_at(target_square)
-        
-        if not capturing_piece or not captured_piece:
-            return 0
-        
-        # Initial material gain (what we capture)
-        material_gain = self.piece_values[captured_piece.piece_type]
-        
-        # Check if the opponent can recapture
-        opponent_attackers = test_board.attackers(not test_board.turn, target_square)
-        
-        if not opponent_attackers:
-            # NO RECAPTURE POSSIBLE - FREE MATERIAL!
-            return material_gain
-        
-        # Find the least valuable attacker that can recapture
-        least_valuable_attacker = None
-        min_attacker_value = float('inf')
-        
-        for attacker_square in opponent_attackers:
-            attacker_piece = test_board.piece_at(attacker_square)
-            if attacker_piece:
-                attacker_value = self.piece_values[attacker_piece.piece_type]
-                if attacker_value < min_attacker_value:
-                    min_attacker_value = attacker_value
-                    least_valuable_attacker = attacker_piece.piece_type
-        
-        if least_valuable_attacker:
-            # They can recapture - calculate net material exchange
-            our_loss = self.piece_values[capturing_piece.piece_type]
-            their_loss = self.piece_values[captured_piece.piece_type]
-            net_gain = their_loss - our_loss
-            
-            # If we're trading up significantly, still prioritize
-            if net_gain >= 200:  # Trading up by 2+ pawns worth
-                return material_gain * 0.8  # High but not maximum priority
-            elif net_gain > 0:
-                return material_gain * 0.5  # Moderate priority for profitable trades
-            else:
-                return -abs(net_gain)  # Negative for unprofitable trades
-        
-        return 0  # Neutral if unclear
+    # Using standardized evaluate_exchange function from v7p3r_utils
+
     
     def get_threat_score(self, board, square, attacking_piece_type):
         """Get threat score for attacking a piece on a square"""
@@ -154,49 +99,15 @@ class MVVLVA:
         return [move for move, score in capture_moves] + other_moves
     
     def find_hanging_pieces(self, board, color):
-        """Find undefended pieces that can be captured for free"""
-        hanging_pieces = []
-        
-        # Look at all opponent pieces
-        for square in chess.SQUARES:
-            piece = board.piece_at(square)
-            if piece and piece.color != color:  # Opponent's piece
-                # Check if this piece is attacked by us
-                our_attackers = board.attackers(color, square)
-                if our_attackers:
-                    # Check if it's defended by opponent
-                    their_defenders = board.attackers(piece.color, square)
-                    
-                    if not their_defenders:
-                        # HANGING PIECE! No defenders
-                        hanging_pieces.append((square, piece, self.piece_values[piece.piece_type]))
-                    else:
-                        # Check if we can win the exchange
-                        min_attacker_value = min(
-                            self.piece_values[board.piece_at(att_sq).piece_type] 
-                            for att_sq in our_attackers 
-                            if board.piece_at(att_sq)
-                        )
-                        min_defender_value = min(
-                            self.piece_values[board.piece_at(def_sq).piece_type] 
-                            for def_sq in their_defenders 
-                            if board.piece_at(def_sq)
-                        )
-                        
-                        # If we can capture with a less valuable piece than their defender
-                        if min_attacker_value < min_defender_value:
-                            net_gain = self.piece_values[piece.piece_type] - min_attacker_value
-                            if net_gain > 0:
-                                hanging_pieces.append((square, piece, net_gain))
-        
-        # Sort by value (highest first)
-        hanging_pieces.sort(key=lambda x: x[2], reverse=True)
-        return hanging_pieces
+        """Find undefended pieces that can be captured for free
+        Uses the standardized utility function from v7p3r_utils"""
+        from v7p3r_utils import find_hanging_pieces
+        return find_hanging_pieces(board, color)
     
     def is_free_capture(self, board, move):
         """Check if a capture move wins free material"""
         if not board.is_capture(move):
             return False, 0
         
-        material_gain = self._evaluate_capture_sequence(board, move)
+        material_gain = evaluate_exchange(board, move)
         return material_gain >= 100, material_gain

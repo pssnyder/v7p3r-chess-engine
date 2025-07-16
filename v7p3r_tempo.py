@@ -5,11 +5,19 @@ Handles critical move detection including checkmate threats, stalemate avoidance
 """
 
 import chess
+from v7p3r_utils import (
+    get_material_balance,
+    is_draw_position,
+    is_capture_that_escapes_check,
+    CHECKMATE_SCORE,
+    STALEMATE_PENALTY,
+    DRAW_PENALTY
+)
 
 class TempoCalculation:
     def __init__(self):
-        self.checkmate_score = 999999
-        self.stalemate_penalty = -999999
+        self.checkmate_score = CHECKMATE_SCORE
+        self.stalemate_penalty = STALEMATE_PENALTY
         self.mate_threat_bonus = 50000
     
     def evaluate_tempo(self, board, move, depth):
@@ -30,10 +38,10 @@ class TempoCalculation:
             return self.stalemate_penalty, True
         
         # Check for draw conditions (avoid when ahead)
-        if self._is_draw_position(board_copy):
-            material_balance = self._get_material_balance(board_copy, board.turn)
+        if is_draw_position(board_copy):
+            material_balance = get_material_balance(board_copy, board.turn)
             if material_balance > 0:  # We're ahead, avoid draw
-                tempo_score -= 10000
+                tempo_score += DRAW_PENALTY
         
         # Check for checkmate threats within mate horizon
         mate_threat = self._find_mate_threat(board_copy, depth)
@@ -50,45 +58,14 @@ class TempoCalculation:
         
         # Special bonus: If in check and capturing the checking piece safely
         if board.is_check() and board.is_capture(move):
-            if self._captures_checking_piece(board, move):
+            if is_capture_that_escapes_check(board, move):
                 # Additional tempo bonus for resolving check via capture
                 tempo_score += 500
                 critical_move = True
         
         return tempo_score, critical_move
     
-    def _is_draw_position(self, board):
-        """Check if position is a draw"""
-        return (board.is_stalemate() or 
-                board.is_insufficient_material() or
-                board.is_seventyfive_moves() or
-                board.is_fivefold_repetition() or
-                board.can_claim_threefold_repetition() or
-                board.can_claim_fifty_moves())
-    
-    def _get_material_balance(self, board, our_color):
-        """Get material balance from our perspective"""
-        piece_values = {
-            chess.PAWN: 100,
-            chess.KNIGHT: 300,
-            chess.BISHOP: 325,
-            chess.ROOK: 500,
-            chess.QUEEN: 900
-        }
-        
-        our_material = 0
-        their_material = 0
-        
-        for square in chess.SQUARES:
-            piece = board.piece_at(square)
-            if piece and piece.piece_type != chess.KING:
-                value = piece_values[piece.piece_type]
-                if piece.color == our_color:
-                    our_material += value
-                else:
-                    their_material += value
-        
-        return our_material - their_material
+    # Using standardized utility functions from v7p3r_utils.py
     
     def _find_mate_threat(self, board, max_depth):
         """Look for mate threats within specified depth"""
@@ -125,17 +102,4 @@ class TempoCalculation:
         """Determine if we should short circuit based on tempo score"""
         return abs(score) >= self.mate_threat_bonus
     
-    def _captures_checking_piece(self, board, move):
-        """Check if this move captures a piece that is giving check"""
-        if not board.is_capture(move) or not board.is_check():
-            return False
-        
-        # Get the square being captured
-        to_square = move.to_square
-        
-        # Get all attackers of the king
-        king_square = board.king(board.turn)
-        attackers = board.attackers(not board.turn, king_square)
-        
-        # Check if the capture target is one of the checking pieces
-        return to_square in attackers
+

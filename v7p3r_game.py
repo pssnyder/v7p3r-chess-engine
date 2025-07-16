@@ -1,10 +1,9 @@
 # v7p3r_game.py
 
 """Main Game Controller for V7P3R Chess Engine
-Handles game flow, UI rendering with pygame, and coordinates between engines.
+Handles game flow and coordinates between engines. No visual display.
 """
 
-import pygame
 import chess
 import chess.pgn
 import time
@@ -16,26 +15,9 @@ from v7p3r_engine import V7P3REngine
 from v7p3r_stockfish import StockfishHandler
 from metrics import ChessMetrics
 
-# Constants
-WIDTH, HEIGHT = 640, 640
-DIMENSION = 8
-SQ_SIZE = WIDTH // DIMENSION
-MAX_FPS = 15
-IMAGES = {}
-
 class ChessGame:
-    def __init__(self, config_file="config.json", headless=False):
-        # Initialize pygame only if not headless
-        self.headless = headless
-        if not headless:
-            pygame.init()
-        else:
-            # Initialize pygame with dummy driver for headless mode
-            import os
-            os.environ['SDL_VIDEODRIVER'] = 'dummy'
-            pygame.init()
-            pygame.display.set_mode((1, 1))  # Minimal display
-        
+    def __init__(self, config_file="config.json"):
+        """Initialize the chess game with configuration"""
         # Load configuration
         self.config = V7P3RConfig(config_file)
         game_config = self.config.get_game_config()
@@ -58,38 +40,6 @@ class ChessGame:
         self.move_number = 1
         self.game_start_time = None
         self.games_played = 0
-        
-        # UI state (only if not headless)
-        if not headless:
-            self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
-            pygame.display.set_caption("V7P3R Chess Engine")
-            self.clock = pygame.time.Clock()
-        else:
-            self.screen = None
-            self.clock = None
-        self.selected_square = None
-        self.display_needs_update = True
-        
-        # Load images
-        self.load_images()
-    
-    def load_images(self):
-        """Load chess piece images"""
-        pieces = ['wp', 'wN', 'wb', 'wr', 'wq', 'wk',
-                 'bp', 'bN', 'bb', 'br', 'bq', 'bk']
-        for piece in pieces:
-            try:
-                IMAGES[piece] = pygame.transform.scale(
-                    pygame.image.load(f"images/{piece}.png"),
-                    (SQ_SIZE, SQ_SIZE)
-                )
-            except pygame.error as e:
-                print(f"Could not load image {piece}.png: {e}")
-                # Create a placeholder colored square
-                surf = pygame.Surface((SQ_SIZE, SQ_SIZE))
-                color = (255, 255, 255) if piece.startswith('w') else (0, 0, 0)
-                surf.fill(color)
-                IMAGES[piece] = surf
     
     def run_games(self):
         """Run the configured number of games"""
@@ -127,16 +77,6 @@ class ChessGame:
         running = True
         
         while running and not self._is_game_over():
-            # Handle pygame events
-            if not self.headless:
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        running = False
-                        break
-            
-            if not running:
-                break
-            
             # Determine current player
             current_player = self.white_player if self.board.turn == chess.WHITE else self.black_player
             
@@ -169,8 +109,7 @@ class ChessGame:
                 if self.board.turn == chess.WHITE:
                     self.move_number += 1
                 
-                # Update display
-                self.update_display()
+                # Update PGN file for external visualization
                 self.write_pgn()
                 
             else:
@@ -201,6 +140,137 @@ class ChessGame:
         # Determine result
         result = self.get_game_result()
         
+        print(f"\nResult: {result}")
+        print(f"Game saved to {self.save_game_pgn()}")
+        print(f"\nGame session ended.")
+        
+        # Record game end
+        pgn_string = self.get_pgn_string()
+        self.metrics.record_game_end(
+            self.game_id, result, self.move_number - 1, game_duration, pgn_string
+        )
+        
+        # Update engine performance
+        winning_engine = self.get_winning_engine(result)
+        if winning_engine:
+            opponent = self.black_player if winning_engine == self.white_player else self.white_player
+            self.metrics.update_engine_performance(
+                winning_engine, 
+                opponent, 
+                result, 
+                white_player=self.white_player, 
+                black_player=self.black_player
+            )
+    
+    def get_game_result(self):
+        """Get the game result string"""
+        if self.board.is_checkmate():
+            return "0-1" if self.board.turn == chess.WHITE else "1-0"
+        elif self.board.is_stalemate():
+            return "1/2-1/2"
+        elif self.board.is_insufficient_material():
+            return "1/2-1/2"
+        elif self.board.is_seventyfive_moves():
+            return "1/2-1/2"
+        elif self.board.is_fivefold_repetition():
+            return "1/2-1/2"
+        elif self.board.can_claim_threefold_repetition():
+            return "1/2-1/2"
+        elif self.board.can_claim_fifty_moves():
+            return "1/2-1/2"
+        else:
+            return "1/2-1/2"  # Unfinished game
+    
+    def _is_game_over(self):
+        """Check if game is over including threefold repetition and fifty-move rule"""
+        return (self.board.is_game_over() or 
+                self.board.can_claim_threefold_repetition() or
+                self.board.can_claim_fifty_moves())
+    
+    def get_winning_engine(self, result):
+        """Determine which engine won"""
+        if result == "1-0":
+            return self.white_player
+        elif result == "0-1":
+            return self.black_player
+        else:
+            return None  # Draw or unfinished
+    
+    def write_pgn(self):
+        """Write current game to active_game.pgn for external visualization"""
+        try:
+            game = chess.pgn.Game.from_board(self.board)
+            game.headers["White"] = self.white_player
+            game.headers["Black"] = self.black_player
+            game.headers["Date"] = datetime.now().strftime("%Y.%m.%d")
+            game.headers["Event"] = "V7P3R Engine Test"
+            
+            with open("active_game.pgn", "w") as f:
+                print(game, file=f)
+        except Exception as e:
+            print(f"Error writing PGN: {e}")
+    
+    def get_pgn_string(self):
+        """Get PGN string of current game"""
+        try:
+            game = chess.pgn.Game.from_board(self.board)
+            game.headers["White"] = self.white_player
+            game.headers["Black"] = self.black_player
+            game.headers["Date"] = datetime.now().strftime("%Y.%m.%d")
+            game.headers["Result"] = self.get_game_result()
+            return str(game)
+        except:
+            return ""
+    
+    def save_game_pgn(self):
+        """Save completed game to pgn_game_records directory"""
+        try:
+            os.makedirs("pgn_game_records", exist_ok=True)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"pgn_game_records/eval_test_{timestamp}.pgn"
+            
+            with open(filename, "w") as f:
+                f.write(self.get_pgn_string())
+            
+            return filename
+                
+        except Exception as e:
+            print(f"Error saving game PGN: {e}")
+            return "error saving PGN"
+    
+    def reset_for_new_game(self):
+        """Reset state for a new game"""
+        self.board = chess.Board()
+        self.move_number = 1
+        self.game_start_time = None
+        self.v7p3r_engine.reset_game()
+    
+    def cleanup(self):
+        """Clean up resources"""
+        if self.stockfish_handler:
+            self.stockfish_handler.quit()
+        
+        # Print final statistics
+        self.print_final_stats()
+    
+    def print_final_stats(self):
+        """Print final statistics"""
+        print(f"\n=== Final Statistics ===")
+        print(f"Games played: {self.games_played}")
+        
+        v7p3r_stats = self.metrics.get_engine_stats('v7p3r')
+        print(f"V7P3R Results: {v7p3r_stats['wins']}W {v7p3r_stats['losses']}L {v7p3r_stats['draws']}D")
+        print(f"V7P3R Win Rate: {v7p3r_stats['win_rate']:.1f}%")
+        
+        # Move time stats
+        time_stats = self.metrics.get_move_time_stats('v7p3r')
+        if time_stats:
+            print(f"V7P3R Avg Move Time: {time_stats['avg_time']:.2f}s")
+            print(f"V7P3R Max Move Time: {time_stats['max_time']:.2f}s")
+        
+        # Determine result
+        result = self.get_game_result()
+        
         print(f"\n=== Game Finished ===")
         print(f"Result: {result}")
         print(f"Moves: {self.move_number - 1}")
@@ -216,7 +286,13 @@ class ChessGame:
         winning_engine = self.get_winning_engine(result)
         if winning_engine:
             opponent = self.black_player if winning_engine == self.white_player else self.white_player
-            self.metrics.update_engine_performance(winning_engine, opponent, result)
+            self.metrics.update_engine_performance(
+                winning_engine, 
+                opponent, 
+                result, 
+                white_player=self.white_player, 
+                black_player=self.black_player
+            )
         
         # Save final PGN
         self.save_game_pgn()
@@ -355,7 +431,6 @@ class ChessGame:
         """Clean up resources"""
         if self.stockfish_handler:
             self.stockfish_handler.quit()
-        pygame.quit()
         
         # Print final statistics
         self.print_final_stats()

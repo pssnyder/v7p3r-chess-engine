@@ -7,13 +7,17 @@ This document serves as a living design and brainstorming document outlining the
 A config.json will be provided for reference of prefered configurable settings to start with, these will guide the mvp functionality of the engine. These config settings should not be expanded beyond simple boolean feature flags and up to 1 weight or control value per function. Example: use_move_ordering has one configurable setting for max_ordered_moves to assist with performance and move duration, quiescence has no additional configuration variables needed just enabled/disabled, any other configurations will be permanently set within modules with the best settings to make configuration simpler.
 
 ### Configuration Options
+* Engine ID: the coded id name of the current v7p3r engine instance
 * Core Engine Name: v7p3r, stockfish, chatfish, or any other engine name can be used (code can be updated to add specific engine handlers)
+* Engine Version: the version number of the engine
 * Search Algorithm: negamax (can be forced into simple or random as needed)
   * Use Alpha Beta Pruning
 * Depth: 1-10 (sets the depth limit for th engine (should be even numbered to include opponent countermoves)
-  * Use Quiescence
 * Use Opening Book
 * Use Move Ordering
+* Max Ordered Moves
+* Use AB Pruning
+* Use Quiescence
 * Use Tempo Scoring
   * Use Checkmate Detection
   * Use Stalemate Detection
@@ -25,13 +29,13 @@ A config.json will be provided for reference of prefered configurable settings t
   * Use Piece Square Positioning
   * Use MVV-LVA
 * Use Secondary Scoring
-  * Use Castling Score
+  * Use Castling
   * Use Tactics
   * Use Captures to Escape Check
 
 ## Piece Values
 
-Piece values are in centipawns:
+Piece values are hard coded into the engine in centipawns:
 * King \= 20000 points  
 * Queen \= 900 points  
 * Rook \= 500 points  
@@ -49,22 +53,22 @@ Engine will use a primary search type with a fallback and a random function for 
 ## Engine Modules
 
 ### Core Modules
-* Config: config handler for loading and managing game, engine, puzzle, metrics, and all other configuration settings
-* Chess Game: pygame handler for game configuration, game state handling, and game output rendering, including game pgn recording and metrics module calls. Leaves move calculation, scoring, and process intensive functions to the engine modules.
-* V7P3R Engine: engine handler for move examination, position evaluation, and final move selection (interface independent)
+* Config [required]: config handler for loading and managing game, engine, puzzle, metrics, and all other configuration settings
+* Chess Game [required]: pygame handler for game configuration, game state handling, and game output rendering, including game pgn recording and metrics module calls. Leaves move calculation, scoring, and process intensive functions to the engine modules.
+* V7P3R Engine [required]: engine handler for move examination, position evaluation, and final move selection (interface independent)
 
 ### Move Selection Handlers
-* Search: move search handler, centralized search control module, calls performance, risk, move tree iteration and move scoring modules
-* Negamax: primary search algorithm, handles move tree iteration
+* Search [required]: move search handler, centralized search control module, calls performance, risk, move tree iteration and move scoring modules
+* Negamax [primary]: primary search algorithm, handles move tree iteration
 
 ### Position Evaluation Modules
-* Scoring: move scoring and position evaluation module, handles overall scoring calulation, short circuit logic, and evaluation values, calls out to individual scoring and evaluation modules
-* Rules: position specific score modifiers, move validators, and decision making module for the engine, sets guidelines and weighting of evaluation scores
-* Tempo Calculation: critical priority scoring, priority move selection, and move avoidance, handles game phase, game continuance, and game ending condition checking for game state awareness, checkmate attacks/threats, stalemate avoidance, and draw prevention, can result in immediate move selection or complete principal variation avoidance
-* Primary Scoring: after Tempo, first order priority scoring module, handles material count, material score, and calls to piece square table calculation and calls to mvv-lva capture and threat assessment modules
-* Secondary Scoring: second order scoring module, handles castling and tactical decision scoring 
-* Piece Square Tables: piece square table evaluation module, handles piece square table calculation and game phase detection
-* MVV-LVA: simple module for most-valuable-victim/least-valuable-attacker logic for basic capture and threat awareness
+* Scoring [required]: move scoring and position evaluation module, handles overall scoring calulation, short circuit logic, and evaluation values, calls out to individual scoring and evaluation modules
+* Rules [required]: position specific score modifiers, move validators, and decision making module for the engine, sets guidelines and weighting of evaluation scores
+* Tempo Calculation [critical]: critical priority scoring, priority move selection, and move avoidance, handles game phase, game continuance, and game ending condition checking for game state awareness, checkmate attacks/threats, stalemate avoidance, and draw prevention, can result in immediate move selection or complete principal variation avoidance
+* Primary Scoring [primary]: after Tempo, first order priority scoring module, handles material count, material score, and calls to piece square table calculation and calls to mvv-lva capture and threat assessment modules
+* Secondary Scoring [optional]: second order scoring module, handles castling and tactical decision scoring 
+* Piece Square Tables [optional]: piece square table evaluation module, handles piece square table calculation and game phase detection
+* MVV-LVA [optional]: simple module for most-valuable-victim/least-valuable-attacker logic for basic capture and threat awareness
 
 ### Performance and Accuracy Modules
 * Move Ordering [optional]: move prioritization and legal move limiting for increased move selection speed and preliminary move pruning
@@ -79,12 +83,12 @@ Engine will use a primary search type with a fallback and a random function for 
 * Stockfish Handler (to activate the stockfish.exe engine for testing and as an opponent for the v7p3r engine)
 
 ### Game Monitoring
-* PGN Watcher (to monitor the active_game.pgn file for performant game monitoring independent of the engine)
-* Metrics (to identify performance and move selection score issues)
+* PGN Watcher: an independent module to monitor the active_game.pgn file. provides more performant game monitoring, visuals should not be implemented in the engine
+* Metrics: an independent module to handle metrics collection to identify performance and move selection score issues
 
 ### Performance Enhancement and Testing
 * Live Ruleset/Puzzle Tuner (to batch test specific scoring actions on predetermined positions)
-* Batch Game Analyzer (to batch compare v7p3r evaluations vs stockfish evaluations in previous games)
+* Batch Game Analyzer (to batch compare v7p3r's previous game evaluations vs stockfish evaluations and identify critical scoring differences between the engines)
 
 ## Basic Evaluation Scoring Rules
 
