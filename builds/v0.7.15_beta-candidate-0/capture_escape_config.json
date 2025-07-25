@@ -1,0 +1,48 @@
+﻿{
+    "game_config": {
+        "game_count": 1,
+        "white_player": "v7p3r",
+        "black_player": "stockfish"
+    },
+    "engine_config": {
+        "engine_id": "v7p3r_capture_escape_test",
+        "name": "v7p3r",
+        "version": "0.8.6",
+        "search_algorithm": "negamax",
+        "depth": 6,
+        "use_opening_book": false,
+        "use_move_ordering": true,
+        "max_ordered_moves": 10,
+        "use_ab_pruning": true,
+        "use_quiescence": true,
+        "use_tempo_scoring": true,
+        "use_checkmate_detection": true,
+        "use_stalemate_awarness": true,
+        "use_draw_prevention": true,
+        "use_game_phase": true,
+        "use_primary_scoring": true,
+        "use_material_count": true,
+        "use_material_score": true,
+        "use_piece_square_positioning": true,
+        "use_mvv_lva": true,
+        "use_secondary_scoring": true,
+        "use_castling": false,
+        "use_tactics": false,
+        "use_captures_to_escape_check": true
+    },
+    "stockfish_config": {
+        "engine_id": "stockfish_release_exe",
+        "name": "stockfish",
+        "version": "17.1",
+        "stockfish_path": "stockfish.exe",
+        "elo_rating": 400,
+        "debug_mode": false,
+        "depth": 4
+    },
+    "reporting_config": {
+        "generate_detailed_reports": true,
+        "export_games_pgn": true,
+        "save_game_history": true,
+        "pgn_output_folder": "pgn_game_records"
+    }
+}

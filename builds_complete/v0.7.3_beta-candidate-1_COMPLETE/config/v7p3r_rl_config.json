@@ -1,0 +1,24 @@
+﻿{
+  "hidden_dim": 512,
+  "dropout": 0.1,
+  "learning_rate": 0.0003,
+  "clip_ratio": 0.2,
+  "vf_coef": 0.5,
+  "ent_coef": 0.01,
+  "max_moves": 200,
+  "batch_size": 16,
+  "episodes_per_validation": 50,
+  "reward_ruleset": "default_ruleset",
+  "stockfish_config": {
+    "stockfish_path": "engine_utilities/external_engines/stockfish/stockfish-windows-x86-64-avx2.exe",
+    "depth": 3,
+    "movetime": 100,
+    "elo_rating": 1500
+  },
+  "model_path": "v7p3r_rl_engine/v7p3r_rl_models/v7p3r_rl_model.pt",
+  "save_frequency": 100,
+  "use_cuda": true,
+  "device": "auto",
+  "verbose_training": true,
+  "log_frequency": 10
+}

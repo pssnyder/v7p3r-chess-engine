@@ -1,0 +1,114 @@
+﻿{
+    "checkmate_threats_modifier": {
+        "modifier_id": "checkmate_threats_modifier",
+        "modifier_value": 0.0,
+        "modifier_name": "Checkmate Threats",
+        "modifier_desc": " for checkmate position",
+        "modifier_catagory": "tactical_elements"
+    },
+    "material_score_modifier": {
+        "modifier_id": "material_score_modifier",
+        "modifier_value": 0.0,
+        "modifier_name": "Material Weight",
+        "modifier_desc": " for material value",
+        "modifier_catagory": "material"
+    },
+    "material_count_modifier": {
+        "modifier_id": "material_count_modifier",
+        "modifier_value": 0.0,
+        "modifier_name": "Material Count",
+        "modifier_desc": " for number of pieces",
+        "modifier_catagory": "material"
+    },
+    "pst_score_modifier": {
+        "modifier_id": "pst_score_modifier",
+        "modifier_value": 1.0,
+        "modifier_name": "Piece-Square Table Weight",
+        "modifier_desc": " for piece-square table values",
+        "modifier_catagory": "pst"
+    },
+    "piece_captures_modifier": {
+        "modifier_id": "piece_captures_modifier",
+        "modifier_value": 0.0,
+        "modifier_name": "Piece Capture",
+        "modifier_desc": " for capturing opponent's pieces",
+        "modifier_catagory": "tactical_elements"
+    },
+    "center_control_modifier": {
+        "modifier_id": "center_control_modifier",
+        "modifier_value": 0.0,
+        "modifier_name": "Center Control",
+        "modifier_desc": " for controlling central squares",
+        "modifier_catagory": "board_control"
+    },
+    "piece_development_modifier": {
+        "modifier_id": "piece_development_modifier",
+        "modifier_value": 0.0,
+        "modifier_name": "Piece Development",
+        "modifier_desc": " for pieces not yet developed",
+        "modifier_catagory": "piece_development"
+    },
+    "board_coverage_modifier": {
+        "modifier_id": "board_coverage_modifier",
+        "modifier_value": 0.0,
+        "modifier_name": "Board Coverage",
+        "modifier_desc": " for pieces with many available moves",
+        "modifier_catagory": "board_control"
+    },
+    "castling_modifier": {
+        "modifier_id": "castling_modifier",
+        "modifier_value": 0.0,
+        "modifier_name": "Castling",
+        "modifier_desc": " for having castled",
+        "modifier_catagory": "piece_development"
+    },
+    "castling_protection_modifier": {
+        "modifier_id": "castling_protection_modifier",
+        "modifier_value": 0.0,
+        "modifier_name": "Castling Protection",
+        "modifier_desc": " for protection after castling",
+        "modifier_catagory": "piece_development"
+    },
+    "piece_coordination_modifier": {
+        "modifier_id": "piece_coordination_modifier",
+        "modifier_value": 0.0,
+        "modifier_name": "Piece Coordination",
+        "modifier_desc": " for pieces supporting each other",
+        "modifier_catagory": "piece_coordination"
+    },
+    "rook_coordination_modifier": {
+        "modifier_id": "rook_coordination_modifier",
+        "modifier_value": 0.0,
+        "modifier_name": "Rook Coordination",
+        "modifier_desc": " for connected rooks",
+        "modifier_catagory": "piece_coordination"
+    },    
+    "checkmate_order_modifier": {
+        "modifier_id": "checkmate_order_modifier",
+        "modifier_value": 0.0,
+        "modifier_name": "Checkmate Move Bonus",
+        "modifier_desc": " for moves that give checkmate",
+        "modifier_catagory": "tactical_elements"
+    },
+    "check_order_modifier": {
+        "modifier_id": "check_order_modifier",
+        "modifier_value": 0.0,
+        "modifier_name": "Check Move Bonus",
+        "modifier_desc": " for moves that give check",
+        "modifier_catagory": "tactical_elements"
+    },
+    "capture_order_modifier": {
+        "modifier_id": "capture_order_modifier",
+        "modifier_value": 0.0,
+        "modifier_name": "Capture Move Bonus",
+        "modifier_desc": " for moves that capture pieces",
+        "modifier_catagory": "tactical_elements"
+    },
+    "promotion_order_modifier": {
+        "modifier_id": "promotion_order_modifier",
+        "modifier_value": 0.0,
+        "modifier_name": "Promotion Move Bonus",
+        "modifier_desc": " for moves that promote pawns",
+        "modifier_catagory": "piece_activity"
+    }
+}

@@ -1,0 +1,444 @@
+﻿{
+  "simulations": [
+    {
+      "name": "v7p3r vs. v7p3r (Random)",
+      "games_to_run": 10,
+      "chess_game": {
+        "white_engine_config": {
+          "engine": "v7p3r"
+        },
+        "black_engine_config": {
+          "engine": "v7p3r_opponent"
+        }
+      },
+      "v7p3r": {
+        "v7p3r": {
+          "ruleset": "default_ruleset",
+          "search_algorithm": "deepsearch",
+          "depth": 5,
+          "max_depth": 8,
+          "use_solutions": true,
+          "pst": true,
+          "pst_weight": 1.5,
+          "move_ordering": true,
+          "quiescence": true,
+          "time_limit": 0,
+          "scoring_modifier": 1.2,
+          "game_phase_awareness": true
+        },
+        "v7p3r_opponent": {
+          "ruleset": "null_ruleset",
+          "search_algorithm": "random",
+          "depth": 0,
+          "max_depth": 1,
+          "use_solutions": false,
+          "pst": false,
+          "pst_weight": 0.0,
+          "move_ordering": false,
+          "quiescence": false,
+          "time_limit": 0,
+          "scoring_modifier": 0.0,
+          "game_phase_awareness": false
+        }
+      }
+    },
+    {
+      "name": "v7p3r vs. Stockfish (Skill 5)",
+      "games_to_run": 10,
+      "chess_game": {
+        "white_engine_config": {
+          "engine": "v7p3r"
+        },
+        "black_engine_config": {
+          "engine": "stockfish"
+        }
+      },
+      "v7p3r": {
+        "v7p3r": {
+          "ruleset": "default_ruleset",
+          "search_algorithm": "deepsearch",
+          "depth": 5,
+          "max_depth": 8,
+          "use_solutions": true,
+          "pst": true,
+          "pst_weight": 1.5,
+          "move_ordering": true,
+          "quiescence": true,
+          "time_limit": 0,
+          "scoring_modifier": 1.2,
+          "game_phase_awareness": true
+        },
+        "stockfish_handler": {
+          "skill_level": 5
+        }
+      }
+    },
+    {
+      "name": "v7p3r vs. v7p3r (Aggressive)",
+      "games_to_run": 10,
+      "chess_game": {
+        "white_engine_config": {
+          "engine": "v7p3r"
+        },
+        "black_engine_config": {
+          "engine": "v7p3r_opponent"
+        }
+      },
+      "v7p3r": {
+        "v7p3r": {
+          "ruleset": "default_ruleset",
+          "search_algorithm": "deepsearch",
+          "depth": 5,
+          "max_depth": 8,
+          "use_solutions": true,
+          "pst": true,
+          "pst_weight": 1.5,
+          "move_ordering": true,
+          "quiescence": true,
+          "time_limit": 0,
+          "scoring_modifier": 1.2,
+          "game_phase_awareness": true
+        },
+        "v7p3r_opponent": {
+          "ruleset": "aggressive_ruleset",
+          "search_algorithm": "deepsearch",
+          "depth": 3,
+          "max_depth": 4,
+          "use_solutions": false,
+          "pst": false,
+          "pst_weight": 0.0,
+          "move_ordering": false,
+          "quiescence": false,
+          "time_limit": 0,
+          "scoring_modifier": 1.0,
+          "game_phase_awareness": false
+        }
+      }
+    },
+    {
+      "name": "v7p3r vs. v7p3r (Conservative)",
+      "games_to_run": 10,
+      "chess_game": {
+        "white_engine_config": {
+          "engine": "v7p3r"
+        },
+        "black_engine_config": {
+          "engine": "v7p3r_opponent"
+        }
+      },
+      "v7p3r": {
+        "v7p3r": {
+          "ruleset": "default_ruleset",
+          "search_algorithm": "deepsearch",
+          "depth": 5,
+          "max_depth": 8,
+          "use_solutions": true,
+          "pst": true,
+          "pst_weight": 1.5,
+          "move_ordering": true,
+          "quiescence": true,
+          "time_limit": 0,
+          "scoring_modifier": 1.2,
+          "game_phase_awareness": true
+        },
+        "v7p3r_opponent": {
+          "ruleset": "conservative_ruleset",
+          "search_algorithm": "deepsearch",
+          "depth": 3,
+          "max_depth": 4,
+          "use_solutions": false,
+          "pst": false,
+          "pst_weight": 0.0,
+          "move_ordering": false,
+          "quiescence": false,
+          "time_limit": 0,
+          "scoring_modifier": 1.0,
+          "game_phase_awareness": false
+        }
+      }
+    },
+    {
+      "name": "v7p3r vs. v7p3r (Simple)",
+      "games_to_run": 10,
+      "chess_game": {
+        "white_engine_config": {
+          "engine": "v7p3r"
+        },
+        "black_engine_config": {
+          "engine": "v7p3r_opponent"
+        }
+      },
+      "v7p3r": {
+        "v7p3r": {
+          "ruleset": "default_ruleset",
+          "search_algorithm": "deepsearch",
+          "depth": 5,
+          "max_depth": 8,
+          "use_solutions": true,
+          "pst": true,
+          "pst_weight": 1.5,
+          "move_ordering": true,
+          "quiescence": true,
+          "time_limit": 0,
+          "scoring_modifier": 1.2,
+          "game_phase_awareness": true
+        },
+        "v7p3r_opponent": {
+          "ruleset": "simple_ruleset",
+          "search_algorithm": "deepsearch",
+          "depth": 3,
+          "max_depth": 4,
+          "use_solutions": false,
+          "pst": false,
+          "pst_weight": 0.0,
+          "move_ordering": false,
+          "quiescence": false,
+          "time_limit": 0,
+          "scoring_modifier": 1.0,
+          "game_phase_awareness": false
+        }
+      }
+    },
+    {
+      "name": "v7p3r vs. v7p3r (Default)",
+      "games_to_run": 10,
+      "chess_game": {
+        "white_engine_config": {
+          "engine": "v7p3r"
+        },
+        "black_engine_config": {
+          "engine": "v7p3r_opponent"
+        }
+      },
+      "v7p3r": {
+        "v7p3r": {
+          "ruleset": "default_ruleset",
+          "search_algorithm": "deepsearch",
+          "depth": 5,
+          "max_depth": 8,
+          "use_solutions": true,
+          "pst": true,
+          "pst_weight": 1.5,
+          "move_ordering": true,
+          "quiescence": true,
+          "time_limit": 0,
+          "scoring_modifier": 1.2,
+          "game_phase_awareness": true
+        },
+        "v7p3r_opponent": {
+          "ruleset": "default_ruleset",
+          "search_algorithm": "deepsearch",
+          "depth": 3,
+          "max_depth": 4,
+          "use_solutions": false,
+          "pst": false,
+          "pst_weight": 0.0,
+          "move_ordering": false,
+          "quiescence": false,
+          "time_limit": 0,
+          "scoring_modifier": 1.0,
+          "game_phase_awareness": false
+        }
+      }
+    },
+    {
+      "name": "Stockfish (Skill 5) vs v7p3r",
+      "games_to_run": 10,
+      "chess_game": {
+        "white_engine_config": {
+          "engine": "stockfish"
+        },
+        "black_engine_config": {
+          "engine": "v7p3r"
+        }
+      },
+      "v7p3r": {
+        "v7p3r": {
+          "ruleset": "default_ruleset",
+          "search_algorithm": "deepsearch",
+          "depth": 5,
+          "max_depth": 8,
+          "use_solutions": true,
+          "pst": true,
+          "pst_weight": 1.5,
+          "move_ordering": true,
+          "quiescence": true,
+          "time_limit": 0,
+          "scoring_modifier": 1.2,
+          "game_phase_awareness": true
+        },
+        "stockfish_handler": {
+          "skill_level": 5
+        }
+      }
+    },
+    {
+      "name": "v7p3r (Aggressive) vs. v7p3r",
+      "games_to_run": 10,
+      "chess_game": {
+        "white_engine_config": {
+          "engine": "v7p3r_opponent"
+        },
+        "black_engine_config": {
+          "engine": "v7p3r"
+        }
+      },
+      "v7p3r": {
+        "v7p3r": {
+          "ruleset": "default_ruleset",
+          "search_algorithm": "deepsearch",
+          "depth": 5,
+          "max_depth": 8,
+          "use_solutions": true,
+          "pst": true,
+          "pst_weight": 1.5,
+          "move_ordering": true,
+          "quiescence": true,
+          "time_limit": 0,
+          "scoring_modifier": 1.2,
+          "game_phase_awareness": true
+        },
+        "v7p3r_opponent": {
+          "ruleset": "aggressive_ruleset",
+          "search_algorithm": "deepsearch",
+          "depth": 3,
+          "max_depth": 4,
+          "use_solutions": false,
+          "pst": false,
+          "pst_weight": 0.0,
+          "move_ordering": false,
+          "quiescence": false,
+          "time_limit": 0,
+          "scoring_modifier": 1.0,
+          "game_phase_awareness": false
+        }
+      }
+    },
+    {
+      "name": "v7p3r (Conservative) vs. v7p3r",
+      "games_to_run": 10,
+      "chess_game": {
+        "white_engine_config": {
+          "engine": "v7p3r_opponent"
+        },
+        "black_engine_config": {
+          "engine": "v7p3r"
+        }
+      },
+      "v7p3r": {
+        "v7p3r": {
+          "ruleset": "default_ruleset",
+          "search_algorithm": "deepsearch",
+          "depth": 5,
+          "max_depth": 8,
+          "use_solutions": true,
+          "pst": true,
+          "pst_weight": 1.5,
+          "move_ordering": true,
+          "quiescence": true,
+          "time_limit": 0,
+          "scoring_modifier": 1.2,
+          "game_phase_awareness": true
+        },
+        "v7p3r_opponent": {
+          "ruleset": "conservative_ruleset",
+          "search_algorithm": "deepsearch",
+          "depth": 3,
+          "max_depth": 4,
+          "use_solutions": false,
+          "pst": false,
+          "pst_weight": 0.0,
+          "move_ordering": false,
+          "quiescence": false,
+          "time_limit": 0,
+          "scoring_modifier": 1.0,
+          "game_phase_awareness": false
+        }
+      }
+    },
+    {
+      "name": "v7p3r (Simple) vs. v7p3r",
+      "games_to_run": 10,
+      "chess_game": {
+        "white_engine_config": {
+          "engine": "v7p3r_opponent"
+        },
+        "black_engine_config": {
+          "engine": "v7p3r"
+        }
+      },
+      "v7p3r": {
+        "v7p3r": {
+          "ruleset": "default_ruleset",
+          "search_algorithm": "deepsearch",
+          "depth": 5,
+          "max_depth": 8,
+          "use_solutions": true,
+          "pst": true,
+          "pst_weight": 1.5,
+          "move_ordering": true,
+          "quiescence": true,
+          "time_limit": 0,
+          "scoring_modifier": 1.2,
+          "game_phase_awareness": true
+        },
+        "v7p3r_opponent": {
+          "ruleset": "simple_ruleset",
+          "search_algorithm": "deepsearch",
+          "depth": 3,
+          "max_depth": 4,
+          "use_solutions": false,
+          "pst": false,
+          "pst_weight": 0.0,
+          "move_ordering": false,
+          "quiescence": false,
+          "time_limit": 0,
+          "scoring_modifier": 1.0,
+          "game_phase_awareness": false
+        }
+      }
+    },
+    {
+      "name": "v7p3r (Default) vs. v7p3r",
+      "games_to_run": 10,
+      "chess_game": {
+        "white_engine_config": {
+          "engine": "v7p3r_opponent"
+        },
+        "black_engine_config": {
+          "engine": "v7p3r"
+        }
+      },
+      "v7p3r": {
+        "v7p3r": {
+          "ruleset": "default_ruleset",
+          "search_algorithm": "deepsearch",
+          "depth": 5,
+          "max_depth": 8,
+          "use_solutions": true,
+          "pst": true,
+          "pst_weight": 1.5,
+          "move_ordering": true,
+          "quiescence": true,
+          "time_limit": 0,
+          "scoring_modifier": 1.2,
+          "game_phase_awareness": true
+        },
+        "v7p3r_opponent": {
+          "ruleset": "default_ruleset",
+          "search_algorithm": "deepsearch",
+          "depth": 3,
+          "max_depth": 4,
+          "use_solutions": false,
+          "pst": false,
+          "pst_weight": 0.0,
+          "move_ordering": false,
+          "quiescence": false,
+          "time_limit": 0,
+          "scoring_modifier": 1.0,
+          "game_phase_awareness": false
+        }
+      }
+    }
+  ]
+}

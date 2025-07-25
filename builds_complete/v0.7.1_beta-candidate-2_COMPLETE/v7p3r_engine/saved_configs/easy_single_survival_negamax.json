@@ -1,0 +1,27 @@
+﻿{
+    "engine_config": {
+        "name": "v7p3r",
+        "version": "1.0.0",
+        "color": "white",
+        "ruleset": "survival_evaluation",
+        "search_algorithm": "negamax",
+        "depth": 5,
+        "max_depth": 8,
+        "monitoring_enabled": true,
+        "verbose_output": false,
+        "logger": "v7p3r_engine_logger",
+        "game_count": 1,
+        "starting_position": "default",
+        "white_player": "v7p3r",
+        "black_player": "stockfish"
+    },
+    "stockfish_config": {
+        "stockfish_path": "engine_utilities/external_engines/stockfish/stockfish-windows-x86-64-avx2.exe",
+        "elo_rating": 100,
+        "skill_level": 1,
+        "debug_mode": false,
+        "depth": 2,
+        "max_depth": 2,
+        "movetime": 500
+    }
+}

@@ -1,0 +1,186 @@
+﻿{
+    "game_config": {
+        "game_count": 1,
+        "starting_position": "default",
+        "white_player": "v7p3r",
+        "black_player": "stockfish"
+    },
+    "engine_config": {
+        "ruleset": "default_ruleset",
+        "search_algorithm": "minimax",
+        "depth": 5,
+        "max_depth": 7,
+        "use_game_phase": true,
+        "use_quiescence": true,
+        "order_moves": true,
+        "max_moves": 8,
+        "strict_draw_prevention": true,
+        "monitoring_enabled": true,
+        "verbose_output": false,
+        "logger": "v7p3r_engine_logger"
+    },
+    "stockfish_config": {
+        "stockfish_path": "stockfish/stockfish-windows-x86-64-avx2.exe",
+        "elo_rating": 400,
+        "skill_level": 4,
+        "debug_mode": false,
+        "depth": 4,
+        "max_depth": 10,
+        "movetime": 1000,
+        "nodes": null,
+        "uci_limit_strength": true,
+        "contempt": 0,
+        "threads": 1,
+        "hash": 64,
+        "ponder": false,
+        "multi_pv": 2,
+        "syzygy_path": null,
+        "syzygy_probe_depth": 1,
+        "uci_chess960": false
+
+    },
+    "puzzle_config": {
+        "puzzle_database": {
+            "db_path": "puzzles/puzzle_data.db",
+            "selection": {
+            "min_rating": 800,
+            "max_rating": 3000,
+            "batch_size": 50,
+            "themes": []
+            },
+            "adaptive_elo": {
+            "enabled": true,
+            "starting_elo": 1200,
+            "increment": 100,
+            "decrement": 50,
+            "success_threshold": 0.8
+            },
+            "maintenance": {
+            "auto_vacuum": true,
+            "max_attempts_per_puzzle": 10
+            }
+        },
+        "puzzle_solver": {
+            "engine": {
+                "depth": 10,
+                "time_limit": 5000
+            },
+            "tracking": {
+                "record_attempts": true,
+                "save_positions": true
+            },
+            "integration": {
+                "update_transposition_table": true,
+                "stockfish_verification": true
+            },
+            "display": {
+                "show_solution": false,
+                "verbose_logging": true
+            }
+        }
+    },
+    "logging_config": {
+        "log_level": "DEBUG",
+        "log_format": "%(asctime)s | %(levelname)s | %(funcName)s | %(message)s"
+    },
+    "metrics_config": {
+        "metrics_to_track": [
+            "evaluation",
+            "depth",
+            "nodes_searched",
+            "time_taken"
+        ],
+        "include_engines": [
+            "v7p3r",
+            "v7p3r_nn",
+            "v7p3r_ga"
+        ],
+        "exclude_engine_ids": [
+            "v7p3r_opponent",
+            "stockfish",
+            "chatfish"
+        ],
+        "group_by": "engine_id",
+        "respect_exclusion_flags": true,
+        "default_grouping": "engine_id",
+        "show_engine_version": true,
+        "show_engine_config_hash": true
+    },
+    "v7p3r_nn_config": {
+        "training": {
+            "batch_size": 64,
+            "learning_rate": 0.001,
+            "weight_decay": 0.0001,
+            "epochs": 50,
+            "model": {
+            "hidden_layers": [256, 128, 64],
+            "dropout_rate": 0.3,
+            "activation": "relu"
+            },
+            "data": {
+            "validation_split": 0.2,
+            "augmentation": true,
+            "normalize": true
+            },
+            "storage": {
+            "enabled": true,
+            "save_model": true,
+            "save_metrics": true,
+            "model_path": "v7p3r_nn_models",
+            "metrics_path": "metrics",
+            "store_checkpoints": true,
+            "checkpoint_frequency": 5
+            },
+            "stockfish": {
+            "enabled": true,
+            "depth": 15,
+            "positions_per_game": 20,
+            "time_per_position": 5
+            }
+        },
+        "move_library": {
+            "enabled": true,
+            "db_path": "v7p3r_move_library.db",
+            "confidence_threshold": 0.7,
+            "prune_old_evaluations": true,
+            "max_positions": 1000000
+        }
+    },
+    "v7p3r_ga_config": {
+        "population_size": 3,
+        "generations": 2,
+        "mutation_rate": 0.2,
+        "crossover_rate": 0.8,
+        "elitism_rate": 0.33,
+        "adaptive_mutation": true,
+        "positions_source": "random",
+        "positions_count": 3,
+        "max_stagnation": 2,
+        "use_cuda": false,
+        "cuda_batch_size": 32,
+        "use_multiprocessing": false,
+        "max_workers": 1,
+        "use_neural_evaluator": false,
+        "neural_model_path": null,
+        "enable_cache": true,
+        "max_cache_size": 1000
+    },
+    "v7p3r_rl_config": {
+        "hidden_dim": 512,
+        "dropout": 0.1,
+        "learning_rate": 0.0003,
+        "clip_ratio": 0.2,
+        "vf_coef": 0.5,
+        "ent_coef": 0.01,
+        "max_moves": 200,
+        "batch_size": 16,
+        "episodes_per_validation": 50,
+        "reward_ruleset": "default_ruleset",
+        "model_path": "v7p3r_rl_models",
+        "save_frequency": 100,
+        "use_cuda": true,
+        "device": "auto",
+        "verbose_training": true,
+        "log_frequency": 10
+    }
+}

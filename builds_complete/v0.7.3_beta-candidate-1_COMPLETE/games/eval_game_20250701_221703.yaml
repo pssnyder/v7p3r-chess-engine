@@ -1,0 +1,17 @@
+﻿engine_settings:
+  depth: 2
+  logger: v7p3r_engine_logger
+  max_depth: 3
+  max_moves: 5
+  monitoring_enabled: true
+  name: v7p3r
+  ruleset: tuned_ga_gen2
+  search_algorithm: minimax
+  use_game_phase: true
+  verbose_output: true
+  version: 1.0.0
+game_settings:
+  black_player: stockfish
+  game_count: 10
+  starting_position: default
+  white_player: v7p3r

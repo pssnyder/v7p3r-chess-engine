@@ -1,0 +1,35 @@
+﻿# Enhanced GA configuration for v7p3r ruleset tuning with CUDA acceleration
+population_size: 5   # Drastically reduced to prevent overheating
+generations: 3       # Reduced for testing
+mutation_rate: 0.1
+crossover_rate: 0.8
+elitism_rate: 0.2    # Increased to preserve best individuals with smaller population
+adaptive_mutation: true
+positions_source: "random"
+positions_count: 5   # Drastically reduced to prevent memory issues
+max_stagnation: 3
+
+# CUDA and Performance Settings
+use_cuda: true       # Re-enabled now that cleanup is fixed
+cuda_batch_size: 64  # Moderate batch size for your 12GB GPU
+use_multiprocessing: false  # Disable temporarily due to CUDA thread lock pickling issues
+max_workers: null  # Auto-detect optimal worker count
+use_neural_evaluator: false  # Set to true if you have a trained NN model
+neural_model_path: null  # Path to trained neural network model
+
+# Position Evaluation Cache
+enable_cache: true
+max_cache_size: 10000
+
+# Puzzle Database Configuration
+puzzle_db_config: "s:/Maker Stuff/Programming/V7P3R Chess Engine/viper_chess_engine/config/puzzle_config.yaml"
+
+stockfish_config: {
+  stockfish_path: "s:/Maker Stuff/Programming/V7P3R Chess Engine/viper_chess_engine/v7p3r_engine/external_engines/stockfish/stockfish-windows-x86-64-avx2.exe",
+  elo_rating: 100,
+  skill_level: 1,
+  debug_mode: False,
+  depth: 1,  # Minimal depth for faster evaluation
+  max_depth: 2,  # Minimal max depth
+  movetime: 50,  # Much faster response
+}

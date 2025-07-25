@@ -1,0 +1,112 @@
+﻿{
+    "game_config": {
+        "game_count": 1,
+        "starting_position": "default",
+        "white_player": "v7p3r",
+        "black_player": "stockfish"
+    },
+    "engine_config": {
+        "name": "v7p3r",
+        "version": "0.0.8",
+        "ruleset": "balanced_ruleset",
+        "search_algorithm": "minimax",
+        "depth": 3,
+        "max_depth": 5,
+        "use_game_phase": true,
+        "use_quiescence": true,
+        "order_moves": true,
+        "max_moves": 5,
+        "strict_draw_prevention": true,
+        "monitoring_enabled": true,
+        "verbose_output": false,
+        "logger": "v7p3r_engine_logger"
+    },
+    "stockfish_config": {
+        "stockfish_path": "v7p3r_engine/external_engines/stockfish/stockfish-windows-x86-64-avx2.exe",
+        "elo_rating": 100,
+        "skill_level": 1,
+        "debug_mode": false,
+        "depth": 1,
+        "max_depth": 1,
+        "movetime": 100,
+        "nodes": null,
+        "uci_limit_strength": true,
+        "contempt": 0,
+        "threads": 1,
+        "hash": 64,
+        "ponder": false,
+        "multi_pv": 2,
+        "debug_stockfish": false,
+        "syzygy_path": null,
+        "syzygy_probe_depth": 1,
+        "uci_chess960": false
+
+    },
+    "puzzle_config": {
+        "puzzle_database": {
+            "db_path": "s:/Maker Stuff/Programming/V7P3R Chess Engine/viper_chess_engine/puzzles/puzzle_data.db",
+            "selection": {
+            "min_rating": 800,
+            "max_rating": 3000,
+            "batch_size": 50,
+            "themes": []
+            },
+            "adaptive_elo": {
+            "enabled": true,
+            "starting_elo": 1200,
+            "increment": 100,
+            "decrement": 50,
+            "success_threshold": 0.8
+            },
+            "maintenance": {
+            "auto_vacuum": true,
+            "max_attempts_per_puzzle": 10
+            }
+        },
+        "puzzle_solver": {
+            "engine": {
+                "depth": 10,
+                "time_limit": 5000
+            },
+        "tracking": {
+            "record_attempts": true,
+            "save_positions": true
+        },
+        "integration": {
+            "update_transposition_table": true,
+            "stockfish_verification": true
+        },
+        "display": {
+            "show_solution": false,
+            "verbose_logging": true
+        }
+    },
+    "logging_config": {
+        "log_level": "DEBUG",
+        "log_format": "%(asctime)s - %(name)s - %(levelname)s - %(funcName)s - %(message)s"
+    },
+    "metrics_config": {
+        "metrics_to_track": [
+            "evaluation",
+            "depth",
+            "nodes_searched",
+            "time_taken"
+        ],
+        "include_engines": [
+            "v7p3r",
+            "v7p3r_nn",
+            "v7p3r_ga"
+        ],
+        "exclude_engine_ids": [
+            "v7p3r_opponent",
+            "stockfish",
+            "chatfish"
+        ],
+        "group_by": "engine_id",
+        "respect_exclusion_flags": true,
+        "default_grouping": "engine_id",
+        "show_engine_version": true,
+        "show_engine_config_hash": true
+        }
+    }
+}
