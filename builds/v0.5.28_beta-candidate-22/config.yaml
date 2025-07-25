@@ -1,0 +1,10 @@
+training:
+  batch_size: 256
+  learning_rate: 0.001
+  epochs: 10
+  weight_decay: 0.0001
+
+analysis_rules:
+  preferred_openings: ["e4", "d4"]
+  avoid_early_queen: true
+  max_pawn_advance: 3

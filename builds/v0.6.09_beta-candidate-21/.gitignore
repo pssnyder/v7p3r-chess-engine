@@ -1,0 +1,128 @@
+# gitignore file for ViperChessEngine
+
+# General catch-all for do-not-commit files
+*.do-not-commit
+*.do-not-track
+*.do-not-push
+*.wip*
+
+# Project-specific resource files and directories
+*.viper_chess_engine
+*.viper_chess_engine.*
+.viper_chess_engine_project_files/
+
+# Directories to ignore
+puzzles/
+evaluation/
+training/
+#testing/           # No need to omit at this time
+models/
+#logging/           # Added to LFS
+external_engines/
+venv/
+.history/
+
+# Python specific
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+.installed.cfg
+.Python
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Virtual environment
+pipenv.lock # For pipenv
+.python-version # For pyenv
+
+# Compiled files / caches
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+
+# Distribution / packaging
+# ... (keep existing if not covered above, review for redundancy)
+
+# Logs and temporary files
+#*.log # setting up with LFS
+*.tmp
+*.bak
+pip-log.txt
+pip-delete-this-directory.txt
+
+# IDE / Editor specific
+.vscode/
+.code-workspace
+.vscode-test/
+.idea/         # Common for PyCharm/IntelliJ Jetbrains IDEs
+
+# OS specific
+.DS_Store # macOS
+Thumbs.db # Windows
+
+# Data files
+*.csv
+*.jsonl
+
+# Model files
+*.pt
+*.pth
+*.ckpt
+*.h5
+
+# Testing and coverage
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache/ # General cache, also used by pytest
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover # Note: this might be too broad, consider if it's `*.py.cover`
+.hypothesis/
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+
+# Profiling
+.prof
+
+# Docker
+Dockerfile
+docker-compose.yml
+
+# Database files
+*.sqlite3
+#*.db               # added to LFS
+*.db-journal
+*.db-wal
+*.db-shm
+*.db-sqlite
+TESTING - Viper Chess Engine.code-workspace
+metrics/chess_metrics.db-wal

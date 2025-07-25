@@ -1,0 +1,14 @@
+python-chess
+pyyaml
+pygame
+numpy
+pandas
+torch
+matplotlib
+seaborn
+psutil
+pillow
+dash
+plotly
+firebase-admin>=6.2.0
+google-cloud-firestore>=2.11.0
