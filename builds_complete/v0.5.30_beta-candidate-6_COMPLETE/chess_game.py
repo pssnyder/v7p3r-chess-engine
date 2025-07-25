@@ -15,6 +15,7 @@ import datetime
 import time
 from threading import Thread
 from concurrent.futures import ThreadPoolExecutor
+from typing import Dict, Any
 
 torch.set_float32_matmul_precision('high')  # Improve GPU performance
 
@@ -27,9 +28,9 @@ IMAGES = {}
 
 # Resource path config for distro
 def resource_path(relative_path):
-    if hasattr(sys, '_MEIPASS'):
-        return os.path.join(sys._MEIPASS, relative_path)
-    return os.path.join(os.path.abspath("."), relative_path)
+    # Safely check for _MEIPASS attribute in sys
+    base_path = getattr(sys, '_MEIPASS', os.path.abspath("."))
+    return os.path.join(base_path, relative_path)
 
 class ChessGame:
     def __init__(self, model_path, username="User"):
@@ -46,10 +47,23 @@ class ChessGame:
         self.selected_square = None
         self.player_clicks = []
         self.load_images()
+        self.piece_values = {
+            chess.PAWN: 1,
+            chess.KNIGHT: 3,
+            chess.BISHOP: 3,
+            chess.ROOK: 5,
+            chess.QUEEN: 9,
+            chess.KING: 0
+        }
         
         # Load configuration
+        self.config: Dict[str, Any] = {}
         with open("config.yaml") as f:
-            self.config = yaml.safe_load(f)
+            loaded_config = yaml.safe_load(f)
+            if isinstance(loaded_config, dict):
+                self.config = loaded_config
+            else:
+                raise ValueError("Invalid configuration format: Expected a dictionary.")
             
          # Load move vocabulary
         import pickle
@@ -236,6 +250,23 @@ class ChessGame:
         
         return best_move.uci() if best_move else None
 
+    def static_exchange_evaluation(self, move):
+        """Calculate static exchange evaluation for a move"""
+        board_copy = self.board.copy()
+        board_copy.push(move)
+        score = 0
+        
+        # Evaluate material balance after the move
+        for square in chess.SQUARES:
+            piece = board_copy.piece_at(square)
+            if piece:
+                value = self.piece_values[piece.piece_type]
+                if piece.color == chess.WHITE:
+                    score += value
+                else:
+                    score -= value
+        
+        return score
 
     def _get_top_nn_moves(self, moves, top_n=3):
         """Get top moves using neural network predictions"""
@@ -503,7 +534,7 @@ class ChessGame:
         
         with open(filename, "w") as f:
             exporter = chess.pgn.FileExporter(f)
-            exporter.emit_commentary = True # Add evaluation commentary
+            # Remove erroneous add_comment call
             self.game.accept(exporter)
 
 if __name__ == "__main__":

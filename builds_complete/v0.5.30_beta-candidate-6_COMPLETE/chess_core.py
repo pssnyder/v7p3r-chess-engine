@@ -11,7 +11,7 @@ class ChessDataset(Dataset):
     def __init__(self, pgn_path, username):
         self.fens = []      # List of FEN strings
         self.moves = []     # List of move UCI strings
-
+        
         pgn = open(pgn_path)
         while True:
             game = chess.pgn.read_game(pgn)

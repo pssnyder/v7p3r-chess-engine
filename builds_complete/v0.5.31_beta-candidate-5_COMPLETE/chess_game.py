@@ -19,9 +19,9 @@ IMAGES = {}
 
 # Resource path config for distro
 def resource_path(relative_path):
-    if hasattr(sys, '_MEIPASS'):
-        return os.path.join(sys._MEIPASS, relative_path)
-    return os.path.join(os.path.abspath("."), relative_path)
+    # Safely check for _MEIPASS attribute in sys
+    base_path = getattr(sys, '_MEIPASS', os.path.abspath("."))
+    return os.path.join(base_path, relative_path)
 
 class ChessGame:
     def __init__(self):
