@@ -13,7 +13,7 @@ from collections import defaultdict
 from datetime import datetime
 
 class ComprehensiveBuildAnalyzer:
-    def __init__(self, builds_dir="builds_complete"):
+    def __init__(self, builds_dir="builds"):
         self.builds_dir = Path(builds_dir)
         self.analysis_results = []
         self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -154,8 +154,22 @@ class ComprehensiveBuildAnalyzer:
         
         for py_file in build_path.rglob('*.py'):
             try:
-                with open(py_file, 'r', encoding='utf-8') as f:
-                    content = f.read()
+                # Try different encodings and handle BOM
+                content = None
+                for encoding in ['utf-8-sig', 'utf-8', 'latin-1', 'cp1252']:
+                    try:
+                        with open(py_file, 'r', encoding=encoding) as f:
+                            content = f.read()
+                        break
+                    except UnicodeDecodeError:
+                        continue
+                
+                if content is None:
+                    continue
+                
+                # Remove BOM if present
+                if content.startswith('\ufeff'):
+                    content = content[1:]
                 
                 lines = content.split('\n')
                 metrics['total_lines'] += len([line for line in lines if line.strip() and not line.strip().startswith('#')])
@@ -175,6 +189,25 @@ class ComprehensiveBuildAnalyzer:
                         elif isinstance(node, ast.ImportFrom):
                             if node.module:
                                 metrics['imports'].add(node.module)
+                except SyntaxError as e:
+                    # Try to clean the content and re-parse for BOM issues
+                    if "invalid non-printable character" in str(e):
+                        try:
+                            cleaned_content = content.lstrip('\ufeff\ufffe\u200b\u200c\u200d\ufeff')
+                            tree = ast.parse(cleaned_content)
+                            for node in ast.walk(tree):
+                                if isinstance(node, ast.FunctionDef):
+                                    metrics['total_functions'] += 1
+                                elif isinstance(node, ast.ClassDef):
+                                    metrics['total_classes'] += 1
+                                elif isinstance(node, ast.Import):
+                                    for alias in node.names:
+                                        metrics['imports'].add(alias.name)
+                                elif isinstance(node, ast.ImportFrom):
+                                    if node.module:
+                                        metrics['imports'].add(node.module)
+                        except:
+                            pass
                 except:
                     pass
                     

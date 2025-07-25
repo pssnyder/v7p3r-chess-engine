@@ -341,8 +341,23 @@ class IndividualBuildAnalyzer:
         }
         
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
+            # Try different encodings and handle BOM
+            content = None
+            for encoding in ['utf-8-sig', 'utf-8', 'latin-1', 'cp1252']:
+                try:
+                    with open(file_path, 'r', encoding=encoding) as f:
+                        content = f.read()
+                    break
+                except UnicodeDecodeError:
+                    continue
+            
+            if content is None:
+                file_info['import_errors'].append(f"Could not decode {relative_path} with any encoding")
+                return file_info
+            
+            # Remove BOM if present
+            if content.startswith('\ufeff'):
+                content = content[1:]
             
             # Count lines (non-empty, non-comment)
             lines = content.split('\n')
@@ -366,12 +381,47 @@ class IndividualBuildAnalyzer:
                             file_info['imports'].append(node.module)
                 
             except SyntaxError as e:
-                file_info['syntax_errors'].append(f"{relative_path}:{e.lineno}: {e.msg}")
+                # Try to parse with different Python versions/modes
+                error_msg = f"{relative_path}:{e.lineno}: {e.msg}"
+                
+                # Check if it's just a BOM issue
+                if "invalid non-printable character" in str(e):
+                    # Try to clean the content and re-parse
+                    try:
+                        # Remove all non-printable characters from start
+                        cleaned_content = content.lstrip('\ufeff\ufffe\u200b\u200c\u200d\ufeff')
+                        tree = ast.parse(cleaned_content)
+                        
+                        # If successful, recount everything
+                        file_info['functions'] = 0
+                        file_info['classes'] = 0
+                        file_info['imports'] = []
+                        
+                        for node in ast.walk(tree):
+                            if isinstance(node, ast.FunctionDef):
+                                file_info['functions'] += 1
+                            elif isinstance(node, ast.ClassDef):
+                                file_info['classes'] += 1
+                            elif isinstance(node, (ast.Import, ast.ImportFrom)):
+                                if isinstance(node, ast.Import):
+                                    for alias in node.names:
+                                        file_info['imports'].append(alias.name)
+                                elif isinstance(node, ast.ImportFrom) and node.module:
+                                    file_info['imports'].append(node.module)
+                        
+                        # Mark as BOM issue but successfully parsed
+                        file_info['issues'].append("BOM character detected (fixed during analysis)")
+                        
+                    except:
+                        file_info['syntax_errors'].append(error_msg)
+                else:
+                    file_info['syntax_errors'].append(error_msg)
+                    
             except Exception as e:
                 file_info['syntax_errors'].append(f"{relative_path}: Parse error - {str(e)}")
             
             # Check for various issues
-            file_info['issues'] = self.check_file_issues(content, relative_path)
+            file_info['issues'].extend(self.check_file_issues(content, relative_path))
             
             # Calculate complexity score
             if file_info['lines'] > 0:

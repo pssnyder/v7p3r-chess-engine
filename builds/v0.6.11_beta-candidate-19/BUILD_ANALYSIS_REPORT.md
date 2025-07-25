@@ -1,6 +1,6 @@
 # Build Analysis Report: v0.6.11_beta-candidate-19
 
-**Generated:** 2025-07-25 11:08:47  
+**Generated:** 2025-07-25 11:18:43  
 **Version:** v0.6.11  
 **Tag:** beta-candidate-19  
 **Overall Completeness:** 45.5%
@@ -11,8 +11,8 @@
 
 | Metric | Value | Status |
 |--------|-------|--------|
-| Total Files | 243 | ✅ |
-| Total Size | 506.80 MB | ⚠️ |
+| Total Files | 232 | ✅ |
+| Total Size | 443.77 MB | ⚠️ |
 | Python Files | 29 | ✅ |
 | Critical Files | 2 categories | ⚠️ |
 | Code Quality | 46.0% | ⚠️ |
@@ -24,10 +24,6 @@
 
 | Extension | Count | Total Size | Avg Size | Largest File |
 |-----------|-------|------------|----------|--------------|
-| .1 | 2 | 20.00 MB | 10239.9 KB | viper_evaluation_engine.log.1 |
-| .2 | 2 | 20.00 MB | 10239.8 KB | chess_game.log.2 |
-| .3 | 2 | 20.00 MB | 10240.0 KB | chess_game.log.3 |
-| .code-workspace | 1 | 0.00 MB | 0.1 KB | DEVELOPMENT - Viper Chess Engine.code-workspace |
 | .cre | 132 | 0.06 MB | 0.5 KB | GRIDDY.cre |
 | .csv | 1 | 0.00 MB | 0.0 KB | static_metrics.csv |
 | .db | 1 | 431.48 MB | 441840.0 KB | chess_metrics.db |
@@ -36,12 +32,10 @@
 | .exp | 1 | 0.00 MB | 1.0 KB | RichTip.exp |
 | .ipynb | 4 | 0.13 MB | 32.7 KB | Distributed_Computing_Guide.ipynb |
 | .jpg | 1 | 0.00 MB | 1.4 KB | chess_board_theme.jpg |
-| .json | 1 | 0.00 MB | 1.0 KB | devcontainer.json |
 | .lib | 1 | 0.00 MB | 2.5 KB | RichTip.lib |
-| .log | 2 | 3.02 MB | 1547.6 KB | viper_evaluation_engine.log |
 | .md | 7 | 0.06 MB | 8.6 KB | General_Git_Workflow_Guide.md |
 | .no_extension | 11 | 0.02 MB | 1.7 KB | metrics_revision_20250609_chat |
-| .pgn | 2 | 0.00 MB | 0.1 KB | rl_ai_game.pgn |
+| .pgn | 1 | 0.00 MB | 0.3 KB | rl_ai_game.pgn |
 | .pkl | 2 | 0.18 MB | 92.4 KB | move_vocab_20250531_164812.pkl |
 | .png | 17 | 3.73 MB | 224.7 KB | Grass_PNG_Picture_Clipat.png |
 | .py | 29 | 0.39 MB | 13.9 KB | viper.py |
@@ -58,20 +52,20 @@
 
 **Organization Score:** 25.0%  
 **Maximum Depth:** 5 levels  
-**Total Folders:** 31
+**Total Folders:** 28
 
 | Folder | Files | Subfolders | Path |
 |--------|-------|------------|------|
-| .devcontainer | 1 | 0 | .devcontainer |
-| engine_utilities | 14 | 1 | engine_utilities |
-| templates | 1 | 0 | engine_utilities\templates |
+| engine_utilities | 14 | 0 | engine_utilities |
 | images | 13 | 0 | images |
-| logging | 9 | 0 | logging |
 | metrics | 6 | 1 | metrics |
 | __pycache__ | 1 | 0 | metrics\__pycache__ |
 | product_management | 0 | 4 | product_management |
 | ideas | 4 | 2 | product_management\ideas |
 | example_projects | 0 | 2 | product_management\ideas\example_projects |
+| 2Dsticks Simple NN Game - evolution network | 3 | 4 | product_management\ideas\example_projects\2Dsticks Simple NN Game - evolution network |
+| Creatures | 132 | 0 | product_management\ideas\example_projects\2Dsticks Simple NN Game - evolution network\Creatures |
+| PNG | 6 | 0 | product_management\ideas\example_projects\2Dsticks Simple NN Game - evolution network\PNG |
 
 
 ---
@@ -195,28 +189,28 @@ yaml
 
 ## 📏 Size Analysis
 
-**Total Build Size:** 506.80 MB
+**Total Build Size:** 443.77 MB
 
 ### Size Distribution
-- **Tiny** (< 1KB): 155 files
-- **Small** (1-10KB): 41 files  
+- **Tiny** (< 1KB): 153 files
+- **Small** (1-10KB): 40 files  
 - **Medium** (10-100KB): 30 files
-- **Large** (100KB-1MB): 6 files
-- **Huge** (> 1MB): 11 files
+- **Large** (100KB-1MB): 5 files
+- **Huge** (> 1MB): 4 files
 
 ### Largest Files
 | File | Size | Path |
 |------|------|------|
 | chess_metrics.db | 431.48 MB | metrics\chess_metrics.db |
-| chess_game.log.3 | 10.00 MB | logging\chess_game.log.3 |
-| viper_evaluation_engine.log.3 | 10.00 MB | logging\viper_evaluation_engine.log.3 |
-| chess_game.log.2 | 10.00 MB | logging\chess_game.log.2 |
-| viper_evaluation_engine.log.1 | 10.00 MB | logging\viper_evaluation_engine.log.1 |
-| chess_game.log.1 | 10.00 MB | logging\chess_game.log.1 |
-| viper_evaluation_engine.log.2 | 10.00 MB | logging\viper_evaluation_engine.log.2 |
 | vbRichClient5.dll | 3.82 MB | product_management\ideas\example_projects\2Dsticks Simple NN Game - evolution network\vbRC5BaseDlls\vbRichClient5.dll |
 | Grass_PNG_Picture_Clipat.png | 2.89 MB | product_management\ideas\example_projects\2Dsticks Simple NN Game - evolution network\PNG\Grass_PNG_Picture_Clipat.png |
 | vb_cairo_sqlite.dll | 2.75 MB | product_management\ideas\example_projects\2Dsticks Simple NN Game - evolution network\vbRC5BaseDlls\vb_cairo_sqlite.dll |
+| vbWidgets.dll | 0.49 MB | product_management\ideas\example_projects\2Dsticks Simple NN Game - evolution network\vbRC5BaseDlls\vbWidgets.dll |
+| tree_PNG3470.png | 0.34 MB | product_management\ideas\example_projects\2Dsticks Simple NN Game - evolution network\PNG\tree_PNG3470.png |
+| Learn2Dsticks.exe | 0.33 MB | product_management\ideas\example_projects\2Dsticks Simple NN Game - evolution network\Learn2Dsticks.exe |
+| tree_PNG212.png | 0.23 MB | product_management\ideas\example_projects\2Dsticks Simple NN Game - evolution network\PNG\tree_PNG212.png |
+| tree_PNG3477.png | 0.17 MB | product_management\ideas\example_projects\2Dsticks Simple NN Game - evolution network\PNG\tree_PNG3477.png |
+| PNG_Animals.zip | 0.10 MB | product_management\ideas\example_projects\2Dsticks Simple NN Game - evolution network\PNG\PNG_Animals.zip |
 
 
 ---
@@ -226,7 +220,7 @@ yaml
 ### Priority Actions
 - 🔧 **LOW PRIORITY**: Significant issues need resolution
 - Consider for feature extraction rather than full restoration
-- Remove 3 empty files
+- Remove 2 empty files
 - Review 4 sets of duplicate files
 
 
@@ -248,4 +242,4 @@ yaml
 **v0.6.11_beta-candidate-19** - **NEEDS WORK** 🔧
 
 ---
-*Report generated by V7P3R Build Analyzer on 2025-07-25 11:08:47*
+*Report generated by V7P3R Build Analyzer on 2025-07-25 11:18:43*

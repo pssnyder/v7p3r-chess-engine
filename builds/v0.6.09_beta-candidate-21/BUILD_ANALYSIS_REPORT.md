@@ -1,6 +1,6 @@
 # Build Analysis Report: v0.6.09_beta-candidate-21
 
-**Generated:** 2025-07-25 11:08:18  
+**Generated:** 2025-07-25 11:18:42  
 **Version:** v0.6.09  
 **Tag:** beta-candidate-21  
 **Overall Completeness:** 44.9%
@@ -11,8 +11,8 @@
 
 | Metric | Value | Status |
 |--------|-------|--------|
-| Total Files | 586 | ✅ |
-| Total Size | 1921.67 MB | ⚠️ |
+| Total Files | 39 | ✅ |
+| Total Size | 35.26 MB | ✅ |
 | Python Files | 15 | ✅ |
 | Critical Files | 2 categories | ⚠️ |
 | Code Quality | 25.6% | ⚠️ |
@@ -24,22 +24,16 @@
 
 | Extension | Count | Total Size | Avg Size | Largest File |
 |-----------|-------|------------|----------|--------------|
-| .1 | 1 | 10.00 MB | 10240.0 KB | viper_evaluation_engine.log.1 |
 | .code-workspace | 1 | 0.00 MB | 0.1 KB | TESTING - Viper Chess Engine.code-workspace |
 | .csv | 1 | 0.00 MB | 0.0 KB | static_metrics.csv |
 | .db | 1 | 34.81 MB | 35644.0 KB | chess_metrics.db |
-| .ipynb | 1 | 0.01 MB | 9.9 KB | updates_20250609_001.ipynb |
 | .jpg | 1 | 0.00 MB | 1.4 KB | chess_board_theme.jpg |
-| .json | 1 | 0.00 MB | 1.0 KB | devcontainer.json |
-| .log | 74 | 1872.95 MB | 25917.6 KB | eval_game_20250607_002251.log |
 | .md | 1 | 0.00 MB | 3.0 KB | README.md |
 | .no_extension | 2 | 0.00 MB | 1.0 KB | .gitignore |
-| .pgn | 259 | 1.34 MB | 5.3 KB | export_all_eval_games_20250606_210841.pgn |
 | .png | 12 | 0.09 MB | 7.6 KB | wQ.png |
 | .py | 15 | 0.32 MB | 22.1 KB | viper.py |
-| .pyc | 12 | 0.34 MB | 29.0 KB | evaluation_engine.cpython-312.pyc |
 | .txt | 2 | 0.01 MB | 2.7 KB | raw_data_examples.txt |
-| .yaml | 202 | 1.79 MB | 9.1 KB | viper.yaml |
+| .yaml | 3 | 0.03 MB | 10.6 KB | viper.yaml |
 
 
 ---
@@ -47,21 +41,14 @@
 ## 🗂️ Folder Structure
 
 **Organization Score:** 25.0%  
-**Maximum Depth:** 2 levels  
-**Total Folders:** 10
+**Maximum Depth:** 1 levels  
+**Total Folders:** 3
 
 | Folder | Files | Subfolders | Path |
 |--------|-------|------------|------|
-| .devcontainer | 1 | 0 | .devcontainer |
-| __pycache__ | 6 | 0 | __pycache__ |
-| engine_utilities | 11 | 1 | engine_utilities |
-| __pycache__ | 5 | 0 | engine_utilities\__pycache__ |
-| games | 529 | 0 | games |
-| ideas | 1 | 0 | ideas |
+| engine_utilities | 11 | 0 | engine_utilities |
 | images | 13 | 0 | images |
-| logging | 4 | 0 | logging |
-| metrics | 5 | 1 | metrics |
-| __pycache__ | 1 | 0 | metrics\__pycache__ |
+| metrics | 5 | 0 | metrics |
 
 
 ---
@@ -165,44 +152,36 @@ yaml
 - No warnings
 
 ### Suggestions
-- 💡 Large file: eval_game_20250606_211902.log (33.3 MB)
-- 💡 Large file: eval_game_20250606_211906.log (34.8 MB)
-- 💡 Large file: eval_game_20250606_211911.log (36.3 MB)
-- 💡 Large file: eval_game_20250606_211915.log (37.8 MB)
-- 💡 Large file: eval_game_20250606_211920.log (39.3 MB)
-- 💡 Large file: eval_game_20250606_211924.log (30.8 MB)
-- 💡 Large file: eval_game_20250606_211929.log (32.3 MB)
-- 💡 Large file: eval_game_20250606_211933.log (33.8 MB)
-- 💡 Large file: eval_game_20250606_211938.log (35.3 MB)
-- 💡 Large file: eval_game_20250606_211942.log (36.7 MB)
+- 💡 Large file: chess_metrics.db (34.8 MB)
+- 💡 Temporary files found: .gitattributes, .gitignore
 
 
 ---
 
 ## 📏 Size Analysis
 
-**Total Build Size:** 1921.67 MB
+**Total Build Size:** 35.26 MB
 
 ### Size Distribution
-- **Tiny** (< 1KB): 86 files
-- **Small** (1-10KB): 215 files  
-- **Medium** (10-100KB): 208 files
-- **Large** (100KB-1MB): 3 files
-- **Huge** (> 1MB): 74 files
+- **Tiny** (< 1KB): 5 files
+- **Small** (1-10KB): 21 files  
+- **Medium** (10-100KB): 12 files
+- **Large** (100KB-1MB): 0 files
+- **Huge** (> 1MB): 1 files
 
 ### Largest Files
 | File | Size | Path |
 |------|------|------|
-| eval_game_20250607_002251.log | 39.95 MB | games\eval_game_20250607_002251.log |
-| eval_game_20250606_212213.log | 39.74 MB | games\eval_game_20250606_212213.log |
-| eval_game_20250607_002423.log | 39.72 MB | games\eval_game_20250607_002423.log |
-| eval_game_20250607_002556.log | 39.48 MB | games\eval_game_20250607_002556.log |
-| eval_game_20250606_211920.log | 39.26 MB | games\eval_game_20250606_211920.log |
-| eval_game_20250607_002729.log | 39.25 MB | games\eval_game_20250607_002729.log |
-| eval_game_20250607_002902.log | 39.01 MB | games\eval_game_20250607_002902.log |
-| eval_game_20250607_003039.log | 38.78 MB | games\eval_game_20250607_003039.log |
-| eval_game_20250606_212243.log | 38.73 MB | games\eval_game_20250606_212243.log |
-| eval_game_20250607_003212.log | 38.54 MB | games\eval_game_20250607_003212.log |
+| chess_metrics.db | 34.81 MB | metrics\chess_metrics.db |
+| viper.py | 0.07 MB | viper.py |
+| chess_game.py | 0.04 MB | chess_game.py |
+| chess_metrics.py | 0.04 MB | metrics\chess_metrics.py |
+| viper_scoring_calculation.py | 0.04 MB | engine_utilities\viper_scoring_calculation.py |
+| metrics_store.py | 0.04 MB | metrics\metrics_store.py |
+| viper.yaml | 0.02 MB | viper.yaml |
+| stockfish_handler.py | 0.02 MB | engine_utilities\stockfish_handler.py |
+| engine_monitor.app.py | 0.02 MB | engine_utilities\engine_monitor.app.py |
+| lichess_handler.py | 0.01 MB | engine_utilities\lichess_handler.py |
 
 
 ---
@@ -212,7 +191,6 @@ yaml
 ### Priority Actions
 - 🔧 **LOW PRIORITY**: Significant issues need resolution
 - Consider for feature extraction rather than full restoration
-- Review 17 sets of duplicate files
 
 
 ---
@@ -233,4 +211,4 @@ yaml
 **v0.6.09_beta-candidate-21** - **NEEDS WORK** 🔧
 
 ---
-*Report generated by V7P3R Build Analyzer on 2025-07-25 11:08:18*
+*Report generated by V7P3R Build Analyzer on 2025-07-25 11:18:42*
