@@ -1,4 +1,0 @@
-﻿streamlit
-python-chess
-pyyaml
-cairosvg
