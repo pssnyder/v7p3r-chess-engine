@@ -1,0 +1,46 @@
+{
+  "timestamp": "2025-07-26 13:53:20",
+  "system_status": "operational",
+  "rl_models_loaded": {
+    "actor": true,
+    "critic": false
+  },
+  "move_selection_results": [
+    {
+      "position": "Starting position",
+      "move": "b1c3",
+      "fitness": 0.8851772729772074,
+      "rl_score": NaN,
+      "eval_score": 0.5,
+      "time": 0.1522996425628662,
+      "generations": 10
+    },
+    {
+      "position": "After 1.e4 e5",
+      "move": "f1c4",
+      "fitness": 0.9479037441405325,
+      "rl_score": NaN,
+      "eval_score": 0.6000000000000014,
+      "time": 0.03543210029602051,
+      "generations": 10
+    },
+    {
+      "position": "Tactical position",
+      "move": "c4f7",
+      "fitness": 0.9804008298896006,
+      "rl_score": NaN,
+      "eval_score": 1.5499999999999998,
+      "time": 0.05868935585021973,
+      "generations": 10
+    }
+  ],
+  "performance_stats": {
+    "total_moves": 3,
+    "avg_selection_time": 0.08214036623636882,
+    "min_selection_time": 0.03543210029602051,
+    "max_selection_time": 0.1522996425628662,
+    "total_time": 0.24642109870910645
+  },
+  "total_test_time": 0.24642109870910645,
+  "config_used": "config_test.yaml"
+}

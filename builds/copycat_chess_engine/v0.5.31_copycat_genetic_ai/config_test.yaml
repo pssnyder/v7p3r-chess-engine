@@ -1,0 +1,53 @@
+# V0.5.31 Copycat Genetic AI - Test Configuration
+reinforcement_learning:
+  # Model Architecture
+  actor_hidden_size: 256           # Smaller for testing
+  critic_hidden_size: 256          # Smaller for testing
+  
+  # Training Parameters
+  learning_rate: 0.001
+  epochs: 2                        # Just 2 epochs for testing
+  batch_size: 16                   # Small batch size
+  gamma: 0.95                      # Discount factor
+  tau: 0.001                       # Target network update rate
+  
+  # Experience Replay
+  replay_buffer_size: 1000         # Small buffer for testing
+  target_update_frequency: 1       # Update every epoch
+  
+  # Data Loading
+  max_games_per_file: 5            # Very small for testing
+  position_sampling_rate: 0.1      # Sample 10% of positions
+  winner_reward_multiplier: 1.5    # Bonus for winning moves
+  
+  # Validation
+  validate_evaluations: true
+  validation_sample_size: 20       # Small validation sample
+
+# Genetic Algorithm Configuration
+genetic_algorithm:
+  # Population Parameters
+  population_size: 20              # Small for testing
+  elite_size: 5                    # Top 5 candidates preserved
+  max_generations: 10              # Limit generations for testing
+  
+  # Evolution Parameters
+  mutation_rate: 0.15              # 15% chance of mutation
+  crossover_rate: 0.7              # 70% chance of crossover
+  tournament_size: 3               # Tournament selection size
+  
+  # Fitness Function Weights
+  fitness_weights:
+    rl_weight: 0.6                 # 60% weight for RL model scores
+    eval_weight: 0.3               # 30% weight for evaluation engine
+    diversity_weight: 0.1          # 10% weight for move diversity
+  
+  # Performance Controls
+  time_limits:
+    move_selection: 3.0            # Max 3 seconds per move for testing
+    generation_timeout: 0.5        # Max time per generation
+
+# Test mode settings
+test_mode:
+  enabled: true
+  quick_run: true

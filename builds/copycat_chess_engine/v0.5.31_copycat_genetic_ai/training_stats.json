@@ -1,0 +1,19 @@
+{
+  "actor_losses": [
+    NaN,
+    NaN
+  ],
+  "critic_losses": [
+    6.87689822143124,
+    6.510336141432485
+  ],
+  "average_rewards": [
+    0.19488407551280915,
+    0.2663054449423667
+  ],
+  "validation_scores": {
+    "art_of_chess_analysis.pgn": {
+      "winner_avg_score": 0.4,
+      "loser_avg_score": 0.39000000000000057,
+      "score_difference": 0.009999999999999454,
+      "alignment_good": 

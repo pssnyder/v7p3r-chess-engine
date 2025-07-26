@@ -1,0 +1,95 @@
+﻿# V0.5.31 Copycat Genetic AI Configuration
+# Combines Reinforcement Learning (Thinking Brain) + Genetic Algorithm (Gameplay Brain)
+
+# Reinforcement Learning Training Configuration
+reinforcement_learning:
+  # Training parameters
+  batch_size: 64
+  learning_rate: 0.0003
+  epochs: 50
+  gamma: 0.99  # discount factor for future rewards
+  tau: 0.005   # soft update parameter for target networks
+  
+  # Actor-Critic specific settings
+  actor_hidden_size: 512
+  critic_hidden_size: 512
+  replay_buffer_size: 100000
+  update_frequency: 4
+  target_update_frequency: 100
+  
+  # Training data processing
+  max_games_per_file: 200  # limit games per PGN for training performance
+  winner_reward_multiplier: 1.5  # boost rewards for winning player moves
+  position_sampling_rate: 0.8  # sample 80% of positions from each game
+  
+  # Evaluation validation
+  validate_evaluations: true  # check if evaluation scores align with "good" moves
+  validation_sample_size: 100  # positions to validate per training file
+
+# Genetic Algorithm Configuration
+genetic_algorithm:
+  # Population settings
+  population_size: 50  # number of move sequences in each generation
+  max_generations: 20  # maximum generations per move selection
+  elite_percentage: 0.2  # top 20% automatically survive to next generation
+  
+  # Depth and exploration settings
+  max_depth: 8  # maximum moves to look ahead
+  dynamic_depth: true  # allow early termination based on convergence
+  convergence_threshold: 0.05  # stop when top moves converge within this range
+  
+  # Move selection and weighting
+  rl_weight: 0.7  # weight of RL model suggestions vs random exploration
+  mutation_rate: 0.3  # probability of mutation in offspring
+  crossover_rate: 0.8  # probability of crossover between parents
+  
+  # Performance optimization
+  parallel_evaluation: true  # evaluate fitness in parallel where possible
+  pruning_enabled: true  # prune obviously bad move sequences early
+  time_budget_ms: 10000  # maximum time per move (10 seconds for rapid play)
+
+# UCI Interface Configuration
+uci:
+  engine_name: "V7P3R Copycat Genetic AI"
+  engine_version: "0.5.31"
+  engine_author: "V7P3R Chess Engine"
+  
+  # UCI options that can be configured
+  options:
+    hash_size_mb: 256  # memory for transposition tables
+    threads: 4  # number of search threads
+    move_overhead_ms: 100  # safety buffer for move timing
+    
+    # Custom engine options
+    rl_confidence_threshold: 0.6  # minimum confidence for RL suggestions
+    genetic_diversity_factor: 0.4  # balance exploration vs exploitation
+    evaluation_time_limit_ms: 1000  # max time for position evaluation
+
+# Time Management Configuration
+time_management:
+  # Time allocation strategy
+  base_time_percentage: 0.03  # use 3% of remaining time per move
+  increment_usage: 0.8  # use 80% of time increment
+  emergency_time_ms: 5000  # minimum time to always reserve
+  
+  # Adaptive time allocation
+  adaptive_timing: true  # adjust time based on position complexity
+  complexity_factors:
+    tactical_multiplier: 1.5  # spend more time in tactical positions
+    endgame_multiplier: 1.2  # spend more time in endgames
+    opening_multiplier: 0.8  # spend less time in known openings
+
+# Performance and Debug Configuration
+performance:
+  cuda_enabled: true  # use GPU acceleration when available
+  batch_inference: true  # batch RL model inferences for efficiency
+  memory_limit_mb: 4096  # maximum memory usage
+  
+  # Logging and debugging
+  debug_mode: false  # enable detailed logging
+  log_level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  save_search_trees: false  # save genetic algorithm search trees for analysis
+  
+  # Validation and testing
+  validate_moves: true  # ensure all generated moves are legal
+  benchmark_mode: false  # run performance benchmarks
