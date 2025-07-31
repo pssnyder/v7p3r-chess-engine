@@ -6,18 +6,12 @@ Provides position-based evaluation for pieces in different game phases.
 """
 
 import chess
+from v7p3r_utils import PIECE_VALUES
 
 class PieceSquareTables:
     def __init__(self):
         # Piece values in centipawns
-        self.piece_values = {
-            chess.PAWN: 100,
-            chess.KNIGHT: 300,
-            chess.BISHOP: 325,
-            chess.ROOK: 500,
-            chess.QUEEN: 900,
-            chess.KING: 20000
-        }
+        self.piece_values = PIECE_VALUES
         
         # Pawn PST - encourage center control and advancement
         self.pawn_pst = [

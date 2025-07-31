@@ -353,7 +353,7 @@ class SafeRotatingFileHandler(RotatingFileHandler):
         super().__init__(*args, **kwargs)
         self.console_fallback = logging.StreamHandler()
         self.using_fallback = False
-        self.lock = threading.RLock()  # Reentrant lock for thread safety
+        self.lock = threading.RLock()  # type: ignore
         self.last_size_check = 0  # Time of last file size check
         self.size_check_interval = 1.0  # Seconds between file size checks
         
@@ -395,34 +395,35 @@ class SafeRotatingFileHandler(RotatingFileHandler):
             return False
             
         # Use a lock to prevent concurrent access
-        with self.lock:
-            try:
-                # Check if we need to roll over based on file size, but limit how often we check
-                current_time = time.time()
-                if current_time - self.last_size_check >= self.size_check_interval:
-                    self.last_size_check = current_time
-                    
-                    # If maxBytes is zero, rollover never occurs
-                    if self.maxBytes <= 0:
-                        return False
+        if self.lock is not None:
+            with self.lock:
+                try:
+                    # Check if we need to roll over based on file size, but limit how often we check
+                    current_time = time.time()
+                    if current_time - self.last_size_check >= self.size_check_interval:
+                        self.last_size_check = current_time
                         
-                    # Get current file size (safely)
-                    current_size = self._get_file_size()
+                        # If maxBytes is zero, rollover never occurs
+                        if self.maxBytes <= 0:
+                            return False
+                            
+                        # Get current file size (safely)
+                        current_size = self._get_file_size()
+                        
+                        # Estimate size of this record
+                        msg = "%s\n" % self.format(record)
+                        msg_size = len(msg.encode('utf-8'))  # Get actual bytes
+                        
+                        # Check if adding this record would exceed maxBytes
+                        if current_size + msg_size >= self.maxBytes:
+                            return True
                     
-                    # Estimate size of this record
-                    msg = "%s\n" % self.format(record)
-                    msg_size = len(msg.encode('utf-8'))  # Get actual bytes
+                    return False
                     
-                    # Check if adding this record would exceed maxBytes
-                    if current_size + msg_size >= self.maxBytes:
-                        return True
-                
-                return False
-                
-            except Exception:
-                # If any error occurs during the check, don't try to roll over
-                return False
-    
+                except Exception:
+                    # If any error occurs during the check, don't try to roll over
+                    return False
+        
     def doRollover(self):
         """
         Perform a rollover, catching any exceptions that might occur.
@@ -430,15 +431,16 @@ class SafeRotatingFileHandler(RotatingFileHandler):
         if self.using_fallback:
             return
             
-        with self.lock:
-            try:
-                # Try to roll over the file
-                super().doRollover()
-            except Exception as e:
-                # If rollover fails, switch to console logging
-                self.using_fallback = True
-                print(f"WARNING: Log rollover failed, switching to console logging: {e}")
-    
+        if self.lock is not None:
+            with self.lock:
+                try:
+                    # Try to roll over the file
+                    super().doRollover()
+                except Exception as e:
+                    # If rollover fails, switch to console logging
+                    self.using_fallback = True
+                    print(f"WARNING: Log rollover failed, switching to console logging: {e}")
+        
     def emit(self, record):
         """
         Emit a record, safely handling any exceptions including KeyboardInterrupt.
@@ -456,8 +458,9 @@ class SafeRotatingFileHandler(RotatingFileHandler):
             
         try:
             # Use a lock to prevent concurrent access
-            with self.lock:
-                super().emit(record)
+            if self.lock is not None:
+                with self.lock:
+                    super().emit(record)
         except KeyboardInterrupt:
             # Don't let KeyboardInterrupt crash the application
             self.using_fallback = True

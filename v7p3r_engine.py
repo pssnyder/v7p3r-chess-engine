@@ -12,6 +12,7 @@ from v7p3r_search import SearchController
 from v7p3r_scoring import ScoringSystem
 from v7p3r_rules import GameRules
 from v7p3r_book import OpeningBook
+from v7p3r_logging import v7p3rLogger
 
 class V7P3REngine:
     def __init__(self, config_file="config.json"):
@@ -39,58 +40,61 @@ class V7P3REngine:
             'search_time_total': 0,
             'nodes_searched_total': 0
         }
-    
+
     def find_move(self, board, time_limit=30.0):
         """Find the best move for the current position"""
         start_time = time.time()
         our_color = board.turn
-        
+
         # Validate board state
         if board.is_game_over():
+            v7p3rLogger.log_info("Board is in a game over state. No move to select.")
             return None
-        
+
         # Check opening book first
         book_move = None
         if self.book and self.config.is_enabled('engine_config', 'use_opening_book'):
             book_move = self.book.get_book_move(board)
             if book_move:
                 self.game_stats['book_moves'] += 1
+                v7p3rLogger.log_info(f"Book move selected: {book_move}")
                 return book_move
-        
+
         # Use search to find best move
+        v7p3rLogger.log_debug("Searching for best move...")
         best_move = self.search.find_best_move(board, our_color)
-        
+        v7p3rLogger.log_info(f"Search selected move: {best_move}")
+
         # Validate the selected move
         if best_move:
             is_valid, reason = self.rules.validate_move(board, best_move)
             if not is_valid:
-                # Fall back to simple search
-                print(f"Warning: Selected move invalid ({reason}), using fallback")
+                v7p3rLogger.log_warning(f"Selected move invalid ({reason}), using fallback.")
                 legal_moves = list(board.legal_moves)
                 if legal_moves:
                     # Simple evaluation of all legal moves
                     best_score = float('-inf')
                     fallback_move = legal_moves[0]
-                    
                     for move in legal_moves:
                         score, _, _ = self.scoring.evaluate_move(board, move, our_color, depth=1)
                         if score > best_score:
                             best_score = score
                             fallback_move = move
-                    
+                    v7p3rLogger.log_info(f"Fallback move selected: {fallback_move} (score: {best_score})")
                     best_move = fallback_move
-        
+
         # Check time limit
         elapsed_time = time.time() - start_time
         if elapsed_time > time_limit:
-            print(f"Warning: Move selection took {elapsed_time:.2f}s (limit: {time_limit}s)")
-        
+            v7p3rLogger.log_warning(f"Move selection took {elapsed_time:.2f}s (limit: {time_limit}s)")
+
         # Update statistics
         search_stats = self.search.get_search_stats()
         self.game_stats['moves_played'] += 1
         self.game_stats['search_time_total'] += search_stats['search_time']
         self.game_stats['nodes_searched_total'] += search_stats['nodes_searched']
-        
+
+        v7p3rLogger.log_debug(f"Move selection complete. Move: {best_move}, Time: {elapsed_time:.2f}s, Nodes: {search_stats['nodes_searched']}")
         return best_move
     
     def make_move(self, board, move):
