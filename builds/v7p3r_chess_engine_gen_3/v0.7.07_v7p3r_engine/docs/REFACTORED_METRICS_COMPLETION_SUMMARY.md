@@ -88,7 +88,7 @@ The refactored system maintains full backwards compatibility:
 
 1. **Start the Dash Dashboard:**
    ```bash
-   cd "S:\Maker Stuff\Programming\V7P3R Chess Engine\viper_chess_engine\metrics"
+   cd "S:\Maker Stuff\Programming\V7P3R Chess Engine\v7p3r_chess_engine\metrics"
    python chess_metrics.py
    # Access at: http://localhost:8050
    ```

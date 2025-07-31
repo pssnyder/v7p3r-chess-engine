@@ -240,7 +240,7 @@ class v7p3rEvaluationEngine: # Renamed class from EvaluationEngine
         if hasattr(self, 'scoring_calculator') and self.scoring_calculator:
             self.scoring_calculator.engine_config = self.engine_config # Update with the latest resolved config
             self.scoring_calculator.ruleset_name = self.ruleset
-            # scoring_calculator's __init__ now takes viper_yaml_config, so it has all rulesets.
+            # scoring_calculator's __init__ now takes v7p3r_yaml_config, so it has all rulesets.
             # It will internally select the current_ruleset based on self.ruleset_name.
             self.scoring_calculator.current_ruleset = self.scoring_calculator.rulesets.get(self.ruleset, {}) # Ensure this is updated
             self.scoring_calculator.scoring_modifier = self.scoring_modifier
@@ -1191,7 +1191,7 @@ if __name__ == "__main__":
     import random
     from typing import Callable, Dict, Any, Optional, Tuple
 
-    test_logger = logging.getLogger("test_viper_evaluation_engine")
+    test_logger = logging.getLogger("test_v7p3r_evaluation_engine")
     test_logger.setLevel(logging.DEBUG)
     if not test_logger.handlers:
         ch = logging.StreamHandler()

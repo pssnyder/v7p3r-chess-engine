@@ -59,11 +59,11 @@ class v7p3rScoringCalculation:
 
     def _get_rule_value(self, rule_name: str, default_value: float = 0.0) -> float:
         """Helper to safely get a rule value from the current ruleset."""
-        # Fallback to viper_config's top-level 'default_evaluation' if key not in current_ruleset
+        # Fallback to v7p3r_config's top-level 'default_evaluation' if key not in current_ruleset
         # then to the hardcoded default_value.
         value = self.current_ruleset.get(rule_name)
         if value is None: # Key not in specific ruleset
-            # Check in viper_config's 'default_evaluation' as a global fallback for rules
+            # Check in v7p3r_config's 'default_evaluation' as a global fallback for rules
             default_eval_rules = self.v7p3r_config.get('default_evaluation', {})
             value = default_eval_rules.get(rule_name, default_value)
             if self.logger:
@@ -83,7 +83,7 @@ class v7p3rScoringCalculation:
         score = 0.0
 
         # Ensure the current ruleset is up-to-date based on engine_config (in case it changed)
-        # This is important if the same ViperScoringCalculation instance is used across different contexts
+        # This is important if the same V7P3RScoringCalculation instance is used across different contexts
         # where engine_config might change (e.g. switching sides or re-configuring mid-game if that's a feature)
         current_ruleset_name_from_engine_config = self.engine_config.get('ruleset', 'default_evaluation')
         if self.ruleset_name != current_ruleset_name_from_engine_config:
@@ -201,7 +201,7 @@ class v7p3rScoringCalculation:
 
     # ==========================================
     # ========= RULE SCORING FUNCTIONS =========
-    # These functions are now methods of ViperScoringCalculation
+    # These functions are now methods of V7P3RScoringCalculation
     # and access their rule values via self._get_rule_value()
 
     def _checkmate_threats(self, board: chess.Board, color: chess.Color) -> float:
@@ -749,7 +749,7 @@ class v7p3rScoringCalculation:
         if self.pst_enabled:
             # Pass endgame_factor directly to PST evaluation
             # The PST evaluation itself should be color-aware or return a neutral score
-            # that is then interpreted by the caller (ViperEvaluationEngine.evaluate_position)
+            # that is then interpreted by the caller (V7P3REvaluationEngine.evaluate_position)
             # For now, assuming pst.evaluate_board_position gives a score from White's perspective.
             # If calculate_score is for a specific color, PST score might need adjustment if it's neutral.
             # Let's assume pst.evaluate_board_position is neutral and needs to be perspectivized if color is BLACK.

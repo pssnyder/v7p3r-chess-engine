@@ -27,10 +27,6 @@ RL_ENGINE_AVAILABLE = False
 GA_ENGINE_AVAILABLE = False
 NN_ENGINE_AVAILABLE = False
 
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-if parent_dir not in sys.path:
-    sys.path.insert(0, parent_dir)
-
 # Setup centralized logging for this module
 v7p3r_play_logger = v7p3rLogger.setup_logger("v7p3r_play")
 

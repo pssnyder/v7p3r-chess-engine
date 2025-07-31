@@ -37,7 +37,7 @@ def analyze_dependencies_and_errors(build_path):
                         else:  # import X
                             module = match[1].split('.')[0].split(',')[0].strip()
                         
-                        if module.startswith('v7p3r') or module in ['evaluation_engine', 'chess_game', 'viper']:
+                        if module.startswith('v7p3r') or module in ['evaluation_engine', 'chess_game', 'v7p3r']:
                             analysis['internal_imports'].append(module)
                         elif module in standard_libs:
                             continue  # Skip standard library
@@ -103,8 +103,8 @@ def classify_architecture_detailed(build_path, build_name):
         architecture['engine_pattern'] = 'evaluation_centric'
     elif any('chess_game.py' in f for f in files):
         architecture['engine_pattern'] = 'game_centric'
-    elif any('viper' in f.lower() for f in files):
-        architecture['engine_pattern'] = 'viper_based'
+    elif any('v7p3r' in f.lower() for f in files):
+        architecture['engine_pattern'] = 'v7p3r_based'
     
     # Determine generation based on patterns
     if 'v7p3r' in str(files):
@@ -112,8 +112,8 @@ def classify_architecture_detailed(build_path, build_name):
             architecture['generation'] = 'v7p3r_gen2_modular'
         else:
             architecture['generation'] = 'v7p3r_gen3_flat'
-    elif 'viper' in str(files).lower():
-        architecture['generation'] = 'viper_gen1'
+    elif 'v7p3r' in str(files).lower():
+        architecture['generation'] = 'v7p3r_gen1'
     elif 'evaluation_engine' in str(files):
         architecture['generation'] = 'eval_engine_gen1'
     else:

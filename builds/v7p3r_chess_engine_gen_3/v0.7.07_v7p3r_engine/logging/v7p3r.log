@@ -1,0 +1,3 @@
+20:14:14 | __init__        | No engine configuration provided, using v7p3r's default_config.
+20:14:14 | __init__        | pst: <class 'v7p3r_pst.v7p3rPST'> | scoring: <class 'v7p3r_score.v7p3rScore'> | ordering: <class 'v7p3r_ordering.v7p3rOrdering'> | time: <class 'v7p3r_time.v7p3rTime'> | book: <class 'v7p3r_book.v7p3rBook'> | search: <class 'v7p3r_search.v7p3rSearch'>
+20:14:14 | __init__        | search_engine.search method: <class 'method'>

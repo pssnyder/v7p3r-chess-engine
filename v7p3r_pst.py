@@ -1,6 +1,7 @@
-# v7p3r_pst.py
 
-"""Piece Square Tables for V7P3R Chess Engine
+# v7p3r_pst.py
+"""
+Piece Square Tables for V7P3R Chess Engine
 Provides position-based evaluation for pieces in different game phases.
 """
 

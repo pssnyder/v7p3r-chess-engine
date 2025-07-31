@@ -1,0 +1,6 @@
+20:06:04 | INFO | __init__        | ChessCore initialized
+20:06:04 | ERROR | __init__        | Error loading configuration: CRITICAL ERROR: Invalid JSON in default_config.json: Expecting value: line 1 column 1 (char 0). Engine cannot start.
+20:07:16 | INFO | __init__        | ChessCore initialized
+20:07:16 | ERROR | __init__        | Error loading configuration: CRITICAL ERROR: Invalid JSON in default_ruleset.json: Expecting value: line 1 column 1 (char 0). Engine cannot start.
+20:14:14 | INFO | __init__        | ChessCore initialized
+20:14:14 | INFO | __init__        | Configuration provided, using custom settings.

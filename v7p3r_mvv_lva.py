@@ -1,6 +1,7 @@
-# v7p3r_mvv_lva.py
 
-"""Most Valuable Victim - Least Valuable Attacker (MVV-LVA) for V7P3R Chess Engine
+# v7p3r_mvv_lva.py
+"""
+Most Valuable Victim - Least Valuable Attacker (MVV-LVA) for V7P3R Chess Engine
 Evaluates capture moves for move ordering and scoring.
 """
 
@@ -32,40 +33,29 @@ class MVVLVA:
                 self.mvv_lva_table[victim][attacker] = score
     
     def get_capture_score(self, board, move):
-        """Get MVV-LVA score for a capture move with free material detection"""
+        """
+        Get MVV-LVA score for a capture move, factoring in free material detection.
+        Returns a high score for profitable captures, penalizes losing captures.
+        """
         if not board.is_capture(move):
             return 0
-        
-        # Get the capturing piece
         capturing_piece = board.piece_at(move.from_square)
         if not capturing_piece:
             return 0
-        
-        # Get the captured piece
         captured_piece = board.piece_at(move.to_square)
         if not captured_piece:
-            # En passant capture
             if board.is_en_passant(move):
                 return self.mvv_lva_table[chess.PAWN][capturing_piece.piece_type]
             return 0
-        
-        # Basic MVV-LVA score
         base_score = self.mvv_lva_table[captured_piece.piece_type][capturing_piece.piece_type]
-        
-        # Use the standardized utility to evaluate the exchange
         material_gain = evaluate_exchange(board, move)
-        
-        # SHORT CIRCUIT: If we win significant free material, prioritize massively
-        if material_gain >= 100:  # At least a pawn worth of material
-            if material_gain >= 300:  # Knight/Bishop or higher
-                return 50000 + material_gain  # Extremely high priority
-            else:  # Pawn-level material
-                return 30000 + material_gain  # Very high priority
-        
-        # If it's a losing capture, heavily penalize
+        if material_gain >= 100:
+            if material_gain >= 300:
+                return 50000 + material_gain
+            else:
+                return 30000 + material_gain
         if material_gain < -50:
-            return base_score - 5000  # Low priority for losing material
-        
+            return base_score - 5000
         return base_score + material_gain
     
     # Using standardized evaluate_exchange function from v7p3r_utils

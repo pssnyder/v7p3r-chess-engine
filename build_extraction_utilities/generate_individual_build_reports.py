@@ -20,7 +20,7 @@ class IndividualBuildAnalyzer:
         
         # Known file patterns for chess engines
         self.critical_files = {
-            'main_entry': ['main.py', 'play_chess.py', 'chess_game.py', 'v7p3r.py', 'engine.py', 'viper.py', '__main__.py'],
+            'main_entry': ['main.py', 'play_chess.py', 'chess_game.py', 'v7p3r.py', 'engine.py', 'v7p3r.py', '__main__.py'],
             'engine_core': ['engine.py', 'v7p3r_engine.py', 'chess_engine.py', 'evaluation_engine.py'],
             'game_logic': ['chess_game.py', 'v7p3r_game.py', 'game.py', 'rules.py', 'v7p3r_rules.py'],
             'search': ['search.py', 'v7p3r_search.py', 'minimax.py', 'alphabeta.py'],

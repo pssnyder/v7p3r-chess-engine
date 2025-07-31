@@ -1,6 +1,7 @@
-# v7p3r_tempo.py
 
-"""Tempo Calculation for V7P3R Chess Engine
+# v7p3r_tempo.py
+"""
+Tempo Calculation for V7P3R Chess Engine
 Handles critical move detection including checkmate threats, stalemate avoidance, and draw prevention.
 """
 

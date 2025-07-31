@@ -99,8 +99,8 @@ def analyze_build(build_path):
         analysis['architecture_type'] = 'Evaluation-centric'
     elif any('chess_game' in file for file in analysis['python_files']):
         analysis['architecture_type'] = 'Game-centric'
-    elif any('viper' in file.lower() for file in analysis['python_files']):
-        analysis['architecture_type'] = 'Viper-based'
+    elif any('v7p3r' in file.lower() for file in analysis['python_files']):
+        analysis['architecture_type'] = 'V7P3R-based'
     
     # Calculate complexity score (relative)
     total_functions = len(analysis['functions'])

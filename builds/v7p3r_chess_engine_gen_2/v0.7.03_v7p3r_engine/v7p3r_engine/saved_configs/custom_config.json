@@ -44,7 +44,7 @@
     },
     "puzzle_config": {
         "puzzle_database": {
-            "db_path": "s:/Maker Stuff/Programming/V7P3R Chess Engine/viper_chess_engine/puzzles/puzzle_data.db",
+            "db_path": "s:/Maker Stuff/Programming/V7P3R Chess Engine/v7p3r_chess_engine/puzzles/puzzle_data.db",
             "selection": {
             "min_rating": 800,
             "max_rating": 3000,

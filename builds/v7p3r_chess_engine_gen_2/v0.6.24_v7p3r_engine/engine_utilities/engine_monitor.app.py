@@ -60,7 +60,7 @@ config = load_config()
 # Constants
 METRICS_DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../metrics/chess_analytics.db"))
 CLOUD_ENABLED = config.get('cloud', {}).get('enabled', False)
-BUCKET_NAME = config.get('cloud', {}).get('bucket_name', "viper-chess-engine-data")
+BUCKET_NAME = config.get('cloud', {}).get('bucket_name', "v7p3r-chess-engine-data")
 FIRESTORE_COLLECTION = config.get('cloud', {}).get('firestore_collection', "games")
 
 # Dynamically import OpeningBook from engine_utilities/opening_book.py

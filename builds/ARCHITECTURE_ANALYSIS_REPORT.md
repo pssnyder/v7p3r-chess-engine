@@ -21,12 +21,12 @@ This analysis reveals the architectural evolution of the V7P3R chess engine thro
 | v0.6.04 | eval_engine_gen1 | evaluation_centric | pygame_gui | advanced | 18 |
 | v0.6.05 | eval_engine_gen1 | evaluation_centric | pygame_gui | advanced | 18 |
 | v0.6.07 | eval_engine_gen1 | evaluation_centric | pygame_gui | advanced | 18 |
-| v0.6.09 | viper_gen2 | game_centric | pygame_gui | advanced | 18 |
-| v0.6.09 | viper_gen2 | game_centric | pygame_gui | advanced | 18 |
+| v0.6.09 | v7p3r_gen2 | game_centric | pygame_gui | advanced | 18 |
+| v0.6.09 | v7p3r_gen2 | game_centric | pygame_gui | advanced | 18 |
 | v0.6.09 | eval_engine_gen1 | evaluation_centric | pygame_gui | advanced | 18 |
-| v0.6.09 | viper_gen2 | game_centric | pygame_gui | advanced | 18 |
-| v0.6.11 | viper_gen2 | game_centric | pygame_gui | advanced | 18 |
-| v0.6.15 | viper_gen2 | game_centric | pygame_gui | advanced | 18 |
+| v0.6.09 | v7p3r_gen2 | game_centric | pygame_gui | advanced | 18 |
+| v0.6.11 | v7p3r_gen2 | game_centric | pygame_gui | advanced | 18 |
+| v0.6.15 | v7p3r_gen2 | game_centric | pygame_gui | advanced | 18 |
 | v0.6.24 | early_prototype | unknown | pygame_gui | advanced | 18 |
 | v0.6.27 | early_prototype | unknown | pygame_gui | advanced | 18 |
 | v0.6.30 | early_prototype | unknown | pygame_gui | advanced | 18 |
@@ -71,7 +71,7 @@ This analysis reveals the architectural evolution of the V7P3R chess engine thro
 **Common UI**: pygame_gui
 **Common Pattern**: unknown
 
-### Viper Gen2
+### V7P3R Gen2
 **Count**: 5 builds
 
 - **v0.6.09**: game_centric with pygame_gui interface (advanced complexity)
@@ -135,7 +135,7 @@ Based on this analysis, here are the most representative builds for each archite
 
 ### Game Centric
 **Best Representative**: v0.6.09
-- Generation: viper_gen2
+- Generation: v7p3r_gen2
 - UI Type: pygame_gui
 - Complexity: advanced
 - Missing Dependencies: 18

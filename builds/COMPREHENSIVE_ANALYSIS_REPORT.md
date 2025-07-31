@@ -13,11 +13,11 @@ Analysis of 27 beta candidates reveals distinct architectural evolution patterns
 | v0.7.03 | early_prototype | 0.60 | 1.000 | LOW | 74 | 485 | 39 |
 | v0.6.30 | early_prototype | 0.57 | 1.000 | LOW | 52 | 513 | 48 |
 | v0.7.01 | early_prototype | 0.57 | 1.000 | LOW | 42 | 387 | 33 |
-| v0.6.09 | viper_gen2 | 0.55 | 1.000 | LOW | 14 | 218 | 14 |
-| v0.6.09 | viper_gen2 | 0.55 | 1.000 | LOW | 15 | 218 | 14 |
-| v0.6.09 | viper_gen2 | 0.55 | 1.000 | LOW | 15 | 219 | 14 |
-| v0.6.11 | viper_gen2 | 0.55 | 1.000 | LOW | 29 | 328 | 31 |
-| v0.6.15 | viper_gen2 | 0.55 | 1.000 | LOW | 39 | 248 | 21 |
+| v0.6.09 | v7p3r_gen2 | 0.55 | 1.000 | LOW | 14 | 218 | 14 |
+| v0.6.09 | v7p3r_gen2 | 0.55 | 1.000 | LOW | 15 | 218 | 14 |
+| v0.6.09 | v7p3r_gen2 | 0.55 | 1.000 | LOW | 15 | 219 | 14 |
+| v0.6.11 | v7p3r_gen2 | 0.55 | 1.000 | LOW | 29 | 328 | 31 |
+| v0.6.15 | v7p3r_gen2 | 0.55 | 1.000 | LOW | 39 | 248 | 21 |
 | v0.6.27 | early_prototype | 0.55 | 1.000 | LOW | 38 | 365 | 37 |
 | v0.6.07 | eval_engine_gen1 | 0.52 | 1.000 | LOW | 13 | 221 | 13 |
 | v0.6.09 | eval_engine_gen1 | 0.52 | 1.000 | LOW | 17 | 248 | 19 |
@@ -60,7 +60,7 @@ Analysis of 27 beta candidates reveals distinct architectural evolution patterns
 - v0.7.01
 - v0.7.03
 
-### Viper Gen2
+### V7P3R Gen2
 - v0.6.09
 - v0.6.09
 - v0.6.09
@@ -228,7 +228,7 @@ Analysis of 27 beta candidates reveals distinct architectural evolution patterns
 - **Note**: Pygame Gui interface
 
 ### v0.6.09
-- **Architecture**: Viper Gen2
+- **Architecture**: V7P3R Gen2
 - **Completeness Score**: 0.55/1.0
 - **Complexity Score**: 1.000/1.0
 - **Competitive Potential**: LOW
@@ -238,7 +238,7 @@ Analysis of 27 beta candidates reveals distinct architectural evolution patterns
 - **Note**: Pygame Gui interface
 
 ### v0.6.09
-- **Architecture**: Viper Gen2
+- **Architecture**: V7P3R Gen2
 - **Completeness Score**: 0.55/1.0
 - **Complexity Score**: 1.000/1.0
 - **Competitive Potential**: LOW

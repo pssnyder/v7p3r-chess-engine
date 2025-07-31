@@ -119,60 +119,29 @@ class MoveOrdering:
         
         return score
     
-    def get_killer_moves(self, depth):
-        """Get killer moves for this depth (placeholder for future implementation)"""
-        # Killer moves are non-capture moves that caused beta cutoffs
-        # This would require maintaining a killer move table
-        return []
-    
-    def get_history_score(self, move):
-        """Get history heuristic score (placeholder for future implementation)"""
-        # History heuristic tracks how often moves cause cutoffs
-        return 0
+
+    # Killer moves and history heuristic are not implemented in this version.
+    # If needed, implement them in a dedicated module or as part of a future enhancement.
     
     def get_hanging_piece_captures(self, board):
-        """Get moves that capture hanging (undefended) pieces"""
+        """Return moves that capture hanging (undefended) pieces, sorted by value descending."""
         hanging_captures = []
-        
-        # Use the enhanced MVV-LVA to find hanging pieces
         hanging_pieces = self.mvv_lva.find_hanging_pieces(board, board.turn)
-        
-        # Find moves that capture these hanging pieces
         legal_moves = list(board.legal_moves)
         for move in legal_moves:
             if board.is_capture(move):
-                target_square = move.to_square
-                # Check if this move captures a hanging piece
-                for hanging_square, hanging_piece, value in hanging_pieces:
-                    if target_square == hanging_square:
+                for hanging_square, _, value in hanging_pieces:
+                    if move.to_square == hanging_square:
                         hanging_captures.append((move, value))
                         break
-        
-        # Sort by value (highest first)
         hanging_captures.sort(key=lambda x: x[1], reverse=True)
-        return [move for move, value in hanging_captures]
+        return [move for move, _ in hanging_captures]
     
     def order_moves_with_material_priority(self, board, moves):
-        """Enhanced move ordering that prioritizes free material captures"""
+        """Order moves with hanging piece captures first, then by score."""
         if not moves:
             return []
-        
-        # First, get any hanging piece captures
         hanging_captures = self.get_hanging_piece_captures(board)
-        
-        # Score all moves
-        scored_moves = []
-        for move in moves:
-            # Skip hanging captures (we'll add them first)
-            if move in hanging_captures:
-                continue
-            score = self._score_move(board, move)
-            scored_moves.append((move, score))
-        
-        # Sort non-hanging moves by score
+        scored_moves = [(move, self._score_move(board, move)) for move in moves if move not in hanging_captures]
         scored_moves.sort(key=lambda x: x[1], reverse=True)
-        
-        # Return hanging captures first, then other moves by score
-        ordered_moves = hanging_captures + [move for move, score in scored_moves]
-        
-        return ordered_moves
+        return hanging_captures + [move for move, _ in scored_moves]

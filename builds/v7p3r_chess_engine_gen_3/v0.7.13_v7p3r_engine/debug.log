@@ -1,0 +1,18 @@
+Debug test
+Python path:
+  
+  c:\nrn\lib\python
+  C:\Users\patss\AppData\Local\Programs\Python\Python312\python312.zip
+  C:\Users\patss\AppData\Local\Programs\Python\Python312\DLLs
+  C:\Users\patss\AppData\Local\Programs\Python\Python312\Lib
+  C:\Users\patss\AppData\Local\Programs\Python\Python312
+  C:\Users\patss\AppData\Roaming\Python\Python312\site-packages
+  C:\Users\patss\AppData\Local\Programs\Python\Python312\Lib\site-packages
+  C:\Users\patss\AppData\Local\Programs\Python\Python312\Lib\site-packages\win32
+  C:\Users\patss\AppData\Local\Programs\Python\Python312\Lib\site-packages\win32\lib
+  C:\Users\patss\AppData\Local\Programs\Python\Python312\Lib\site-packages\Pythonwin
+
+Trying imports:
+Root dir: S:\Maker Stuff\Programming\V7P3R Chess Engine\v7p3r_chess_engine\builds\v7p3r_chess_engine_gen_3\v0.7.13_v7p3r_engine
+Config dir: S:\Maker Stuff\Programming\V7P3R Chess Engine\v7p3r_chess_engine\builds\v7p3r_chess_engine_gen_3\v0.7.13_v7p3r_engine\configs
+Config file exists: True

@@ -178,7 +178,7 @@ Priority: LOW
 ### 1. **Update chess_metrics.py Server** (IMMEDIATE)
 ```bash
 # Commands to run:
-cd "s:\Maker Stuff\Programming\V7P3R Chess Engine\viper_chess_engine"
+cd "s:\Maker Stuff\Programming\V7P3R Chess Engine\v7p3r_chess_engine"
 # Update metrics/chess_metrics.py to use RefactoredAnalyticsProcessor
 # Test the updated server
 python metrics/chess_metrics.py

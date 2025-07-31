@@ -1,6 +1,7 @@
-# v7p3r_rules.py
 
-"""Rules and Position Analysis for V7P3R Chess Engine
+# v7p3r_rules.py
+"""
+Rules and Position Analysis for V7P3R Chess Engine
 Handles game rules, position validation, and decision guidelines.
 """
 

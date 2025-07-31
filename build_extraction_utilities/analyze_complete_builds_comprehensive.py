@@ -279,9 +279,9 @@ class ComprehensiveBuildAnalyzer:
                 'pattern': 'evaluation_centric',
                 'ui_type': self.detect_ui_type(build_path)
             }
-        elif any('viper' in f.lower() for f in files):
+        elif any('v7p3r' in f.lower() for f in files):
             return {
-                'generation': 'viper_gen2',
+                'generation': 'v7p3r_gen2',
                 'pattern': 'game_centric',
                 'ui_type': self.detect_ui_type(build_path)
             }
@@ -878,7 +878,7 @@ class ComprehensiveBuildAnalyzer:
             if 'eval' in gen:
                 f.write("- **Strengths**: Simple, focused, often complete\n")
                 f.write("- **Use Case**: Foundation for lightweight engines\n")
-            elif 'viper' in gen:
+            elif 'v7p3r' in gen:
                 f.write("- **Strengths**: Unique approach, worth preserving\n")
                 f.write("- **Use Case**: Alternative engine architecture\n")
             elif 'v7p3r' in gen:
@@ -1028,7 +1028,7 @@ class ComprehensiveBuildAnalyzer:
                 
                 if 'eval' in gen:
                     f.write("Simple, often complete\n")
-                elif 'viper' in gen:
+                elif 'v7p3r' in gen:
                     f.write("Unique alternative approach\n")
                 elif 'v7p3r' in gen:
                     f.write("Modern, scalable, your current direction\n")

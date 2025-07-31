@@ -305,7 +305,7 @@ class v7p3rScore:
 
     # ==========================================
     # ========= RULE SCORING FUNCTIONS =========
-    # These functions are now methods of ViperScoringCalculation
+    # These functions are now methods of V7P3RScoringCalculation
     # and access their rule values via self.rules.get()
 
     def _checkmate_threats(self, board: chess.Board, color: chess.Color) -> float:

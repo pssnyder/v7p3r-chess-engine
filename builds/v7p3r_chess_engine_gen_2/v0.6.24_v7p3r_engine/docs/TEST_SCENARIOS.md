@@ -1,6 +1,6 @@
 # Chess Engine Testing Scenarios
 
-This document describes the comprehensive testing approach for the Viper Chess Engine project. The goal is to ensure every actively used Python module has a corresponding, non-destructive unit test file, and that all tests can be run individually or as a suite.
+This document describes the comprehensive testing approach for the V7P3R Chess Engine project. The goal is to ensure every actively used Python module has a corresponding, non-destructive unit test file, and that all tests can be run individually or as a suite.
 
 ---
 
@@ -46,7 +46,7 @@ This document describes the comprehensive testing approach for the Viper Chess E
 - [x] `metrics_store.py` → `metrics_store_testing.py`
 - [x] `chess_metrics.py` → `chess_metrics_testing.py`
 - [x] `chess_game.py` → `chess_game_testing.py`
-- [x] `viper_scoring_calculation.py` → `viper_scoring_calculation_testing.py`
+- [x] `v7p3r_scoring_calculation.py` → `v7p3r_scoring_calculation_testing.py`
 - [x] `any_other_main_module.py` → `any_other_main_module_testing.py`
 - [ ] _If you add a new main module, create its test file here._
 
@@ -77,7 +77,7 @@ test_files:
   - metrics_store_testing.py
   - chess_metrics_testing.py
   - chess_game_testing.py
-  - viper_scoring_calculation_testing.py
+  - v7p3r_scoring_calculation_testing.py
 ```
 
 ---

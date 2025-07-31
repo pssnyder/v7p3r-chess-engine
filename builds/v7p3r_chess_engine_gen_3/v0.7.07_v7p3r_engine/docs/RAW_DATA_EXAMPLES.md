@@ -128,7 +128,7 @@ Example PGN file content:
 [Site "Local Computer"]
 [Date "2025.06.06"]
 [Round "#"]
-[White "AI: viper via minimax"]
+[White "AI: v7p3r via minimax"]
 [Black "AI: None via random"]
 [Result "1-0"]
 

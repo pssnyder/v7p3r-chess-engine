@@ -1,6 +1,7 @@
-# v7p3r_primary_scoring.py
 
-"""Primary Scoring for V7P3R Chess Engine
+# v7p3r_primary_scoring.py
+"""
+Primary Scoring for V7P3R Chess Engine
 Handles material count, material score, and piece square table evaluation.
 """
 
@@ -20,12 +21,14 @@ class PrimaryScoring:
         self.mvv_lva = MVVLVA()
     
     def evaluate_primary_score(self, board, our_color):
-        """Calculate primary scoring components"""
+        """
+        Calculate primary scoring components: material, PST, and capture potential.
+        Returns a dict with all components and total.
+        """
         material_count = self._get_material_count(board, our_color)
         material_score = self._get_material_score(board, our_color)
         pst_score = self._get_pst_score(board, our_color)
         capture_score = self._get_capture_potential(board, our_color)
-        
         return {
             'material_count': material_count,
             'material_score': material_score,

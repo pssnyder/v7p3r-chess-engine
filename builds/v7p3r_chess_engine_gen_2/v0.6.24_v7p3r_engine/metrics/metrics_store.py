@@ -333,7 +333,7 @@ class MetricsStore:
                     white_player_header = white_player
                     black_player_header = black_player
                     
-                    # Parse engine type from headers like "AI: viper via simple_search"
+                    # Parse engine type from headers like "AI: v7p3r via simple_search"
                     white_engine_type = "unknown"
                     black_engine_type = "unknown"
                     white_depth = 0
@@ -954,12 +954,12 @@ if __name__ == "__main__":
     # Simulate a game result with full AI configs
     test_game_id_1 = f"eval_game_{datetime.now().strftime('%Y%m%d_%H%M%S')}_1.pgn"
     test_timestamp_1 = datetime.now().strftime('%Y%m%d_%H%M%S')
-    white_config_1 = {'engine_type': 'deepsearch', 'depth': 5, 'engine': 'Viper', 'exclude_from_metrics': False}
-    black_config_1 = {'engine_type': 'negamax', 'depth': 4, 'engine': 'Viper', 'exclude_from_metrics': False}
+    white_config_1 = {'engine_type': 'deepsearch', 'depth': 5, 'engine': 'V7P3R', 'exclude_from_metrics': False}
+    black_config_1 = {'engine_type': 'negamax', 'depth': 4, 'engine': 'V7P3R', 'exclude_from_metrics': False}
     
     store.add_game_result(
         game_id=test_game_id_1, timestamp=test_timestamp_1, winner='1-0', game_pgn="...",
-        white_player='Viper Deep', black_player='Viper Negamax', game_length=42,
+        white_player='V7P3R Deep', black_player='V7P3R Negamax', game_length=42,
         white_engine_config=white_config_1, black_engine_config=black_config_1
     )
 
@@ -972,11 +972,11 @@ if __name__ == "__main__":
     test_game_id_2 = f"eval_game_{datetime.now().strftime('%Y%m%d_%H%M%S')}_2.pgn"
     test_timestamp_2 = datetime.now().strftime('%Y%m%d_%H%M%S')
     white_config_2 = {'engine_type': 'stockfish', 'depth': 0, 'engine': 'Stockfish', 'exclude_from_metrics': False}
-    black_config_2 = {'engine_type': 'deepsearch', 'depth': 3, 'engine': 'Viper', 'exclude_from_metrics': False}
+    black_config_2 = {'engine_type': 'deepsearch', 'depth': 3, 'engine': 'V7P3R', 'exclude_from_metrics': False}
 
     store.add_game_result(
         game_id=test_game_id_2, timestamp=test_timestamp_2, winner='0-1', game_pgn="...",
-        white_player='Stockfish', black_player='Viper Deep', game_length=30,
+        white_player='Stockfish', black_player='V7P3R Deep', game_length=30,
         white_engine_config=white_config_2, black_engine_config=black_config_2
     )
     # Simulate moves for game 2
@@ -991,8 +991,8 @@ if __name__ == "__main__":
 
     print("\nTesting get_filtered_move_metrics (White: deepsearch, Black: negamax, Metric: evaluation):")
     filtered_moves = store.get_filtered_move_metrics(
-        white_engine_names=['Viper'],
-        black_engine_names=['Viper'],
+        white_engine_names=['V7P3R'],
+        black_engine_names=['V7P3R'],
         white_search_algorithms=['deepsearch'],
         black_search_algorithms=['negamax'],
         metric_name='evaluation'
@@ -1005,7 +1005,7 @@ if __name__ == "__main__":
     print("\nTesting get_filtered_move_metrics (White: Stockfish, Black: deepsearch, Metric: nodes_searched):")
     filtered_moves_sf = store.get_filtered_move_metrics(
         white_engine_names=['Stockfish'],
-        black_engine_names=['Viper'],
+        black_engine_names=['V7P3R'],
         metric_name='nodes_searched'
     )
     print(f"Filtered moves count: {len(filtered_moves_sf)}")

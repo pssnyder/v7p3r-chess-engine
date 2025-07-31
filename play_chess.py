@@ -11,8 +11,8 @@ from v7p3r_config import V7P3RConfig
 
 def main():
     parser = argparse.ArgumentParser(description='V7P3R Chess Engine')
-    parser.add_argument('--config', '-c', default='config.json',
-                       help='Configuration file to use (default: config.json)')
+    parser.add_argument('--config', '-c', default='config_default.json',
+                       help='Configuration file to use (default: config_default.json)')
     parser.add_argument('--games', '-g', type=int,
                        help='Number of games to play (overrides config)')
     parser.add_argument('--white', '-w', choices=['v7p3r', 'stockfish'],
