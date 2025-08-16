@@ -1,0 +1,106 @@
+﻿# v7p3r_nn_engine/v7p3r_nn_config.yaml
+# Configuration file for the v7p3r Neural Network (NN) engine.
+
+training:
+  # Basic training parameters
+  batch_size: 64         # Number of samples processed before model weights are updated
+                         # Higher values = faster training but requires more memory
+                         # Lower values = more accurate gradient updates but slower training
+  
+  learning_rate: 0.001   # Step size for weight updates during training
+                         # Higher values = faster learning but risk of overshooting optimal weights
+                         # Lower values = more precise but slower convergence
+  
+  weight_decay: 0.0001   # L2 regularization parameter to prevent overfitting
+                         # Higher values = stronger regularization but may underfit
+                         # Lower values = less regularization but may overfit
+  
+  epochs: 50             # Number of complete passes through the training dataset
+                         # Higher values = more training time but potentially better results
+                         # Lower values = faster training but may not reach optimal performance
+  
+  # Model architecture
+  model:
+    hidden_layers: [256, 128, 64]  # Neurons in each hidden layer (3 layers in this case)
+                                   # More/larger layers = more complex patterns but slower training
+                                   # Fewer/smaller layers = faster but may miss complex patterns
+    
+    dropout_rate: 0.3              # Fraction of neurons randomly disabled during training
+                                   # Higher values = stronger regularization against overfitting
+                                   # Lower values = less regularization, better training performance
+    
+    activation: "relu"             # Activation function used in hidden layers
+                                   # Options: "relu" (fast, common), "tanh" (normalized), "sigmoid" (smooth)
+  
+  # Data preprocessing
+  data:
+    validation_split: 0.2          # Fraction of training data used for validation
+                                   # Higher values = more reliable validation but less training data
+                                   # Lower values = more training data but less reliable validation
+    
+    augmentation: true             # Whether to generate additional training samples through transformations
+                                   # When true = more diverse training data but slower training
+                                   # When false = faster training but less robust model
+    
+    normalize: true                # Whether to scale input features to a standard range
+                                   # When true = helps convergence and prevents numerical issues
+                                   # When false = uses raw input values which may cause training problems
+    
+  # Local storage settings
+  storage:
+    enabled: true                  # Whether to save model data locally
+                                   # When false, all storage options below are ignored
+    
+    save_model: true               # Whether to save the trained model to disk
+                                   # Allows reusing the model without retraining
+    
+    save_metrics: true             # Whether to save training/validation metrics
+                                   # Useful for monitoring model performance over time
+    
+    model_path: "v7p3r_nn_engine/v7p3r_nn_models"     # Directory where models are saved
+                                             # Create this directory if it doesn't exist
+    
+    metrics_path: "metrics"  # Directory where metrics are saved
+                                             # Create this directory if it doesn't exist
+    
+    store_checkpoints: true                  # Whether to save intermediate models during training
+                                             # Useful for resuming training or selecting best model
+    
+    checkpoint_frequency: 5                  # Save a checkpoint every N epochs
+                                             # Lower values = more checkpoints but uses more disk space
+    
+  # Stockfish analysis settings
+  stockfish:
+    enabled: true                  # Whether to use Stockfish to analyze positions
+                                   # When false, no Stockfish analysis will be performed
+    
+    depth: 15                      # Search depth for Stockfish analysis
+                                   # Higher values = more accurate evaluations but slower analysis
+                                   # Range: 1-30, with 15-20 recommended for good accuracy/speed balance
+    
+    positions_per_game: 20         # Number of positions to analyze in each game
+                                   # Higher values = more training data but slower processing
+                                   # Lower values = faster processing but less training data
+    
+    time_per_position: 5           # Seconds to spend analyzing each position
+                                   # Higher values = more accurate analysis but slower processing
+                                   # Lower values = faster but potentially less accurate
+    
+# Move library settings
+move_library:
+  enabled: true                    # Whether to use the move library for storing/retrieving positions
+                                   # When false, each evaluation requires neural network computation
+  
+  db_path: "v7p3r_nn_engine/v7p3r_nn_move_vocab/move_library.db"  # Path to SQLite database file
+                                              # Will be created if it doesn't exist
+  
+  confidence_threshold: 0.7        # Minimum confidence score to use a move from the library
+                                   # Higher values = more selective, only using high-confidence moves
+                                   # Lower values = uses more library moves but potentially weaker ones
+  
+  prune_old_evaluations: true      # Whether to remove outdated evaluations periodically
+                                   # When true = keeps database size manageable but loses historical data
+                                   # When false = retains all data but database grows continuously
+  
+  max_positions: 1000000           # Maximum number of positions to store in the library
+                                   # Limits database size, older entries removed when limit reached
