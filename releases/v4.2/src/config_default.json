@@ -7,10 +7,10 @@
     "engine_config": {
         "engine_id": "v7p3r_static_evaluation_engine_dev",
         "name": "v7p3r_engine",
-        "version": "4.2.0",
+        "version": "0.8.6",
         "search_algorithm": "negamax",
         "depth": 6,
-        "use_opening_book": true,
+    "use_opening_book": false,
         "use_move_ordering": true,
         "max_ordered_moves": 10,
         "use_ab_pruning": true,
