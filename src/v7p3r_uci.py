@@ -112,11 +112,31 @@ class UCIEngine:
                 i += 2
                 continue
             if tok in ("wtime", "btime") and i + 1 < len(tokens):
-                # We could use remaining time to set a search budget; use a small fraction
+                # Optimized time management for 2/1, 5/5, 10min, 60s bullet
                 try:
                     ms = float(tokens[i + 1])
-                    # Use a conservative fraction of remaining time
-                    time_limit = max(0.05, ms / 1000.0 * 0.02)
+                    remaining_seconds = ms / 1000.0
+                    
+                    # Faster time allocation for blitz/bullet play
+                    if remaining_seconds > 300:
+                        # Long games (10+ min): use 1-2% of remaining time
+                        time_limit = max(0.5, remaining_seconds * 0.015)
+                    elif remaining_seconds > 120:
+                        # Medium games (5+ min): use 1.5-2.5% of remaining time
+                        time_limit = max(0.3, remaining_seconds * 0.02)
+                    elif remaining_seconds > 60:
+                        # Blitz games (2+ min): use 2-3% of remaining time  
+                        time_limit = max(0.2, remaining_seconds * 0.025)
+                    elif remaining_seconds > 30:
+                        # Short blitz: use 3-4% of remaining time  
+                        time_limit = max(0.15, remaining_seconds * 0.035)
+                    elif remaining_seconds > 10:
+                        # Bullet endgame: use 4-6% of remaining time
+                        time_limit = max(0.1, remaining_seconds * 0.05)
+                    else:
+                        # Critical time: use 8% but minimum 0.05s
+                        time_limit = max(0.05, remaining_seconds * 0.08)
+                        
                 except Exception:
                     pass
                 i += 2
