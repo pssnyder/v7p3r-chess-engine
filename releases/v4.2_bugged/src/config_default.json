@@ -7,7 +7,7 @@
     "engine_config": {
         "engine_id": "v7p3r_static_evaluation_engine_dev",
         "name": "v7p3r_engine",
-        "version": "0.8.6",
+                "version": "4.3.0",
         "search_algorithm": "negamax",
         "depth": 6,
     "use_opening_book": false,

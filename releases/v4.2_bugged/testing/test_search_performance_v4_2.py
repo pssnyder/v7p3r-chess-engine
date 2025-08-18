@@ -49,6 +49,8 @@ class SearchPerformanceTester:
         self.search_controller.use_ab_pruning = False
         self.search_controller.use_move_ordering = False
         self.search_controller.max_depth = depth
+        # Disable time checking for performance tests
+        self.search_controller.start_time = 0
         
         start_time = time.time()
         best_move, move_scores = self.search_controller._negamax_root(board, board.turn, legal_moves, debug=True)
@@ -66,6 +68,8 @@ class SearchPerformanceTester:
         print(f"\n2. WITH ALPHA-BETA PRUNING:")
         self.search_controller.use_ab_pruning = True
         self.search_controller.use_move_ordering = False
+        # Disable time checking for performance tests
+        self.search_controller.start_time = 0
         
         start_time = time.time()
         best_move, move_scores = self.search_controller._negamax_root(board, board.turn, legal_moves, debug=True)
@@ -89,6 +93,8 @@ class SearchPerformanceTester:
         print(f"\n3. WITH PRUNING + MOVE ORDERING:")
         self.search_controller.use_ab_pruning = True
         self.search_controller.use_move_ordering = True
+        # Disable time checking for performance tests
+        self.search_controller.start_time = 0
         
         start_time = time.time()
         best_move, move_scores = self.search_controller._negamax_root(board, board.turn, legal_moves, debug=True)
@@ -174,6 +180,8 @@ class SearchPerformanceTester:
         
         for depth in range(1, 10):  # Test depths 1-9
             self.search_controller.max_depth = depth
+            # Disable time checking for performance tests
+            self.search_controller.start_time = 0
             
             start_time = time.time()
             best_move, move_scores = self.search_controller._negamax_root(board, board.turn, legal_moves)

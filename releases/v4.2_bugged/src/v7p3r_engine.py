@@ -69,8 +69,8 @@ class V7P3REngine:
                 self.game_stats['book_moves'] += 1
                 return book_move
 
-        # Use search to find best move
-        best_move = self.search.find_best_move(board, our_color)
+        # Use search to find best move with time limit
+        best_move = self.search.find_best_move(board, our_color, time_limit)
 
         # Validate the selected move
         if best_move:

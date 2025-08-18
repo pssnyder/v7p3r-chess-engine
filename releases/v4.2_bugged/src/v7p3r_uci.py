@@ -1,6 +1,18 @@
 """
 v7p3r_uci.py - UCI protocol handler for V7P3R Chess Engine
-Allows the engine to communicate with chess GUIs like Arena via the Universal Chess Interface (UCI).
+Allows the engine to communicate with chess GUIs like                     # More aggressive time allocation for tournament play
+                    if remaining_seconds > 60:
+                        # Early game: use 12-15% of remaining time  
+                        time_limit = max(0.3, remaining_seconds * 0.13)
+                    elif remaining_seconds > 30:
+                        # Mid game: use 15-18% of remaining time  
+                        time_limit = max(0.2, remaining_seconds * 0.16)
+                    elif remaining_seconds > 10:
+                        # Late game: use 20-25% of remaining time
+                        time_limit = max(0.15, remaining_seconds * 0.22)
+                    else:
+                        # Critical time: use 30% but minimum 0.1s
+                        time_limit = max(0.1, remaining_seconds * 0.30) Universal Chess Interface (UCI).
 """
 
 import sys
@@ -112,11 +124,25 @@ class UCIEngine:
                 i += 2
                 continue
             if tok in ("wtime", "btime") and i + 1 < len(tokens):
-                # We could use remaining time to set a search budget; use a small fraction
+                # Improved time management for fast games
                 try:
                     ms = float(tokens[i + 1])
-                    # Use a conservative fraction of remaining time
-                    time_limit = max(0.05, ms / 1000.0 * 0.02)
+                    remaining_seconds = ms / 1000.0
+                    
+                    # More aggressive time allocation based on remaining time
+                    if remaining_seconds > 60:
+                        # Early game: use 6-8% of remaining time
+                        time_limit = max(0.5, remaining_seconds * 0.07)
+                    elif remaining_seconds > 30:
+                        # Mid game: use 8-10% of remaining time  
+                        time_limit = max(0.3, remaining_seconds * 0.09)
+                    elif remaining_seconds > 10:
+                        # Late game: use 12-15% of remaining time
+                        time_limit = max(0.2, remaining_seconds * 0.13)
+                    else:
+                        # Critical time: use 20% but minimum 0.1s
+                        time_limit = max(0.1, remaining_seconds * 0.20)
+                        
                 except Exception:
                     pass
                 i += 2

@@ -27,12 +27,23 @@ class SearchController:
         self.nodes_searched = 0
         self.cutoffs = 0
         self.search_time = 0
+        self.time_limit = 30.0
+        self.start_time = 0
     
-    def find_best_move(self, board, our_color):
+    def _time_up(self):
+        """Check if we've exceeded our time limit"""
+        # If start_time is 0, time checking is disabled
+        if self.start_time == 0:
+            return False
+        return (time.time() - self.start_time) >= self.time_limit
+    
+    def find_best_move(self, board, our_color, time_limit=30.0):
         """Find the best move using the configured search algorithm (streamlined)."""
         start_time = time.time()
         self.nodes_searched = 0
         self.cutoffs = 0
+        self.time_limit = time_limit
+        self.start_time = start_time
 
         legal_moves = list(board.legal_moves)
         if not legal_moves:
@@ -87,6 +98,11 @@ class SearchController:
         beta = float('inf')
 
         for move in legal_moves:
+            # Check time limit before evaluating each move
+            if self._time_up():
+                print(f"[DEBUG] Time limit reached, stopping search")
+                break
+                
             board.push(move)
             score = -self._negamax(board, self.max_depth - 1, -beta, -alpha, not our_color)
             board.pop()
@@ -107,6 +123,10 @@ class SearchController:
     def _negamax(self, board, depth, alpha, beta, our_color):
         """Negamax search (with or without alpha-beta pruning, controlled by self.use_ab_pruning)."""
         self.nodes_searched += 1
+
+        # Check time limit periodically (every 100 nodes to avoid overhead)
+        if self.nodes_searched % 100 == 0 and self._time_up():
+            return 0  # Return neutral score if time is up
 
         # Terminal conditions
         if depth == 0:
