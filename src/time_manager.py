@@ -171,6 +171,10 @@ class TimeManager:
         """
         if self.start_time is None or self.allocated_time is None:
             return False
+            
+        # Handle infinite time
+        if self.allocated_time == float('inf'):
+            return False
 
         elapsed = time.time() - self.start_time
 

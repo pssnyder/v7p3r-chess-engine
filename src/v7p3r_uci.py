@@ -1,17 +1,22 @@
 """
 v7p3r_uci.py - UCI protocol handler for V7P3R Chess Engine
 Allows the engine to communicate with chess GUIs like Arena via the Universal Chess Interface (UCI).
+Enhanced with tournament-level output including depth, nodes, nps, pv, and proper time control handling.
 """
 
 import sys
 import traceback
 import chess
+import time
+import threading
 from pathlib import Path
+from typing import Optional
 
-from v7p3r_engine import V7P3REngine
+from v7p3r import V7P3REvaluationEngine
 
-ENGINE_NAME = "V7P3R"
+ENGINE_NAME = "V7P3R v5.0"
 ENGINE_AUTHOR = "Pat Snyder"
+ENGINE_VERSION = "5.0"
 
 
 class UCIEngine:
@@ -31,18 +36,62 @@ class UCIEngine:
             user_conf = pkg_dir / "config.json"
             default_conf = pkg_dir / "config_default.json"
             config_file = str(user_conf) if user_conf.exists() else str(default_conf)
-        
-        self.engine = V7P3REngine(config_file=config_file)
+
+        self.engine = V7P3REvaluationEngine()
         self.isready = True
         self.position_fen = None
         self.moves = []
+        self.searching = False
+        self.search_thread = None
+        self.stop_search = False
+        
+        # UCI options
+        self.options = {
+            'Hash': {'type': 'spin', 'default': 256, 'min': 1, 'max': 2048, 'value': 256},
+            'Threads': {'type': 'spin', 'default': 1, 'min': 1, 'max': 16, 'value': 1},
+            'Clear Hash': {'type': 'button'},
+            'Move Overhead': {'type': 'spin', 'default': 30, 'min': 0, 'max': 1000, 'value': 30},
+        }
 
     def uci(self):
         print(f"id name {ENGINE_NAME}")
         print(f"id author {ENGINE_AUTHOR}")
-        # Option list can be expanded later using `option name <name> type ...`
+        
+        # UCI options for Arena compatibility
+        for option_name, option_info in self.options.items():
+            if option_info['type'] == 'spin':
+                print(f"option name {option_name} type spin default {option_info['default']} min {option_info['min']} max {option_info['max']}")
+            elif option_info['type'] == 'button':
+                print(f"option name {option_name} type button")
+                
         print("uciok")
         sys.stdout.flush()
+
+    def setoption(self, args: str):
+        """Handle UCI option settings"""
+        tokens = args.split()
+        if len(tokens) >= 4 and tokens[0] == "name":
+            option_name = tokens[1]
+            if len(tokens) >= 4 and tokens[2] == "value":
+                option_value = " ".join(tokens[3:])
+                
+                if option_name in self.options:
+                    if option_name == "Hash":
+                        try:
+                            hash_mb = int(option_value)
+                            self.options["Hash"]["value"] = hash_mb
+                            # Update engine hash size
+                            self.engine.hash_size = hash_mb * 1024 * 1024
+                        except ValueError:
+                            pass
+                    elif option_name == "Clear Hash":
+                        self.engine.transposition_table.clear()
+                    elif option_name == "Move Overhead":
+                        try:
+                            overhead = int(option_value)
+                            self.options["Move Overhead"]["value"] = overhead
+                        except ValueError:
+                            pass
 
     def is_ready(self):
         # The engine may perform any lazy initialization here
@@ -52,7 +101,7 @@ class UCIEngine:
     def ucinewgame(self):
         # Reset engine/game state for a new game
         try:
-            self.engine.reset_game()
+            self.engine.reset()
         except Exception:
             # Some engine builds may not expose reset; ignore if not present
             pass
@@ -95,48 +144,37 @@ class UCIEngine:
         return board
 
     def go(self, args: str):
-        # Parse simple time controls and depth from 'go' arguments
+        """Enhanced go command with tournament-level output"""
+        # Stop any ongoing search
+        self.stop_search = False
+        
+        # Parse time controls and depth from 'go' arguments
         tokens = args.split()
-        # Default time limit (seconds)
-        time_limit = 5.0
+        time_control = {}
         depth = None
+        nodes_limit = None
+        infinite = False
 
         i = 0
         while i < len(tokens):
             tok = tokens[i]
             if tok == "movetime" and i + 1 < len(tokens):
                 try:
-                    time_limit = float(tokens[i + 1]) / 1000.0
+                    time_control['movetime'] = int(tokens[i + 1])
                 except Exception:
                     pass
                 i += 2
                 continue
             if tok in ("wtime", "btime") and i + 1 < len(tokens):
-                # Optimized time management for 2/1, 5/5, 10min, 60s bullet
                 try:
-                    ms = float(tokens[i + 1])
-                    remaining_seconds = ms / 1000.0
-                    
-                    # Faster time allocation for blitz/bullet play
-                    if remaining_seconds > 300:
-                        # Long games (10+ min): use 1-2% of remaining time
-                        time_limit = max(0.5, remaining_seconds * 0.015)
-                    elif remaining_seconds > 120:
-                        # Medium games (5+ min): use 1.5-2.5% of remaining time
-                        time_limit = max(0.3, remaining_seconds * 0.02)
-                    elif remaining_seconds > 60:
-                        # Blitz games (2+ min): use 2-3% of remaining time  
-                        time_limit = max(0.2, remaining_seconds * 0.025)
-                    elif remaining_seconds > 30:
-                        # Short blitz: use 3-4% of remaining time  
-                        time_limit = max(0.15, remaining_seconds * 0.035)
-                    elif remaining_seconds > 10:
-                        # Bullet endgame: use 4-6% of remaining time
-                        time_limit = max(0.1, remaining_seconds * 0.05)
-                    else:
-                        # Critical time: use 8% but minimum 0.05s
-                        time_limit = max(0.05, remaining_seconds * 0.08)
-                        
+                    time_control[tok] = int(tokens[i + 1])
+                except Exception:
+                    pass
+                i += 2
+                continue
+            if tok in ("winc", "binc") and i + 1 < len(tokens):
+                try:
+                    time_control[tok] = int(tokens[i + 1])
                 except Exception:
                     pass
                 i += 2
@@ -144,39 +182,150 @@ class UCIEngine:
             if tok == "depth" and i + 1 < len(tokens):
                 try:
                     depth = int(tokens[i + 1])
+                    time_control['depth'] = depth
                 except Exception:
                     depth = None
                 i += 2
                 continue
+            if tok == "nodes" and i + 1 < len(tokens):
+                try:
+                    nodes_limit = int(tokens[i + 1])
+                    time_control['nodes'] = nodes_limit
+                except Exception:
+                    pass
+                i += 2
+                continue
+            if tok == "infinite":
+                infinite = True
+                time_control['infinite'] = True
+                i += 1
+                continue
+            if tok == "movestogo" and i + 1 < len(tokens):
+                try:
+                    time_control['movestogo'] = int(tokens[i + 1])
+                except Exception:
+                    pass
+                i += 2
+                continue
             i += 1
 
-        # Build board and call engine
-        board = self._build_board_from_position()
+        # Execute search directly (synchronous for simplicity)
+        self._search_and_report(time_control, depth, nodes_limit, infinite)
 
-        # If depth was supplied, try to set engine max depth if available
-        if depth is not None and hasattr(self.engine.search, 'max_depth'):
-            try:
-                self.engine.search.max_depth = depth
-            except Exception:
-                pass
-
+    def _search_and_report(self, time_control: dict, depth: Optional[int] = None, nodes_limit: Optional[int] = None, infinite: bool = False):
+        """Execute search and report progress with UCI info strings"""
         try:
-            best_move = self.engine.find_move(board, time_limit=time_limit)
-        except Exception:
-            traceback.print_exc()
+            # Build board from position
+            board = self._build_board_from_position()
+            search_start_time = time.time()
+            
+            # Set engine parameters
+            if depth is not None:
+                self.engine.depth = depth
+                max_depth = depth
+            else:
+                max_depth = self.engine.depth if self.engine.depth else 6
+            
+            # Use iterative deepening for tournament play
             best_move = None
+            best_score = 0
+            
+            # Calculate time allocation
+            if not infinite and 'depth' not in time_control and 'nodes' not in time_control and 'movetime' not in time_control:
+                allocated_time = self.engine.time_manager.allocate_time(time_control, board)
+                self.engine.time_manager.start_timer(allocated_time)
+            else:
+                allocated_time = float('inf')
+            
+            # Iterative deepening search with info output
+            total_nodes = 0
+            for current_depth in range(1, max_depth + 1):
+                if self.stop_search:
+                    break
+                    
+                iteration_start = time.time()
+                nodes_before = self.engine.nodes_searched
+                
+                # Set current search depth
+                self.engine.depth = current_depth
+                
+                # Perform search for this depth
+                try:
+                    # Only use time management callback for time-based searches
+                    if infinite or 'depth' in time_control or 'nodes' in time_control or 'movetime' in time_control:
+                        stop_callback = lambda: self.stop_search
+                    else:
+                        stop_callback = lambda: self.stop_search or self.engine.time_manager.should_stop()
+                        
+                    move_result = self.engine.search(board, board.turn, stop_callback=stop_callback)
+                    
+                    if move_result and move_result != chess.Move.null():
+                        best_move = move_result
+                        # Get score from evaluation
+                        temp_board = board.copy()
+                        temp_board.push(best_move)
+                        best_score = self.engine.evaluate_position_from_perspective(temp_board, board.turn)
+                        
+                except Exception as e:
+                    # Continue with current best move if search fails
+                    break  # Stop on errors
+                
+                # Calculate search statistics
+                iteration_time = time.time() - iteration_start
+                total_time = time.time() - search_start_time
+                nodes_this_iteration = self.engine.nodes_searched - nodes_before
+                total_nodes += nodes_this_iteration
+                nps = int(nodes_this_iteration / max(iteration_time, 0.001))
+                
+                # Convert score to centipawns
+                score_cp = int(best_score * 100) if best_score is not None else 0
+                
+                # Generate principal variation (simplified - just the best move)
+                pv_str = best_move.uci() if best_move else ""
+                
+                # Output UCI info string (like Stockfish)
+                print(f"info depth {current_depth} score cp {score_cp} nodes {total_nodes} nps {nps} time {int(total_time * 1000)} pv {pv_str}")
+                sys.stdout.flush()
+                
+                # Check stopping conditions
+                if nodes_limit and total_nodes >= nodes_limit:
+                    break
+                    
+                if 'movetime' in time_control:
+                    # For movetime, check if we've exceeded the time
+                    if (time.time() - search_start_time) * 1000 >= time_control['movetime']:
+                        break
+                        
+                if not infinite and 'depth' not in time_control and 'nodes' not in time_control and 'movetime' not in time_control:
+                    if self.engine.time_manager.should_stop():
+                        break
+                        
+                # For fixed depth searches, stop after reaching target depth
+                if depth is not None and current_depth >= depth:
+                    break
 
-        if best_move is None:
+            # Output final result
+            if best_move is None or best_move == chess.Move.null():
+                print("bestmove (none)")
+            else:
+                mv_str = best_move.uci() if hasattr(best_move, 'uci') else str(best_move)
+                print(f"bestmove {mv_str}")
+            
+            sys.stdout.flush()
+            
+        except Exception as e:
+            traceback.print_exc()
             print("bestmove (none)")
             sys.stdout.flush()
-            return
+        finally:
+            self.searching = False
 
-        # Convert chess.Move to UCI string if necessary
-        mv_str = best_move.uci() if hasattr(best_move, 'uci') else str(best_move)
-        print(f"bestmove {mv_str}")
-        sys.stdout.flush()
+    def stop(self):
+        """Stop the current search"""
+        self.stop_search = True
 
     def loop(self):
+        """Main UCI command loop with enhanced tournament support"""
         sys.stdout.flush()  # Ensure output is flushed
         while True:
             try:
@@ -193,8 +342,7 @@ class UCIEngine:
                     self.is_ready()
                     sys.stdout.flush()
                 elif line.startswith("setoption"):
-                    # Option handling can be added here
-                    pass
+                    self.setoption(line[len("setoption") :].strip())
                 elif line == "ucinewgame":
                     self.ucinewgame()
                 elif line.startswith("position"):
@@ -202,7 +350,12 @@ class UCIEngine:
                 elif line.startswith("go"):
                     self.go(line[len("go") :].strip())
                     sys.stdout.flush()
+                elif line == "stop":
+                    self.stop()
                 elif line == "quit":
+                    self.stop_search = True
+                    if self.search_thread and self.search_thread.is_alive():
+                        self.search_thread.join(timeout=0.5)
                     break
                 # Additional UCI commands can be implemented as needed
             except Exception:

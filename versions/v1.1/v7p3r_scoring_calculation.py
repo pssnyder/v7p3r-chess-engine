@@ -12,9 +12,9 @@ import random
 import logging
 import os
 import threading # TODO enable parallel score calculations via threading
-from engine_utilities.piece_square_tables import PieceSquareTables # Need this for PST evaluation
-from engine_utilities.time_manager import TimeManager # May not be directly needed here, but kept for context if sub-fns rely on it
-from engine_utilities.opening_book import OpeningBook # Not directly needed here, but kept for context
+from piece_square_tables import PieceSquareTables # Need this for PST evaluation
+from time_manager import TimeManager # May not be directly needed here, but kept for context if sub-fns rely on it
+from opening_book import OpeningBook # Not directly needed here, but kept for context
 
 # At module level, define a single logger for this file
 # This logger will be used by V7P3RScoringCalculation, separate from main engine logger
