@@ -344,41 +344,47 @@ class V7P3REvaluationEngine:
         return [move for move, _ in move_scores]
 
     def _order_move_score(self, board: chess.Board, move: chess.Move, depth: int = 6) -> float:
-        """Calculate a score for a move for ordering purposes."""
+        """Enhanced move scoring with threat detection and better capture evaluation."""
         score = 0.0
 
+        # Check for checkmate first (highest priority)
         temp_board = board.copy()
         temp_board.push(move)
         if temp_board.is_checkmate():
             temp_board.pop()
-            # Checkmate bonus from 'evaluation' part of v7p3r_config_data, or a specific move_ordering config
             return 9999999999.0
         
-        if temp_board.is_check(): # Check after move is made
+        # Check moves get high priority
+        if temp_board.is_check():
             score += 10000.0
-        temp_board.pop() # Pop before is_capture check on original board state
+        temp_board.pop()
 
+        # Enhanced capture evaluation using SEE
         if board.is_capture(move):
-            score += 1000000.0
-            victim_type = board.piece_type_at(move.to_square)
-            aggressor_type = board.piece_type_at(move.from_square)
-            if victim_type and aggressor_type:
-                score += (self.piece_values.get(victim_type, 0) * 10) - self.piece_values.get(aggressor_type, 0)
-
+            see_score = self._static_exchange_evaluation(board, move)
+            score += 1000000.0 + (see_score * 10000)  # Base capture bonus + SEE result
+        
+        # Threat detection - prioritize moves that save threatened pieces
+        piece_threat_score = self._evaluate_piece_threats(board, move)
+        score += piece_threat_score
+        
+        # Killer moves
         if depth < len(self.killer_moves) and move in self.killer_moves:
             score += 900000.0
 
+        # History heuristic
         score += self.history_table.get((board.turn, move.from_square, move.to_square), 0)
         
+        # Promotion bonus
         if move.promotion:
             score += 700000.0
             if move.promotion == chess.QUEEN:
-                score += self.piece_values.get(chess.QUEEN, 9.0) * 100 # Ensure piece_values is used
+                score += self.piece_values.get(chess.QUEEN, 9.0) * 100
 
         return score
     
     def _quiescence_search(self, board: chess.Board, alpha: float, beta: float, maximizing_player: bool, stop_callback: Optional[Callable[[], bool]] = None, current_ply: int = 0) -> float:
-        """Quiescence search to handle tactical sequences and avoid horizon effect"""
+        """Enhanced quiescence search with better tactical awareness"""
         self.nodes_searched += 1
 
         if stop_callback and stop_callback():
@@ -388,7 +394,7 @@ class V7P3REvaluationEngine:
         stand_pat_score = self.evaluate_position_from_perspective(board, self.current_player)
 
         # Depth limit for quiescence search
-        max_q_depth = 8
+        max_q_depth = 10  # Increased for better tactical analysis
         if current_ply >= max_q_depth:
             return stand_pat_score
 
@@ -403,28 +409,61 @@ class V7P3REvaluationEngine:
             beta = min(beta, stand_pat_score)
 
         # Generate moves based on position
+        moves = []
+        
         if board.is_check():
             # If in check, consider all legal moves to escape check
             moves = list(board.legal_moves)
         else:
-            # Only consider "quiet" tactical moves: captures and promotions
-            moves = []
+            # Enhanced tactical move generation
             for move in board.legal_moves:
-                if board.is_capture(move) or move.promotion:
-                    # Additional filter: only consider good captures (using basic SEE)
-                    if board.is_capture(move):
-                        # Simple SEE approximation: only take if victim >= attacker value
-                        victim = board.piece_type_at(move.to_square)
-                        attacker = board.piece_type_at(move.from_square)
-                        if victim and attacker and self.piece_values.get(victim, 0) >= self.piece_values.get(attacker, 0):
-                            moves.append(move)
+                include_move = False
+                
+                # Always include captures
+                if board.is_capture(move):
+                    # Use SEE to filter bad captures only in deeper plies
+                    if current_ply < 3:  # Include all captures in shallow quiescence
+                        include_move = True
                     else:
-                        # Always consider promotions
-                        moves.append(move)
+                        # Filter obviously bad captures in deeper search
+                        see_score = self._static_exchange_evaluation(board, move)
+                        if see_score >= -0.5:  # Allow small sacrifices for tactics
+                            include_move = True
+                
+                # Always include promotions
+                elif move.promotion:
+                    include_move = True
+                
+                # Include checks that might lead to tactics
+                elif current_ply < 2:  # Only in shallow quiescence to avoid explosion
+                    temp_board = board.copy()
+                    temp_board.push(move)
+                    if temp_board.is_check():
+                        include_move = True
+                    temp_board.pop()
+                
+                # Include moves that save threatened pieces (defensive moves)
+                elif current_ply < 2:
+                    moving_piece = board.piece_at(move.from_square)
+                    if moving_piece and self._is_piece_threatened(board, move.from_square, moving_piece.color):
+                        # Check if destination is safer
+                        temp_board = board.copy()
+                        temp_board.push(move)
+                        if not self._is_piece_threatened(temp_board, move.to_square, moving_piece.color):
+                            piece_value = self.piece_values.get(moving_piece.piece_type, 0)
+                            if piece_value >= 3.0:  # Only for valuable pieces (not pawns)
+                                include_move = True
+                        temp_board.pop()
+                
+                if include_move:
+                    moves.append(move)
             
         # If no tactical moves and not in check, return stand-pat
         if not moves:
             return stand_pat_score
+
+        # Order moves for better pruning
+        moves = self.order_moves(board, moves, depth=current_ply)
 
         # Search tactical moves
         for move in moves:
@@ -443,6 +482,131 @@ class V7P3REvaluationEngine:
         
         return alpha if maximizing_player else beta
     
+    def _static_exchange_evaluation(self, board: chess.Board, move: chess.Move) -> float:
+        """
+        Static Exchange Evaluation - Calculate the net material gain/loss from a capture sequence.
+        Returns positive value if the exchange favors the moving side.
+        """
+        if not board.is_capture(move):
+            return 0.0
+        
+        # Get piece values
+        target_square = move.to_square
+        victim_piece = board.piece_at(target_square)
+        attacker_piece = board.piece_at(move.from_square)
+        
+        if not victim_piece or not attacker_piece:
+            return 0.0
+            
+        victim_value = self.piece_values.get(victim_piece.piece_type, 0)
+        attacker_value = self.piece_values.get(attacker_piece.piece_type, 0)
+        
+        # Start with capturing the victim
+        gain = [victim_value]
+        
+        # Make the capture
+        board.push(move)
+        
+        # Find all attackers to this square
+        attackers = []
+        for square in chess.SQUARES:
+            piece = board.piece_at(square)
+            if piece and board.is_attacked_by(not board.turn, target_square):
+                if piece.color != board.turn:  # Opponent's piece
+                    attackers.append((square, piece))
+        
+        # Sort attackers by piece value (cheapest first)
+        attackers.sort(key=lambda x: self.piece_values.get(x[1].piece_type, 0))
+        
+        # Simulate the exchange
+        current_attacker_value = attacker_value
+        side_to_move = not board.turn  # Opponent's turn to recapture
+        
+        for attacker_square, attacker_piece in attackers:
+            # Check if this piece can actually attack the target
+            temp_move = None
+            for legal_move in board.legal_moves:
+                if legal_move.from_square == attacker_square and legal_move.to_square == target_square:
+                    temp_move = legal_move
+                    break
+            
+            if temp_move:
+                gain.append(current_attacker_value)
+                current_attacker_value = self.piece_values.get(attacker_piece.piece_type, 0)
+                side_to_move = not side_to_move
+            
+            # Limit depth to prevent infinite analysis
+            if len(gain) > 8:
+                break
+        
+        board.pop()  # Undo the original move
+        
+        # Calculate net gain using minimax on the gain array
+        if len(gain) == 1:
+            return gain[0]
+        
+        # Work backwards through the exchange
+        for i in range(len(gain) - 2, -1, -1):
+            gain[i] = max(0, gain[i] - gain[i + 1])
+        
+        return gain[0]
+    
+    def _evaluate_piece_threats(self, board: chess.Board, move: chess.Move) -> float:
+        """
+        Evaluate threats to pieces and prioritize moves that address them.
+        Returns a bonus for moves that save threatened pieces or create threats.
+        """
+        score = 0.0
+        
+        # Check if the moving piece was under threat
+        moving_piece = board.piece_at(move.from_square)
+        if moving_piece and self._is_piece_threatened(board, move.from_square, moving_piece.color):
+            # Bonus for moving a threatened piece to safety
+            piece_value = self.piece_values.get(moving_piece.piece_type, 0)
+            
+            # Check if destination is safer
+            temp_board = board.copy()
+            temp_board.push(move)
+            if not self._is_piece_threatened(temp_board, move.to_square, moving_piece.color):
+                score += piece_value * 50000  # Large bonus for saving threatened piece
+            temp_board.pop()
+        
+        # Check if move creates threats to opponent pieces
+        temp_board = board.copy()
+        temp_board.push(move)
+        
+        # Look for newly threatened opponent pieces
+        for square in chess.SQUARES:
+            piece = temp_board.piece_at(square)
+            if piece and piece.color != board.turn:
+                if self._is_piece_threatened(temp_board, square, piece.color):
+                    # Check if this threat is new (wasn't there before)
+                    if not self._is_piece_threatened(board, square, piece.color):
+                        threat_value = self.piece_values.get(piece.piece_type, 0)
+                        score += threat_value * 10000  # Bonus for creating threats
+        
+        temp_board.pop()
+        
+        # Penalty for leaving valuable pieces hanging
+        for square in chess.SQUARES:
+            piece = board.piece_at(square)
+            if piece and piece.color == board.turn and square != move.from_square:
+                if self._is_piece_threatened(board, square, piece.color):
+                    # Check if we're not defending this piece with our move
+                    temp_board = board.copy()
+                    temp_board.push(move)
+                    if self._is_piece_threatened(temp_board, square, piece.color):
+                        # Still threatened after our move - penalty
+                        piece_value = self.piece_values.get(piece.piece_type, 0)
+                        score -= piece_value * 5000
+                    temp_board.pop()
+        
+        return score
+    
+    def _is_piece_threatened(self, board: chess.Board, square: chess.Square, piece_color: chess.Color) -> bool:
+        """Check if a piece at the given square is under attack by the opponent."""
+        return board.is_attacked_by(not piece_color, square)
+
     def get_transposition_move(self, board: chess.Board, depth: int) -> Tuple[Optional[chess.Move], Optional[float]]:
         key = board.fen()
         if key in self.transposition_table:
