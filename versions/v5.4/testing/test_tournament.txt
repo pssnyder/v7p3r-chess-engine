@@ -1,0 +1,8 @@
+uci
+isready
+position startpos
+go depth 3
+ucinewgame
+position startpos
+go wtime 120000 btime 120000 winc 1000 binc 1000
+quit

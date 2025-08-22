@@ -37,7 +37,7 @@ class V7P3REvaluationEngine:
         self.history_table = {}
         self.counter_moves = {}
 
-        self.depth = 6  # Default depth - always use even numbers to include opponent response
+        self.depth = 6
         self.max_depth = 10
         self.piece_values = {
             chess.KING: 0.0,
@@ -115,9 +115,6 @@ class V7P3REvaluationEngine:
 
         # Check for immediate transposition table hit
         search_depth = self.depth if self.depth is not None else 6
-        # Ensure depth is even to always include opponent response
-        if search_depth % 2 == 1:
-            search_depth += 1
         trans_move, trans_score = self.get_transposition_move(board, search_depth)
         if trans_move and board.is_legal(trans_move):
             return trans_move
@@ -162,8 +159,8 @@ class V7P3REvaluationEngine:
 
         # Terminal conditions
         if depth <= 0 or board.is_game_over(claim_draw=self._is_draw_condition(board)):
-            position_score = self.evaluate_position_from_perspective(board, self.current_player)
-            return None, position_score
+            quies_score = self._quiescence_search(board, alpha, beta, maximizing_player, stop_callback)
+            return None, quies_score
 
         # Get and order moves
         legal_moves = list(board.legal_moves)
@@ -362,10 +359,6 @@ class V7P3REvaluationEngine:
             score += 10000.0
         temp_board.pop()
 
-        # Queen attack prioritization - attack enemy queen with defended pieces
-        queen_attack_bonus = self._calculate_queen_attack_bonus(board, move)
-        score += queen_attack_bonus
-
         # Enhanced capture evaluation using SEE
         if board.is_capture(move):
             see_score = self._static_exchange_evaluation(board, move)
@@ -390,7 +383,104 @@ class V7P3REvaluationEngine:
 
         return score
     
+    def _quiescence_search(self, board: chess.Board, alpha: float, beta: float, maximizing_player: bool, stop_callback: Optional[Callable[[], bool]] = None, current_ply: int = 0) -> float:
+        """Enhanced quiescence search with better tactical awareness"""
+        self.nodes_searched += 1
 
+        if stop_callback and stop_callback():
+            return self.evaluate_position_from_perspective(board, self.current_player)
+
+        # Get stand-pat score (evaluation if we make no more moves)
+        stand_pat_score = self.evaluate_position_from_perspective(board, self.current_player)
+
+        # Depth limit for quiescence search
+        max_q_depth = 10  # Increased for better tactical analysis
+        if current_ply >= max_q_depth:
+            return stand_pat_score
+
+        # Alpha-beta pruning with stand-pat score
+        if maximizing_player:
+            if stand_pat_score >= beta:
+                return beta 
+            alpha = max(alpha, stand_pat_score)
+        else:
+            if stand_pat_score <= alpha:
+                return alpha
+            beta = min(beta, stand_pat_score)
+
+        # Generate moves based on position
+        moves = []
+        
+        if board.is_check():
+            # If in check, consider all legal moves to escape check
+            moves = list(board.legal_moves)
+        else:
+            # Enhanced tactical move generation
+            for move in board.legal_moves:
+                include_move = False
+                
+                # Always include captures
+                if board.is_capture(move):
+                    # Use SEE to filter bad captures only in deeper plies
+                    if current_ply < 3:  # Include all captures in shallow quiescence
+                        include_move = True
+                    else:
+                        # Filter obviously bad captures in deeper search
+                        see_score = self._static_exchange_evaluation(board, move)
+                        if see_score >= -0.5:  # Allow small sacrifices for tactics
+                            include_move = True
+                
+                # Always include promotions
+                elif move.promotion:
+                    include_move = True
+                
+                # Include checks that might lead to tactics
+                elif current_ply < 2:  # Only in shallow quiescence to avoid explosion
+                    temp_board = board.copy()
+                    temp_board.push(move)
+                    if temp_board.is_check():
+                        include_move = True
+                    temp_board.pop()
+                
+                # Include moves that save threatened pieces (defensive moves)
+                elif current_ply < 2:
+                    moving_piece = board.piece_at(move.from_square)
+                    if moving_piece and self._is_piece_threatened(board, move.from_square, moving_piece.color):
+                        # Check if destination is safer
+                        temp_board = board.copy()
+                        temp_board.push(move)
+                        if not self._is_piece_threatened(temp_board, move.to_square, moving_piece.color):
+                            piece_value = self.piece_values.get(moving_piece.piece_type, 0)
+                            if piece_value >= 3.0:  # Only for valuable pieces (not pawns)
+                                include_move = True
+                        temp_board.pop()
+                
+                if include_move:
+                    moves.append(move)
+            
+        # If no tactical moves and not in check, return stand-pat
+        if not moves:
+            return stand_pat_score
+
+        # Order moves for better pruning
+        moves = self.order_moves(board, moves, depth=current_ply)
+
+        # Search tactical moves
+        for move in moves:
+            board.push(move)
+            score = self._quiescence_search(board, alpha, beta, not maximizing_player, stop_callback, current_ply + 1)
+            board.pop()
+
+            if maximizing_player:
+                alpha = max(alpha, score)
+                if alpha >= beta:
+                    break  # Beta cutoff
+            else:
+                beta = min(beta, score)
+                if alpha >= beta:
+                    break  # Alpha cutoff
+        
+        return alpha if maximizing_player else beta
     
     def _static_exchange_evaluation(self, board: chess.Board, move: chess.Move) -> float:
         """
@@ -517,75 +607,6 @@ class V7P3REvaluationEngine:
         """Check if a piece at the given square is under attack by the opponent."""
         return board.is_attacked_by(not piece_color, square)
 
-    def _calculate_queen_attack_bonus(self, board: chess.Board, move: chess.Move) -> float:
-        """
-        Calculate bonus for moves that attack the enemy queen with defended pieces.
-        High priority for creating queen traps and tactical pressure.
-        """
-        bonus = 0.0
-        
-        # Find the enemy queen
-        enemy_color = not board.turn
-        enemy_queen_square = None
-        
-        for square in chess.SQUARES:
-            piece = board.piece_at(square)
-            if piece and piece.piece_type == chess.QUEEN and piece.color == enemy_color:
-                enemy_queen_square = square
-                break
-        
-        if enemy_queen_square is None:
-            return 0.0  # No enemy queen on board
-        
-        # Check if this move attacks the enemy queen
-        temp_board = board.copy()
-        temp_board.push(move)
-        
-        # Check if our piece now attacks the enemy queen square
-        if temp_board.is_attacked_by(board.turn, enemy_queen_square):
-            # Verify the attacking piece is the one we just moved
-            attacking_piece = temp_board.piece_at(move.to_square)
-            if attacking_piece:
-                # High bonus for attacking queen with defended piece
-                base_bonus = 50000.0  # High priority but less than captures/checks
-                
-                # Check if our attacking piece is defended
-                if temp_board.is_attacked_by(board.turn, move.to_square):
-                    bonus += base_bonus
-                    
-                    # Extra bonus for attacking with less valuable pieces
-                    piece_value = self.piece_values.get(attacking_piece.piece_type, 0)
-                    if piece_value <= 3.0:  # Knights, Bishops, pawns
-                        bonus += 10000.0  # Extra bonus for attacking with minor pieces
-                    
-                    # Check if enemy queen has limited escape squares (potential trap)
-                    escape_squares = 0
-                    for escape_square in chess.SQUARES:
-                        if abs(chess.square_rank(escape_square) - chess.square_rank(enemy_queen_square)) <= 1 and \
-                           abs(chess.square_file(escape_square) - chess.square_file(enemy_queen_square)) <= 1:
-                            if escape_square != enemy_queen_square:
-                                temp_test_board = temp_board.copy()
-                                # Simulate queen moving to escape square
-                                try:
-                                    escape_move = chess.Move(enemy_queen_square, escape_square)
-                                    if escape_move in temp_test_board.legal_moves:
-                                        temp_test_board.push(escape_move)
-                                        if not temp_test_board.is_attacked_by(board.turn, escape_square):
-                                            escape_squares += 1
-                                        temp_test_board.pop()
-                                except:
-                                    pass
-                    
-                    # Extra bonus if queen has few escape squares (potential trap)
-                    if escape_squares <= 2:
-                        bonus += 15000.0  # Trap bonus
-                else:
-                    # Smaller bonus for undefended attacks (risky)
-                    bonus += base_bonus * 0.3
-        
-        temp_board.pop()
-        return bonus
-
     def get_transposition_move(self, board: chess.Board, depth: int) -> Tuple[Optional[chess.Move], Optional[float]]:
         key = board.fen()
         if key in self.transposition_table:
@@ -696,9 +717,9 @@ class V7P3REvaluationEngine:
         if tt_score is not None:
             return tt_score
 
-        # Terminal node - evaluate position directly
+        # Terminal node - call quiescence search
         if depth <= 0 or board.is_game_over(claim_draw=self._is_draw_condition(board)):
-            return self.evaluate_position_from_perspective(board, self.current_player)
+            return self._quiescence_search(board, alpha, beta, maximizing_player, stop_callback)
 
         # Generate and order moves
         legal_moves = list(board.legal_moves)

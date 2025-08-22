@@ -14,9 +14,9 @@ from typing import Optional
 
 from v7p3r import V7P3REvaluationEngine
 
-ENGINE_NAME = "V7P3R v5.4"
+ENGINE_NAME = "V7P3R v5.0"
 ENGINE_AUTHOR = "Pat Snyder"
-ENGINE_VERSION = "5.4"
+ENGINE_VERSION = "5.0"
 
 
 class UCIEngine:

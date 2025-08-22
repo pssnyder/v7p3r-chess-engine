@@ -42,8 +42,8 @@ class V7P3RScoringCalculation:
         # Piece coordination and control
         score += (self._piece_coordination(board, color) or 0.0)
         score += (self._center_control(board, color) or 0.0)
-        # Note: _pawn_structure removed - replaced by _enhanced_pawn_structure in v5.4
-        # Note: _passed_pawns removed - included in _enhanced_pawn_structure in v5.4
+        score += (self._pawn_structure(board, color) or 0.0)
+        score += (self._passed_pawns(board, color) or 0.0)
         score += (self._pawn_majority(board, color) or 0.0)
         score += (self._bishop_pair(board, color) or 0.0)
         score += (self._knight_pair(board, color) or 0.0)
