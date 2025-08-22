@@ -9,7 +9,6 @@ import traceback
 import chess
 import time
 import threading
-from pathlib import Path
 from typing import Optional
 
 from v7p3r import V7P3REvaluationEngine
@@ -22,21 +21,7 @@ ENGINE_VERSION = "5.4"
 class UCIEngine:
     def __init__(self):
         # Core engine that performs searches and evaluations
-        # Handle both development and PyInstaller bundled execution
-        import sys
-        
-        if getattr(sys, 'frozen', False):
-            # Running as PyInstaller bundle
-            bundle_dir = Path(getattr(sys, '_MEIPASS', Path.cwd()))
-            default_conf = bundle_dir / "config_default.json"
-            config_file = str(default_conf)
-        else:
-            # Running as script
-            pkg_dir = Path(__file__).resolve().parent
-            user_conf = pkg_dir / "config.json"
-            default_conf = pkg_dir / "config_default.json"
-            config_file = str(user_conf) if user_conf.exists() else str(default_conf)
-
+        # Initialize engine
         self.engine = V7P3REvaluationEngine()
         self.isready = True
         self.position_fen = None
@@ -244,7 +229,8 @@ class UCIEngine:
                     break
                     
                 iteration_start = time.time()
-                nodes_before = self.engine.nodes_searched
+                # Reset node counter for this iteration
+                self.engine.nodes_searched = 0
                 
                 # Set current search depth
                 self.engine.depth = current_depth
@@ -273,7 +259,7 @@ class UCIEngine:
                 # Calculate search statistics
                 iteration_time = time.time() - iteration_start
                 total_time = time.time() - search_start_time
-                nodes_this_iteration = self.engine.nodes_searched - nodes_before
+                nodes_this_iteration = self.engine.nodes_searched  # Use total nodes for this iteration
                 total_nodes += nodes_this_iteration
                 nps = int(nodes_this_iteration / max(iteration_time, 0.001))
                 
