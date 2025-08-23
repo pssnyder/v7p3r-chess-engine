@@ -1,5 +1,0 @@
-uci
-isready
-position fen rnbqkb1r/pppp1ppp/5n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 3
-go depth 3
-quit
