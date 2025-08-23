@@ -1,0 +1,6 @@
+uci
+isready
+ucinewgame
+position startpos
+go wtime 60000 btime 60000
+quit

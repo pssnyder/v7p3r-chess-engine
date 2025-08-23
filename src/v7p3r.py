@@ -45,6 +45,16 @@ class V7P3REvaluationEngine:
             chess.KNIGHT: 3.0,
             chess.PAWN: 1.0
         }
+        
+        # V6.2 Optimization flags
+        self.use_fast_search = True  # Enable optimized search path
+        self.fast_move_limit = 12    # Limit moves considered in fast mode
+        self.use_optimized_scoring = True  # Use threshold-based early exits in scoring
+        
+        # V6.2 Opening knowledge injection
+        self.use_opening_tt_injection = True  # Inject opening moves into TT
+        if self.use_opening_tt_injection:
+            self._inject_opening_knowledge()  # Pre-populate TT with good opening moves
 
         self.hash_size = 1024*1024
         self.transposition_table.maxlen = self.hash_size // 100 # Approximate entry size
@@ -59,6 +69,118 @@ class V7P3REvaluationEngine:
         self.killer_moves = [[None, None] for _ in range(50)]
         self.history_table.clear()
         self.counter_moves.clear()
+
+    def set_search_mode(self, use_fast_search: bool, fast_move_limit: int = 12):
+        """Configure search optimization settings"""
+        self.use_fast_search = use_fast_search
+        self.fast_move_limit = fast_move_limit
+        if use_fast_search:
+            print(f"V7P3R: Using fast search mode (limit: {fast_move_limit} moves)")
+        else:
+            print("V7P3R: Using traditional search mode")
+
+    def set_optimization_mode(self, use_optimized_scoring: bool = True, use_opening_injection: bool = True):
+        """Configure evaluation optimization settings"""
+        self.use_optimized_scoring = use_optimized_scoring
+        self.use_opening_tt_injection = use_opening_injection
+        print(f"V7P3R: Optimized scoring: {use_optimized_scoring}, Opening injection: {use_opening_injection}")
+        
+        # Re-inject opening knowledge if enabled
+        if use_opening_injection:
+            self._inject_opening_knowledge()
+
+    def _inject_opening_knowledge(self):
+        """Inject good opening moves into transposition table for guidance"""
+        if not self.use_opening_tt_injection:
+            return
+            
+        # Always inject during initialization, but check ply when called during search
+        # Only skip injection if we're in the middle of a game (ply >= 8)
+        if hasattr(self, 'board') and self.board and self.board.ply() >= 8:
+            return
+            
+        # Define opening positions and their preferred moves with evaluations
+        opening_knowledge = [
+            # Starting position - prioritize central pawn moves and knight development
+            ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "e2e4", 500),  # King's pawn - strong
+            ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "d2d4", 450),  # Queen's pawn - strong
+            ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "g1f3", 400),  # King's knight - good
+            ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "b1c3", 350),  # Queen's knight - decent
+            ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "e2e3", -200), # Passive - discourage
+            ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "d2d3", -150), # Passive - discourage
+            
+            # After e4 - good responses
+            ("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1", "e7e5", 500),   # Symmetric - strong
+            ("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1", "c7c5", 450),   # Sicilian - strong
+            ("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1", "e7e6", 400),   # French - good
+            ("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1", "d7d6", 350),   # Pirc - decent
+            ("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1", "g8f6", 400),   # Alekhine - good
+            
+            # After d4 - good responses  
+            ("rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq d3 0 1", "d7d5", 500),   # Symmetric - strong
+            ("rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq d3 0 1", "g8f6", 450),   # Indian systems - strong
+            ("rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq d3 0 1", "e7e6", 400),   # Queen's Gambit Declined prep - good
+            ("rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq d3 0 1", "c7c5", 400),   # Benoni - good
+            
+            # After e4 e5 - knight development
+            ("rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2", "g1f3", 500),  # King's knight - strong
+            ("rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2", "b1c3", 400),  # Queen's knight - good
+            ("rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2", "f1c4", 450),  # Italian setup - strong
+            
+            # Black's responses to Nf3
+            ("rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2", "b8c6", 500), # Knight development - strong
+            ("rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2", "g8f6", 450), # Knight development - strong
+            ("rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2", "f8e7", 300), # Passive but solid
+            
+            # Sicilian Defense guidance
+            ("rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2", "g1f3", 500),  # Standard development - strong
+            ("rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2", "b1c3", 400),  # Alternative development - good
+            ("rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2", "f2f4", 250),  # King's Indian Attack - ok
+            
+            # Queen's Gambit guidance
+            ("rnbqkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBQKBNR w KQkq d6 0 2", "c2c4", 500),  # Queen's Gambit - strong
+            ("rnbqkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBQKBNR w KQkq d6 0 2", "g1f3", 450),  # King's Indian Attack - strong
+            ("rnbqkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBQKBNR w KQkq d6 0 2", "b1c3", 400),  # Development - good
+            
+            # Early middlegame - piece development priorities
+            ("r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3", "f1b5", 500), # Spanish/Ruy Lopez - strong
+            ("r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3", "f1c4", 450), # Italian Game - strong
+            ("r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3", "b1c3", 400), # Four Knights - good
+            ("r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3", "d2d3", 300), # Solid setup - ok
+        ]
+        
+        # Inject knowledge into transposition table
+        injected_count = 0
+        position_moves = {}  # Group moves by position
+        
+        # First, group all moves by position to find the best one for each
+        for fen, move_uci, score_cp in opening_knowledge:
+            try:
+                board = chess.Board(fen)
+                move = chess.Move.from_uci(move_uci)
+                
+                if board.is_legal(move):
+                    if fen not in position_moves or score_cp > position_moves[fen][1]:
+                        position_moves[fen] = (move, score_cp)
+                        
+            except (ValueError, chess.InvalidMoveError):
+                # Skip invalid positions/moves
+                continue
+        
+        # Now inject only the best move for each position
+        for fen, (move, score_cp) in position_moves.items():
+            board = chess.Board(fen)
+            # Use very high depth so these moves take absolute priority over evaluation
+            self.update_transposition_table(board, 15, move, score_cp / 100.0)
+            injected_count += 1
+        
+        if injected_count > 0:
+            print(f"V7P3R: Injected {injected_count} opening moves into transposition table")
+
+    def clear_opening_knowledge(self):
+        """Clear injected opening knowledge - useful for testing pure engine evaluation"""
+        self.transposition_table.clear()
+        print("V7P3R: Cleared opening knowledge from transposition table")
 
     def _is_draw_condition(self, board):
         if board.can_claim_threefold_repetition():
@@ -91,6 +213,146 @@ class V7P3REvaluationEngine:
         return 0.0
 
     # =================================
+    # ===== V6.2 FAST SEARCH ==========
+    
+    def _fast_negamax(self, board: chess.Board, depth: int, alpha: float, beta: float) -> float:
+        """Ultra-lean negamax search optimized for speed - proper negamax implementation"""
+        self.nodes_searched += 1
+        
+        # Terminal depth - use full evaluation with optimized scoring
+        if depth == 0:
+            return self.evaluate_position_from_perspective(board, board.turn)
+        
+        # Terminal positions
+        if board.is_game_over():
+            if board.is_checkmate():
+                # Prefer faster checkmates - negative for current player if in checkmate
+                return -999999 + depth
+            return 0  # Stalemate or draw
+        
+        best_score = -999999
+        
+        # Get moves - use fast ordering for deeper searches
+        if depth > 3:
+            moves = self._fast_move_ordering(board)
+        else:
+            moves = list(board.legal_moves)[:self.fast_move_limit]
+        
+        # Search moves with proper negamax
+        for move in moves:
+            board.push(move)
+            score = -self._fast_negamax(board, depth - 1, -beta, -alpha)
+            board.pop()
+            
+            best_score = max(best_score, score)
+            alpha = max(alpha, score)
+                
+            # Alpha-beta cutoff
+            if alpha >= beta:
+                break
+        
+        return best_score
+    
+    def _fast_search_root(self, board: chess.Board, depth: int) -> Tuple[Optional[chess.Move], float]:
+        """Fast root search that returns best move and score"""
+        legal_moves = list(board.legal_moves)
+        if not legal_moves:
+            return None, 0
+        
+        # Fast move ordering for root
+        ordered_moves = self._fast_move_ordering(board, legal_moves)
+        
+        best_move = ordered_moves[0]
+        best_score = -999999
+        alpha = -999999
+        beta = 999999
+        
+        for move in ordered_moves:
+            board.push(move)
+            score = -self._fast_negamax(board, depth - 1, -beta, -alpha)
+            board.pop()
+            
+            if score > best_score:
+                best_score = score
+                best_move = move
+                alpha = max(alpha, score)
+        
+        return best_move, best_score
+    
+    def _fast_material_balance(self, board: chess.Board) -> float:
+        """Ultra-fast material calculation from current side's perspective"""
+        material = 0
+        
+        for piece_type, value in self.piece_values.items():
+            if piece_type == chess.KING:
+                continue
+            
+            white_count = len(board.pieces(piece_type, chess.WHITE))
+            black_count = len(board.pieces(piece_type, chess.BLACK))
+            
+            # Always evaluate from the perspective of the side to move
+            if board.turn == chess.WHITE:
+                material += (white_count - black_count) * value
+            else:
+                material += (black_count - white_count) * value
+        
+        return material
+    
+    def _fast_move_ordering(self, board: chess.Board, moves=None) -> list:
+        """C0BR4-style lightweight move ordering - simple and efficient"""
+        if moves is None:
+            moves = list(board.legal_moves)
+        
+        if len(moves) <= self.fast_move_limit:
+            return moves
+        
+        scored_moves = []
+        
+        for move in moves:
+            score = 0
+            
+            # 1. Captures (MVV-LVA style - like C0BR4)
+            if board.is_capture(move):
+                victim = board.piece_at(move.to_square)
+                attacker = board.piece_at(move.from_square)
+                if victim and attacker:
+                    # C0BR4 style: capture value - attacker value
+                    capture_value = self.piece_values.get(victim.piece_type, 0)
+                    attacker_value = self.piece_values.get(attacker.piece_type, 0)
+                    score += 10000 + (capture_value - attacker_value)
+            
+            # 2. Promotions (like C0BR4)
+            if move.promotion:
+                score += 9000
+                if move.promotion == chess.QUEEN:
+                    score += self.piece_values.get(chess.QUEEN, 900)
+            
+            # 3. Checks (like C0BR4)
+            if not board.is_capture(move):  # Only check if not capture to save time
+                board.push(move)
+                if board.is_check():
+                    score += 500
+                board.pop()
+            
+            # 4. Center control (like C0BR4)
+            if move.to_square in [chess.D4, chess.D5, chess.E4, chess.E5]:
+                score += 10
+                
+            # 5. Development bonus (like C0BR4)
+            piece = board.piece_at(move.from_square)
+            if piece and piece.piece_type in [chess.KNIGHT, chess.BISHOP]:
+                # Development from back rank
+                if (piece.color == chess.WHITE and chess.square_rank(move.from_square) == 0) or \
+                   (piece.color == chess.BLACK and chess.square_rank(move.from_square) == 7):
+                    score += 5
+            
+            scored_moves.append((move, score))
+        
+        # Sort and return top moves only
+        scored_moves.sort(key=lambda x: x[1], reverse=True)
+        return [move for move, _ in scored_moves[:self.fast_move_limit]]
+
+    # =================================
     # ===== MOVE SEARCH HANDLER =======
 
     def sync_with_game_board(self, game_board: chess.Board):
@@ -106,22 +368,26 @@ class V7P3REvaluationEngine:
         return self.board.fen() != self.game_board.fen()
 
     def search(self, board: chess.Board, player: chess.Color, ai_config: dict = {}, stop_callback: Optional[Callable[[], bool]] = None) -> chess.Move:
-        """Main search function - sets up and calls minimax search"""
+        """Main search function - uses fast or full search based on configuration"""
         self.nodes_searched = 0
         self.sync_with_game_board(board)
         self.current_player = player
 
-        # Check for immediate transposition table hit
+        # Check for immediate transposition table hit (DISABLED FOR DEBUGGING)
         search_depth = self.depth if self.depth is not None else 6
         # Ensure depth is even to always include opponent response
         if search_depth % 2 == 1:
             search_depth += 1
-        trans_move, trans_score = self.get_transposition_move(board, search_depth)
-        if trans_move and board.is_legal(trans_move):
-            return trans_move
+        # trans_move, trans_score = self.get_transposition_move(board, search_depth)
+        # if trans_move and board.is_legal(trans_move):
+        #     return trans_move
 
-        # Call minimax search which handles all move iteration
-        best_move, best_score = self._minimax_search_root(board, search_depth, -float('inf'), float('inf'), True, stop_callback)
+        # V6.2: Choose search algorithm based on configuration
+        if self.use_fast_search:
+            best_move, best_score = self._fast_search_root(board, search_depth)
+        else:
+            # Call traditional minimax search
+            best_move, best_score = self._minimax_search_root(board, search_depth, -float('inf'), float('inf'), True, stop_callback)
         
         # Update transposition table with result
         if best_move:
@@ -131,9 +397,8 @@ class V7P3REvaluationEngine:
         if best_move is None or best_move == chess.Move.null():
             legal_moves = list(board.legal_moves)
             if legal_moves:
-                # Try move ordering for fallback
-                hash_move, _ = self.get_transposition_move(board, 1)
-                ordered_moves = self.order_moves(board, legal_moves, hash_move=hash_move, depth=1)
+                # Try fast move ordering for fallback
+                ordered_moves = self._fast_move_ordering(board, legal_moves)
                 best_move = ordered_moves[0] if ordered_moves else random.choice(legal_moves)
             else:
                 return chess.Move.null()
@@ -153,7 +418,7 @@ class V7P3REvaluationEngine:
 
     def _calculate_time_allocation(self, time_control: dict, board: chess.Board) -> float:
         """
-        V6.1 Enhanced time allocation - more aggressive than v6.0
+        V6.2 Aggressive time allocation - matches C0BR4's approach for better blitz performance
         """
         # Handle fixed time per move
         if 'movetime' in time_control:
@@ -177,13 +442,17 @@ class V7P3REvaluationEngine:
         if moves_to_go:
             # Tournament time control with moves to go
             base_time = remaining_time / max(moves_to_go, 1)
-            allocated_time = base_time + increment * 0.9
+            allocated_time = base_time + increment * 0.95  # Use almost all increment
         else:
-            # Sudden death or increment-based - be more aggressive for short time controls
-            if remaining_time <= 180:  # 3 minutes or less - be very aggressive
+            # Sudden death or increment-based - be much more aggressive than v6.1
+            if remaining_time <= 60:  # Under 1 minute - very aggressive
+                estimated_moves_left = max(10, 20 - len(board.move_stack) // 2)
+                base_time = remaining_time / estimated_moves_left
+                allocated_time = base_time + increment * 0.95  # Use almost all increment
+            elif remaining_time <= 300:  # Under 5 minutes - aggressive
                 estimated_moves_left = max(15, 30 - len(board.move_stack) // 2)
                 base_time = remaining_time / estimated_moves_left
-                allocated_time = base_time + increment * 0.9  # Use most of increment
+                allocated_time = base_time + increment * 0.9
             else:
                 estimated_moves_left = max(20, 40 - len(board.move_stack) // 2)
                 base_time = remaining_time / estimated_moves_left
@@ -192,35 +461,37 @@ class V7P3REvaluationEngine:
         # Position complexity modifier - use more time for complex positions
         legal_moves_count = len(list(board.legal_moves))
         if legal_moves_count > 35:
-            allocated_time *= 1.4  # Complex position
+            allocated_time *= 1.2  # Reduced from 1.4 - don't overthink
         elif legal_moves_count < 10:
-            allocated_time *= 0.7  # Simple position
+            allocated_time *= 0.8  # Simple position
             
-        # Game phase modifier
+        # Game phase modifier - less conservative than v6.1
         piece_count = len(board.piece_map())
         if piece_count > 20:  # Opening/early middlegame
-            allocated_time *= 0.9  # Don't overthink opening
+            allocated_time *= 0.8  # Don't overthink opening
         elif piece_count < 10:  # Endgame
-            allocated_time *= 1.2  # Precision matters in endgame
+            allocated_time *= 1.1  # Precision matters but don't overdo it
             
-        # Safety limits - be more aggressive than v6.0, especially for blitz
-        min_time = 0.1
+        # Safety limits - much more aggressive than v6.1
+        min_time = 0.05  # Reduced minimum time
         if remaining_time <= 180:  # Blitz games (3 minutes or less)
-            max_time_ratio = 0.25  # Use up to 25% for blitz
+            max_time_ratio = 0.35  # Use up to 35% for blitz (increased from 25%)
         elif remaining_time <= 600:  # Rapid games (10 minutes or less)
-            max_time_ratio = 0.20  # Use up to 20% for rapid
+            max_time_ratio = 0.25  # Use up to 25% for rapid (increased from 20%)
         else:
-            max_time_ratio = 0.15  # Use up to 15% for longer games
+            max_time_ratio = 0.20  # Use up to 20% for longer games (increased from 15%)
             
-        max_time = min(remaining_time * max_time_ratio, remaining_time - 2.0)
+        max_time = min(remaining_time * max_time_ratio, remaining_time - 1.0)
         
         allocated_time = max(min_time, min(allocated_time, max_time))
         
-        # Emergency time handling - be less conservative
-        if remaining_time < 30.0:  # Under 30 seconds
-            allocated_time = min(allocated_time, remaining_time * 0.15)
+        # Emergency time handling - be much less conservative
+        if remaining_time < 15.0:  # Under 15 seconds - very aggressive
+            allocated_time = min(allocated_time, remaining_time * 0.25)  # Use 25% of remaining
+        elif remaining_time < 30.0:  # Under 30 seconds
+            allocated_time = min(allocated_time, remaining_time * 0.20)  # Use 20% of remaining
         elif remaining_time < 60.0:  # Under 1 minute
-            allocated_time = min(allocated_time, remaining_time * 0.12)
+            allocated_time = min(allocated_time, remaining_time * 0.15)  # Use 15% of remaining
             
         return allocated_time
 
@@ -251,20 +522,23 @@ class V7P3REvaluationEngine:
         
         # Get initial move from move ordering
         tt_move, _ = self.get_transposition_move(board, 1)
-        ordered_moves = self.order_moves(board, legal_moves, hash_move=tt_move, depth=1)
+        if self.use_fast_search:
+            ordered_moves = self._fast_move_ordering(board, legal_moves)
+        else:
+            ordered_moves = self.order_moves(board, legal_moves, hash_move=tt_move, depth=1)
         fallback_move = ordered_moves[0] if ordered_moves else legal_moves[0]
         best_move = fallback_move
         
         # Iterative deepening with time management
-        max_depth = 8  # Reasonable maximum depth
+        max_depth = 7 if self.use_fast_search else 8  # Limit depth for fast search
         
         for depth in range(1, max_depth + 1):
             iteration_start = time.time()
             elapsed = iteration_start - search_start
             
-            # Check if we have time for this iteration
-            if elapsed >= allocated_time * 0.75 and depth > 1:
-                break  # Don't start new iteration if 75% time used
+            # Hard cutoff - don't start new iteration if 70% time used (more aggressive)
+            if elapsed >= allocated_time * 0.70 and depth > 1:
+                break  
                 
             # Check depth-based stopping
             if 'depth' in time_control and depth > time_control['depth']:
@@ -274,30 +548,34 @@ class V7P3REvaluationEngine:
             self.nodes_searched = 0
             self.depth = depth
             
-            # Search with aspiration window if we have previous score
-            if depth > 2 and previous_best:
-                # Try narrow window first
-                window = 50  # centipawns
-                alpha = best_score - window
-                beta = best_score + window
-                
-                move, score = self._minimax_search_root(
-                    board, depth, alpha, beta, True, 
-                    lambda: time.time() - search_start >= max_time
-                )
-                
-                # If search failed (fell outside window), search with full window
-                if score <= alpha or score >= beta:
+            # V6.2: Use fast or traditional search based on configuration
+            if self.use_fast_search:
+                move, score = self._fast_search_root(board, depth)
+            else:
+                # Search with aspiration window if we have previous score
+                if depth > 2 and previous_best:
+                    # Try narrow window first
+                    window = 50  # centipawns
+                    alpha = best_score - window
+                    beta = best_score + window
+                    
+                    move, score = self._minimax_search_root(
+                        board, depth, alpha, beta, True, 
+                        lambda: time.time() - search_start >= max_time
+                    )
+                    
+                    # If search failed (fell outside window), search with full window
+                    if score <= alpha or score >= beta:
+                        move, score = self._minimax_search_root(
+                            board, depth, -float('inf'), float('inf'), True,
+                            lambda: time.time() - search_start >= max_time
+                        )
+                else:
+                    # Full window search for early depths
                     move, score = self._minimax_search_root(
                         board, depth, -float('inf'), float('inf'), True,
                         lambda: time.time() - search_start >= max_time
                     )
-            else:
-                # Full window search for early depths
-                move, score = self._minimax_search_root(
-                    board, depth, -float('inf'), float('inf'), True,
-                    lambda: time.time() - search_start >= max_time
-                )
             
             # Update results if we got a valid move
             if move and move != chess.Move.null():
@@ -310,13 +588,13 @@ class V7P3REvaluationEngine:
                 # Update transposition table
                 self.update_transposition_table(board, depth, move, score)
             
-            # Check time limits
+            # Check time limits - more aggressive cutoff
             elapsed = time.time() - search_start
-            if elapsed >= allocated_time:
+            if elapsed >= allocated_time * 0.85:  # Hard cutoff at 85% instead of 100%
                 break
                 
             # For movetime, be stricter about time limits
-            if 'movetime' in time_control and elapsed >= (time_control['movetime'] / 1000.0) * 0.9:
+            if 'movetime' in time_control and elapsed >= (time_control['movetime'] / 1000.0) * 0.85:
                 break
         
         # Ensure we have a valid move
@@ -400,19 +678,31 @@ class V7P3REvaluationEngine:
         positional_evaluation_board = board.copy()
         if not isinstance(positional_evaluation_board, chess.Board) or not positional_evaluation_board.is_valid():
             return 0.0
-        
+
         endgame_factor = self._get_game_phase_factor(positional_evaluation_board)
         
-        score = self.scoring_calculator.calculate_score(
-            board=positional_evaluation_board,
-            color=chess.WHITE,
-            endgame_factor=endgame_factor
-        ) - self.scoring_calculator.calculate_score(
-            board=positional_evaluation_board,
-            color=chess.BLACK,
-            endgame_factor=endgame_factor
-        )
-        
+        # Use optimized scoring if enabled
+        if self.use_optimized_scoring:
+            score = self.scoring_calculator.calculate_score_optimized(
+                board=positional_evaluation_board,
+                color=chess.WHITE,
+                endgame_factor=endgame_factor
+            ) - self.scoring_calculator.calculate_score_optimized(
+                board=positional_evaluation_board,
+                color=chess.BLACK,
+                endgame_factor=endgame_factor
+            )
+        else:
+            score = self.scoring_calculator.calculate_score_optimized(
+                board=positional_evaluation_board,
+                color=chess.WHITE,
+                endgame_factor=endgame_factor
+            ) - self.scoring_calculator.calculate_score_optimized(
+                board=positional_evaluation_board,
+                color=chess.BLACK,
+                endgame_factor=endgame_factor
+            )
+
         return score
 
     def evaluate_position_from_perspective(self, board: chess.Board, player: chess.Color) -> float:
@@ -423,16 +713,29 @@ class V7P3REvaluationEngine:
         
         endgame_factor = self._get_game_phase_factor(perspective_evaluation_board)
 
-        white_score = self.scoring_calculator.calculate_score(
-            board=perspective_evaluation_board,
-            color=chess.WHITE,
-            endgame_factor=endgame_factor
-        )
-        black_score = self.scoring_calculator.calculate_score(
-            board=perspective_evaluation_board,
-            color=chess.BLACK,
-            endgame_factor=endgame_factor
-        )
+        # Use optimized scoring if enabled
+        if self.use_optimized_scoring:
+            white_score = self.scoring_calculator.calculate_score_optimized(
+                board=perspective_evaluation_board,
+                color=chess.WHITE,
+                endgame_factor=endgame_factor
+            )
+            black_score = self.scoring_calculator.calculate_score_optimized(
+                board=perspective_evaluation_board,
+                color=chess.BLACK,
+                endgame_factor=endgame_factor
+            )
+        else:
+            white_score = self.scoring_calculator.calculate_score_optimized(
+                board=perspective_evaluation_board,
+                color=chess.WHITE,
+                endgame_factor=endgame_factor
+            )
+            black_score = self.scoring_calculator.calculate_score_optimized(
+                board=perspective_evaluation_board,
+                color=chess.BLACK,
+                endgame_factor=endgame_factor
+            )
         
         score = (white_score - black_score) if player == chess.WHITE else (black_score - white_score)
         
@@ -482,46 +785,39 @@ class V7P3REvaluationEngine:
         return [move for move, _ in move_scores]
 
     def _order_move_score(self, board: chess.Board, move: chess.Move, depth: int = 6) -> float:
-        """Enhanced move scoring with threat detection and better capture evaluation."""
+        """C0BR4-style move scoring - simple and efficient."""
         score = 0.0
 
-        # Check for checkmate first (highest priority)
-        temp_board = board.copy()
-        temp_board.push(move)
-        if temp_board.is_checkmate():
-            temp_board.pop()
-            return 9999999999.0
-        
-        # Check moves get high priority
-        if temp_board.is_check():
-            score += 10000.0
-        temp_board.pop()
-
-        # Queen attack prioritization - attack enemy queen with defended pieces
-        queen_attack_bonus = self._calculate_queen_attack_bonus(board, move)
-        score += queen_attack_bonus
-
-        # Enhanced capture evaluation using SEE
+        # 1. Captures (MVV-LVA - like C0BR4)
         if board.is_capture(move):
-            see_score = self._static_exchange_evaluation(board, move)
-            score += 1000000.0 + (see_score * 10000)  # Base capture bonus + SEE result
-        
-        # Threat detection - prioritize moves that save threatened pieces
-        piece_threat_score = self._evaluate_piece_threats(board, move)
-        score += piece_threat_score
-        
-        # Killer moves
-        if depth < len(self.killer_moves) and move in self.killer_moves:
-            score += 900000.0
+            victim = board.piece_at(move.to_square)
+            attacker = board.piece_at(move.from_square)
+            if victim and attacker:
+                victim_value = self.piece_values.get(victim.piece_type, 0)
+                attacker_value = self.piece_values.get(attacker.piece_type, 0)
+                score += 10000 + (victim_value - attacker_value)
 
-        # History heuristic
-        score += self.history_table.get((board.turn, move.from_square, move.to_square), 0)
-        
-        # Promotion bonus
+        # 2. Promotions (like C0BR4)
         if move.promotion:
-            score += 700000.0
-            if move.promotion == chess.QUEEN:
-                score += self.piece_values.get(chess.QUEEN, 9.0) * 100
+            score += 9000 + self.piece_values.get(move.promotion, 0)
+
+        # 3. Checks (like C0BR4)
+        board.push(move)
+        if board.is_check():
+            score += 500
+        board.pop()
+
+        # 4. Center control (like C0BR4)
+        if move.to_square in [chess.D4, chess.D5, chess.E4, chess.E5]:
+            score += 10
+
+        # 5. Development bonus (like C0BR4)
+        piece = board.piece_at(move.from_square)
+        if piece and piece.piece_type in [chess.KNIGHT, chess.BISHOP]:
+            # Development from back rank
+            if (piece.color == chess.WHITE and chess.square_rank(move.from_square) == 0) or \
+               (piece.color == chess.BLACK and chess.square_rank(move.from_square) == 7):
+                score += 5
 
         return score
     

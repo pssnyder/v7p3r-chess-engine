@@ -13,9 +13,9 @@ from typing import Optional
 
 from v7p3r import V7P3REvaluationEngine
 
-ENGINE_NAME = "V7P3R v6.1"
+ENGINE_NAME = "V7P3R v6.2"
 ENGINE_AUTHOR = "Pat Snyder"
-ENGINE_VERSION = "5.4"
+ENGINE_VERSION = "6.2"
 
 
 class UCIEngine:
@@ -36,6 +36,8 @@ class UCIEngine:
             'Threads': {'type': 'spin', 'default': 1, 'min': 1, 'max': 16, 'value': 1},
             'Clear Hash': {'type': 'button'},
             'Move Overhead': {'type': 'spin', 'default': 30, 'min': 0, 'max': 1000, 'value': 30},
+            'Use Fast Search': {'type': 'check', 'default': True, 'value': True},
+            'Fast Move Limit': {'type': 'spin', 'default': 12, 'min': 4, 'max': 30, 'value': 12},
         }
 
     def uci(self):
@@ -48,6 +50,8 @@ class UCIEngine:
                 print(f"option name {option_name} type spin default {option_info['default']} min {option_info['min']} max {option_info['max']}")
             elif option_info['type'] == 'button':
                 print(f"option name {option_name} type button")
+            elif option_info['type'] == 'check':
+                print(f"option name {option_name} type check default {str(option_info['default']).lower()}")
                 
         print("uciok")
         sys.stdout.flush()
@@ -75,6 +79,19 @@ class UCIEngine:
                         try:
                             overhead = int(option_value)
                             self.options["Move Overhead"]["value"] = overhead
+                        except ValueError:
+                            pass
+                    elif option_name == "Use Fast Search":
+                        use_fast = option_value.lower() == "true"
+                        self.options["Use Fast Search"]["value"] = use_fast
+                        fast_limit = self.options["Fast Move Limit"]["value"]
+                        self.engine.set_search_mode(use_fast_search=use_fast, fast_move_limit=fast_limit)
+                    elif option_name == "Fast Move Limit":
+                        try:
+                            fast_limit = int(option_value)
+                            self.options["Fast Move Limit"]["value"] = fast_limit
+                            use_fast = self.options["Use Fast Search"]["value"]
+                            self.engine.set_search_mode(use_fast_search=use_fast, fast_move_limit=fast_limit)
                         except ValueError:
                             pass
 

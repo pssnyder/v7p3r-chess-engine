@@ -1,0 +1,12 @@
+uci
+isready
+setoption name Hash value 128
+position startpos
+go movetime 1000
+ucinewgame
+position startpos moves e2e4 e7e5
+go depth 2
+ucinewgame
+position startpos
+go nodes 500
+quit

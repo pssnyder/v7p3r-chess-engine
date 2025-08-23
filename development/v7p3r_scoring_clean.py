@@ -15,11 +15,11 @@ class V7P3RScoringCalculation:
 
     def calculate_score_optimized(self, board: chess.Board, color: chess.Color, endgame_factor: float = 0.0) -> float:
         """
-        C0BR4-aligned scoring with only proven heuristics for performance and gameplay alignment.
+        Optimized scoring with early exit thresholds for performance.
         """
         score = 0.0
         
-        # Phase 1: Critical threats and material (C0BR4 equivalents)
+        # Phase 1: Critical threats and material (always calculate)
         checkmate_score = self._checkmate_threats(board, color)
         score += checkmate_score
         
@@ -27,37 +27,51 @@ class V7P3RScoringCalculation:
         if abs(checkmate_score) > 5000:
             return score
             
-        # C0BR4 EQUIVALENT HEURISTICS ONLY
-        # 1. Material evaluation (C0BR4 core)
-        material_score = self._material_score(board, color)
-        score += material_score
-        
-        # 2. King Safety (C0BR4 core)
         king_safety = self._king_safety(board, color)
         score += king_safety
+        king_threat = self._king_threat(board, color)  
+        score += king_threat
+        queen_safety = self._queen_safety(board, color)
+        score += queen_safety
         
-        # 3. Development/PST equivalent (C0BR4 piece-square tables)
-        score += self._development_bonus(board, color)
-        
-        # 4. Castling evaluation (C0BR4 castling incentive/rights)
-        score += self._castling_evaluation(board, color)
-        
-        # 5. Rook coordination (C0BR4 core)
-        score += self._rook_coordination(board, color)
-        
-        # 6. Draw scenarios (chess fundamental)
+        # Early exit 2: King is in severe danger
+        if (king_safety + king_threat) < -300:
+            return score + self._material_score(board, color)
+            
+        material_score = self._material_score(board, color)
+        score += material_score
         draw_score = self._draw_scenarios(board)
         score += draw_score
         
-        # Early exit for massive material advantage
+        # Early exit 3: Massive material advantage
         if abs(material_score) > 1500:
             return score
             
-        # Early exit for king danger
-        if king_safety < -300:
-            return score
-        
-        # C0BR4 ENDGAME EQUIVALENT
+        # Phase 2: Basic tactical patterns (only if game is close)
+        if abs(score) < 300:
+            # Keep only lightweight tactical evaluation
+            score += self._lightweight_tactics(board, color)
+                
+        # Phase 3: Basic positional factors (only in balanced positions)  
+        if abs(score) < 150:
+            score += self._piece_coordination(board, color)
+            score += self._center_control(board, color)
+            
+        # Phase 4: Detailed evaluation (only in very close games)
+        if abs(score) < 50:
+            score += self._basic_pawn_structure(board, color)
+            score += self._pawn_majority(board, color)
+            score += self._bishop_pair(board, color) 
+            score += self._knight_pair(board, color)
+            score += self._rook_coordination(board, color)
+            score += self._castling_evaluation(board, color)
+            
+        # Phase 5: Fine-grained evaluation (only if still very close)
+        if abs(score) < 25:
+            score += self._mobility_score(board, color)
+            score += self._open_files(board, color)
+            
+        # Always include endgame logic if it's endgame
         if self._is_endgame(board):
             score += self._endgame_logic(board, color)
             
@@ -153,41 +167,6 @@ class V7P3RScoringCalculation:
             return -900.0  # Heavy penalty for exposed queen
         return 0.0
 
-    def _development_bonus(self, board: chess.Board, color: chess.Color) -> float:
-        """Encourage good piece development in opening."""
-        if self._is_endgame(board):
-            return 0.0
-            
-        score = 0.0
-        
-        # Penalty for undeveloped knights and bishops
-        starting_squares = {
-            chess.WHITE: {
-                chess.KNIGHT: [chess.B1, chess.G1],
-                chess.BISHOP: [chess.C1, chess.F1]
-            },
-            chess.BLACK: {
-                chess.KNIGHT: [chess.B8, chess.G8], 
-                chess.BISHOP: [chess.C8, chess.F8]
-            }
-        }
-        
-        for piece_type, squares in starting_squares[color].items():
-            for square in squares:
-                piece = board.piece_at(square)
-                if piece and piece.color == color and piece.piece_type == piece_type:
-                    score -= 1.0  # Penalty for undeveloped piece
-        
-        # Bonus for castling
-        king_square = board.king(color)
-        if king_square:
-            if color == chess.WHITE and king_square in [chess.G1, chess.C1]:
-                score += 2.0
-            elif color == chess.BLACK and king_square in [chess.G8, chess.C8]:
-                score += 2.0
-        
-        return score
-
     def _lightweight_tactics(self, board: chess.Board, color: chess.Color) -> float:
         """Lightweight tactical evaluation - captures and hanging pieces only."""
         score = 0.0
@@ -223,41 +202,13 @@ class V7P3RScoringCalculation:
         return score
 
     def _center_control(self, board: chess.Board, color: chess.Color) -> float:
-        """Enhanced center control with pawn and piece evaluation."""
+        """Simple center control."""
         score = 0.0
         center = [chess.D4, chess.D5, chess.E4, chess.E5]
-        
-        # Bonus for occupying center squares
         for square in center:
             piece = board.piece_at(square)
             if piece and piece.color == color:
-                if piece.piece_type == chess.PAWN:
-                    score += 1.5  # Strong bonus for central pawns
-                else:
-                    score += 0.8  # Good bonus for central pieces
-        
-        # Bonus for attacking center squares
-        for square in center:
-            if board.is_attacked_by(color, square):
-                score += 0.3
-        
-        # Opening development bonus - encourage e4, d4, Nf3, Nc3
-        if not self._is_endgame(board):
-            # Check for good opening moves
-            e4_pawn = board.piece_at(chess.E4)
-            d4_pawn = board.piece_at(chess.D4)
-            f3_knight = board.piece_at(chess.F3 if color == chess.WHITE else chess.F6)
-            c3_knight = board.piece_at(chess.C3 if color == chess.WHITE else chess.C6)
-            
-            if e4_pawn and e4_pawn.piece_type == chess.PAWN and e4_pawn.color == color:
-                score += 2.0
-            if d4_pawn and d4_pawn.piece_type == chess.PAWN and d4_pawn.color == color:
-                score += 2.0
-            if f3_knight and f3_knight.piece_type == chess.KNIGHT and f3_knight.color == color:
-                score += 1.5
-            if c3_knight and c3_knight.piece_type == chess.KNIGHT and c3_knight.color == color:
-                score += 1.5
-        
+                score += 0.5
         return score
 
     def _basic_pawn_structure(self, board: chess.Board, color: chess.Color) -> float:
