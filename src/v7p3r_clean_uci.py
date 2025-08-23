@@ -6,7 +6,7 @@ Simple UCI interface for the clean V7P3R engine
 
 import sys
 import chess
-from v7p3r import V7P3RCleanEngine
+from v7p3r_clean import V7P3RCleanEngine
 
 
 def main():
@@ -14,7 +14,7 @@ def main():
     engine = V7P3RCleanEngine()
     board = chess.Board()
     
-    print("id name V7P3R v7.0 Clean Slate")
+    print("id name V7P3R v6.3 Clean")
     print("id author Pat Snyder")
     print("uciok")
     
@@ -31,7 +31,7 @@ def main():
                 break
                 
             elif command == "uci":
-                print("id name V7P3R v7.0 Clean Slate")
+                print("id name V7P3R v6.3 Clean")
                 print("id author Pat Snyder")
                 print("uciok")
                 

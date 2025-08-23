@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-V7P3R Chess Engine v7.0 - Clean Slate Edition
+V7P3R Chess Engine v6.3 - Clean & Simple
 A fast, clean chess engine inspired by C0BR4's simplicity
 Author: Pat Snyder
 """
@@ -9,7 +9,7 @@ import chess
 import chess.engine
 import time
 from typing import Optional, Tuple, Dict, Any
-from v7p3r_scoring_calculation import V7P3RScoringCalculationClean
+from v7p3r_scoring_clean import V7P3RScoringCalculationClean
 
 
 class V7P3RCleanEngine:
