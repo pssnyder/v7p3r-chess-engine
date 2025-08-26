@@ -14,7 +14,7 @@ def main():
     engine = V7P3RCleanEngine()
     board = chess.Board()
     
-    print("id name V7P3R v7.0 Clean Slate")
+    print("id name V7P3R v7.2")
     print("id author Pat Snyder")
     print("uciok")
     
@@ -31,7 +31,7 @@ def main():
                 break
                 
             elif command == "uci":
-                print("id name V7P3R v7.0 Clean Slate")
+                print("id name V7P3R v7.2")
                 print("id author Pat Snyder")
                 print("uciok")
                 
@@ -40,6 +40,7 @@ def main():
                 
             elif command == "ucinewgame":
                 board = chess.Board()
+                engine.new_game()  # Clear search tables
                 
             elif command == "position":
                 if len(parts) > 1:
@@ -85,18 +86,43 @@ def main():
                     elif part == "wtime" and i + 1 < len(parts):
                         try:
                             if board.turn == chess.WHITE:
-                                time_limit = min(int(parts[i + 1]) / 20000.0, 5.0)  # Use 1/20th of remaining time
+                                # More aggressive time management - compete with SlowMate
+                                remaining_time = int(parts[i + 1]) / 1000.0
+                                # Use more time early game, less time in endgame
+                                moves_played = len(board.move_stack)
+                                if moves_played < 20:
+                                    time_factor = 25.0  # Early game: use 1/25th
+                                elif moves_played < 40:
+                                    time_factor = 30.0  # Mid game: use 1/30th  
+                                else:
+                                    time_factor = 40.0  # End game: use 1/40th
+                                time_limit = min(remaining_time / time_factor, 10.0)
                         except:
                             pass
                     elif part == "btime" and i + 1 < len(parts):
                         try:
                             if board.turn == chess.BLACK:
-                                time_limit = min(int(parts[i + 1]) / 20000.0, 5.0)  # Use 1/20th of remaining time
+                                # More aggressive time management - compete with SlowMate
+                                remaining_time = int(parts[i + 1]) / 1000.0
+                                # Use more time early game, less time in endgame
+                                moves_played = len(board.move_stack)
+                                if moves_played < 20:
+                                    time_factor = 25.0  # Early game: use 1/25th
+                                elif moves_played < 40:
+                                    time_factor = 30.0  # Mid game: use 1/30th  
+                                else:
+                                    time_factor = 40.0  # End game: use 1/40th
+                                time_limit = min(remaining_time / time_factor, 10.0)
                         except:
                             pass
                 
                 best_move = engine.search(board, time_limit)
                 print(f"bestmove {best_move}")
+                
+                # Add a small delay to keep the thinking output visible
+                # This helps users see the engine's analysis before the next move
+                import time
+                time.sleep(0.5)  # Half second delay to let user see analysis
                 
         except (EOFError, KeyboardInterrupt):
             break

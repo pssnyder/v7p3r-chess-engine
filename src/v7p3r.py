@@ -33,6 +33,10 @@ class V7P3RCleanEngine:
         # Evaluation
         self.scoring_calculator = V7P3RScoringCalculationClean(self.piece_values)
         
+        # Move ordering improvements
+        self.killer_moves = {}  # killer_moves[ply] = [move1, move2]
+        self.history_scores = {}  # history_scores[move_key] = score
+        
         # Transposition table for opening guidance only
         self.transposition_table: Dict[str, Dict[str, Any]] = {}
         self._inject_opening_knowledge()
@@ -41,31 +45,72 @@ class V7P3RCleanEngine:
         """Main search entry point - like C0BR4's Think() method"""
         self.nodes_searched = 0
         start_time = time.time()
+        engine_color = board.turn  # Remember what color we're playing
         
         legal_moves = list(board.legal_moves)
         if not legal_moves:
             return chess.Move.null()
             
-        # Simple iterative deepening
+        # Adaptive time management - be more aggressive
+        target_time = min(time_limit * 0.6, 8.0)  # Cap at 8 seconds, use 60% of allocation
+        max_time = min(time_limit * 0.8, 12.0)   # Hard cap at 12 seconds
+        
+        # Simple iterative deepening with aggressive time management
         best_move = legal_moves[0]
         best_pv = [best_move]
         depth = 1
+        last_complete_depth = 0
         
-        while depth <= self.default_depth and (time.time() - start_time) < time_limit * 0.8:
+        while depth <= self.default_depth:
+            iteration_start = time.time()
             try:
                 move, score, pv = self._search_best_move(board, depth)
+                iteration_time = time.time() - iteration_start
+                
                 if move:
                     best_move = move
                     best_pv = pv
+                    last_complete_depth = depth
                     elapsed_ms = int((time.time() - start_time) * 1000)
                     nps = int(self.nodes_searched / max(elapsed_ms / 1000, 0.001))
                     pv_str = " ".join(str(m) for m in pv[:depth])
-                    print(f"info depth {depth} score cp {int(score * 100)} nodes {self.nodes_searched} time {elapsed_ms} nps {nps} pv {pv_str}")
+                    
+                    # CRITICAL FIX: Ensure UCI score is always from engine's perspective
+                    uci_score = score
+                    if board.turn != engine_color:
+                        uci_score = -score  # Flip score if board perspective changed
+                    
+                    # Format score for UCI output
+                    score_str = self._format_uci_score(uci_score, depth)
+                    
+                    print(f"info depth {depth} score {score_str} nodes {self.nodes_searched} time {elapsed_ms} nps {nps} pv {pv_str}")
+                
+                # Aggressive time management: stop if we're approaching time limits
+                elapsed = time.time() - start_time
+                
+                # If this iteration took a long time, probably stop
+                if iteration_time > target_time * 0.4:
+                    break
+                    
+                # If we're approaching target time, stop
+                if elapsed > target_time:
+                    break
+                    
+                # If next iteration would likely exceed max time, stop
+                if elapsed + (iteration_time * 2.5) > max_time:
+                    break
+                    
                 depth += 1
             except:
                 break
                 
         return best_move
+    
+    def new_game(self):
+        """Reset search tables for a new game"""
+        self.killer_moves.clear()
+        self.history_scores.clear()
+        self.nodes_searched = 0
     
     def _search_best_move(self, board: chess.Board, depth: int) -> Tuple[Optional[chess.Move], float, list]:
         """Root search - like C0BR4's SearchBestMove()"""
@@ -96,7 +141,7 @@ class V7P3RCleanEngine:
         
         return best_move, best_score, best_pv
     
-    def _negamax_with_pv(self, board: chess.Board, depth: int, alpha: float, beta: float) -> Tuple[float, list]:
+    def _negamax_with_pv(self, board: chess.Board, depth: int, alpha: float, beta: float, ply: int = 0, allow_null: bool = True) -> Tuple[float, list]:
         """Negamax with alpha-beta pruning that also returns principal variation"""
         self.nodes_searched += 1
         
@@ -107,18 +152,27 @@ class V7P3RCleanEngine:
         # Terminal positions
         if board.is_game_over():
             if board.is_checkmate():
-                return -99999.0 + depth, []  # Prefer faster checkmates
+                # Mate scores: negative for losing, prefer faster checkmates
+                # Use a cleaner mate scoring system
+                return -29000.0 + ply, []  # Negative for being mated, adjusted by ply
             return 0.0, []  # Stalemate
-            
+        
+        # Null move pruning disabled for stability
+        # TODO: Re-implement null move pruning more carefully
+        
         legal_moves = list(board.legal_moves)
-        legal_moves = self._order_moves(board, legal_moves)
+        legal_moves = self._order_moves(board, legal_moves, ply)
         
         best_score = -99999.0
         best_pv = []
         
-        for move in legal_moves:
+        for i, move in enumerate(legal_moves):
+            # Simple late move reduction - skip some moves in shallow search
+            if depth <= 1 and i > 8 and not board.is_capture(move):
+                continue  # Skip non-capture moves late in the list at low depth
+            
             board.push(move)
-            score, pv = self._negamax_with_pv(board, depth - 1, -beta, -alpha)
+            score, pv = self._negamax_with_pv(board, depth - 1, -beta, -alpha, ply + 1)
             score = -score
             board.pop()
             
@@ -129,7 +183,10 @@ class V7P3RCleanEngine:
             alpha = max(alpha, score)
             
             if alpha >= beta:
-                break  # Alpha-beta cutoff
+                # Alpha-beta cutoff - this move caused a cutoff, so it's a "killer"
+                self._store_killer_move(move, ply)
+                self._update_history_score(move, depth)
+                break
                 
         return best_score, best_pv
     
@@ -144,7 +201,9 @@ class V7P3RCleanEngine:
         # Terminal positions
         if board.is_game_over():
             if board.is_checkmate():
-                return -99999.0 + depth  # Prefer faster checkmates
+                # Mate scores: negative for losing, prefer faster checkmates  
+                # Use consistent mate scoring - depth here represents plies from root
+                return -29000.0 + depth  # Negative for being mated, adjusted by depth remaining
             return 0.0  # Stalemate
             
         legal_moves = list(board.legal_moves)
@@ -177,57 +236,131 @@ class V7P3RCleanEngine:
         else:
             return black_score - white_score
     
-    def _order_moves(self, board: chess.Board, moves) -> list:
-        """C0BR4-style move ordering"""
+    def _order_moves(self, board: chess.Board, moves, ply: int = 0) -> list:
+        """Enhanced move ordering with killer moves and history"""
         if len(moves) <= 1:
             return moves
             
         scored_moves = []
         
         for move in moves:
-            score = self._score_move(board, move)
+            score = self._score_move(board, move, ply)
             scored_moves.append((move, score))
             
         # Sort by score (highest first)
         scored_moves.sort(key=lambda x: x[1], reverse=True)
         return [move for move, _ in scored_moves]
     
-    def _score_move(self, board: chess.Board, move: chess.Move) -> float:
-        """C0BR4-style move scoring"""
+    def _score_move(self, board: chess.Board, move: chess.Move, ply: int = 0) -> float:
+        """Enhanced move scoring with killer moves and history heuristic"""
         score = 0.0
         
-        # 1. Captures (MVV-LVA)
+        # 1. Captures (MVV-LVA) - highest priority
         if board.is_capture(move):
             victim = board.piece_at(move.to_square)
             attacker = board.piece_at(move.from_square)
             if victim and attacker:
                 victim_value = self.piece_values.get(victim.piece_type, 0)
                 attacker_value = self.piece_values.get(attacker.piece_type, 0)
-                score += 10000 + (victim_value - attacker_value)
+                # MVV-LVA: prioritize capturing valuable pieces with less valuable pieces
+                score += 100000 + (victim_value * 10) - attacker_value
         
-        # 2. Promotions
+        # 2. Promotions - very high priority
         if move.promotion:
-            score += 9000 + self.piece_values.get(move.promotion, 0)
+            score += 90000 + self.piece_values.get(move.promotion, 0)
         
-        # 3. Checks
+        # 3. Killer moves - good moves that caused cutoffs at this ply
+        if ply in self.killer_moves:
+            if move in self.killer_moves[ply]:
+                score += 80000 - self.killer_moves[ply].index(move) * 1000
+        
+        # 4. Checks - tactical priority
         board.push(move)
         if board.is_check():
-            score += 500
+            score += 5000
         board.pop()
         
-        # 4. Center control
-        if move.to_square in [chess.D4, chess.D5, chess.E4, chess.E5]:
-            score += 10
+        # 5. History heuristic - moves that were good in similar positions
+        move_key = f"{move.from_square}_{move.to_square}"
+        if move_key in self.history_scores:
+            score += min(self.history_scores[move_key], 4000)  # Cap history bonus
             
-        # 5. Development
+        # 6. Center control - positional bonus
+        if move.to_square in [chess.D4, chess.D5, chess.E4, chess.E5]:
+            score += 100
+            
+        # 7. Development bonus - piece activity
         piece = board.piece_at(move.from_square)
         if piece and piece.piece_type in [chess.KNIGHT, chess.BISHOP]:
             # Development from back rank
             if (piece.color == chess.WHITE and chess.square_rank(move.from_square) == 0) or \
                (piece.color == chess.BLACK and chess.square_rank(move.from_square) == 7):
-                score += 5
+                score += 50
+        
+        # 8. King safety penalty for moving king early
+        if piece and piece.piece_type == chess.KING:
+            if len(list(board.move_stack)) < 10:  # Early game
+                score -= 200
         
         return score
+    
+    def _store_killer_move(self, move: chess.Move, ply: int):
+        """Store a killer move that caused a cutoff"""
+        if ply not in self.killer_moves:
+            self.killer_moves[ply] = []
+        
+        # Remove if already present
+        if move in self.killer_moves[ply]:
+            self.killer_moves[ply].remove(move)
+        
+        # Add to front
+        self.killer_moves[ply].insert(0, move)
+        
+        # Keep only top 2 killer moves per ply
+        if len(self.killer_moves[ply]) > 2:
+            self.killer_moves[ply] = self.killer_moves[ply][:2]
+    
+    def _update_history_score(self, move: chess.Move, depth: int):
+        """Update history heuristic score for a move"""
+        move_key = f"{move.from_square}_{move.to_square}"
+        bonus = depth * depth  # Higher bonus for deeper cutoffs
+        
+        if move_key in self.history_scores:
+            self.history_scores[move_key] += bonus
+        else:
+            self.history_scores[move_key] = bonus
+        
+        # Prevent overflow
+        if self.history_scores[move_key] > 10000:
+            self.history_scores[move_key] = 10000
+    
+    def _format_uci_score(self, score: float, search_depth: int) -> str:
+        """Format score for UCI output - properly handle mate scores"""
+        # Check if this is a mate score (lowered threshold to catch 29000 scores)
+        if abs(score) >= 28500:
+            # This is a mate score
+            if score > 0:
+                # We have mate - calculate moves to mate more accurately
+                # Score is close to 29000, so calculate depth more precisely
+                if score >= 29000:
+                    # This is a forced mate
+                    depth_to_mate = 29000 - score + search_depth
+                    mate_in = max(1, int((depth_to_mate + 1) / 2))
+                else:
+                    # Lower scoring mate - likely deeper
+                    mate_in = max(1, min(10, int((29000 - score + search_depth) / 2)))
+                return f"mate {mate_in}"
+            else:
+                # We're getting mated
+                if score <= -29000:
+                    depth_to_mate = 29000 + score + search_depth  # score is negative
+                    mate_in = max(1, int((depth_to_mate + 1) / 2))
+                else:
+                    mate_in = max(1, min(10, int((29000 + score + search_depth) / 2)))
+                return f"mate -{mate_in}"
+        else:
+            # Regular positional score in centipawns
+            return f"cp {int(score)}"
     
     def _inject_opening_knowledge(self):
         """Simple opening book injection"""
