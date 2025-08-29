@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
 """
-V7P3R Chess Engine v8.2 - "Enhanced Move Ordering"
-Unified Architecture with Deterministic Evaluation and Enhanced Move Ordering
-Building on V8.1 stability with improved move ordering aligned with evaluation heuristics
+V7P3R Chess Engine v9.0 - Tournament Ready
+Consolidated V8.x series improvements with memory optimization and enhanced performance
 Author: Pat Snyder
 """
+
+import time
+import chess
+import chess.pgn
+from typing import Optional, Dict, List, Tuple, Any
+from dataclasses import dataclass
+from collections import OrderedDict
 
 # V9.0 Memory Management Integration
 class MemoryPolicy:
