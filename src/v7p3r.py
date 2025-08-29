@@ -7,6 +7,7 @@ Author: Pat Snyder
 
 import chess
 import chess.engine
+import sys
 import time
 from typing import Optional, Tuple, Dict, Any
 from v7p3r_scoring_calculation import V7P3RScoringCalculationClean
@@ -29,6 +30,7 @@ class V7P3RCleanEngine:
         # Search configuration
         self.default_depth = 6
         self.nodes_searched = 0
+        self.root_color = chess.WHITE  # Initialize root color
         
         # Evaluation
         self.scoring_calculator = V7P3RScoringCalculationClean(self.piece_values)
@@ -44,8 +46,8 @@ class V7P3RCleanEngine:
     def search(self, board: chess.Board, time_limit: float = 3.0) -> chess.Move:
         """Main search entry point - like C0BR4's Think() method"""
         self.nodes_searched = 0
+        self.root_color = board.turn  # Store the root perspective
         start_time = time.time()
-        engine_color = board.turn  # Remember what color we're playing
         
         legal_moves = list(board.legal_moves)
         if not legal_moves:
@@ -75,15 +77,16 @@ class V7P3RCleanEngine:
                     nps = int(self.nodes_searched / max(elapsed_ms / 1000, 0.001))
                     pv_str = " ".join(str(m) for m in pv[:depth])
                     
-                    # CRITICAL FIX: Ensure UCI score is always from engine's perspective
+                    # CRITICAL FIX: UCI scores should always be from side-to-move perspective
+                    # The score from _search_best_move is already from the side-to-move perspective
+                    # (positive = good for side to move, negative = bad for side to move)
                     uci_score = score
-                    if board.turn != engine_color:
-                        uci_score = -score  # Flip score if board perspective changed
                     
                     # Format score for UCI output
                     score_str = self._format_uci_score(uci_score, depth)
                     
                     print(f"info depth {depth} score {score_str} nodes {self.nodes_searched} time {elapsed_ms} nps {nps} pv {pv_str}")
+                    sys.stdout.flush()  # Ensure UCI info appears immediately
                 
                 # Aggressive time management: stop if we're approaching time limits
                 elapsed = time.time() - start_time
@@ -147,7 +150,13 @@ class V7P3RCleanEngine:
         
         # Terminal depth
         if depth == 0:
-            return self._evaluate_position(board, board.turn), []
+            # Always evaluate from the root player's perspective
+            # Negamax handles the sign flipping through negation
+            eval_score = self._evaluate_position(board, self.root_color)
+            # If it's not the root player's turn, we need to negate for negamax
+            if board.turn != self.root_color:
+                eval_score = -eval_score
+            return eval_score, []
             
         # Terminal positions
         if board.is_game_over():

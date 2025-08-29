@@ -1,0 +1,163 @@
+[
+  {
+    "test": 1,
+    "description": "Starting Position",
+    "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "flipped_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b kqKQ - 0 1",
+    "original": {
+      "move": "e2e4",
+      "eval": 0.0,
+      "depth": 5,
+      "time": 1177,
+      "nodes": 14457
+    },
+    "flipped": {
+      "move": "e2e4",
+      "eval": 0.0,
+      "depth": 5,
+      "time": 1000,
+      "nodes": 14460
+    },
+    "eval_consistency": true,
+    "depth_consistency": true,
+    "eval_sum": 0.0
+  },
+  {
+    "test": 2,
+    "description": "Early Opening - Reti",
+    "fen": "rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b KQkq - 1 1",
+    "flipped_fen": "rnbqkb1r/pppppppp/5n2/8/8/8/PPPPPPPP/RNBQKBNR w kqKQ - 1 1",
+    "original": {
+      "move": "g8f6",
+      "eval": -10.0,
+      "depth": 5,
+      "time": 1332,
+      "nodes": 16402
+    },
+    "flipped": {
+      "move": "g8f6",
+      "eval": -10.0,
+      "depth": 5,
+      "time": 1108,
+      "nodes": 16410
+    },
+    "eval_consistency": false,
+    "depth_consistency": true,
+    "eval_sum": -20.0
+  },
+  {
+    "test": 3,
+    "description": "Post c3-d4 setup",
+    "fen": "rnbqkbnr/ppp1pppp/8/3p4/3P4/2P2N2/PP2PPPP/RNBQKB1R b KQkq - 0 3",
+    "flipped_fen": "rnbqkb1r/pp2pppp/2p2n2/3p4/3P4/8/PPP1PPPP/RNBQKBNR w kqKQ - 0 3",
+    "original": {
+      "move": "c8g4",
+      "eval": -5.0,
+      "depth": 5,
+      "time": 2175,
+      "nodes": 25486
+    },
+    "flipped": {
+      "move": "c8g4",
+      "eval": -5.0,
+      "depth": 5,
+      "time": 1809,
+      "nodes": 25485
+    },
+    "eval_consistency": false,
+    "depth_consistency": true,
+    "eval_sum": -10.0
+  },
+  {
+    "test": 4,
+    "description": "Middlegame Test",
+    "fen": "r1bqkb1r/pppp1ppp/2n2n2/4p3/4P3/3P1N2/PPP2PPP/RNBQKB1R w KQkq - 4 5",
+    "flipped_fen": "rnbqkb1r/ppp2ppp/3p1n2/4p3/4P3/2N2N2/PPPP1PPP/R1BQKB1R b kqKQ - 4 5",
+    "original": {
+      "move": "c1g5",
+      "eval": -10.0,
+      "depth": 5,
+      "time": 3426,
+      "nodes": 36879
+    },
+    "flipped": {
+      "move": "c1g5",
+      "eval": -10.0,
+      "depth": 5,
+      "time": 2913,
+      "nodes": 36878
+    },
+    "eval_consistency": false,
+    "depth_consistency": true,
+    "eval_sum": -20.0
+  },
+  {
+    "test": 5,
+    "description": "Black to Move Test",
+    "fen": "rnbqk2r/pppp1ppp/5n2/2b1p3/2B1P3/3P1N2/PPP2PPP/RNBQK2R b KQkq - 3 5",
+    "flipped_fen": "rnbqk2r/ppp2ppp/3p1n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w kqKQ - 3 5",
+    "original": {
+      "move": "c5b4",
+      "eval": 0.0,
+      "depth": 5,
+      "time": 2041,
+      "nodes": 20372
+    },
+    "flipped": {
+      "move": "c5b4",
+      "eval": 0.0,
+      "depth": 5,
+      "time": 1787,
+      "nodes": 20449
+    },
+    "eval_consistency": true,
+    "depth_consistency": true,
+    "eval_sum": 0.0
+  },
+  {
+    "test": 6,
+    "description": "Simple Endgame",
+    "fen": "8/8/8/8/3k4/8/3K4/8 w - - 0 1",
+    "flipped_fen": "8/3k4/8/3K4/8/8/8/8 b - - 0 1",
+    "original": {
+      "move": "d2e2",
+      "eval": 0.0,
+      "depth": 6,
+      "time": 0,
+      "nodes": 30
+    },
+    "flipped": {
+      "move": "d7e8",
+      "eval": 0.0,
+      "depth": 6,
+      "time": 0,
+      "nodes": 30
+    },
+    "eval_consistency": true,
+    "depth_consistency": true,
+    "eval_sum": 0.0
+  },
+  {
+    "test": 7,
+    "description": "Complex Position",
+    "fen": "r1bq1rk1/pppp1ppp/2n2n2/2b1p3/2B1P3/3P1N2/PPP2PPP/RNBQ1RK1 b - - 0 6",
+    "flipped_fen": "rnbq1rk1/ppp2ppp/3p1n2/2b1p3/2B1P3/2N2N2/PPPP1PPP/R1BQ1RK1 w - - 0 6",
+    "original": {
+      "move": "d7d5",
+      "eval": 0.0,
+      "depth": 5,
+      "time": 3552,
+      "nodes": 39011
+    },
+    "flipped": {
+      "move": "d2d4",
+      "eval": -100.0,
+      "depth": 5,
+      "time": 4181,
+      "nodes": 46002
+    },
+    "eval_consistency": false,
+    "depth_consistency": true,
+    "eval_sum": -100.0
+  }
+]
