@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-V7P3R UCI Interface v9.2
+V7P3R v9.3 UCI Interface
 Clean UCI interface with deterministic evaluation
 """
 
@@ -10,13 +10,9 @@ from v7p3r import V7P3RCleanEngine
 
 
 def main():
-    """Clean UCI interface for V9.2"""
+    """Clean UCI interface for V9.3"""
     engine = V7P3RCleanEngine()
     board = chess.Board()
-    
-    print("id name V7P3R v9.2")
-    print("id author Pat Snyder")
-    print("uciok")
     
     while True:
         try:
@@ -28,16 +24,22 @@ def main():
             command = parts[0]
             
             if command == "quit":
+                                # V9.3: No configuration options (enhanced heuristics built-in)
                 break
                 
             elif command == "uci":
-                print("id name V7P3R v9.2")
+                # V9.3: Simplified UCI options - enhanced heuristics built-in
+                print("id name V7P3R v9.3")
                 print("id author Pat Snyder")
                 print("uciok")
                 
             elif command == "setoption":
-                # V9.2: No configuration options for now
-                pass
+                # V9.3: Enhanced heuristics are built-in, no configuration needed
+                if len(parts) >= 4 and parts[1] == "name":
+                    option_name = parts[2]
+                    if len(parts) >= 5 and parts[3] == "value":
+                        option_value = parts[4]
+                        print(f"info string Option {option_name}={option_value} acknowledged but not used in v9.3")
                 
             elif command == "isready":
                 print("readyok")
@@ -45,7 +47,7 @@ def main():
             elif command == "ucinewgame":
                 board = chess.Board()
                 engine.new_game()
-                print("info string New game started - V9.2 deterministic engine")
+                print("info string New game started - V9.3 enhanced engine")
                 
             elif command == "position":
                 if len(parts) > 1:
@@ -73,6 +75,8 @@ def main():
                                 break
                                 
             elif command == "go":
+                # Clear previous UCI info when starting to think about a new position
+                # This ensures previous analysis stays visible until we start the next search
                 print("info string Starting search...")
                 sys.stdout.flush()
                 
@@ -94,7 +98,9 @@ def main():
                     elif part == "wtime" and i + 1 < len(parts):
                         try:
                             if board.turn == chess.WHITE:
+                                # More aggressive time management - compete with SlowMate
                                 remaining_time = int(parts[i + 1]) / 1000.0
+                                # Use more time early game, less time in endgame
                                 moves_played = len(board.move_stack)
                                 if moves_played < 20:
                                     time_factor = 25.0  # Early game: use 1/25th
@@ -108,7 +114,9 @@ def main():
                     elif part == "btime" and i + 1 < len(parts):
                         try:
                             if board.turn == chess.BLACK:
+                                # More aggressive time management - compete with SlowMate
                                 remaining_time = int(parts[i + 1]) / 1000.0
+                                # Use more time early game, less time in endgame
                                 moves_played = len(board.move_stack)
                                 if moves_played < 20:
                                     time_factor = 25.0  # Early game: use 1/25th
@@ -123,10 +131,10 @@ def main():
                 best_move = engine.search(board, time_limit)
                 print(f"bestmove {best_move}")
                 
-                # Print performance stats
+                # Print enhanced performance stats from V9.0
                 stats = engine.get_search_stats()
                 print(f"info string nodes {engine.nodes_searched} cache_hits {stats['cache_hits']} memory_usage {stats.get('memory_mb', 0):.1f}MB")
-                sys.stdout.flush()
+                sys.stdout.flush()  # Ensure output is sent immediately
                 
         except (EOFError, KeyboardInterrupt):
             break

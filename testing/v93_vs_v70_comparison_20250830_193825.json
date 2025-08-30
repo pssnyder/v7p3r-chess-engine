@@ -1,0 +1,110 @@
+{
+  "timestamp": "2025-08-30T19:38:14.007949",
+  "version": "v9.3 vs v7.0",
+  "positions": [
+    {
+      "v93": {
+        "move": "f1d3",
+        "eval": 0.0,
+        "time": 1.9400608539581299
+      },
+      "position": {
+        "name": "Opening Control",
+        "fen": "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2",
+        "importance": "high",
+        "category": "opening"
+      }
+    },
+    {
+      "v93": {
+        "move": "f1e2",
+        "eval": 0.0,
+        "time": 1.6456148624420166
+      },
+      "position": {
+        "name": "Knight Development",
+        "fen": "rnbqkb1r/pppp1ppp/5n2/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3",
+        "importance": "high",
+        "category": "development"
+      }
+    },
+    {
+      "v93": {
+        "move": "c4b5",
+        "eval": -1.55499999999995,
+        "time": 1.644676685333252
+      },
+      "position": {
+        "name": "Tactical Fork Setup",
+        "fen": "r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
+        "importance": "critical",
+        "category": "tactics"
+      }
+    },
+    {
+      "v93": {
+        "move": "h1g1",
+        "eval": -18.83499999999998,
+        "time": 0.8650836944580078
+      },
+      "position": {
+        "name": "Material Imbalance",
+        "fen": "r3k2r/8/8/8/8/8/8/4Q2K w kq - 0 1",
+        "importance": "high",
+        "category": "material"
+      }
+    },
+    {
+      "v93": {
+        "move": "d1c1",
+        "eval": 9.0,
+        "time": 0.29392170906066895
+      },
+      "position": {
+        "name": "Endgame King Activity",
+        "fen": "8/8/8/8/8/3k4/3P4/3K4 w - - 0 1",
+        "importance": "medium",
+        "category": "endgame"
+      }
+    },
+    {
+      "v93": {
+        "move": "c1g5",
+        "eval": 16.019999999999982,
+        "time": 1.9479763507843018
+      },
+      "position": {
+        "name": "Pawn Structure",
+        "fen": "r1bqkb1r/pp2pppp/2np1n2/8/3PP3/2N2N2/PPP2PPP/R1BQKB1R w KQkq - 0 5",
+        "importance": "medium",
+        "category": "structure"
+      }
+    },
+    {
+      "v93": {
+        "move": "c1e3",
+        "eval": -3.769999999999982,
+        "time": 1.6418228149414062
+      },
+      "position": {
+        "name": "King Safety",
+        "fen": "r1bq1rk1/pppp1ppp/2n2n2/2b1p3/2B1P3/3P1N2/PPP2PPP/RNBQ1RK1 w - - 0 6",
+        "importance": "critical",
+        "category": "safety"
+      }
+    },
+    {
+      "v93": {
+        "move": "f8d6",
+        "eval": 1.55499999999995,
+        "time": 1.9233741760253906
+      },
+      "position": {
+        "name": "Pin Pressure",
+        "fen": "r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 0 4",
+        "importance": "high",
+        "category": "tactics"
+      }
+    }
+  ]
+}
