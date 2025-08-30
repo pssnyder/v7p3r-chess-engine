@@ -138,7 +138,6 @@ import sys
 from typing import Optional, Tuple, Dict, Any, List, Set
 from dataclasses import dataclass
 from v7p3r_scoring_calculation import V7P3RScoringCalculationClean
-from v7p3r_confidence_engine import MultithreadedEvaluationEngine, ConfidenceWeightedEvaluation
 
 
 @dataclass
@@ -178,7 +177,7 @@ class MoveOrderingContext:
 
 
 class V7P3RCleanEngine:
-    """V9.1 - Enhanced with Multithreaded Confidence-Based Evaluation"""
+    """V9.2 - Clean Engine with Deterministic Evaluation"""
     
     def __init__(self):
         # Basic configuration
@@ -197,10 +196,6 @@ class V7P3RCleanEngine:
         
         # Evaluation components
         self.scoring_calculator = V7P3RScoringCalculationClean(self.piece_values)
-        
-        # V9.1: Multithreaded confidence-based evaluation
-        self.confidence_engine = MultithreadedEvaluationEngine(max_threads=4)
-        self.use_multithreaded_eval = True  # Flag to enable/disable for testing
         
         # Unified search optimizations (kept from V8.0)
         self.killer_moves = {}  # killer_moves[ply] = [move1, move2]
@@ -263,7 +258,7 @@ class V7P3RCleanEngine:
                     print(f"info depth {depth} score {score_str} nodes {self.nodes_searched} time {elapsed_ms} nps {nps} pv {pv_str}")
                     sys.stdout.flush()
                 
-                # Time management (kept from V8.0, removed confidence system)
+                # Time management (kept from V8.0)
                 elapsed = time.time() - start_time
                 
                 if iteration_time > target_time * 0.4 or elapsed > target_time:
@@ -280,7 +275,7 @@ class V7P3RCleanEngine:
     
     def _unified_search_root(self, board: chess.Board, depth: int, options: SearchOptions) -> Tuple[Optional[chess.Move], float, list]:
         """
-        V9.1: Enhanced root search with confidence-based move evaluation
+        V9.2: Deterministic root search
         """
         legal_moves = list(board.legal_moves)
         if not legal_moves:
@@ -291,53 +286,24 @@ class V7P3RCleanEngine:
         
         best_move = legal_moves[0]
         best_score = -99999.0
-        best_confidence = 0.0
         best_pv = [best_move]
         alpha = -99999.0
         beta = 99999.0
         
-        # V9.1: Use confidence-based evaluation for move selection
-        for i, move in enumerate(legal_moves):
-            if self.use_multithreaded_eval and i < 5:  # Use confidence eval for top 5 moves
-                # Calculate time allocation per move (more time for promising moves)
-                time_per_move = max(0.1, min(1.0, (6 - i) * 0.2))
-                
-                confidence_eval = self._evaluate_position_with_confidence(
-                    board, move, depth, time_per_move
-                )
-                
-                score = confidence_eval.final_evaluation
-                confidence = confidence_eval.confidence_weight
-                
-                # Prefer moves with higher confidence when scores are close
-                is_better_move = (
-                    score > best_score or 
-                    (abs(score - best_score) < 50 and confidence > best_confidence)
-                )
-                
-                if is_better_move:
-                    best_score = score
-                    best_confidence = confidence
-                    best_move = move
-                    best_pv = [move]
-                    
-                    # Print confidence info for top moves
-                    print(f"info string Move {move.uci()}: eval={score:.1f} confidence={confidence:.2f} "
-                          f"category={confidence_eval.move_category.value}")
-                    sys.stdout.flush()
-                
-            else:
-                # Use traditional negamax for remaining moves
-                board.push(move)
+        # V9.2: Use deterministic evaluation for move selection
+        for move in legal_moves:
+            board.push(move)
+            try:
                 score, pv = self._unified_negamax(board, depth - 1, -beta, -alpha, 1, options)
                 score = -score
+            finally:
                 board.pop()
+            
+            if score > best_score:
+                best_score = score
+                best_move = move
+                best_pv = [move] + pv if options.return_pv else [move]
                 
-                if score > best_score:
-                    best_score = score
-                    best_move = move
-                    best_pv = [move] + pv if options.return_pv else [move]
-                    
             alpha = max(alpha, best_score)
         
         return best_move, best_score, best_pv
@@ -433,29 +399,6 @@ class V7P3RCleanEngine:
         self.evaluation_cache[cache_key] = final_score
         
         return final_score
-    
-    def _evaluate_position_with_confidence(self, board: chess.Board, move: chess.Move,
-                                         depth: int = 3, time_allocation: float = 0.5) -> ConfidenceWeightedEvaluation:
-        """
-        V9.1: Confidence-based evaluation using multithreaded analysis
-        """
-        if not self.use_multithreaded_eval:
-            # Fallback to deterministic evaluation
-            board.push(move)
-            try:
-                raw_eval = self._evaluate_position_deterministic(board)
-                # Create a basic confidence evaluation for compatibility
-                from v7p3r_confidence_engine import EvaluationMetrics, MoveCategory
-                metrics = EvaluationMetrics(search_depth=depth, time_allocated=time_allocation,
-                                          time_spent=time_allocation, thread_count=1)
-                return ConfidenceWeightedEvaluation.create(raw_eval, metrics, MoveCategory.QUIET, board, move)
-            finally:
-                board.pop()
-        
-        # Use multithreaded confidence evaluation
-        return self.confidence_engine.evaluate_position_multithreaded(
-            board, move, self, depth, time_allocation
-        )
     
     def _configure_search_options(self, time_limit: float) -> SearchOptions:
         """Configure search options based on available time (simplified from V8.0)"""
@@ -875,33 +818,12 @@ class V7P3RCleanEngine:
         self.evaluation_cache.clear()
         self.nodes_searched = 0
         
-        # V9.1: Reset confidence engine
-        if hasattr(self, 'confidence_engine'):
-            self.confidence_engine.evaluation_cache.clear()
-        
         # Reset performance stats
         self.search_stats = {
             'nodes_per_second': 0,
             'cache_hits': 0,
             'cache_misses': 0,
         }
-    
-    def set_multithreaded_evaluation(self, enabled: bool):
-        """Enable or disable multithreaded confidence evaluation"""
-        self.use_multithreaded_eval = enabled
-        print(f"info string Multithreaded evaluation: {'enabled' if enabled else 'disabled'}")
-        sys.stdout.flush()
-    
-    def get_confidence_stats(self) -> Dict[str, Any]:
-        """Get statistics from the confidence evaluation engine"""
-        if hasattr(self, 'confidence_engine'):
-            return self.confidence_engine.get_stats()
-        return {}
-    
-    def cleanup(self):
-        """Clean up resources, especially thread pools"""
-        if hasattr(self, 'confidence_engine'):
-            self.confidence_engine.cleanup()
     
     def _store_killer_move(self, move: chess.Move, ply: int):
         """Store a killer move that caused a cutoff"""

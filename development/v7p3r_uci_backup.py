@@ -16,6 +16,7 @@ def main():
     
     print("id name V7P3R v9.2")
     print("id author Pat Snyder")
+    
     print("uciok")
     
     while True:
@@ -28,16 +29,44 @@ def main():
             command = parts[0]
             
             if command == "quit":
+                engine.cleanup()  # V9.1: Clean up thread pools
                 break
                 
             elif command == "uci":
-                print("id name V7P3R v9.2")
+                print("id name V7P3R v9.1")
                 print("id author Pat Snyder")
+                print("option name UseMultithreadedEval type check default true")
+                print("option name MaxThreads type spin default 4 min 1 max 8")
+                print("option name ConfidenceThreshold type spin default 50 min 10 max 90")
                 print("uciok")
                 
             elif command == "setoption":
-                # V9.2: No configuration options for now
-                pass
+                # V9.1: Handle confidence system options
+                if len(parts) >= 4 and parts[1] == "name":
+                    option_name = parts[2]
+                    if len(parts) >= 5 and parts[3] == "value":
+                        option_value = parts[4]
+                        
+                        if option_name == "UseMultithreadedEval":
+                            use_mt = option_value.lower() == "true"
+                            engine.set_multithreaded_evaluation(use_mt)
+                            
+                        elif option_name == "MaxThreads":
+                            try:
+                                max_threads = int(option_value)
+                                if hasattr(engine, 'confidence_engine'):
+                                    engine.confidence_engine.max_threads = max_threads
+                                    print(f"info string Max threads set to {max_threads}")
+                            except ValueError:
+                                print("info string Invalid MaxThreads value")
+                                
+                        elif option_name == "ConfidenceThreshold":
+                            try:
+                                threshold = int(option_value)
+                                print(f"info string Confidence threshold set to {threshold}%")
+                                # Could be used to adjust confidence calculations
+                            except ValueError:
+                                print("info string Invalid ConfidenceThreshold value")
                 
             elif command == "isready":
                 print("readyok")
@@ -45,7 +74,7 @@ def main():
             elif command == "ucinewgame":
                 board = chess.Board()
                 engine.new_game()
-                print("info string New game started - V9.2 deterministic engine")
+                print("info string New game started - V9.1 confidence system active")
                 
             elif command == "position":
                 if len(parts) > 1:
@@ -73,6 +102,8 @@ def main():
                                 break
                                 
             elif command == "go":
+                # Clear previous UCI info when starting to think about a new position
+                # This ensures previous analysis stays visible until we start the next search
                 print("info string Starting search...")
                 sys.stdout.flush()
                 
@@ -94,7 +125,9 @@ def main():
                     elif part == "wtime" and i + 1 < len(parts):
                         try:
                             if board.turn == chess.WHITE:
+                                # More aggressive time management - compete with SlowMate
                                 remaining_time = int(parts[i + 1]) / 1000.0
+                                # Use more time early game, less time in endgame
                                 moves_played = len(board.move_stack)
                                 if moves_played < 20:
                                     time_factor = 25.0  # Early game: use 1/25th
@@ -108,7 +141,9 @@ def main():
                     elif part == "btime" and i + 1 < len(parts):
                         try:
                             if board.turn == chess.BLACK:
+                                # More aggressive time management - compete with SlowMate
                                 remaining_time = int(parts[i + 1]) / 1000.0
+                                # Use more time early game, less time in endgame
                                 moves_played = len(board.move_stack)
                                 if moves_played < 20:
                                     time_factor = 25.0  # Early game: use 1/25th
@@ -123,10 +158,10 @@ def main():
                 best_move = engine.search(board, time_limit)
                 print(f"bestmove {best_move}")
                 
-                # Print performance stats
+                # Print enhanced performance stats from V9.0
                 stats = engine.get_search_stats()
                 print(f"info string nodes {engine.nodes_searched} cache_hits {stats['cache_hits']} memory_usage {stats.get('memory_mb', 0):.1f}MB")
-                sys.stdout.flush()
+                sys.stdout.flush()  # Ensure output is sent immediately
                 
         except (EOFError, KeyboardInterrupt):
             break
