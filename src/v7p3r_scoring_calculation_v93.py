@@ -136,12 +136,20 @@ class V7P3RScoringCalculationV93:
         # 6. Center control (tournament-proven importance)
         score += self._center_control(board, color)
         
-        # 7. Endgame-specific logic
+        # 7. Development and opening principles (v9.3 enhanced)
+        score += self._developmental_heuristics(board, color)
+        
+        # 8. Early game penalties (anti-opening book compensation)
+        score += self._early_game_penalties(board, color)
+        
+        # 9. Endgame-specific logic
         if is_endgame:
             score += self._endgame_logic(board, color)
         
-        # CRITICAL: Normalize to proper centipawn range for UCI compliance
-        return max(-999, min(999, score))
+        # CRITICAL: Scale down and normalize to proper centipawn range for UCI compliance
+        # Material values are inflated (pawn=100 instead of 10), so scale down by 10
+        scaled_score = score / 10.0
+        return max(-999, min(999, scaled_score))
     
     def _material_and_position_score(self, board: chess.Board, color: chess.Color, is_endgame: bool) -> float:
         """Combined material and positional evaluation using piece-square tables"""
@@ -360,3 +368,191 @@ class V7P3RScoringCalculationV93:
         
         # If any enemy pawn blocks this pawn's path, it's not passed
         return not any(pawn in blocking_squares for pawn in enemy_pawns)
+    
+    def _developmental_heuristics(self, board: chess.Board, color: chess.Color) -> float:
+        """
+        Enhanced developmental heuristics to compensate for no opening book
+        Encourages good opening principles: development, center control, king safety
+        """
+        score = 0.0
+        move_count = board.fullmove_number
+        
+        # Only apply during opening/early middlegame (first 15 moves)
+        if move_count > 15:
+            return 0.0
+        
+        # 1. Development bonuses (stronger early game)
+        development_bonus = self._calculate_development_bonus(board, color, move_count)
+        score += development_bonus
+        
+        # 2. Central pawn control bonus (opening principle)
+        central_squares = [chess.E4, chess.E5, chess.D4, chess.D5]
+        for square in central_squares:
+            piece = board.piece_at(square)
+            if piece and piece.color == color and piece.piece_type == chess.PAWN:
+                score += 15.0  # Strong bonus for central pawns
+        
+        # 3. Knight before bishop development (classic principle)
+        knights_developed = len([sq for sq in board.pieces(chess.KNIGHT, color) 
+                               if self._is_piece_developed(sq, color)])
+        bishops_developed = len([sq for sq in board.pieces(chess.BISHOP, color) 
+                               if self._is_piece_developed(sq, color)])
+        
+        if knights_developed >= bishops_developed:
+            score += 5.0 * move_count  # Reward proper development order
+        
+        # 4. Castle early bonus (amplified in opening)
+        if self._is_castled(board, color):
+            score += 25.0 + (15 - move_count) * 2.0  # Decreasing bonus over time
+        elif self._can_castle(board, color):
+            score += 10.0  # Small bonus for maintaining castling rights
+        
+        return score
+    
+    def _early_game_penalties(self, board: chess.Board, color: chess.Color) -> float:
+        """
+        Penalties for common opening mistakes
+        Replaces need for opening book by discouraging bad moves
+        """
+        penalty = 0.0
+        move_count = board.fullmove_number
+        
+        # Only apply during opening (first 12 moves)
+        if move_count > 12:
+            return 0.0
+        
+        # 1. Early queen development penalty
+        queen_square = next(iter(board.pieces(chess.QUEEN, color)), None)
+        if queen_square and self._is_queen_developed_early(queen_square, color, move_count):
+            penalty -= 20.0 + (12 - move_count) * 3.0  # Increasing penalty early
+        
+        # 2. Moving same piece multiple times penalty
+        penalty -= self._repetitive_piece_moves_penalty(board, color, move_count)
+        
+        # 3. Premature pawn advances penalty (h/a pawns, f/c pawns early)
+        penalty -= self._premature_pawn_advances_penalty(board, color)
+        
+        # 4. Delaying development penalty
+        penalty -= self._development_delay_penalty(board, color, move_count)
+        
+        # 5. Unsafe king penalty (no castling preparation)
+        if move_count > 8 and not self._is_castled(board, color) and not self._can_castle(board, color):
+            penalty -= 15.0  # Penalty for losing castling rights early
+        
+        return penalty
+    
+    def _calculate_development_bonus(self, board: chess.Board, color: chess.Color, move_count: int) -> float:
+        """Calculate bonus for piece development based on game phase"""
+        bonus = 0.0
+        
+        # Count developed pieces
+        knights = board.pieces(chess.KNIGHT, color)
+        bishops = board.pieces(chess.BISHOP, color)
+        
+        for knight_square in knights:
+            if self._is_piece_developed(knight_square, color):
+                bonus += 15.0 + (15 - move_count) * 1.0  # Diminishing bonus
+        
+        for bishop_square in bishops:
+            if self._is_piece_developed(bishop_square, color):
+                bonus += 12.0 + (15 - move_count) * 0.8
+        
+        return bonus
+    
+    def _is_piece_developed(self, square: chess.Square, color: chess.Color) -> bool:
+        """Check if a piece is developed (not on starting square)"""
+        rank = chess.square_rank(square)
+        
+        if color == chess.WHITE:
+            return rank > 0  # Not on first rank
+        else:
+            return rank < 7  # Not on eighth rank
+    
+    def _is_queen_developed_early(self, queen_square: chess.Square, color: chess.Color, move_count: int) -> bool:
+        """Check if queen is developed too early"""
+        if move_count > 6:  # After move 6, queen development is more acceptable
+            return False
+        
+        starting_square = chess.D1 if color == chess.WHITE else chess.D8
+        return queen_square != starting_square
+    
+    def _repetitive_piece_moves_penalty(self, board: chess.Board, color: chess.Color, move_count: int) -> float:
+        """
+        Penalty for moving the same piece multiple times in opening
+        Note: This requires move history which we approximate by position analysis
+        """
+        penalty = 0.0
+        
+        # Heuristic: Check if pieces are on unusual squares for their development
+        # This approximates detecting repetitive moves without full move history
+        
+        knights = board.pieces(chess.KNIGHT, color)
+        for knight_square in knights:
+            # If knight is on an edge square early, penalize (likely moved multiple times)
+            file = chess.square_file(knight_square)
+            rank = chess.square_rank(knight_square)
+            
+            if move_count <= 8 and (file == 0 or file == 7 or 
+                                  (color == chess.WHITE and rank == 0) or 
+                                  (color == chess.BLACK and rank == 7)):
+                penalty += 10.0  # Knight on edge likely means multiple moves
+        
+        return penalty
+    
+    def _premature_pawn_advances_penalty(self, board: chess.Board, color: chess.Color) -> float:
+        """Penalty for premature pawn advances (h, a, f, c pawns too early)"""
+        penalty = 0.0
+        
+        # Check for advanced h and a pawns (usually premature)
+        wing_files = [0, 1, 6, 7]  # A, B, G, H files (0-7 indexing)
+        
+        for pawn_square in board.pieces(chess.PAWN, color):
+            file = chess.square_file(pawn_square)
+            rank = chess.square_rank(pawn_square)
+            
+            if file in wing_files:
+                # Penalty for advancing wing pawns early
+                if color == chess.WHITE and rank > 1:  # Moved from starting position
+                    penalty += 8.0 * (rank - 1)  # More penalty for further advances
+                elif color == chess.BLACK and rank < 6:
+                    penalty += 8.0 * (6 - rank)
+        
+        return penalty
+    
+    def _development_delay_penalty(self, board: chess.Board, color: chess.Color, move_count: int) -> float:
+        """Penalty for delaying piece development"""
+        penalty = 0.0
+        
+        if move_count > 6:  # Should have some development by move 6
+            developed_pieces = 0
+            
+            # Count developed minor pieces
+            for piece_type in [chess.KNIGHT, chess.BISHOP]:
+                for square in board.pieces(piece_type, color):
+                    if self._is_piece_developed(square, color):
+                        developed_pieces += 1
+            
+            # Should have at least 2 pieces developed by move 6
+            expected_development = min(4, move_count - 2)  # Reasonable expectation
+            if developed_pieces < expected_development:
+                penalty += (expected_development - developed_pieces) * 8.0
+        
+        return penalty
+    
+    def _is_castled(self, board: chess.Board, color: chess.Color) -> bool:
+        """Check if king has castled"""
+        king_square = board.king(color)
+        if not king_square:
+            return False
+        
+        if color == chess.WHITE:
+            return king_square in [chess.G1, chess.C1]
+        else:
+            return king_square in [chess.G8, chess.C8]
+    
+    def _can_castle(self, board: chess.Board, color: chess.Color) -> bool:
+        """Check if castling is still possible"""
+        if color == chess.WHITE:
+            return board.has_kingside_castling_rights(chess.WHITE) or board.has_queenside_castling_rights(chess.WHITE)
+        else:
+            return board.has_kingside_castling_rights(chess.BLACK) or board.has_queenside_castling_rights(chess.BLACK)
