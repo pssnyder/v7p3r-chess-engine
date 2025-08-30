@@ -137,7 +137,7 @@ import time
 import sys
 from typing import Optional, Tuple, Dict, Any, List, Set
 from dataclasses import dataclass
-from v7p3r_scoring_calculation import V7P3RScoringCalculationClean
+from v7p3r_scoring_calculation_v93 import V7P3RScoringCalculationV93
 
 
 @dataclass
@@ -195,7 +195,7 @@ class V7P3RCleanEngine:
         self.nodes_searched = 0
         
         # Evaluation components
-        self.scoring_calculator = V7P3RScoringCalculationClean(self.piece_values)
+        self.scoring_calculator = V7P3RScoringCalculationV93(self.piece_values)
         
         # Unified search optimizations (kept from V8.0)
         self.killer_moves = {}  # killer_moves[ply] = [move1, move2]
