@@ -80,7 +80,7 @@ def test_multiple_positions():
         move = engine.search(board, 1.0)  # 1 second each
         actual_time = time.time() - start_time
         
-        nps = engine.nodes_searched / actual_time
+        nps = engine.nodes_searched / max(actual_time, 0.001)  # Prevent division by zero
         total_nps += nps
         
         print(f"   NPS: {nps:.0f}")

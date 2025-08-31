@@ -21,7 +21,7 @@ import chess
 from typing import Dict, List, Set, Tuple, Optional
 
 
-class V7P3RScoringCalculationClean:
+class V7P3RScoringCalculation:
     """Enhanced scoring with comprehensive tactical pattern recognition"""
     
     def __init__(self, piece_values: Dict):

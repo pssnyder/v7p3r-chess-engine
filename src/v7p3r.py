@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-V7P3R Chess Engine v10.0 - Clean Bitboard Architecture
-Fast engine with bitboard evaluation and simplified search
+V7P3R Chess Engine v9.6 - Unified Search Architecture
+Single search function with time management and all advanced features
 Author: Pat Snyder
 """
 
@@ -92,8 +92,8 @@ class ZobristHashing:
         return hash_value
 
 
-class V7P3RCleanEngine:
-    """V7P3R Chess Engine - Clean bitboard-powered version"""
+class V7P3REngine:
+    """V7P3R Chess Engine v9.5 - Bitboard-powered version"""
     
     def __init__(self):
         # Basic configuration
@@ -140,145 +140,152 @@ class V7P3RCleanEngine:
         self.pv_position_hash = None  # Hash of position where PV was computed
         self.pv_depth = 0  # Depth of last PV computation
     
-    def search(self, board: chess.Board, time_limit: float = 3.0) -> chess.Move:
+    def search(self, board: chess.Board, time_limit: float = 3.0, depth: Optional[int] = None, 
+               alpha: float = -99999, beta: float = 99999, is_root: bool = True) -> chess.Move:
         """
-        UNIFIED SEARCH - The ONE search function with ALL advanced features:
-        - Iterative deepening with stable best move handling
+        UNIFIED SEARCH - Single function with ALL advanced features:
+        - Iterative deepening with stable best move handling (root level)
+        - Alpha-beta pruning with negamax framework (recursive level)  
         - Transposition table with Zobrist hashing
-        - Killer moves (2 per depth)
-        - History heuristic
-        - Advanced move ordering
-        - Alpha-beta pruning
-        - Proper time management
-        - Full PV extraction
+        - Killer moves and history heuristic
+        - Advanced move ordering with tactical detection
+        - Proper time management with periodic checks
+        - Full PV extraction and following
+        - Quiescence search for tactical stability
         """
-        print("info string Starting search...", flush=True)
-        sys.stdout.flush()
         
-        self.nodes_searched = 0
-        start_time = time.time()
-        
-        legal_moves = list(board.legal_moves)
-        if not legal_moves:
-            return chess.Move.null()
-        
-        # PV FOLLOWING OPTIMIZATION - V10 FEATURE
-        # Check if opponent played into our expected PV
-        current_hash = self.zobrist.hash_position(board)
-        if (self.last_pv and len(self.last_pv) >= 1 and 
-            self.pv_position_hash and current_hash != self.pv_position_hash):
+        # ROOT LEVEL: Iterative deepening with time management
+        if is_root:
+            print("info string Starting search...", flush=True)
+            sys.stdout.flush()
             
-            # Check if we can follow our PV (we're at a position we predicted)
-            pv_move = self._check_pv_following(board)
-            if pv_move:
-                print(f"info string PV FOLLOW: Playing predicted move {pv_move}")
-                sys.stdout.flush()
-                return pv_move
-        
-        # Iterative deepening with stability
-        best_move = legal_moves[0]
-        best_score = -99999
-        target_time = min(time_limit * 0.8, 10.0)
-        
-        for depth in range(1, self.default_depth + 1):
-            iteration_start = time.time()
+            self.nodes_searched = 0
+            self.search_start_time = time.time()
             
-            # Check time before starting iteration
-            elapsed = time.time() - start_time
-            if elapsed > target_time * 0.7:  # Don't start new iteration if we're close to time limit
-                print(f"info string Stopping search at depth {depth-1} due to time")
-                break
+            legal_moves = list(board.legal_moves)
+            if not legal_moves:
+                return chess.Move.null()
             
-            try:
-                # Store previous best move in case this iteration fails
-                previous_best = best_move
-                previous_score = best_score
+            # PV FOLLOWING OPTIMIZATION
+            current_hash = self.zobrist.hash_position(board)
+            if (self.last_pv and len(self.last_pv) >= 1 and 
+                self.pv_position_hash and current_hash != self.pv_position_hash):
                 
-                score, move = self._unified_search(board, depth, -99999, 99999)
-                
-                # Only update if we got a valid result
-                if move and move != chess.Move.null():
-                    best_move = move
-                    best_score = score
-                    
-                    elapsed_ms = int((time.time() - start_time) * 1000)
-                    nps = int(self.nodes_searched / max(elapsed_ms / 1000, 0.001))
-                    
-                    # Extract full PV for display and following
-                    pv_line = self._extract_pv(board, depth)
-                    pv_string = " ".join([str(m) for m in pv_line])
-                    
-                    # Store PV for following optimization
-                    if depth >= 4:  # Only store deep enough PVs
-                        self.last_pv = pv_line.copy()
-                        self.pv_position_hash = self.zobrist.hash_position(board)
-                        self.pv_depth = depth
-                    
-                    print(f"info depth {depth} score cp {int(score)} nodes {self.nodes_searched} time {elapsed_ms} nps {nps} pv {pv_string}")
+                pv_move = self._check_pv_following(board)
+                if pv_move:
+                    print(f"info string PV FOLLOW: Playing predicted move {pv_move}")
                     sys.stdout.flush()
-                else:
-                    # Restore previous best if current iteration failed
-                    best_move = previous_best
-                    best_score = previous_score
-                    print(f"info string Iteration {depth} failed, keeping previous best move")
+                    return pv_move
+            
+            # Iterative deepening
+            best_move = legal_moves[0]
+            best_score = -99999
+            target_time = min(time_limit * 0.8, 10.0)
+            
+            for current_depth in range(1, self.default_depth + 1):
+                iteration_start = time.time()
                 
-                # Time management - be more careful about when to stop
-                elapsed = time.time() - start_time
-                iteration_time = time.time() - iteration_start
-                
-                # Stop if we've used too much time or if next iteration would likely exceed limit
-                if elapsed > target_time:
-                    print(f"info string Time limit reached ({elapsed:.2f}s > {target_time:.2f}s)")
+                # Time check before starting iteration
+                elapsed = time.time() - self.search_start_time
+                if elapsed > target_time * 0.7:
+                    print(f"info string Stopping search at depth {current_depth-1} due to time")
                     break
-                elif iteration_time > time_limit * 0.4:  # If this iteration took > 40% of total time
-                    print(f"info string Next iteration would likely exceed time limit")
+                
+                try:
+                    # Store previous best in case iteration fails
+                    previous_best = best_move
+                    previous_score = best_score
+                    
+                    # Call recursive search for this depth
+                    score, move = self._recursive_search(board, current_depth, -99999, 99999, time_limit)
+                    
+                    # Update best move if we got a valid result
+                    if move and move != chess.Move.null():
+                        best_move = move
+                        best_score = score
+                        
+                        elapsed_ms = int((time.time() - self.search_start_time) * 1000)
+                        nps = int(self.nodes_searched / max(elapsed_ms / 1000, 0.001))
+                        
+                        # Extract and display PV
+                        pv_line = self._extract_pv(board, current_depth)
+                        pv_string = " ".join([str(m) for m in pv_line])
+                        
+                        # Store PV for following optimization
+                        if current_depth >= 4:
+                            self.last_pv = pv_line.copy()
+                            self.pv_position_hash = self.zobrist.hash_position(board)
+                            self.pv_depth = current_depth
+                        
+                        print(f"info depth {current_depth} score cp {int(score)} nodes {self.nodes_searched} time {elapsed_ms} nps {nps} pv {pv_string}")
+                        sys.stdout.flush()
+                    else:
+                        # Restore previous best if iteration failed
+                        best_move = previous_best
+                        best_score = previous_score
+                        print(f"info string Iteration {current_depth} failed, keeping previous best move")
+                    
+                    # Time management for next iteration
+                    elapsed = time.time() - self.search_start_time
+                    iteration_time = time.time() - iteration_start
+                    
+                    if elapsed > target_time:
+                        print(f"info string Time limit reached ({elapsed:.2f}s > {target_time:.2f}s)")
+                        break
+                    elif iteration_time > time_limit * 0.4:
+                        print(f"info string Next iteration would likely exceed time limit")
+                        break
+                        
+                except Exception as e:
+                    print(f"info string Search interrupted at depth {current_depth}: {e}")
                     break
                     
-            except Exception as e:
-                # If iteration fails, keep the previous best move
-                print(f"info string Search interrupted at depth {depth}: {e}")
-                break
-                
-        return best_move
+            return best_move
+        
+        # This should never be called directly with is_root=False from external code
+        else:
+            # Fallback - call the recursive search method
+            score, move = self._recursive_search(board, depth or 1, alpha, beta, time_limit)
+            return move if move else chess.Move.null()
     
-    def _unified_search(self, board: chess.Board, depth: int, alpha: float, beta: float) -> Tuple[float, Optional[chess.Move]]:
+    def _recursive_search(self, board: chess.Board, search_depth: int, alpha: float, beta: float, time_limit: float) -> Tuple[float, Optional[chess.Move]]:
         """
-        THE UNIFIED SEARCH FUNCTION - Contains ALL advanced features:
-        - Alpha-beta pruning (negamax framework)
-        - Transposition table with proper bounds
-        - Killer moves (non-captures that cause beta cutoffs)
-        - History heuristic (move success tracking)
-        - Advanced move ordering (TT move > captures > killers > history > quiet)
-        - Proper mate scoring
-        - NULL MOVE PRUNING and other optimizations
+        Recursive alpha-beta search with all advanced features
+        Returns (score, best_move) tuple
         """
         self.nodes_searched += 1
         
-        # 1. TRANSPOSITION TABLE PROBE - PHASE 1 RESTORATION
-        tt_hit, tt_score, tt_move = self._probe_transposition_table(board, depth, int(alpha), int(beta))
+        # CRITICAL: Time checking during recursive search to prevent timeouts
+        if hasattr(self, 'search_start_time') and self.nodes_searched % 1000 == 0:
+            elapsed = time.time() - self.search_start_time
+            if elapsed > time_limit:
+                # Emergency return with current best evaluation
+                return self._evaluate_position(board), None
+        
+        # 1. TRANSPOSITION TABLE PROBE
+        tt_hit, tt_score, tt_move = self._probe_transposition_table(board, search_depth, int(alpha), int(beta))
         if tt_hit:
             return float(tt_score), tt_move
         
         # 2. TERMINAL CONDITIONS
-        if depth == 0:
-            score = self._evaluate_position(board)
+        if search_depth == 0:
+            # Enter quiescence search for tactical stability
+            score = self._quiescence_search(board, alpha, beta, 4)
             return score, None
             
         if board.is_game_over():
             if board.is_checkmate():
-                score = -29000.0 + (self.default_depth - depth)  # Prefer quicker mates
+                score = -29000.0 + (self.default_depth - search_depth)  # Prefer quicker mates
             else:
                 score = 0.0  # Stalemate
             return score, None
         
-        # 3. NULL MOVE PRUNING - PHASE 1 RESTORATION
-        # Be conservative in tactical positions for stability
-        if (depth >= 3 and not board.is_check() and 
+        # 3. NULL MOVE PRUNING
+        if (search_depth >= 3 and not board.is_check() and 
             self._has_non_pawn_pieces(board) and beta - alpha > 1):
             
-            # Make null move
             board.turn = not board.turn
-            null_score, _ = self._unified_search(board, depth - 2, -beta, -beta + 1)  # Conservative reduction
+            null_score, _ = self._recursive_search(board, search_depth - 2, -beta, -beta + 1, time_limit)
             null_score = -null_score
             board.turn = not board.turn
             
@@ -290,63 +297,62 @@ class V7P3RCleanEngine:
         if not legal_moves:
             return 0.0, None
         
-        ordered_moves = self._order_moves_advanced(board, legal_moves, depth, tt_move)
+        ordered_moves = self._order_moves_advanced(board, legal_moves, search_depth, tt_move)
         
         # 5. MAIN SEARCH LOOP (NEGAMAX WITH ALPHA-BETA)
         best_score = -99999.0
-        best_move = None  # Don't initialize to first move - find the actual best!
+        best_move = None
         original_alpha = alpha
         moves_searched = 0
         
         for move in ordered_moves:
             board.push(move)
             
-            # 6. LATE MOVE REDUCTION - PHASE 2 RESTORATION
-            # Conservative LMR for tactical safety
+            # 6. LATE MOVE REDUCTION
             reduction = 0
-            if (moves_searched >= 4 and depth >= 3 and 
+            if (moves_searched >= 4 and search_depth >= 3 and 
                 not board.is_capture(move) and not board.is_check() and
-                not self.killer_moves.is_killer(move, depth)):
+                not self.killer_moves.is_killer(move, search_depth)):
                 reduction = 1
             
             # Search with possible reduction
             if reduction > 0:
-                score, _ = self._unified_search(board, depth - 1 - reduction, -beta, -alpha)
+                score, _ = self._recursive_search(board, search_depth - 1 - reduction, -beta, -alpha, time_limit)
                 score = -score
                 
-                # If reduced search failed high, re-search at full depth
+                # Re-search at full depth if reduced search failed high
                 if score > alpha:
-                    score, _ = self._unified_search(board, depth - 1, -beta, -alpha)
+                    score, _ = self._recursive_search(board, search_depth - 1, -beta, -alpha, time_limit)
                     score = -score
             else:
-                score, _ = self._unified_search(board, depth - 1, -beta, -alpha)
+                score, _ = self._recursive_search(board, search_depth - 1, -beta, -alpha, time_limit)
                 score = -score
             
             board.pop()
             moves_searched += 1
             
-            # CRITICAL FIX: Always update best_move for first move, then only if score improves
+            # Update best move
             if best_move is None or score > best_score:
                 best_score = score
                 best_move = move
             
             alpha = max(alpha, score)
             if alpha >= beta:
-                # 7. BETA CUTOFF - UPDATE HEURISTICS
+                # Beta cutoff - update heuristics
                 if not board.is_capture(move):
-                    self.killer_moves.store_killer(move, depth)
-                    self.history_heuristic.update_history(move, depth)
+                    self.killer_moves.store_killer(move, search_depth)
+                    self.history_heuristic.update_history(move, search_depth)
                     self.search_stats['killer_hits'] += 1
                 break
         
-        # 8. TRANSPOSITION TABLE STORE - PHASE 1 RESTORATION  
-        self._store_transposition_table(board, depth, int(best_score), best_move, int(original_alpha), int(beta))
+        # 7. TRANSPOSITION TABLE STORE
+        self._store_transposition_table(board, search_depth, int(best_score), best_move, int(original_alpha), int(beta))
         
         return best_score, best_move
     
     def _order_moves_advanced(self, board: chess.Board, moves: List[chess.Move], depth: int, 
                               tt_move: Optional[chess.Move] = None) -> List[chess.Move]:
-        """PHASE 1 ENHANCED move ordering - TT, MVV-LVA, Checks, Killers"""
+        """PHASE 1 ENHANCED move ordering - TT, MVV-LVA, Checks, Killers, BITBOARD TACTICS"""
         if len(moves) <= 2:
             return moves
         
@@ -355,6 +361,7 @@ class V7P3RCleanEngine:
         checks = []
         killers = []
         quiet_moves = []
+        tactical_moves = []  # NEW: Bitboard tactical moves
         tt_moves = []
         
         killer_set = set(self.killer_moves.get_killers(depth))
@@ -372,33 +379,46 @@ class V7P3RCleanEngine:
                 attacker_value = self.piece_values.get(attacker.piece_type, 0) if attacker else 0
                 # MVV-LVA: Most Valuable Victim - Least Valuable Attacker
                 mvv_lva_score = victim_value * 100 - attacker_value
-                captures.append((mvv_lva_score, move))
+                
+                # Add tactical bonus using bitboards
+                tactical_bonus = self._detect_bitboard_tactics(board, move)
+                total_score = mvv_lva_score + tactical_bonus
+                
+                captures.append((total_score, move))
             
             # 3. Checks (high priority for tactical play)
             elif board.gives_check(move):
-                checks.append(move)
+                # Add tactical bonus for checking moves too
+                tactical_bonus = self._detect_bitboard_tactics(board, move)
+                checks.append((tactical_bonus, move))
             
             # 4. Killer moves
             elif move in killer_set:
                 killers.append(move)
                 self.search_stats['killer_hits'] += 1
             
-            # 5. Quiet moves (sorted by history)
+            # 5. Check for tactical patterns in quiet moves
             else:
                 history_score = self.history_heuristic.get_history_score(move)
-                quiet_moves.append((history_score, move))
+                tactical_bonus = self._detect_bitboard_tactics(board, move)
+                
+                if tactical_bonus > 20.0:  # Significant tactical move
+                    tactical_moves.append((tactical_bonus + history_score, move))
+                else:
+                    quiet_moves.append((history_score, move))
         
-        # Sort captures by MVV-LVA (highest first)
+        # Sort all move categories by their scores
         captures.sort(key=lambda x: x[0], reverse=True)
-        
-        # Sort quiet moves by history score (highest first)
+        checks.sort(key=lambda x: x[0], reverse=True)
+        tactical_moves.sort(key=lambda x: x[0], reverse=True)
         quiet_moves.sort(key=lambda x: x[0], reverse=True)
         
-        # Combine in ENHANCED order
+        # Combine in BITBOARD-ENHANCED order
         ordered = []
         ordered.extend(tt_moves)  # TT move first
-        ordered.extend([move for _, move in captures])  # Then captures
-        ordered.extend(checks)  # Then checks (prioritize tactical moves)
+        ordered.extend([move for _, move in captures])  # Then captures (with tactical bonus)
+        ordered.extend([move for _, move in checks])  # Then checks (with tactical bonus)
+        ordered.extend([move for _, move in tactical_moves])  # Then tactical patterns
         ordered.extend(killers)  # Then killers
         ordered.extend([move for _, move in quiet_moves])  # Then quiet moves
         
@@ -521,6 +541,163 @@ class V7P3RCleanEngine:
                 break
         
         return pv
+    
+    def _quiescence_search(self, board: chess.Board, alpha: float, beta: float, depth: int) -> float:
+        """
+        Quiescence search for tactical stability - V10 PHASE 2
+        Only search captures and checks to avoid horizon effects
+        """
+        self.nodes_searched += 1
+        
+        # Stand pat evaluation
+        stand_pat = self._evaluate_position(board)
+        
+        # Beta cutoff on stand pat
+        if stand_pat >= beta:
+            return beta
+        
+        # Update alpha if stand pat is better
+        if stand_pat > alpha:
+            alpha = stand_pat
+        
+        # Depth limit reached
+        if depth <= 0:
+            return stand_pat
+        
+        # Generate and search tactical moves only
+        legal_moves = list(board.legal_moves)
+        tactical_moves = []
+        
+        for move in legal_moves:
+            # Only consider captures and checks for quiescence
+            if board.is_capture(move) or board.gives_check(move):
+                tactical_moves.append(move)
+        
+        # If no tactical moves, return stand pat
+        if not tactical_moves:
+            return stand_pat
+        
+        # Sort tactical moves by MVV-LVA for better ordering
+        capture_scores = []
+        for move in tactical_moves:
+            if board.is_capture(move):
+                victim = board.piece_at(move.to_square)
+                victim_value = self.piece_values.get(victim.piece_type, 0) if victim else 0
+                attacker = board.piece_at(move.from_square)
+                attacker_value = self.piece_values.get(attacker.piece_type, 0) if attacker else 0
+                mvv_lva = victim_value * 100 - attacker_value
+                capture_scores.append((mvv_lva, move))
+            else:
+                # Check moves get lower priority
+                capture_scores.append((0, move))
+        
+        # Sort by MVV-LVA score
+        capture_scores.sort(key=lambda x: x[0], reverse=True)
+        ordered_tactical = [move for _, move in capture_scores]
+        
+        # Search tactical moves
+        best_score = stand_pat
+        for move in ordered_tactical:
+            board.push(move)
+            score = -self._quiescence_search(board, -beta, -alpha, depth - 1)
+            board.pop()
+            
+            if score > best_score:
+                best_score = score
+            
+            if score > alpha:
+                alpha = score
+            
+            if alpha >= beta:
+                break  # Beta cutoff
+        
+        return best_score
+    
+    def _detect_bitboard_tactics(self, board: chess.Board, move: chess.Move) -> float:
+        """
+        Detect tactical patterns using bitboards - V10 BITBOARD TACTICS
+        Returns a bonus score for tactical moves (pins, forks, skewers)
+        """
+        tactical_bonus = 0.0
+        
+        # Make the move to analyze the resulting position
+        board.push(move)
+        
+        try:
+            # Get piece bitboards for analysis
+            our_color = not board.turn  # We just moved, so it's opponent's turn
+            enemy_color = board.turn
+            
+            # Analyze for forks (piece attacking multiple enemy pieces)
+            moving_piece = board.piece_at(move.to_square)
+            if moving_piece:
+                fork_bonus = self._analyze_fork_bitboard(board, move.to_square, moving_piece, enemy_color)
+                tactical_bonus += fork_bonus
+                
+                # Analyze for pins and skewers using ray attacks
+                if moving_piece.piece_type in [chess.BISHOP, chess.ROOK, chess.QUEEN]:
+                    pin_skewer_bonus = self._analyze_pins_skewers_bitboard(board, move.to_square, moving_piece, enemy_color)
+                    tactical_bonus += pin_skewer_bonus
+            
+        except Exception:
+            # If analysis fails, return 0 bonus
+            pass
+        finally:
+            board.pop()
+        
+        return tactical_bonus
+    
+    def _analyze_fork_bitboard(self, board: chess.Board, square: int, piece: chess.Piece, enemy_color: chess.Color) -> float:
+        """Analyze fork patterns using bitboards"""
+        if piece.piece_type == chess.KNIGHT:
+            # Knight fork detection
+            attacks = self.bitboard_evaluator.KNIGHT_ATTACKS[square]
+            enemy_pieces = 0
+            high_value_targets = 0
+            
+            for target_sq in range(64):
+                if attacks & (1 << target_sq):
+                    target_piece = board.piece_at(target_sq)
+                    if target_piece and target_piece.color == enemy_color:
+                        enemy_pieces += 1
+                        if target_piece.piece_type in [chess.QUEEN, chess.ROOK, chess.KING]:
+                            high_value_targets += 1
+            
+            # Knight forking 2+ pieces gets bonus, more for high-value targets
+            if enemy_pieces >= 2:
+                return 50.0 + (high_value_targets * 25.0)
+        
+        return 0.0
+    
+    def _analyze_pins_skewers_bitboard(self, board: chess.Board, square: int, piece: chess.Piece, enemy_color: chess.Color) -> float:
+        """Analyze pin and skewer patterns using ray attacks"""
+        # This is a simplified version - full implementation would need sliding piece attack generation
+        # For now, just give a small bonus for pieces that could create pins/skewers
+        
+        if piece.piece_type in [chess.BISHOP, chess.ROOK, chess.QUEEN]:
+            # Look for aligned enemy pieces that could be pinned/skewered
+            bonus = 0.0
+            
+            # Check if we're attacking towards the enemy king
+            enemy_king_sq = None
+            for sq in range(64):
+                p = board.piece_at(sq)
+                if p and p.piece_type == chess.KING and p.color == enemy_color:
+                    enemy_king_sq = sq
+                    break
+            
+            if enemy_king_sq is not None:
+                # Simple heuristic: if we're on the same rank/file/diagonal as enemy king
+                sq_rank, sq_file = divmod(square, 8)
+                king_rank, king_file = divmod(enemy_king_sq, 8)
+                
+                if (sq_rank == king_rank or sq_file == king_file or 
+                    abs(sq_rank - king_rank) == abs(sq_file - king_file)):
+                    bonus += 15.0  # Potential pin/skewer bonus
+            
+            return bonus
+        
+        return 0.0
     
     def update_pv_after_move(self, move: chess.Move):
         """Update stored PV after a move is played - V10 OPTIMIZATION"""
