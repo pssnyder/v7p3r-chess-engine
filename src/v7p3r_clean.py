@@ -134,11 +134,6 @@ class V7P3RCleanEngine:
             'tt_stores': 0,
             'killer_hits': 0,
         }
-        
-        # PV Following System - V10 OPTIMIZATION
-        self.last_pv = []  # Store the last computed PV
-        self.pv_position_hash = None  # Hash of position where PV was computed
-        self.pv_depth = 0  # Depth of last PV computation
     
     def search(self, board: chess.Board, time_limit: float = 3.0) -> chess.Move:
         """
@@ -161,19 +156,6 @@ class V7P3RCleanEngine:
         legal_moves = list(board.legal_moves)
         if not legal_moves:
             return chess.Move.null()
-        
-        # PV FOLLOWING OPTIMIZATION - V10 FEATURE
-        # Check if opponent played into our expected PV
-        current_hash = self.zobrist.hash_position(board)
-        if (self.last_pv and len(self.last_pv) >= 1 and 
-            self.pv_position_hash and current_hash != self.pv_position_hash):
-            
-            # Check if we can follow our PV (we're at a position we predicted)
-            pv_move = self._check_pv_following(board)
-            if pv_move:
-                print(f"info string PV FOLLOW: Playing predicted move {pv_move}")
-                sys.stdout.flush()
-                return pv_move
         
         # Iterative deepening with stability
         best_move = legal_moves[0]
@@ -204,17 +186,8 @@ class V7P3RCleanEngine:
                     elapsed_ms = int((time.time() - start_time) * 1000)
                     nps = int(self.nodes_searched / max(elapsed_ms / 1000, 0.001))
                     
-                    # Extract full PV for display and following
-                    pv_line = self._extract_pv(board, depth)
-                    pv_string = " ".join([str(m) for m in pv_line])
-                    
-                    # Store PV for following optimization
-                    if depth >= 4:  # Only store deep enough PVs
-                        self.last_pv = pv_line.copy()
-                        self.pv_position_hash = self.zobrist.hash_position(board)
-                        self.pv_depth = depth
-                    
-                    print(f"info depth {depth} score cp {int(score)} nodes {self.nodes_searched} time {elapsed_ms} nps {nps} pv {pv_string}")
+                    # Simple PV output - just the best move for now (performance critical)
+                    print(f"info depth {depth} score cp {int(score)} nodes {self.nodes_searched} time {elapsed_ms} nps {nps} pv {move}")
                     sys.stdout.flush()
                 else:
                     # Restore previous best if current iteration failed
@@ -254,10 +227,8 @@ class V7P3RCleanEngine:
         """
         self.nodes_searched += 1
         
-        # 1. TRANSPOSITION TABLE PROBE - PHASE 1 RESTORATION
-        tt_hit, tt_score, tt_move = self._probe_transposition_table(board, depth, int(alpha), int(beta))
-        if tt_hit:
-            return float(tt_score), tt_move
+        # 1. TRANSPOSITION TABLE - DISABLED FOR V10 SPEED TEST
+        # Skip TT for maximum performance testing
         
         # 2. TERMINAL CONDITIONS
         if depth == 0:
@@ -271,26 +242,15 @@ class V7P3RCleanEngine:
                 score = 0.0  # Stalemate
             return score, None
         
-        # 3. NULL MOVE PRUNING - PHASE 1 RESTORATION
-        # Be conservative in tactical positions for stability
-        if (depth >= 3 and not board.is_check() and 
-            self._has_non_pawn_pieces(board) and beta - alpha > 1):
-            
-            # Make null move
-            board.turn = not board.turn
-            null_score, _ = self._unified_search(board, depth - 2, -beta, -beta + 1)  # Conservative reduction
-            null_score = -null_score
-            board.turn = not board.turn
-            
-            if null_score >= beta:
-                return null_score, None
+        # 3. NULL MOVE PRUNING - DISABLED FOR V10 SPEED
+        # Skip null move pruning for maximum performance
         
         # 4. MOVE GENERATION AND ORDERING
         legal_moves = list(board.legal_moves)
         if not legal_moves:
             return 0.0, None
         
-        ordered_moves = self._order_moves_advanced(board, legal_moves, depth, tt_move)
+        ordered_moves = self._order_moves_advanced(board, legal_moves, depth, None)
         
         # 5. MAIN SEARCH LOOP (NEGAMAX WITH ALPHA-BETA)
         best_score = -99999.0
@@ -301,26 +261,10 @@ class V7P3RCleanEngine:
         for move in ordered_moves:
             board.push(move)
             
-            # 6. LATE MOVE REDUCTION - PHASE 2 RESTORATION
-            # Conservative LMR for tactical safety
-            reduction = 0
-            if (moves_searched >= 4 and depth >= 3 and 
-                not board.is_capture(move) and not board.is_check() and
-                not self.killer_moves.is_killer(move, depth)):
-                reduction = 1
-            
-            # Search with possible reduction
-            if reduction > 0:
-                score, _ = self._unified_search(board, depth - 1 - reduction, -beta, -alpha)
-                score = -score
-                
-                # If reduced search failed high, re-search at full depth
-                if score > alpha:
-                    score, _ = self._unified_search(board, depth - 1, -beta, -alpha)
-                    score = -score
-            else:
-                score, _ = self._unified_search(board, depth - 1, -beta, -alpha)
-                score = -score
+            # 6. LATE MOVE REDUCTION - DISABLED FOR V10 SPEED
+            # Search at full depth for maximum performance
+            score, _ = self._unified_search(board, depth - 1, -beta, -alpha)
+            score = -score
             
             board.pop()
             moves_searched += 1
@@ -339,70 +283,36 @@ class V7P3RCleanEngine:
                     self.search_stats['killer_hits'] += 1
                 break
         
-        # 8. TRANSPOSITION TABLE STORE - PHASE 1 RESTORATION  
-        self._store_transposition_table(board, depth, int(best_score), best_move, int(original_alpha), int(beta))
+        # 8. TRANSPOSITION TABLE - DISABLED FOR V10 SPEED TEST
+        # Skip TT store for maximum performance
         
         return best_score, best_move
     
     def _order_moves_advanced(self, board: chess.Board, moves: List[chess.Move], depth: int, 
                               tt_move: Optional[chess.Move] = None) -> List[chess.Move]:
-        """PHASE 1 ENHANCED move ordering - TT, MVV-LVA, Checks, Killers"""
+        """SIMPLIFIED move ordering for maximum speed - V10 PERFORMANCE"""
         if len(moves) <= 2:
             return moves
         
-        # Pre-calculate move categories for efficiency
+        # Super simple ordering for speed
         captures = []
-        checks = []
-        killers = []
-        quiet_moves = []
+        non_captures = []
+        
+        # TT move first if available
         tt_moves = []
+        if tt_move and tt_move in moves:
+            tt_moves.append(tt_move)
+            moves = [m for m in moves if m != tt_move]
         
-        killer_set = set(self.killer_moves.get_killers(depth))
-        
+        # Simple capture/non-capture split
         for move in moves:
-            # 1. Transposition table move (highest priority)
-            if tt_move and move == tt_move:
-                tt_moves.append(move)
-            
-            # 2. Captures (will be sorted by MVV-LVA)
-            elif board.is_capture(move):
-                victim = board.piece_at(move.to_square)
-                victim_value = self.piece_values.get(victim.piece_type, 0) if victim else 0
-                attacker = board.piece_at(move.from_square)
-                attacker_value = self.piece_values.get(attacker.piece_type, 0) if attacker else 0
-                # MVV-LVA: Most Valuable Victim - Least Valuable Attacker
-                mvv_lva_score = victim_value * 100 - attacker_value
-                captures.append((mvv_lva_score, move))
-            
-            # 3. Checks (high priority for tactical play)
-            elif board.gives_check(move):
-                checks.append(move)
-            
-            # 4. Killer moves
-            elif move in killer_set:
-                killers.append(move)
-                self.search_stats['killer_hits'] += 1
-            
-            # 5. Quiet moves (sorted by history)
+            if board.is_capture(move):
+                captures.append(move)
             else:
-                history_score = self.history_heuristic.get_history_score(move)
-                quiet_moves.append((history_score, move))
+                non_captures.append(move)
         
-        # Sort captures by MVV-LVA (highest first)
-        captures.sort(key=lambda x: x[0], reverse=True)
-        
-        # Sort quiet moves by history score (highest first)
-        quiet_moves.sort(key=lambda x: x[0], reverse=True)
-        
-        # Combine in ENHANCED order
-        ordered = []
-        ordered.extend(tt_moves)  # TT move first
-        ordered.extend([move for _, move in captures])  # Then captures
-        ordered.extend(checks)  # Then checks (prioritize tactical moves)
-        ordered.extend(killers)  # Then killers
-        ordered.extend([move for _, move in quiet_moves])  # Then quiet moves
-        
-        return ordered
+        # Simple order: TT move, captures, everything else
+        return tt_moves + captures + non_captures
     
     def _evaluate_position(self, board: chess.Board) -> float:
         """Position evaluation with caching - BITBOARD POWERED"""
@@ -428,113 +338,6 @@ class V7P3RCleanEngine:
         self.evaluation_cache[cache_key] = final_score
         return final_score
     
-    def _probe_transposition_table(self, board: chess.Board, depth: int, alpha: int, beta: int) -> Tuple[bool, int, Optional[chess.Move]]:
-        """Probe transposition table for this position - PHASE 1 FEATURE"""
-        zobrist_hash = self.zobrist.hash_position(board)
-        
-        if zobrist_hash in self.transposition_table:
-            entry = self.transposition_table[zobrist_hash]
-            
-            # Only use if searched to sufficient depth
-            if entry.depth >= depth:
-                self.search_stats['tt_hits'] += 1
-                
-                # Check if we can use the score
-                if entry.node_type == 'exact':
-                    return True, entry.score, entry.best_move
-                elif entry.node_type == 'lowerbound' and entry.score >= beta:
-                    return True, entry.score, entry.best_move
-                elif entry.node_type == 'upperbound' and entry.score <= alpha:
-                    return True, entry.score, entry.best_move
-        
-        return False, 0, None
-    
-    def _store_transposition_table(self, board: chess.Board, depth: int, score: int, 
-                                   best_move: Optional[chess.Move], alpha: int, beta: int):
-        """Store result in transposition table - PHASE 1 FEATURE"""
-        zobrist_hash = self.zobrist.hash_position(board)
-        
-        # Determine node type
-        if score <= alpha:
-            node_type = 'upperbound'
-        elif score >= beta:
-            node_type = 'lowerbound'
-        else:
-            node_type = 'exact'
-        
-        # Simple replacement strategy for performance
-        if len(self.transposition_table) >= self.max_tt_entries:
-            # Clear 25% of entries when full (simple aging)
-            entries = list(self.transposition_table.items())
-            entries.sort(key=lambda x: x[1].depth, reverse=True)
-            self.transposition_table = dict(entries[:int(self.max_tt_entries * 0.75)])
-        
-        entry = TranspositionEntry(depth, score, best_move, node_type, zobrist_hash)
-        self.transposition_table[zobrist_hash] = entry
-        self.search_stats['tt_stores'] += 1
-    
-    def _has_non_pawn_pieces(self, board: chess.Board) -> bool:
-        """Check if the current side has non-pawn pieces (for null move pruning)"""
-        current_color = board.turn
-        for square in range(64):
-            piece = board.piece_at(square)
-            if piece and piece.color == current_color and piece.piece_type != chess.PAWN:
-                return True
-        return False
-    
-    def _check_pv_following(self, board: chess.Board) -> Optional[chess.Move]:
-        """Check if we can follow our stored PV - V10 OPTIMIZATION"""
-        if not self.last_pv or len(self.last_pv) < 1:
-            return None
-        
-        # The first move in our PV should be our move from this position
-        expected_move = self.last_pv[0]
-        
-        # Verify the move is legal in current position
-        if expected_move in board.legal_moves:
-            # Shift the PV (remove the move we're about to play)
-            self.last_pv = self.last_pv[1:]
-            print(f"info string PV shortened to {len(self.last_pv)} moves")
-            return expected_move
-        
-        # PV is no longer valid, clear it
-        self.last_pv = []
-        self.pv_position_hash = None
-        return None
-    
-    def _extract_pv(self, board: chess.Board, max_depth: int) -> List[chess.Move]:
-        """Extract principal variation from transposition table"""
-        pv = []
-        temp_board = board.copy()
-        
-        for depth in range(max_depth, 0, -1):
-            zobrist_hash = self.zobrist.hash_position(temp_board)
-            
-            if zobrist_hash in self.transposition_table:
-                entry = self.transposition_table[zobrist_hash]
-                if entry.best_move and entry.best_move in temp_board.legal_moves:
-                    pv.append(entry.best_move)
-                    temp_board.push(entry.best_move)
-                else:
-                    break
-            else:
-                break
-        
-        return pv
-    
-    def update_pv_after_move(self, move: chess.Move):
-        """Update stored PV after a move is played - V10 OPTIMIZATION"""
-        if self.last_pv and len(self.last_pv) > 0:
-            # If the move matches our PV, remove it
-            if self.last_pv[0] == move:
-                self.last_pv = self.last_pv[1:]
-                print(f"info string PV updated: {len(self.last_pv)} moves remaining")
-            else:
-                # Move doesn't match PV, clear it
-                self.last_pv = []
-                self.pv_position_hash = None
-                print(f"info string PV cleared: unexpected move {move}")
-    
     def new_game(self):
         """Reset for a new game"""
         self.evaluation_cache.clear()
@@ -542,11 +345,6 @@ class V7P3RCleanEngine:
         self.killer_moves = KillerMoves()
         self.history_heuristic = HistoryHeuristic()
         self.nodes_searched = 0
-        
-        # Clear PV following data
-        self.last_pv = []
-        self.pv_position_hash = None
-        self.pv_depth = 0
         
         # Reset stats
         for key in self.search_stats:

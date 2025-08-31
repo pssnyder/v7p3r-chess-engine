@@ -1,0 +1,111 @@
+{
+  "timestamp": "2025-08-30T19:44:37.211064",
+  "comparison": "v9.4-alpha vs v7.0",
+  "positions": [
+    {
+      "position": {
+        "name": "Knight Fork Opportunity",
+        "fen": "r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
+        "v70_weakness": "Misses tactical opportunities",
+        "v94_advantage": "Should detect knight fork potential"
+      },
+      "evaluations": {
+        "v70": {
+          "white": 4030.0,
+          "black": 4030.0,
+          "eval": 0.0
+        },
+        "v94": {
+          "white": 4042.0,
+          "black": 4056.0,
+          "eval": -14.0
+        }
+      },
+      "difference": -14.0
+    },
+    {
+      "position": {
+        "name": "Hanging Piece Detection",
+        "fen": "rnbqkb1r/pppp1ppp/5n2/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3",
+        "v70_weakness": "Doesn't detect undefended pieces",
+        "v94_advantage": "Should penalize hanging pieces"
+      },
+      "evaluations": {
+        "v70": {
+          "white": 4025.0,
+          "black": 4025.0,
+          "eval": 0.0
+        },
+        "v94": {
+          "white": 4014.0,
+          "black": 4014.0,
+          "eval": 0.0
+        }
+      },
+      "difference": 0.0
+    },
+    {
+      "position": {
+        "name": "Center Control Battle",
+        "fen": "rnbqkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBQKBNR w KQkq d6 0 2",
+        "v70_weakness": "Basic center evaluation",
+        "v94_advantage": "Enhanced center control assessment"
+      },
+      "evaluations": {
+        "v70": {
+          "white": 4020.0,
+          "black": 4020.0,
+          "eval": 0.0
+        },
+        "v94": {
+          "white": 4008.0,
+          "black": 4008.0,
+          "eval": 0.0
+        }
+      },
+      "difference": 0.0
+    },
+    {
+      "position": {
+        "name": "Pawn Promotion Threat",
+        "fen": "8/1P6/8/8/8/8/k7/K7 w - - 0 1",
+        "v70_weakness": "Weak endgame evaluation",
+        "v94_advantage": "Should recognize promotion power"
+      },
+      "evaluations": {
+        "v70": {
+          "white": -900.0,
+          "black": -48.0,
+          "eval": -852.0
+        },
+        "v94": {
+          "white": -840.0,
+          "black": -62.0,
+          "eval": -778.0
+        }
+      },
+      "difference": 74.0
+    },
+    {
+      "position": {
+        "name": "King Exposure Test",
+        "fen": "r3k2r/pbppnppp/1bn5/1B6/1Q6/3P1N2/PPP2PPP/RNB1K2R b KQkq - 0 8",
+        "v70_weakness": "Basic king safety",
+        "v94_advantage": "Enhanced king safety with attack detection"
+      },
+      "evaluations": {
+        "v70": {
+          "white": 3926.0,
+          "black": 2936.0,
+          "eval": 990.0
+        },
+        "v94": {
+          "white": 3929.0,
+          "black": 2973.0,
+          "eval": 956.0
+        }
+      },
+      "difference": -34.0
+    }
+  ]
+}

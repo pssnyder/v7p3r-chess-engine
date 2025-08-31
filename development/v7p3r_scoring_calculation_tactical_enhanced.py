@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-V7P3R Scoring Calculation v10.0 - Tactical Enhanced Edition
-Clean evaluation module with comprehensive tactical pattern recognition
+V7P3R Tactical Enhanced Scoring Calculation
+Extends V10's clean evaluation with comprehensive tactical pattern recognition
 Author: Pat Snyder
 
 TACTICAL ENHANCEMENTS:
@@ -21,7 +21,7 @@ import chess
 from typing import Dict, List, Set, Tuple, Optional
 
 
-class V7P3RScoringCalculationClean:
+class V7P3RScoringCalculationTacticalEnhanced:
     """Enhanced scoring with comprehensive tactical pattern recognition"""
     
     def __init__(self, piece_values: Dict):
@@ -61,7 +61,7 @@ class V7P3RScoringCalculationClean:
     
     def calculate_score_optimized(self, board: chess.Board, color: chess.Color, endgame_factor: float = 0.0) -> float:
         """
-        Enhanced evaluation with comprehensive tactical awareness.
+        Enhanced evaluation with comprehensive tactical awareness
         Returns positive values for good positions for the given color.
         """
         score = 0.0
@@ -74,47 +74,56 @@ class V7P3RScoringCalculationClean:
         score += self._rook_coordination(board, color)
         score += self._center_control(board, color)
         
-        # NEW: Piece defense heuristics (STUBBED for performance testing)
-        # score += self._piece_defense_coordination(board, color)
+        # 2. NEW: Comprehensive tactical pattern recognition
+        score += self._tactical_pin_detection(board, color)
+        score += self._tactical_fork_detection(board, color)
+        score += self._tactical_skewer_detection(board, color)
+        score += self._tactical_discovered_attack(board, color)
+        score += self._tactical_deflection_detection(board, color)
+        score += self._tactical_removing_guard(board, color)
+        score += self._tactical_double_check(board, color)
+        score += self._tactical_battery_formation(board, color)
         
-        # Enhanced endgame logic (TESTING: temporarily simplified)
+        # 3. NEW: Piece defense heuristics
+        score += self._piece_defense_coordination(board, color)
+        
+        # 4. Enhanced endgame logic
         if self._is_endgame(board):
-            score += self._endgame_logic(board, color)  # Use simple version
-        else:
-            score += self._endgame_logic(board, color)
+            score += self._endgame_enhanced(board, color)
             
         return score
     
+    # ============================================================================
+    # CORE EVALUATION (V10 Foundation)
+    # ============================================================================
+    
     def _material_score(self, board: chess.Board, color: chess.Color) -> float:
-        """Material count for given color - C0BR4 style"""
+        """Material count for given color"""
         score = 0.0
         for piece_type, value in self.piece_values.items():
-            if piece_type != chess.KING:  # King safety handled separately
+            if piece_type != chess.KING:
                 piece_count = len(board.pieces(piece_type, color))
                 score += piece_count * value
         return score
     
     def _king_safety(self, board: chess.Board, color: chess.Color) -> float:
-        """Basic king safety - C0BR4 style"""
+        """Basic king safety"""
         score = 0.0
         king_square = board.king(color)
         if not king_square:
-            return -1000.0  # No king = very bad
+            return -1000.0
             
-        # Penalty for exposed king
         if self._is_king_exposed(board, color, king_square):
             score -= 50.0
             
         return score
     
     def _piece_development(self, board: chess.Board, color: chess.Color) -> float:
-        """Piece development bonus - C0BR4 PST equivalent"""
+        """Piece development bonus"""
         score = 0.0
         
-        # Bonus for developed knights and bishops
         for piece_type in [chess.KNIGHT, chess.BISHOP]:
             for square in board.pieces(piece_type, color):
-                # Bonus for pieces not on back rank
                 if color == chess.WHITE and chess.square_rank(square) > 0:
                     score += 5.0
                 elif color == chess.BLACK and chess.square_rank(square) < 7:
@@ -123,12 +132,11 @@ class V7P3RScoringCalculationClean:
         return score
     
     def _castling_bonus(self, board: chess.Board, color: chess.Color) -> float:
-        """Castling bonus - C0BR4 style"""
+        """Castling bonus"""
         score = 0.0
         king_square = board.king(color)
         
         if king_square:
-            # Bonus for castled king
             if color == chess.WHITE and king_square in [chess.G1, chess.C1]:
                 score += 20.0
             elif color == chess.BLACK and king_square in [chess.G8, chess.C8]:
@@ -137,12 +145,11 @@ class V7P3RScoringCalculationClean:
         return score
     
     def _rook_coordination(self, board: chess.Board, color: chess.Color) -> float:
-        """Rook coordination - C0BR4 style"""
+        """Rook coordination"""
         score = 0.0
         rooks = list(board.pieces(chess.ROOK, color))
         
         if len(rooks) >= 2:
-            # Simple bonus for having both rooks
             score += 10.0
             
         return score
@@ -155,25 +162,10 @@ class V7P3RScoringCalculationClean:
             piece = board.piece_at(square)
             if piece and piece.color == color:
                 if piece.piece_type == chess.PAWN:
-                    score += 10.0  # Pawn in center
+                    score += 10.0
                 else:
-                    score += 5.0   # Other piece in center
+                    score += 5.0
                     
-        return score
-    
-    def _endgame_logic(self, board: chess.Board, color: chess.Color) -> float:
-        """Basic endgame logic"""
-        score = 0.0
-        
-        # King activity in endgame
-        king_square = board.king(color)
-        if king_square:
-            # Bonus for centralized king
-            king_file = chess.square_file(king_square)
-            king_rank = chess.square_rank(king_square)
-            center_distance = abs(king_file - 3.5) + abs(king_rank - 3.5)
-            score += (7 - center_distance) * 2  # Closer to center = better
-            
         return score
     
     # ============================================================================
@@ -317,6 +309,9 @@ class V7P3RScoringCalculationClean:
         # Bonus for defending key pieces (queen, rooks)
         score += self._defend_key_pieces_bonus(board, color)
         
+        # Bonus for less active pieces moving to defensive positions
+        score += self._inactive_piece_defense_bonus(board, color)
+        
         return score
     
     # ============================================================================
@@ -350,24 +345,6 @@ class V7P3RScoringCalculationClean:
         
         return score
     
-    def _is_king_exposed(self, board: chess.Board, color: chess.Color, king_square: int) -> bool:
-        """Check if king is dangerously exposed"""
-        # Simple check: king on starting rank = safer
-        if color == chess.WHITE:
-            return chess.square_rank(king_square) > 2
-        else:
-            return chess.square_rank(king_square) < 5
-    
-    def _is_endgame(self, board: chess.Board) -> bool:
-        """Detect endgame phase"""
-        # Count major pieces
-        major_pieces = 0
-        for color in [chess.WHITE, chess.BLACK]:
-            major_pieces += len(board.pieces(chess.QUEEN, color)) * 2
-            major_pieces += len(board.pieces(chess.ROOK, color))
-            
-        return major_pieces <= 6  # Arbitrary threshold
-    
     # ============================================================================
     # TACTICAL PATTERN IMPLEMENTATION DETAILS
     # ============================================================================
@@ -379,67 +356,18 @@ class V7P3RScoringCalculationClean:
         if not piece:
             return 0.0
         
-        # Only sliding pieces can create pins
-        if piece.piece_type not in [chess.BISHOP, chess.ROOK, chess.QUEEN]:
-            return 0.0
-        
-        # Check all squares this piece attacks
-        attacks = board.attacks(attacker_square)
-        
-        for attacked_square in attacks:
-            attacked_piece = board.piece_at(attacked_square)
-            if attacked_piece and attacked_piece.color != color:
-                # Look for a more valuable piece behind this one in the same direction
-                pin_bonus = self._check_for_pin_behind(board, attacker_square, attacked_square, color)
-                score += pin_bonus
+        # Get attack rays for sliding pieces
+        if piece.piece_type in [chess.BISHOP, chess.ROOK, chess.QUEEN]:
+            attacks = board.attacks(attacker_square)
+            
+            for attacked_square in attacks:
+                attacked_piece = board.piece_at(attacked_square)
+                if attacked_piece and attacked_piece.color != color:
+                    # Check if there's a more valuable piece behind
+                    pin_value = self._check_piece_behind_for_pin(board, attacker_square, attacked_square, color)
+                    score += pin_value
         
         return score
-    
-    def _check_for_pin_behind(self, board: chess.Board, attacker_square: int, target_square: int, color: chess.Color) -> float:
-        """Check if there's a valuable piece behind the target that could be pinned"""
-        attacker_file = chess.square_file(attacker_square)
-        attacker_rank = chess.square_rank(attacker_square)
-        target_file = chess.square_file(target_square)
-        target_rank = chess.square_rank(target_square)
-        
-        # Calculate direction vector
-        file_diff = target_file - attacker_file
-        rank_diff = target_rank - attacker_rank
-        
-        # Normalize to get direction (1, 0, -1 for each axis)
-        if file_diff != 0:
-            file_dir = 1 if file_diff > 0 else -1
-        else:
-            file_dir = 0
-            
-        if rank_diff != 0:
-            rank_dir = 1 if rank_diff > 0 else -1
-        else:
-            rank_dir = 0
-        
-        # Continue in the same direction to look for pieces behind
-        current_file = target_file + file_dir
-        current_rank = target_rank + rank_dir
-        
-        while 0 <= current_file <= 7 and 0 <= current_rank <= 7:
-            behind_square = chess.square(current_file, current_rank)
-            behind_piece = board.piece_at(behind_square)
-            
-            if behind_piece:
-                if behind_piece.color != color:  # Enemy piece behind
-                    target_piece = board.piece_at(target_square)
-                    if target_piece and behind_piece.piece_type in [chess.KING, chess.QUEEN, chess.ROOK]:
-                        # Valuable piece is pinned!
-                        if behind_piece.piece_type == chess.KING:
-                            return 25.0  # Absolute pin
-                        else:
-                            return 15.0  # Relative pin
-                break  # Stop at first piece found
-            
-            current_file += file_dir
-            current_rank += rank_dir
-        
-        return 0.0
     
     def _detect_knight_fork(self, board: chess.Board, knight_square: int, color: chess.Color) -> float:
         """Detect knight fork opportunities"""
@@ -447,37 +375,19 @@ class V7P3RScoringCalculationClean:
         attacks = board.attacks(knight_square)
         
         high_value_targets = []
-        check_bonus = 0.0
-        
         for target_square in attacks:
             target_piece = board.piece_at(target_square)
             if target_piece and target_piece.color != color:
-                if target_piece.piece_type == chess.KING:
-                    high_value_targets.append(target_piece)
-                    check_bonus = 5.0  # Bonus for giving check
-                elif target_piece.piece_type in [chess.QUEEN, chess.ROOK]:
-                    high_value_targets.append(target_piece)
-                elif target_piece.piece_type in [chess.BISHOP, chess.KNIGHT]:
+                if target_piece.piece_type in [chess.KING, chess.QUEEN, chess.ROOK]:
                     high_value_targets.append(target_piece)
         
-        # Scoring based on number and type of targets
         if len(high_value_targets) >= 2:
             if any(p.piece_type == chess.KING for p in high_value_targets):
-                score += 50.0  # Royal fork (king + piece)
+                score += 100.0  # Royal fork
             else:
-                # Multiple high-value pieces
-                total_value = sum(self.tactical_piece_values.get(p.piece_type, 0) for p in high_value_targets)
-                if total_value > 800:  # Major pieces
-                    score += 30.0
-                else:
-                    score += 15.0
+                score += 50.0   # Major piece fork
         elif len(high_value_targets) == 1:
-            # Single target - smaller bonus for potential setup
-            target = high_value_targets[0]
-            if target.piece_type == chess.KING:
-                score += check_bonus
-            elif target.piece_type in [chess.QUEEN, chess.ROOK]:
-                score += 5.0  # Attacking major piece
+            score += 15.0   # Potential fork setup
         
         return score
     
@@ -561,71 +471,10 @@ class V7P3RScoringCalculationClean:
                 attacked_piece = board.piece_at(attacked_square)
                 if attacked_piece and attacked_piece.color != color:
                     # Check if there's a less valuable piece behind on the same line
-                    skewer_value = self._check_for_skewer_behind(board, attacker_square, attacked_square, color)
+                    skewer_value = self._check_skewer_line(board, attacker_square, attacked_square, color)
                     score += skewer_value
         
         return score
-    
-    def _check_for_skewer_behind(self, board: chess.Board, attacker_square: int, front_square: int, color: chess.Color) -> float:
-        """Check for skewer opportunity along a line"""
-        attacker_file = chess.square_file(attacker_square)
-        attacker_rank = chess.square_rank(attacker_square)
-        front_file = chess.square_file(front_square)
-        front_rank = chess.square_rank(front_square)
-        
-        # Calculate direction vector
-        file_diff = front_file - attacker_file
-        rank_diff = front_rank - attacker_rank
-        
-        # Normalize to get direction
-        if file_diff != 0:
-            file_dir = 1 if file_diff > 0 else -1
-        else:
-            file_dir = 0
-            
-        if rank_diff != 0:
-            rank_dir = 1 if rank_diff > 0 else -1
-        else:
-            rank_dir = 0
-        
-        # Continue in the same direction to look for pieces behind
-        current_file = front_file + file_dir
-        current_rank = front_rank + rank_dir
-        
-        while 0 <= current_file <= 7 and 0 <= current_rank <= 7:
-            behind_square = chess.square(current_file, current_rank)
-            behind_piece = board.piece_at(behind_square)
-            
-            if behind_piece:
-                if behind_piece.color != color:  # Enemy piece behind
-                    front_piece = board.piece_at(front_square)
-                    if front_piece:
-                        front_value = self.tactical_piece_values.get(front_piece.piece_type, 0)
-                        behind_value = self.tactical_piece_values.get(behind_piece.piece_type, 0)
-                        
-                        # Skewer if front piece is more valuable than back piece
-                        if front_value > behind_value and front_value > 100:  # Don't skewer pawns
-                            return 10.0 + (front_value - behind_value) / 100
-                break  # Stop at first piece found
-            
-            current_file += file_dir
-            current_rank += rank_dir
-        
-        return 0.0
-    
-    def _is_piece_pinned(self, board: chess.Board, piece_square: int, color: chess.Color) -> bool:
-        """Check if a piece is pinned"""
-        # Simple pin detection - try moving the piece and see if king is in check
-        piece = board.piece_at(piece_square)
-        if not piece or piece.color != color:
-            return False
-        
-        # Create a temporary board without this piece
-        temp_board = board.copy()
-        temp_board.remove_piece_at(piece_square)
-        
-        # Check if our king would be in check
-        return temp_board.is_check()
     
     def _calculate_defense_network(self, board: chess.Board, color: chess.Color) -> float:
         """Calculate bonus for pieces defending other pieces"""
@@ -656,24 +505,6 @@ class V7P3RScoringCalculationClean:
                         piece_value = self.tactical_piece_values.get(piece.piece_type, 0)
                         penalty = piece_value * 0.1  # 10% of piece value
                         score -= penalty
-        
-        return score
-    
-    def _defend_key_pieces_bonus(self, board: chess.Board, color: chess.Color) -> float:
-        """Bonus for defending key pieces"""
-        score = 0.0
-        
-        # Bonus for defending queen
-        queens = list(board.pieces(chess.QUEEN, color))
-        for queen_square in queens:
-            defenders = len(board.attackers(color, queen_square))
-            score += defenders * 5.0
-        
-        # Bonus for defending rooks
-        rooks = list(board.pieces(chess.ROOK, color))
-        for rook_square in rooks:
-            defenders = len(board.attackers(color, rook_square))
-            score += defenders * 3.0
         
         return score
     
@@ -734,6 +565,55 @@ class V7P3RScoringCalculationClean:
         
         return 0.0
     
+    # ============================================================================
+    # HELPER METHODS
+    # ============================================================================
+    
+    def _is_piece_pinned(self, board: chess.Board, piece_square: int, color: chess.Color) -> bool:
+        """Check if a piece is pinned"""
+        # Simple pin detection - try moving the piece and see if king is in check
+        piece = board.piece_at(piece_square)
+        if not piece or piece.color != color:
+            return False
+        
+        # Create a temporary board without this piece
+        temp_board = board.copy()
+        temp_board.remove_piece_at(piece_square)
+        
+        # Check if our king would be in check
+        return temp_board.is_check()
+    
+    def _check_piece_behind_for_pin(self, board: chess.Board, attacker_square: int, blocked_square: int, color: chess.Color) -> float:
+        """Check for valuable piece behind blocked piece for pin"""
+        # This is a simplified implementation
+        # In a full implementation, you'd trace the ray further
+        return 0.0  # Placeholder
+    
+    def _check_skewer_line(self, board: chess.Board, attacker_square: int, front_piece_square: int, color: chess.Color) -> float:
+        """Check for skewer opportunity along a line"""
+        # Simplified implementation
+        return 0.0  # Placeholder
+    
+    def _detect_discovered_attack_potential(self, board: chess.Board, piece_square: int, color: chess.Color) -> float:
+        """Detect discovered attack potential"""
+        # Simplified implementation
+        return 0.0  # Placeholder
+    
+    def _detect_deflection_opportunity(self, board: chess.Board, enemy_square: int, color: chess.Color) -> float:
+        """Detect deflection opportunities"""
+        # Simplified implementation
+        return 0.0  # Placeholder
+    
+    def _detect_guard_removal(self, board: chess.Board, defender_square: int, color: chess.Color) -> float:
+        """Detect guard removal opportunities"""
+        # Simplified implementation
+        return 0.0  # Placeholder
+    
+    def _detect_double_check_potential(self, board: chess.Board, enemy_king: int, color: chess.Color) -> float:
+        """Detect double check potential"""
+        # Simplified implementation
+        return 0.0  # Placeholder
+    
     def _detect_queen_rook_battery(self, board: chess.Board, color: chess.Color) -> float:
         """Detect queen-rook battery formations"""
         score = 0.0
@@ -773,6 +653,30 @@ class V7P3RScoringCalculationClean:
         
         return score
     
+    def _defend_key_pieces_bonus(self, board: chess.Board, color: chess.Color) -> float:
+        """Bonus for defending key pieces"""
+        score = 0.0
+        
+        # Bonus for defending queen
+        queens = list(board.pieces(chess.QUEEN, color))
+        for queen_square in queens:
+            defenders = len(board.attackers(color, queen_square))
+            score += defenders * 5.0
+        
+        # Bonus for defending rooks
+        rooks = list(board.pieces(chess.ROOK, color))
+        for rook_square in rooks:
+            defenders = len(board.attackers(color, rook_square))
+            score += defenders * 3.0
+        
+        return score
+    
+    def _inactive_piece_defense_bonus(self, board: chess.Board, color: chess.Color) -> float:
+        """Bonus for moving inactive pieces to defensive positions"""
+        # This would need move generation to implement fully
+        # For now, just encourage pieces to defend others
+        return 0.0  # Placeholder
+    
     def _pieces_on_same_line(self, square1: int, square2: int) -> bool:
         """Check if two pieces are on the same rank or file"""
         return (chess.square_file(square1) == chess.square_file(square2) or
@@ -784,78 +688,17 @@ class V7P3RScoringCalculationClean:
         rank_diff = abs(chess.square_rank(square1) - chess.square_rank(square2))
         return file_diff == rank_diff and file_diff > 0
     
-    # ============================================================================
-    # ENHANCED TACTICAL METHODS (Improved implementations)
-    # ============================================================================
+    def _is_king_exposed(self, board: chess.Board, color: chess.Color, king_square: int) -> bool:
+        """Check if king is dangerously exposed"""
+        if color == chess.WHITE:
+            return chess.square_rank(king_square) > 2
+        else:
+            return chess.square_rank(king_square) < 5
     
-    def _detect_discovered_attack_potential(self, board: chess.Board, piece_square: int, color: chess.Color) -> float:
-        """Detect discovered attack potential when piece moves"""
-        # This is complex to implement fully without move generation
-        # For now, give small bonus for pieces that could potentially discover attacks
-        piece = board.piece_at(piece_square)
-        if piece and piece.color == color:
-            # Small bonus for pieces that could move to discover attacks
-            return 1.0
-        return 0.0
-    
-    def _detect_deflection_opportunity(self, board: chess.Board, enemy_square: int, color: chess.Color) -> float:
-        """Detect deflection opportunities"""
-        enemy_piece = board.piece_at(enemy_square)
-        if not enemy_piece or enemy_piece.color == color:
-            return 0.0
-        
-        # Count how many important squares/pieces this enemy piece defends
-        defends_count = 0
-        attacks = board.attacks(enemy_square)
-        
-        for defended_square in attacks:
-            defended_piece = board.piece_at(defended_square)
-            if defended_piece and defended_piece.color == enemy_piece.color:
-                # This piece defends another piece
-                if defended_piece.piece_type in [chess.QUEEN, chess.ROOK, chess.KING]:
-                    defends_count += 1
-        
-        if defends_count > 0:
-            return defends_count * 2.0  # Bonus for deflection opportunity
-        
-        return 0.0
-    
-    def _detect_guard_removal(self, board: chess.Board, defender_square: int, color: chess.Color) -> float:
-        """Detect guard removal opportunities"""
-        defender = board.piece_at(defender_square)
-        if not defender or defender.color == color:
-            return 0.0
-        
-        # Check if this defender is protecting valuable pieces
-        attacks = board.attacks(defender_square)
-        guard_value = 0.0
-        
-        for defended_square in attacks:
-            defended_piece = board.piece_at(defended_square)
-            if defended_piece and defended_piece.color == defender.color:
-                # Check if this defended piece is also attacked by us
-                if board.is_attacked_by(color, defended_square):
-                    piece_value = self.tactical_piece_values.get(defended_piece.piece_type, 0)
-                    guard_value += piece_value / 200  # Small bonus for removing guard
-        
-        return guard_value
-    
-    def _detect_double_check_potential(self, board: chess.Board, enemy_king: int, color: chess.Color) -> float:
-        """Detect double check potential"""
-        if not enemy_king:
-            return 0.0
-        
-        # Count how many of our pieces can give check
-        checking_pieces = 0
-        for square in chess.SQUARES:
-            piece = board.piece_at(square)
-            if piece and piece.color == color:
-                if board.is_attacked_by(color, enemy_king):
-                    attacks = board.attacks(square)
-                    if enemy_king in attacks:
-                        checking_pieces += 1
-        
-        if checking_pieces >= 2:
-            return 8.0  # Potential double check setup
-        
-        return 0.0
+    def _is_endgame(self, board: chess.Board) -> bool:
+        """Detect endgame phase"""
+        major_pieces = 0
+        for color in [chess.WHITE, chess.BLACK]:
+            major_pieces += len(board.pieces(chess.QUEEN, color)) * 2
+            major_pieces += len(board.pieces(chess.ROOK, color))
+        return major_pieces <= 6

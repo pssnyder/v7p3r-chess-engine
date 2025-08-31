@@ -74,12 +74,12 @@ class V7P3RScoringCalculationClean:
         score += self._rook_coordination(board, color)
         score += self._center_control(board, color)
         
-        # NEW: Piece defense heuristics (STUBBED for performance testing)
-        # score += self._piece_defense_coordination(board, color)
+        # NEW: Piece defense heuristics (lightweight)
+        score += self._piece_defense_coordination(board, color)
         
-        # Enhanced endgame logic (TESTING: temporarily simplified)
+        # Enhanced endgame logic
         if self._is_endgame(board):
-            score += self._endgame_logic(board, color)  # Use simple version
+            score += self._endgame_enhanced(board, color)
         else:
             score += self._endgame_logic(board, color)
             
