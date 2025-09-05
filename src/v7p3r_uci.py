@@ -47,7 +47,6 @@ def main():
             elif command == "ucinewgame":
                 board = chess.Board()
                 engine.new_game()
-                print("info string New game started - V10 unified search engine")
                 
             elif command == "position":
                 if len(parts) > 1:
@@ -130,10 +129,6 @@ def main():
                 
                 best_move = engine.search(board, time_limit)
                 print(f"bestmove {best_move}")
-                
-                # Print basic performance stats
-                nodes = getattr(engine, 'nodes_searched', 0)
-                print(f"info string nodes {nodes}")
                 sys.stdout.flush()  # Ensure output is sent immediately
                 
         except (EOFError, KeyboardInterrupt):

@@ -47,10 +47,6 @@ class PVTracker:
                 self.remaining_pv_queue = pv_moves[3:]  # Rest of PV
                 self.pv_display_string = ' '.join(str(m) for m in pv_moves[2:])
                 self.following_pv = True
-                
-                print(f"info string PV FOLLOW setup: Expecting position after {pv_moves[1]}")
-                print(f"info string Next planned move: {self.next_our_move}")
-                print(f"info string Remaining PV: {self.pv_display_string}")
             else:
                 self.clear()
         else:
@@ -72,21 +68,19 @@ class PVTracker:
             
         current_fen = current_board.fen()
         if current_fen == self.predicted_position_fen:
-            # BINGO! Opponent played exactly what we predicted
+            # Position matches prediction - return instant move
             move_to_play = self.next_our_move
             
-            print(f"info string PV HIT! Position matches prediction")
-            print(f"info string PV FOLLOW: Instantly playing {move_to_play}")
-            print(f"info string Remaining PV: {self.pv_display_string}")
-            print(f"info depth PV score cp 0 nodes 0 time 0 pv {self.pv_display_string}")
+            # Clean UCI output for PV following
+            remaining_pv_str = self.pv_display_string if self.pv_display_string else str(move_to_play)
+            print(f"info depth PV score cp 0 nodes 0 time 0 pv {remaining_pv_str}")
             
             # Set up for next prediction if we have more moves
             self._setup_next_prediction(current_board)
             
             return move_to_play
         else:
-            # Position doesn't match - opponent broke PV
-            print(f"info string PV broken: Position doesn't match prediction")
+            # Position doesn't match - opponent broke PV, clear following
             self.clear()
             return None
     
@@ -255,22 +249,17 @@ class V7P3REngine:
         
         # ROOT LEVEL: Iterative deepening with time management
         if is_root:
-            print("info string Starting search...", flush=True)
-            sys.stdout.flush()
-            
             self.nodes_searched = 0
             self.search_start_time = time.time()
             
             legal_moves = list(board.legal_moves)
             if not legal_moves:
                 return chess.Move.null()
-            
+
             # PV FOLLOWING OPTIMIZATION - check if current position triggers instant move
             pv_move = self.pv_tracker.check_position_for_instant_move(board)
             if pv_move:
-                return pv_move
-            
-            # Iterative deepening
+                return pv_move            # Iterative deepening
             best_move = legal_moves[0]
             best_score = -99999
             target_time = min(time_limit * 0.8, 10.0)
@@ -281,7 +270,6 @@ class V7P3REngine:
                 # Time check before starting iteration
                 elapsed = time.time() - self.search_start_time
                 if elapsed > target_time * 0.7:
-                    print(f"info string Stopping search at depth {current_depth-1} due to time")
                     break
                 
                 try:
@@ -314,17 +302,14 @@ class V7P3REngine:
                         # Restore previous best if iteration failed
                         best_move = previous_best
                         best_score = previous_score
-                        print(f"info string Iteration {current_depth} failed, keeping previous best move")
                     
                     # Time management for next iteration
                     elapsed = time.time() - self.search_start_time
                     iteration_time = time.time() - iteration_start
                     
                     if elapsed > target_time:
-                        print(f"info string Time limit reached ({elapsed:.2f}s > {target_time:.2f}s)")
                         break
                     elif iteration_time > time_limit * 0.4:
-                        print(f"info string Next iteration would likely exceed time limit")
                         break
                         
                 except Exception as e:
