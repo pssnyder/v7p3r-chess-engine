@@ -14,6 +14,107 @@ from collections import defaultdict
 from v7p3r_bitboard_evaluator import V7P3RScoringCalculationBitboard
 
 
+class PVTracker:
+    """Tracks principal variation using predicted board states for instant move recognition"""
+    
+    def __init__(self):
+        self.predicted_position_fen = None  # FEN of position we expect after opponent move
+        self.next_our_move = None          # Our move to play if prediction hits
+        self.remaining_pv_queue = []       # Remaining moves in PV [opp_move, our_move, opp_move, our_move, ...]
+        self.following_pv = False          # Whether we're actively following PV
+        self.pv_display_string = ""        # PV string for display purposes
+        self.original_pv = []              # Store original PV for display
+        
+    def store_pv_from_search(self, starting_board: chess.Board, pv_moves: List[chess.Move]):
+        """Store PV from search results, setting up for following"""
+        self.original_pv = pv_moves.copy()  # Keep original for display
+        
+        if len(pv_moves) < 3:  # Need at least: our_move, opp_move, our_next_move
+            self.clear()
+            return
+            
+        # We're about to play pv_moves[0], so prepare for opponent response
+        temp_board = starting_board.copy()
+        temp_board.push(pv_moves[0])  # Make our first move
+        
+        if len(pv_moves) >= 2:
+            # Predict position after opponent plays pv_moves[1]
+            temp_board.push(pv_moves[1])  # Opponent's expected response
+            self.predicted_position_fen = temp_board.fen()
+            
+            if len(pv_moves) >= 3:
+                self.next_our_move = pv_moves[2]  # Our response to their response
+                self.remaining_pv_queue = pv_moves[3:]  # Rest of PV
+                self.pv_display_string = ' '.join(str(m) for m in pv_moves[2:])
+                self.following_pv = True
+                
+                print(f"info string PV FOLLOW setup: Expecting position after {pv_moves[1]}")
+                print(f"info string Next planned move: {self.next_our_move}")
+                print(f"info string Remaining PV: {self.pv_display_string}")
+            else:
+                self.clear()
+        else:
+            self.clear()
+    
+    def clear(self):
+        """Clear all PV following state"""
+        self.predicted_position_fen = None
+        self.next_our_move = None
+        self.remaining_pv_queue = []
+        self.following_pv = False
+        self.pv_display_string = ""
+        # Keep original_pv for display even after clearing following state
+    
+    def check_position_for_instant_move(self, current_board: chess.Board) -> Optional[chess.Move]:
+        """Check if current position matches prediction - if so, return instant move"""
+        if not self.following_pv or not self.predicted_position_fen:
+            return None
+            
+        current_fen = current_board.fen()
+        if current_fen == self.predicted_position_fen:
+            # BINGO! Opponent played exactly what we predicted
+            move_to_play = self.next_our_move
+            
+            print(f"info string PV HIT! Position matches prediction")
+            print(f"info string PV FOLLOW: Instantly playing {move_to_play}")
+            print(f"info string Remaining PV: {self.pv_display_string}")
+            print(f"info depth PV score cp 0 nodes 0 time 0 pv {self.pv_display_string}")
+            
+            # Set up for next prediction if we have more moves
+            self._setup_next_prediction(current_board)
+            
+            return move_to_play
+        else:
+            # Position doesn't match - opponent broke PV
+            print(f"info string PV broken: Position doesn't match prediction")
+            self.clear()
+            return None
+    
+    def _setup_next_prediction(self, current_board: chess.Board):
+        """Set up prediction for next opponent move"""
+        if len(self.remaining_pv_queue) < 2:  # Need at least opp_move, our_move
+            self.clear()
+            return
+            
+        # Make our move that we're about to play
+        temp_board = current_board.copy()
+        if self.next_our_move:  # Safety check
+            temp_board.push(self.next_our_move)
+        
+        # Predict position after next opponent move
+        next_opp_move = self.remaining_pv_queue[0]
+        temp_board.push(next_opp_move)
+        
+        # Set up for next iteration
+        self.predicted_position_fen = temp_board.fen()
+        self.next_our_move = self.remaining_pv_queue[1] if len(self.remaining_pv_queue) >= 2 else None
+        self.remaining_pv_queue = self.remaining_pv_queue[2:]  # Remove used moves
+        self.pv_display_string = ' '.join(str(m) for m in [self.next_our_move] + self.remaining_pv_queue) if self.next_our_move else ""
+        
+        if not self.next_our_move:
+            self.clear()  # No more moves to follow
+
+
 class TranspositionEntry:
     """Entry in the transposition table"""
     def __init__(self, depth: int, score: int, best_move: Optional[chess.Move], 
@@ -136,9 +237,7 @@ class V7P3REngine:
         }
         
         # PV Following System - V10 OPTIMIZATION
-        self.last_pv = []  # Store the last computed PV
-        self.pv_position_hash = None  # Hash of position where PV was computed
-        self.pv_depth = 0  # Depth of last PV computation
+        self.pv_tracker = PVTracker()
     
     def search(self, board: chess.Board, time_limit: float = 3.0, depth: Optional[int] = None, 
                alpha: float = -99999, beta: float = 99999, is_root: bool = True) -> chess.Move:
@@ -166,16 +265,10 @@ class V7P3REngine:
             if not legal_moves:
                 return chess.Move.null()
             
-            # PV FOLLOWING OPTIMIZATION
-            current_hash = self.zobrist.hash_position(board)
-            if (self.last_pv and len(self.last_pv) >= 1 and 
-                self.pv_position_hash and current_hash != self.pv_position_hash):
-                
-                pv_move = self._check_pv_following(board)
-                if pv_move:
-                    print(f"info string PV FOLLOW: Playing predicted move {pv_move}")
-                    sys.stdout.flush()
-                    return pv_move
+            # PV FOLLOWING OPTIMIZATION - check if current position triggers instant move
+            pv_move = self.pv_tracker.check_position_for_instant_move(board)
+            if pv_move:
+                return pv_move
             
             # Iterative deepening
             best_move = legal_moves[0]
@@ -212,10 +305,8 @@ class V7P3REngine:
                         pv_string = " ".join([str(m) for m in pv_line])
                         
                         # Store PV for following optimization
-                        if current_depth >= 4:
-                            self.last_pv = pv_line.copy()
-                            self.pv_position_hash = self.zobrist.hash_position(board)
-                            self.pv_depth = current_depth
+                        if current_depth >= 4 and len(pv_line) >= 3:
+                            self.pv_tracker.store_pv_from_search(board, pv_line)
                         
                         print(f"info depth {current_depth} score cp {int(score)} nodes {self.nodes_searched} time {elapsed_ms} nps {nps} pv {pv_string}")
                         sys.stdout.flush()
@@ -502,26 +593,6 @@ class V7P3REngine:
                 return True
         return False
     
-    def _check_pv_following(self, board: chess.Board) -> Optional[chess.Move]:
-        """Check if we can follow our stored PV - V10 OPTIMIZATION"""
-        if not self.last_pv or len(self.last_pv) < 1:
-            return None
-        
-        # The first move in our PV should be our move from this position
-        expected_move = self.last_pv[0]
-        
-        # Verify the move is legal in current position
-        if expected_move in board.legal_moves:
-            # Shift the PV (remove the move we're about to play)
-            self.last_pv = self.last_pv[1:]
-            print(f"info string PV shortened to {len(self.last_pv)} moves")
-            return expected_move
-        
-        # PV is no longer valid, clear it
-        self.last_pv = []
-        self.pv_position_hash = None
-        return None
-    
     def _extract_pv(self, board: chess.Board, max_depth: int) -> List[chess.Move]:
         """Extract principal variation from transposition table"""
         pv = []
@@ -651,7 +722,7 @@ class V7P3REngine:
         """Analyze fork patterns using bitboards"""
         if piece.piece_type == chess.KNIGHT:
             # Knight fork detection
-            attacks = self.bitboard_evaluator.KNIGHT_ATTACKS[square]
+            attacks = self.bitboard_evaluator.bitboard_evaluator.KNIGHT_ATTACKS[square]
             enemy_pieces = 0
             high_value_targets = 0
             
@@ -699,19 +770,17 @@ class V7P3REngine:
         
         return 0.0
     
-    def update_pv_after_move(self, move: chess.Move):
-        """Update stored PV after a move is played - V10 OPTIMIZATION"""
-        if self.last_pv and len(self.last_pv) > 0:
-            # If the move matches our PV, remove it
-            if self.last_pv[0] == move:
-                self.last_pv = self.last_pv[1:]
-                print(f"info string PV updated: {len(self.last_pv)} moves remaining")
-            else:
-                # Move doesn't match PV, clear it
-                self.last_pv = []
-                self.pv_position_hash = None
-                print(f"info string PV cleared: unexpected move {move}")
-    
+    def notify_move_played(self, move: chess.Move, board_before_move: chess.Board):
+        """Notify engine that a move was played (for PV following)
+        
+        Args:
+            move: The move that was played
+            board_before_move: The board position BEFORE the move was made
+        """
+        # We don't need this method anymore - position checking is automatic
+        # The new approach checks positions directly when search() is called
+        pass
+
     def new_game(self):
         """Reset for a new game"""
         self.evaluation_cache.clear()
@@ -721,10 +790,14 @@ class V7P3REngine:
         self.nodes_searched = 0
         
         # Clear PV following data
-        self.last_pv = []
-        self.pv_position_hash = None
-        self.pv_depth = 0
+        self.pv_tracker.clear()
         
         # Reset stats
         for key in self.search_stats:
             self.search_stats[key] = 0
+
+    @property
+    def principal_variation(self) -> List[chess.Move]:
+        """Get the current principal variation"""
+        # Return the original PV from the last search for display purposes
+        return self.pv_tracker.original_pv.copy() if self.pv_tracker.original_pv else []
