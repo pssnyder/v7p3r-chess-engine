@@ -1,0 +1,5 @@
+uci
+position startpos
+perft 4
+go depth 3
+quit

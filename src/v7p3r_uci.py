@@ -5,12 +5,13 @@ Standard UCI interface for tournament play with unified search
 """
 
 import sys
+import time
 import chess
 from v7p3r import V7P3REngine
 
 
 def main():
-    """UCI interface for v10"""
+    """UCI interface"""
     engine = V7P3REngine()
     board = chess.Board()
     
@@ -24,17 +25,14 @@ def main():
             command = parts[0]
             
             if command == "quit":
-                                # V10: Unified search architecture
                 break
                 
             elif command == "uci":
-                # V10: Clean UCI interface with unified search
-                print("id name V7P3R v10")
+                print("id name V7P3R")
                 print("id author Pat Snyder")
                 print("uciok")
                 
             elif command == "setoption":
-                # V10: Enhanced heuristics are built-in, no configuration needed
                 if len(parts) >= 4 and parts[1] == "name":
                     option_name = parts[2]
                     if len(parts) >= 5 and parts[3] == "value":
@@ -81,9 +79,17 @@ def main():
                 # Search parameter parsing
                 time_limit = 3.0  # Default
                 depth_limit = None
+                perft_depth = None
                 
                 for i, part in enumerate(parts):
-                    if part == "movetime" and i + 1 < len(parts):
+                    if part == "perft" and i + 1 < len(parts):
+                        # V11 ENHANCEMENT: Perft command support
+                        try:
+                            perft_depth = int(parts[i + 1])
+                        except:
+                            print("info string Invalid perft depth")
+                            continue
+                    elif part == "movetime" and i + 1 < len(parts):
                         try:
                             time_limit = int(parts[i + 1]) / 1000.0
                         except:
@@ -127,9 +133,24 @@ def main():
                         except:
                             pass
                 
-                best_move = engine.search(board, time_limit)
-                print(f"bestmove {best_move}")
-                sys.stdout.flush()  # Ensure output is sent immediately
+                # V11 ENHANCEMENT: Handle perft command
+                if perft_depth is not None:
+                    print(f"info string Starting perft {perft_depth}")
+                    try:
+                        start_time = time.time()
+                        nodes = engine.perft(board, perft_depth, divide=False)
+                        elapsed = time.time() - start_time
+                        nps = int(nodes / max(elapsed, 0.001))
+                        print(f"info string Perft {perft_depth}: {nodes} nodes in {elapsed:.3f}s ({nps} nps)")
+                        print(f"perft {perft_depth}: {nodes}")
+                    except Exception as e:
+                        print(f"info string Perft error: {e}")
+                    sys.stdout.flush()
+                else:
+                    # Normal search
+                    best_move = engine.search(board, time_limit)
+                    print(f"bestmove {best_move}")
+                    sys.stdout.flush()  # Ensure output is sent immediately
                 
         except (EOFError, KeyboardInterrupt):
             break
