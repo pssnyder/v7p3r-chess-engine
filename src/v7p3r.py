@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-V7P3R Chess Engine v9.6 - Unified Search Architecture
-Single search function with time management and all advanced features
+V7P3R Chess Engine v10.6 - Baseline from v10.4 Success
+Phase 1: Core search + Phase 2: Nudge system + Phase 3A: Advanced evaluation
+Phase 3B (Tactical patterns) disabled - restored v10.4 winning configuration
 Author: Pat Snyder
 """
 
@@ -14,8 +15,8 @@ import os
 from typing import Optional, Tuple, List, Dict
 from collections import defaultdict
 from v7p3r_bitboard_evaluator import V7P3RScoringCalculationBitboard
-# from v7p3r_advanced_pawn_evaluator import V7P3RAdvancedPawnEvaluator  # V10.5 ROLLBACK: DISABLED PHASE 3A
-# from v7p3r_king_safety_evaluator import V7P3RKingSafetyEvaluator      # V10.5 ROLLBACK: DISABLED PHASE 3A
+from v7p3r_advanced_pawn_evaluator import V7P3RAdvancedPawnEvaluator
+from v7p3r_king_safety_evaluator import V7P3RKingSafetyEvaluator
 # from v7p3r_tactical_pattern_detector import V7P3RTacticalPatternDetector  # V10.4 ROLLBACK: DISABLED PHASE 3B
 
 
@@ -210,10 +211,10 @@ class V7P3REngine:
         self.default_depth = 6
         self.nodes_searched = 0
         
-        # Evaluation components - V10 BITBOARD POWERED (V10.5: ALL PHASE 3 DISABLED FOR STABILITY)
+        # Evaluation components - V10 BITBOARD POWERED + V11 PHASE 3A ADVANCED (V10.4: PHASE 3B TACTICAL DISABLED)
         self.bitboard_evaluator = V7P3RScoringCalculationBitboard(self.piece_values)
-        # self.advanced_pawn_evaluator = V7P3RAdvancedPawnEvaluator()  # V10.5 ROLLBACK: DISABLED PHASE 3A
-        # self.king_safety_evaluator = V7P3RKingSafetyEvaluator()      # V10.5 ROLLBACK: DISABLED PHASE 3A
+        self.advanced_pawn_evaluator = V7P3RAdvancedPawnEvaluator()  # V11 PHASE 3A
+        self.king_safety_evaluator = V7P3RKingSafetyEvaluator()      # V11 PHASE 3A
         # self.tactical_pattern_detector = V7P3RTacticalPatternDetector()  # V10.4 ROLLBACK: DISABLED PHASE 3B
         
         # Simple evaluation cache for speed
@@ -579,19 +580,15 @@ class V7P3REngine:
         white_base = self.bitboard_evaluator.calculate_score_optimized(board, True)
         black_base = self.bitboard_evaluator.calculate_score_optimized(board, False)
         
-        # V10.5 ROLLBACK: All Phase 3 evaluation components disabled for stability
+        # V11 PHASE 3A & 3B: Advanced evaluation components (V10.4: Phase 3B Tactical disabled)
         try:
-            # V10.5 ROLLBACK: Advanced pawn structure evaluation disabled
-            # white_pawn_score = self.advanced_pawn_evaluator.evaluate_pawn_structure(board, True)
-            # black_pawn_score = self.advanced_pawn_evaluator.evaluate_pawn_structure(board, False)
-            white_pawn_score = 0  # V10.5: Disabled Phase 3A
-            black_pawn_score = 0  # V10.5: Disabled Phase 3A
+            # V11 PHASE 3A: Advanced pawn structure evaluation
+            white_pawn_score = self.advanced_pawn_evaluator.evaluate_pawn_structure(board, True)
+            black_pawn_score = self.advanced_pawn_evaluator.evaluate_pawn_structure(board, False)
             
-            # V10.5 ROLLBACK: Enhanced king safety evaluation disabled
-            # white_king_score = self.king_safety_evaluator.evaluate_king_safety(board, True)
-            # black_king_score = self.king_safety_evaluator.evaluate_king_safety(board, False)
-            white_king_score = 0  # V10.5: Disabled Phase 3A
-            black_king_score = 0  # V10.5: Disabled Phase 3A
+            # V11 PHASE 3A: Enhanced king safety evaluation
+            white_king_score = self.king_safety_evaluator.evaluate_king_safety(board, True)
+            black_king_score = self.king_safety_evaluator.evaluate_king_safety(board, False)
             
             # V10.4 ROLLBACK: Tactical pattern evaluation disabled
             # white_tactical_score = self.tactical_pattern_detector.evaluate_tactical_patterns(board, True)
