@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-V7P3R Chess Engine v10.6 - Baseline from v10.4 Success
-Phase 1: Core search + Phase 2: Nudge system + Phase 3A: Advanced evaluation
-Phase 3B (Tactical patterns) disabled - restored v10.4 winning configuration
+V7P3R Chess Engine v10.7 - Complete Feature Integration
+Phase 1: Core search + Phase 2: Nudge system + Phase 3A: Advanced evaluation + Phase 3B: Tactical patterns
+All enhancements enabled with timeout protection - targeting 1604+ puzzle rating
 Author: Pat Snyder
 """
 
@@ -17,7 +17,7 @@ from collections import defaultdict
 from v7p3r_bitboard_evaluator import V7P3RScoringCalculationBitboard
 from v7p3r_advanced_pawn_evaluator import V7P3RAdvancedPawnEvaluator
 from v7p3r_king_safety_evaluator import V7P3RKingSafetyEvaluator
-# from v7p3r_tactical_pattern_detector import V7P3RTacticalPatternDetector  # V10.4 ROLLBACK: DISABLED PHASE 3B
+from v7p3r_tactical_pattern_detector import V7P3RTacticalPatternDetector  # V10.7: RE-ENABLED PHASE 3B
 
 
 class PVTracker:
@@ -211,11 +211,11 @@ class V7P3REngine:
         self.default_depth = 6
         self.nodes_searched = 0
         
-        # Evaluation components - V10 BITBOARD POWERED + V11 PHASE 3A ADVANCED (V10.4: PHASE 3B TACTICAL DISABLED)
+        # Evaluation components - V10 BITBOARD POWERED + V11 PHASE 3A+3B COMPLETE (V10.7: ALL FEATURES ENABLED)
         self.bitboard_evaluator = V7P3RScoringCalculationBitboard(self.piece_values)
         self.advanced_pawn_evaluator = V7P3RAdvancedPawnEvaluator()  # V11 PHASE 3A
         self.king_safety_evaluator = V7P3RKingSafetyEvaluator()      # V11 PHASE 3A
-        # self.tactical_pattern_detector = V7P3RTacticalPatternDetector()  # V10.4 ROLLBACK: DISABLED PHASE 3B
+        self.tactical_pattern_detector = V7P3RTacticalPatternDetector()  # V10.7: RE-ENABLED PHASE 3B
         
         # Simple evaluation cache for speed
         self.evaluation_cache = {}  # position_hash -> evaluation
@@ -590,11 +590,26 @@ class V7P3REngine:
             white_king_score = self.king_safety_evaluator.evaluate_king_safety(board, True)
             black_king_score = self.king_safety_evaluator.evaluate_king_safety(board, False)
             
-            # V10.4 ROLLBACK: Tactical pattern evaluation disabled
-            # white_tactical_score = self.tactical_pattern_detector.evaluate_tactical_patterns(board, True)
-            # black_tactical_score = self.tactical_pattern_detector.evaluate_tactical_patterns(board, False)
-            white_tactical_score = 0  # V10.4: Disabled Phase 3B
-            black_tactical_score = 0  # V10.4: Disabled Phase 3B
+            # V10.7: Tactical pattern evaluation re-enabled with timeout protection
+            try:
+                # Simple time check using search_start_time if available
+                use_tactical = True
+                if hasattr(self, 'search_start_time'):
+                    elapsed = time.time() - self.search_start_time
+                    if elapsed > 5.0:  # Skip tactical patterns if more than 5s elapsed
+                        use_tactical = False
+                
+                if use_tactical:
+                    white_tactical_score = self.tactical_pattern_detector.evaluate_tactical_patterns(board, True)
+                    black_tactical_score = self.tactical_pattern_detector.evaluate_tactical_patterns(board, False)
+                else:
+                    # Skip tactical patterns if running low on time
+                    white_tactical_score = 0
+                    black_tactical_score = 0
+            except Exception:
+                # Fallback to no tactical bonus if tactical evaluation fails
+                white_tactical_score = 0
+                black_tactical_score = 0
             
             # Combine all evaluation components
             white_total = white_base + white_pawn_score + white_king_score + white_tactical_score
@@ -773,10 +788,13 @@ class V7P3REngine:
         try:
             our_color = not board.turn  # We just moved, so it's opponent's turn
             
-            # V10.4 ROLLBACK: Use legacy tactical analysis only
-            # tactical_score = self.tactical_pattern_detector.evaluate_tactical_patterns(board, our_color)
-            # tactical_bonus += tactical_score * 0.1  # Scale down for move ordering
-            tactical_bonus += 0  # V10.4: Disabled Phase 3B advanced tactical detection
+            # V10.7: Re-enabled advanced tactical pattern detection with timeout protection
+            try:
+                tactical_score = self.tactical_pattern_detector.evaluate_tactical_patterns(board, our_color)
+                tactical_bonus += tactical_score * 0.1  # Scale down for move ordering
+            except Exception:
+                # Fallback to basic tactical analysis if pattern detection fails
+                tactical_bonus += 0
             
             # Legacy bitboard tactics for additional analysis
             moving_piece = board.piece_at(move.to_square)
