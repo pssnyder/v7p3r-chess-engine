@@ -1,8 +1,15 @@
 #!/usr/bin/env python3
 """
-V7P3R Chess Engine v10.7 - Complete Feature Integration
-Phase 1: Core search + Phase 2: Nudge system + Phase 3A: Advanced evaluation + Phase 3B: Tactical patterns
-All enhancements enabled with timeout protection - targeting 1604+ puzzle rating
+V7P3R Chess Engine v10.8 - Recovery Baseline
+Built from v10.6 stable foundation with lessons learned from v10.7 failure
+Phase 1: Core search + Phase 2: Nudge system + Phase 3A: Advanced evaluation
+Phase 3B (Tactical patterns) DISABLED - Target for v11 redesign
+
+VERSION LINEAGE:
+- v10.6: Tournament baseline (19.5/30 points)
+- v10.7: Failed tactical patterns (70% performance loss)  
+- v10.8: Recovery baseline for v11 development
+
 Author: Pat Snyder
 """
 
@@ -17,7 +24,7 @@ from collections import defaultdict
 from v7p3r_bitboard_evaluator import V7P3RScoringCalculationBitboard
 from v7p3r_advanced_pawn_evaluator import V7P3RAdvancedPawnEvaluator
 from v7p3r_king_safety_evaluator import V7P3RKingSafetyEvaluator
-from v7p3r_tactical_pattern_detector import V7P3RTacticalPatternDetector  # V10.7: RE-ENABLED PHASE 3B
+# from v7p3r_tactical_pattern_detector import V7P3RTacticalPatternDetector  # V10.6 ROLLBACK: DISABLED PHASE 3B
 
 
 class PVTracker:
@@ -211,11 +218,11 @@ class V7P3REngine:
         self.default_depth = 6
         self.nodes_searched = 0
         
-        # Evaluation components - V10 BITBOARD POWERED + V11 PHASE 3A+3B COMPLETE (V10.7: ALL FEATURES ENABLED)
+        # Evaluation components - V10 BITBOARD POWERED + V11 PHASE 3A ADVANCED (V10.6 ROLLBACK: PHASE 3B DISABLED)
         self.bitboard_evaluator = V7P3RScoringCalculationBitboard(self.piece_values)
         self.advanced_pawn_evaluator = V7P3RAdvancedPawnEvaluator()  # V11 PHASE 3A
         self.king_safety_evaluator = V7P3RKingSafetyEvaluator()      # V11 PHASE 3A
-        self.tactical_pattern_detector = V7P3RTacticalPatternDetector()  # V10.7: RE-ENABLED PHASE 3B
+        # self.tactical_pattern_detector = V7P3RTacticalPatternDetector()  # V10.6 ROLLBACK: DISABLED PHASE 3B
         
         # Simple evaluation cache for speed
         self.evaluation_cache = {}  # position_hash -> evaluation
@@ -590,26 +597,10 @@ class V7P3REngine:
             white_king_score = self.king_safety_evaluator.evaluate_king_safety(board, True)
             black_king_score = self.king_safety_evaluator.evaluate_king_safety(board, False)
             
-            # V10.7: Tactical pattern evaluation re-enabled with timeout protection
-            try:
-                # Simple time check using search_start_time if available
-                use_tactical = True
-                if hasattr(self, 'search_start_time'):
-                    elapsed = time.time() - self.search_start_time
-                    if elapsed > 5.0:  # Skip tactical patterns if more than 5s elapsed
-                        use_tactical = False
-                
-                if use_tactical:
-                    white_tactical_score = self.tactical_pattern_detector.evaluate_tactical_patterns(board, True)
-                    black_tactical_score = self.tactical_pattern_detector.evaluate_tactical_patterns(board, False)
-                else:
-                    # Skip tactical patterns if running low on time
-                    white_tactical_score = 0
-                    black_tactical_score = 0
-            except Exception:
-                # Fallback to no tactical bonus if tactical evaluation fails
-                white_tactical_score = 0
-                black_tactical_score = 0
+            # V10.6 ROLLBACK: Tactical pattern evaluation disabled for performance
+            # Phase 3B showed 70% performance degradation in tournament play
+            white_tactical_score = 0  # V10.6: Disabled Phase 3B
+            black_tactical_score = 0  # V10.6: Disabled Phase 3B
             
             # Combine all evaluation components
             white_total = white_base + white_pawn_score + white_king_score + white_tactical_score
@@ -788,13 +779,9 @@ class V7P3REngine:
         try:
             our_color = not board.turn  # We just moved, so it's opponent's turn
             
-            # V10.7: Re-enabled advanced tactical pattern detection with timeout protection
-            try:
-                tactical_score = self.tactical_pattern_detector.evaluate_tactical_patterns(board, our_color)
-                tactical_bonus += tactical_score * 0.1  # Scale down for move ordering
-            except Exception:
-                # Fallback to basic tactical analysis if pattern detection fails
-                tactical_bonus += 0
+            # V10.6 ROLLBACK: Use legacy tactical analysis only  
+            # Advanced tactical patterns disabled due to 70% performance degradation
+            tactical_bonus += 0  # V10.6: Disabled Phase 3B advanced tactical detection
             
             # Legacy bitboard tactics for additional analysis
             moving_piece = board.piece_at(move.to_square)
