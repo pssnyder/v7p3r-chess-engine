@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-V7P3R v10 UCI Interface
-Standard UCI interface for tournament play with unified search
+V7P3R v10.9 UCI Interface
+Standard UCI interface for tournament play with unified search and time-adaptive tactical patterns
 """
 
 import sys
@@ -28,7 +28,7 @@ def main():
                 break
                 
             elif command == "uci":
-                print("id name V7P3R")
+                print("id name V7P3R v10.9")
                 print("id author Pat Snyder")
                 print("uciok")
                 
@@ -105,6 +105,9 @@ def main():
                             if board.turn == chess.WHITE:
                                 # More aggressive time management - compete with SlowMate
                                 remaining_time = int(parts[i + 1]) / 1000.0
+                                remaining_time_ms = int(parts[i + 1])  # V10.9: Store milliseconds for tactical detector
+                                engine.update_time_control_info(remaining_time_ms)  # V10.9: Update tactical detector
+                                
                                 # Use more time early game, less time in endgame
                                 moves_played = len(board.move_stack)
                                 if moves_played < 20:
@@ -121,6 +124,9 @@ def main():
                             if board.turn == chess.BLACK:
                                 # More aggressive time management - compete with SlowMate
                                 remaining_time = int(parts[i + 1]) / 1000.0
+                                remaining_time_ms = int(parts[i + 1])  # V10.9: Store milliseconds for tactical detector
+                                engine.update_time_control_info(remaining_time_ms)  # V10.9: Update tactical detector
+                                
                                 # Use more time early game, less time in endgame
                                 moves_played = len(board.move_stack)
                                 if moves_played < 20:

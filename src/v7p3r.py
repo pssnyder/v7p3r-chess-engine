@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-V7P3R Chess Engine v10.8 - Recovery Baseline
-Built from v10.6 stable foundation with lessons learned from v10.7 failure
-Phase 1: Core search + Phase 2: Nudge system + Phase 3A: Advanced evaluation
-Phase 3B (Tactical patterns) DISABLED - Target for v11 redesign
+V7P3R Chess Engine v10.9 - Time-Adaptive Tactical Patterns
+Built from v10.8 stable foundation with time-control adaptive tactical pattern detection
+Phase 1: Core search + Phase 2: Nudge system + Phase 3A: Advanced evaluation + Phase 3B: Time-Adaptive Tactical Patterns
 
 VERSION LINEAGE:
 - v10.6: Tournament baseline (19.5/30 points)
 - v10.7: Failed tactical patterns (70% performance loss)  
 - v10.8: Recovery baseline for v11 development
+- v10.9: Time-adaptive tactical patterns (v11 preparation)
 
 Author: Pat Snyder
 """
@@ -24,7 +24,7 @@ from collections import defaultdict
 from v7p3r_bitboard_evaluator import V7P3RScoringCalculationBitboard
 from v7p3r_advanced_pawn_evaluator import V7P3RAdvancedPawnEvaluator
 from v7p3r_king_safety_evaluator import V7P3RKingSafetyEvaluator
-# from v7p3r_tactical_pattern_detector import V7P3RTacticalPatternDetector  # V10.6 ROLLBACK: DISABLED PHASE 3B
+from v7p3r_tactical_pattern_detector import TimeControlAdaptiveTacticalDetector  # V10.9 PHASE 3B: TIME-ADAPTIVE TACTICAL PATTERNS
 
 
 class PVTracker:
@@ -218,11 +218,11 @@ class V7P3REngine:
         self.default_depth = 6
         self.nodes_searched = 0
         
-        # Evaluation components - V10 BITBOARD POWERED + V11 PHASE 3A ADVANCED (V10.6 ROLLBACK: PHASE 3B DISABLED)
+        # Evaluation components - V10 BITBOARD POWERED + V11 PHASE 3A ADVANCED + V10.9 PHASE 3B TIME-ADAPTIVE TACTICAL
         self.bitboard_evaluator = V7P3RScoringCalculationBitboard(self.piece_values)
         self.advanced_pawn_evaluator = V7P3RAdvancedPawnEvaluator()  # V11 PHASE 3A
         self.king_safety_evaluator = V7P3RKingSafetyEvaluator()      # V11 PHASE 3A
-        # self.tactical_pattern_detector = V7P3RTacticalPatternDetector()  # V10.6 ROLLBACK: DISABLED PHASE 3B
+        self.tactical_pattern_detector = TimeControlAdaptiveTacticalDetector()  # V10.9 PHASE 3B: TIME-ADAPTIVE TACTICAL PATTERNS
         
         # Simple evaluation cache for speed
         self.evaluation_cache = {}  # position_hash -> evaluation
@@ -255,6 +255,11 @@ class V7P3REngine:
         
         # Configuration
         self.max_tt_entries = 50000  # Reasonable size for testing
+        
+        # V10.9 PHASE 3B: Time control tracking for tactical pattern detector
+        self.current_time_remaining_ms = 600000  # Default 10 minutes
+        self.current_moves_played = 0
+        self.search_start_time = 0.0
         
         # Performance monitoring
         self.search_stats = {
@@ -289,6 +294,9 @@ class V7P3REngine:
         if is_root:
             self.nodes_searched = 0
             self.search_start_time = time.time()
+            
+            # V10.9 PHASE 3B: Update game state for tactical pattern detector
+            self.current_moves_played = len(board.move_stack)
             
             legal_moves = list(board.legal_moves)
             if not legal_moves:
@@ -599,8 +607,25 @@ class V7P3REngine:
             
             # V10.6 ROLLBACK: Tactical pattern evaluation disabled for performance
             # Phase 3B showed 70% performance degradation in tournament play
-            white_tactical_score = 0  # V10.6: Disabled Phase 3B
-            black_tactical_score = 0  # V10.6: Disabled Phase 3B
+            # V10.9 PHASE 3B: RE-ENABLING with time-control adaptive tactical patterns
+            try:
+                white_tactical_patterns, white_tactical_score = self.tactical_pattern_detector.detect_tactical_patterns(
+                    board, self.current_time_remaining_ms, self.current_moves_played)
+                black_tactical_patterns, black_tactical_score = self.tactical_pattern_detector.detect_tactical_patterns(
+                    board, self.current_time_remaining_ms, self.current_moves_played)
+                
+                # Adjust scores for respective sides  
+                if board.turn:  # White's perspective
+                    white_tactical_score = white_tactical_score
+                    black_tactical_score = -black_tactical_score
+                else:  # Black's perspective  
+                    white_tactical_score = -white_tactical_score
+                    black_tactical_score = black_tactical_score
+                    
+            except Exception as e:
+                # Fallback: no tactical bonus if detector fails
+                white_tactical_score = 0
+                black_tactical_score = 0
             
             # Combine all evaluation components
             white_total = white_base + white_pawn_score + white_king_score + white_tactical_score
@@ -875,6 +900,14 @@ class V7P3REngine:
         
         # Clear PV following data
         self.pv_tracker.clear()
+        
+        # V10.9 PHASE 3B: Reset time control tracking
+        self.current_time_remaining_ms = 600000  # Default 10 minutes
+        self.current_moves_played = 0
+    
+    def update_time_control_info(self, time_remaining_ms: int):
+        """V10.9 PHASE 3B: Update time control information for tactical pattern detector"""
+        self.current_time_remaining_ms = time_remaining_ms
         
         # Reset stats
         for key in self.search_stats:
