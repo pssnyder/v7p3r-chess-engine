@@ -237,16 +237,14 @@ class V7P3RBitboardEvaluator:
         score += self._count_passed_pawns(white_pawns, black_pawns, True) * 20
         score -= self._count_passed_pawns(black_pawns, white_pawns, False) * 20
         
-        # 6. ENDGAME CONSIDERATIONS
+        # 6. ENDGAME CONSIDERATIONS  
         total_material = self._popcount(all_pieces & ~(white_pawns | black_pawns))
         if total_material <= 8:  # Endgame
-            # Drive enemy king to edge
-            if color == chess.WHITE:
-                enemy_king_on_edge = black_king & self.EDGES
-                score += self._popcount(enemy_king_on_edge) * 10
-            else:
-                enemy_king_on_edge = white_king & self.EDGES
-                score -= self._popcount(enemy_king_on_edge) * 10
+            # Drive enemy king to edge (always from White's perspective)
+            black_king_on_edge = black_king & self.EDGES
+            white_king_on_edge = white_king & self.EDGES
+            score += self._popcount(black_king_on_edge) * 10  # Good for White if Black king on edge
+            score -= self._popcount(white_king_on_edge) * 10  # Bad for White if White king on edge
         
         return score if color == chess.WHITE else -score
     

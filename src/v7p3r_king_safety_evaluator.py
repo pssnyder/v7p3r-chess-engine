@@ -235,8 +235,13 @@ class V7P3RKingSafetyEvaluator:
         if centralization_index < len(self.king_centralization_bonus):
             score += self.king_centralization_bonus[centralization_index]
         
-        # King mobility bonus
+        # King mobility bonus - calculate moves for this color's king
+        # We need to temporarily set the turn to calculate legal moves correctly
+        original_turn = board.turn
+        board.turn = color
         king_moves = len([move for move in board.legal_moves if move.from_square == king_square])
+        board.turn = original_turn  # Restore original turn
+        
         score += king_moves * self.king_activity_bonus
         
         return score
