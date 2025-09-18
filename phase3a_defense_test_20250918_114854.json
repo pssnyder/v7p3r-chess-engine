@@ -1,0 +1,153 @@
+{
+  "test_timestamp": "2025-09-18 11:48:54",
+  "phase": "3A - Lightweight Defense",
+  "performance_analysis": {
+    "performance_tests": [
+      {
+        "position_name": "Starting Position",
+        "position_type": "balanced",
+        "avg_time_ms": 0.0,
+        "defense_score": -1.7763568394002505e-18,
+        "meets_target": true
+      },
+      {
+        "position_name": "Complex Tactical",
+        "position_type": "tactical",
+        "avg_time_ms": 0.0,
+        "defense_score": 0.037714285714285714,
+        "meets_target": true
+      },
+      {
+        "position_name": "King Endgame",
+        "position_type": "endgame",
+        "avg_time_ms": 0.0,
+        "defense_score": 0.0,
+        "meets_target": true
+      },
+      {
+        "position_name": "Italian Game",
+        "position_type": "opening",
+        "avg_time_ms": 0.1558518409729004,
+        "defense_score": -0.047200000000000006,
+        "meets_target": true
+      },
+      {
+        "position_name": "Hanging Pieces",
+        "position_type": "tactical_escape",
+        "avg_time_ms": 0.02398967742919922,
+        "defense_score": -0.010000000000000044,
+        "meets_target": true
+      },
+      {
+        "position_name": "Middlegame",
+        "position_type": "positional",
+        "avg_time_ms": 0.030987262725830078,
+        "defense_score": -0.044371428571428534,
+        "meets_target": true
+      }
+    ],
+    "accuracy_tests": [
+      {
+        "position_name": "Starting Position",
+        "escape_bonus": 0.0,
+        "time_ms": 0.0,
+        "meets_target": true
+      },
+      {
+        "position_name": "Complex Tactical",
+        "escape_bonus": 20.0,
+        "time_ms": 0.9984970092773438,
+        "meets_target": true
+      },
+      {
+        "position_name": "King Endgame",
+        "escape_bonus": 20.0,
+        "time_ms": 0.0,
+        "meets_target": true
+      },
+      {
+        "position_name": "Italian Game",
+        "escape_bonus": 0.0,
+        "time_ms": 0.0,
+        "meets_target": true
+      },
+      {
+        "position_name": "Hanging Pieces",
+        "escape_bonus": 0.0,
+        "time_ms": 0.0,
+        "meets_target": true
+      },
+      {
+        "position_name": "Middlegame",
+        "escape_bonus": 0.0,
+        "time_ms": 0.9973049163818359,
+        "meets_target": true
+      }
+    ],
+    "cache_efficiency": {
+      "calls": 12,
+      "cache_hit_rate": 50.0,
+      "avg_time_ms": 0.1661380132039388,
+      "cache_size": 6
+    },
+    "component_stats": {
+      "defense": {
+        "calls": 12,
+        "cache_hit_rate": 50.0,
+        "avg_time_ms": 0.1661380132039388,
+        "cache_size": 6
+      },
+      "escape": {
+        "calls": 6,
+        "escapes_found": 2,
+        "avg_time_ms": 0.33263365427652997
+      }
+    }
+  },
+  "integration_analysis": {
+    "integration_tests": [
+      {
+        "node_count": 100,
+        "defensive_calls": 1,
+        "elapsed_time": 0.0031616687774658203,
+        "simulated_nps": 31628.86660131212,
+        "overhead_per_node": 0.0316166877746582
+      },
+      {
+        "node_count": 200,
+        "defensive_calls": 1,
+        "elapsed_time": 0.003515958786010742,
+        "simulated_nps": 56883.48816708483,
+        "overhead_per_node": 0.01757979393005371
+      },
+      {
+        "node_count": 500,
+        "defensive_calls": 3,
+        "elapsed_time": 0.018133878707885742,
+        "simulated_nps": 27572.700140680263,
+        "overhead_per_node": 0.036267757415771484
+      },
+      {
+        "node_count": 1000,
+        "defensive_calls": 5,
+        "elapsed_time": 0.03477597236633301,
+        "simulated_nps": 28755.4863877253,
+        "overhead_per_node": 0.03477597236633301
+      },
+      {
+        "node_count": 2000,
+        "defensive_calls": 10,
+        "elapsed_time": 0.06879138946533203,
+        "simulated_nps": 29073.406069344128,
+        "overhead_per_node": 0.034395694732666016
+      }
+    ],
+    "performance_impact": {
+      "nps_maintained": true,
+      "largest_test_nps": 29073.406069344128,
+      "overhead_per_node": 0.034395694732666016
+    },
+    "nps_simulation": {}
+  },
+  "phase3a_status": "PARTIAL"
+}

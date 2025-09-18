@@ -30,6 +30,9 @@ from v7p3r_bitboard_evaluator import V7P3RScoringCalculationBitboard
 from v7p3r_advanced_pawn_evaluator import V7P3RAdvancedPawnEvaluator
 from v7p3r_king_safety_evaluator import V7P3RKingSafetyEvaluator
 from v7p3r_strategic_database import V7P3RStrategicDatabase
+from v7p3r_posture_assessment import V7P3RPostureAssessment  # V11 PHASE 3B: POSTURE ASSESSMENT
+from v7p3r_adaptive_evaluation import V7P3RAdaptiveEvaluation  # V11 PHASE 3B: ADAPTIVE EVALUATION
+from v7p3r_adaptive_move_ordering import V7P3RAdaptiveMoveOrdering  # V11 PHASE 3B: ADAPTIVE MOVE ORDERING
 from v7p3r_tactical_pattern_detector import TimeControlAdaptiveTacticalDetector  # V10.9 PHASE 3B: TIME-ADAPTIVE TACTICAL PATTERNS
 from v7p3r_time_manager import V7P3RTimeManager  # V11 PHASE 1: ADVANCED TIME MANAGEMENT
 
@@ -262,6 +265,11 @@ class V7P3REngine:
         
         # V11 PHASE 2: Enhanced Strategic Database
         self.strategic_database = V7P3RStrategicDatabase()
+        
+        # V11 PHASE 3B: New Adaptive Evaluation System
+        self.posture_assessor = V7P3RPostureAssessment()
+        self.adaptive_evaluator = V7P3RAdaptiveEvaluation(self.posture_assessor)
+        self.adaptive_move_orderer = V7P3RAdaptiveMoveOrdering(self.posture_assessor)
         
         # Configuration
         self.max_tt_entries = 50000  # Reasonable size for testing
@@ -513,7 +521,28 @@ class V7P3REngine:
     
     def _order_moves_advanced(self, board: chess.Board, moves: List[chess.Move], depth: int, 
                               tt_move: Optional[chess.Move] = None) -> List[chess.Move]:
-        """V11 PHASE 2 ENHANCED move ordering - TT, NUDGES, MVV-LVA, Checks, Killers, BITBOARD TACTICS"""
+        """V11 PHASE 3B ENHANCED: Adaptive move ordering with posture-based prioritization"""
+        if len(moves) <= 2:
+            return moves
+        
+        # V11 PHASE 3B: Try adaptive move ordering first
+        try:
+            scored_moves = self.adaptive_move_orderer.order_moves(board, moves)
+            
+            # Apply transposition table move override (highest priority)
+            if tt_move and tt_move in moves:
+                # Remove TT move from scored list and put it first
+                scored_moves = [(move, score) for move, score in scored_moves if move != tt_move]
+                final_moves = [tt_move] + [move for move, score in scored_moves]
+                return final_moves
+            else:
+                return [move for move, score in scored_moves]
+                
+        except Exception as e:
+            # Fallback to legacy move ordering if adaptive system fails
+            pass
+        
+        # V11 PHASE 2 LEGACY: Enhanced move ordering - TT, NUDGES, MVV-LVA, Checks, Killers, BITBOARD TACTICS
         if len(moves) <= 2:
             return moves
         
@@ -601,7 +630,7 @@ class V7P3REngine:
         return ordered
     
     def _evaluate_position(self, board: chess.Board) -> float:
-        """V11 PHASE 3B ENHANCED: Position evaluation with tactical pattern detection"""
+        """V11 PHASE 3B: New Adaptive Evaluation System"""
         # Create cache key
         cache_key = board.fen()
         
@@ -611,74 +640,34 @@ class V7P3REngine:
         
         self.search_stats['cache_misses'] += 1
         
-        # V10 Base bitboard evaluation for material and basic positioning
-        white_base = self.bitboard_evaluator.calculate_score_optimized(board, True)
-        black_base = self.bitboard_evaluator.calculate_score_optimized(board, False)
-        
-        # V11 PHASE 3A & 3B: Advanced evaluation components (V10.4: Phase 3B Tactical disabled)
+        # V11 PHASE 3B: Use new adaptive evaluation system
         try:
-            # V11 PHASE 3A: Advanced pawn structure evaluation
-            white_pawn_score = self.advanced_pawn_evaluator.evaluate_pawn_structure(board, True)
-            black_pawn_score = self.advanced_pawn_evaluator.evaluate_pawn_structure(board, False)
+            evaluation_score = self.adaptive_evaluator.evaluate_position(board, depth=0)
             
-            # V11 PHASE 3A: Enhanced king safety evaluation
-            white_king_score = self.king_safety_evaluator.evaluate_king_safety(board, True)
-            black_king_score = self.king_safety_evaluator.evaluate_king_safety(board, False)
-            
-            # V10.6 ROLLBACK: Tactical pattern evaluation disabled for performance
-            # Phase 3B showed 70% performance degradation in tournament play
-            # V10.9 PHASE 3B: RE-ENABLING with time-control adaptive tactical patterns
+            # V11 PHASE 2: Add strategic database evaluation bonus (optimized)
             try:
-                white_tactical_patterns, white_tactical_score = self.tactical_pattern_detector.detect_tactical_patterns(
-                    board, self.current_time_remaining_ms, self.current_moves_played)
-                black_tactical_patterns, black_tactical_score = self.tactical_pattern_detector.detect_tactical_patterns(
-                    board, self.current_time_remaining_ms, self.current_moves_played)
-                
-                # V10.9 FIX: Remove perspective adjustment - let main evaluation handle it
-                # All tactical scores should be from their respective side's perspective
-                # The final_score calculation will properly combine them
-                    
+                # Only apply strategic bonus occasionally to avoid performance impact
+                if self.nodes_searched % 100 == 0:  # Every 100 nodes
+                    strategic_bonus = self.strategic_database.get_strategic_evaluation_bonus(board)
+                    evaluation_score += strategic_bonus * 0.1  # Reduced weight for adaptive system
             except Exception as e:
-                # Fallback: no tactical bonus if detector fails
-                white_tactical_score = 0
-                black_tactical_score = 0
-            
-            # Combine all evaluation components
-            white_total = white_base + white_pawn_score + white_king_score + white_tactical_score
-            black_total = black_base + black_pawn_score + black_king_score + black_tactical_score
-            
+                # Ignore strategic bonus if there's an error
+                pass
+                
         except Exception as e:
-            # Fallback to base evaluation if advanced evaluation fails
-            white_total = white_base
-            black_total = black_base
+            # Fallback to legacy evaluation if adaptive system fails
+            white_base = self.bitboard_evaluator.calculate_score_optimized(board, True)
+            black_base = self.bitboard_evaluator.calculate_score_optimized(board, False)
+            
+            # Calculate final score from current player's perspective
+            if board.turn:  # White to move
+                evaluation_score = (white_base - black_base) / 100.0
+            else:  # Black to move  
+                evaluation_score = (black_base - white_base) / 100.0
         
-        # V11 PHASE 2: Add strategic database evaluation bonus (optimized)
-        try:
-            # Only apply strategic bonus occasionally to avoid performance impact
-            if self.nodes_searched % 100 == 0:  # Every 100 nodes
-                strategic_bonus = self.strategic_database.get_strategic_evaluation_bonus(board)
-                # Apply strategic bonus from white's perspective
-                if board.turn:  # White to move
-                    white_total += strategic_bonus
-                else:  # Black to move
-                    black_total += strategic_bonus
-        except Exception as e:
-            # Ignore strategic bonus if there's an error
-            pass
-        
-        # V10.9 CRITICAL FIX: Return evaluation from side-to-move perspective for negamax
-        # Always calculate base evaluation from White's perspective
-        base_evaluation = white_total - black_total
-        
-        # Return from perspective of side to move (negamax style)
-        if board.turn:  # White to move
-            final_score = base_evaluation
-        else:  # Black to move  
-            final_score = -base_evaluation
-        
-        # Cache the result
-        self.evaluation_cache[cache_key] = final_score
-        return final_score
+        # Cache and return result
+        self.evaluation_cache[cache_key] = evaluation_score
+        return evaluation_score
     
     def _probe_transposition_table(self, board: chess.Board, depth: int, alpha: int, beta: int) -> Tuple[bool, int, Optional[chess.Move]]:
         """Probe transposition table for this position - PHASE 1 FEATURE"""
