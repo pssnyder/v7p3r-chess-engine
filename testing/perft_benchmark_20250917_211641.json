@@ -1,0 +1,188 @@
+{
+  "test_date": "2025-09-17 21:16:09",
+  "engine_version": "v10.9 (baseline for v11)",
+  "positions": [
+    {
+      "position_name": "Starting Position",
+      "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+      "depth_results": {
+        "1": {
+          "nodes": 20,
+          "time": 0.0,
+          "nps": 0
+        },
+        "2": {
+          "nodes": 400,
+          "time": 0.0,
+          "nps": 0
+        },
+        "3": {
+          "nodes": 8902,
+          "time": 0.04748702049255371,
+          "nps": 187461.75076189282
+        },
+        "4": {
+          "nodes": 197281,
+          "time": 0.8941617012023926,
+          "nps": 220632.35288954256
+        }
+      },
+      "total_nodes": 206603,
+      "total_time": 0.9416487216949463,
+      "average_nps": 219405.59705547022
+    },
+    {
+      "position_name": "Kiwipete",
+      "fen": "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",
+      "depth_results": {
+        "1": {
+          "nodes": 6,
+          "time": 0.0,
+          "nps": 0
+        },
+        "2": {
+          "nodes": 264,
+          "time": 0.00200653076171875,
+          "nps": 131570.37262357413
+        },
+        "3": {
+          "nodes": 9467,
+          "time": 0.033806562423706055,
+          "nps": 280034.38744666596
+        },
+        "4": {
+          "nodes": 422333,
+          "time": 1.9811310768127441,
+          "nps": 213177.7169834981
+        }
+      },
+      "total_nodes": 432070,
+      "total_time": 2.016944169998169,
+      "average_nps": 214220.1090278033
+    },
+    {
+      "position_name": "Tactical Position",
+      "fen": "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+      "depth_results": {
+        "1": {
+          "nodes": 14,
+          "time": 0.0,
+          "nps": 0
+        },
+        "2": {
+          "nodes": 191,
+          "time": 0.0,
+          "nps": 0
+        },
+        "3": {
+          "nodes": 2812,
+          "time": 0.02459239959716797,
+          "nps": 114344.27083414124
+        },
+        "4": {
+          "nodes": 43238,
+          "time": 0.1939094066619873,
+          "nps": 222980.41515525966
+        }
+      },
+      "total_nodes": 46255,
+      "total_time": 0.21850180625915527,
+      "average_nps": 211691.61386766296
+    },
+    {
+      "position_name": "Endgame Position",
+      "fen": "r3k2r/8/3Q4/8/8/8/8/R3K2R b KQkq - 0 1",
+      "depth_results": {
+        "1": {
+          "nodes": 20,
+          "time": 0.0,
+          "nps": 0
+        },
+        "2": {
+          "nodes": 872,
+          "time": 0.015622138977050781,
+          "nps": 55818.220621451685
+        },
+        "3": {
+          "nodes": 16068,
+          "time": 0.0769968032836914,
+          "nps": 208683.98835725876
+        },
+        "4": {
+          "nodes": 665077,
+          "time": 2.6516342163085938,
+          "nps": 250817.77716908115
+        }
+      },
+      "total_nodes": 682037,
+      "total_time": 2.744253158569336,
+      "average_nps": 248532.8286387277
+    },
+    {
+      "position_name": "Promotion Position",
+      "fen": "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8",
+      "depth_results": {
+        "1": {
+          "nodes": 44,
+          "time": 0.0,
+          "nps": 0
+        },
+        "2": {
+          "nodes": 1486,
+          "time": 0.01488041877746582,
+          "nps": 99862.78089500585
+        },
+        "3": {
+          "nodes": 62379,
+          "time": 0.2544581890106201,
+          "nps": 245144.3997245321
+        },
+        "4": {
+          "nodes": 2103487,
+          "time": 9.14684534072876,
+          "nps": 229968.57622962806
+        }
+      },
+      "total_nodes": 2167396,
+      "total_time": 9.416183948516846,
+      "average_nps": 230177.7462983175
+    },
+    {
+      "position_name": "Castling Position",
+      "fen": "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10",
+      "depth_results": {
+        "1": {
+          "nodes": 46,
+          "time": 0.0,
+          "nps": 0
+        },
+        "2": {
+          "nodes": 2079,
+          "time": 0.01096963882446289,
+          "nps": 189523.10402086502
+        },
+        "3": {
+          "nodes": 89890,
+          "time": 0.3414006233215332,
+          "nps": 263297.70322458097
+        },
+        "4": {
+          "nodes": 3894594,
+          "time": 16.374313354492188,
+          "nps": 237847.77509046163
+        }
+      },
+      "total_nodes": 3986609,
+      "total_time": 16.726683616638184,
+      "average_nps": 238338.27980308564
+    }
+  ],
+  "summary": {
+    "total_positions_tested": 6,
+    "total_nodes_calculated": 7520970,
+    "total_time_seconds": 32.064215421676636,
+    "overall_average_nps": 234559.61423324072,
+    "fastest_position_nps": 248532.8286387277,
+    "slowest_position_nps": 211691.61386766296
+  }
+}

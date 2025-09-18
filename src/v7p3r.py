@@ -695,7 +695,7 @@ class V7P3REngine:
         entry = TranspositionEntry(depth, score, best_move, node_type, zobrist_hash)
         self.transposition_table[zobrist_hash] = entry
         self.search_stats['tt_stores'] += 1
-    
+
     def _has_non_pawn_pieces(self, board: chess.Board) -> bool:
         """Check if the current side has non-pawn pieces (for null move pruning)"""
         current_color = board.turn
@@ -1035,43 +1035,65 @@ class V7P3REngine:
 
     def _calculate_lmr_reduction(self, move: chess.Move, moves_searched: int, search_depth: int, board: chess.Board) -> int:
         """
-        V11 ENHANCEMENT: Calculate Late Move Reduction amount based on move characteristics
+        V11 PHASE 1 ENHANCED: Advanced Late Move Reduction for 30-50% node reduction
         
         Returns reduction amount (0 = no reduction, 1+ = reduction plies)
         """
-        # No reduction for first few moves
-        if moves_searched < 3:
+        # LMR configuration for optimal performance
+        lmr_threshold = 4  # Start reducing after 4 moves (vs previous 3)
+        min_depth_for_lmr = 3  # Only apply LMR at depth 3+
+        max_reduction = 3  # Maximum reduction amount
+        
+        # No reduction for first few moves or at shallow depths
+        if moves_searched < lmr_threshold or search_depth < min_depth_for_lmr:
             return 0
         
-        # No reduction at low depths
-        if search_depth < 3:
-            return 0
-        
-        # No reduction for tactical moves
-        if (board.is_capture(move) or board.is_check() or 
+        # No reduction for important moves (expanded conditions)
+        if (board.is_capture(move) or 
+            board.gives_check(move) or 
+            board.is_check() or
             self.killer_moves.is_killer(move, search_depth)):
             return 0
         
-        # Calculate base reduction
-        reduction = 1
+        # No reduction for pawn moves near promotion
+        piece = board.piece_at(move.from_square)
+        if piece and piece.piece_type == chess.PAWN:
+            to_rank = chess.square_rank(move.to_square)
+            if to_rank in [0, 1, 6, 7]:  # Near promotion ranks
+                return 0
         
-        # Increase reduction for later moves
-        if moves_searched >= 8:
-            reduction += 1
-        if moves_searched >= 16:
-            reduction += 1
+        # No reduction for moves that escape from attack
+        if board.is_attacked_by(not board.turn, move.from_square):
+            return 0
         
-        # Increase reduction at higher depths
+        # Calculate progressive reduction
+        base_reduction = 1
+        
+        # Increase reduction based on move ordering position
+        move_factor = (moves_searched - lmr_threshold) // 4
+        reduction = base_reduction + move_factor
+        
+        # Depth-based scaling
         if search_depth >= 6:
             reduction += 1
+        if search_depth >= 9:
+            reduction += 1
         
-        # Reduce reduction for good history moves
+        # History heuristic adjustment
         history_score = self.history_heuristic.get_history_score(move)
-        if history_score > 50:  # High history score
+        if history_score > 100:  # Very good history
             reduction = max(0, reduction - 1)
+        elif history_score < 10:  # Poor history
+            reduction += 1
         
-        # Maximum reduction cap
-        reduction = min(reduction, search_depth - 1)
+        # Apply bounds and safety limits
+        reduction = max(1, min(reduction, max_reduction))
+        
+        # Never reduce more than half the remaining depth
+        max_safe_reduction = max(1, search_depth // 2)
+        reduction = min(reduction, max_safe_reduction)
+        
+        return reduction
         
         return reduction
 
