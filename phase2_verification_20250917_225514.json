@@ -1,0 +1,170 @@
+{
+  "test_timestamp": "2025-09-17 22:55:14",
+  "engine_version": "v10.9 with v11 Phase 1 & 2 enhancements",
+  "nudge_system": {
+    "nudge_database_loaded": true,
+    "nudge_database_size": 439,
+    "nudge_position_tests": [
+      {
+        "fen": "rnbqkbnr/ppppppp1/7p/8/8/5N2/PPPPPPPP/RNBQKBR1 b Qkq -",
+        "moves_tested": 1,
+        "nudge_bonuses_found": 1,
+        "average_bonus": 75.0
+      },
+      {
+        "fen": "rnbqkbnr/1pppppp1/p6p/8/8/5N2/PPPPPPPP/RNBQKB1R b Qkq -",
+        "moves_tested": 1,
+        "nudge_bonuses_found": 1,
+        "average_bonus": 75.0
+      },
+      {
+        "fen": "rnbqkbnr/2pppp2/p6p/1p4p1/8/5N2/PPPPPPPP/RNBQKB1R b Qkq -",
+        "moves_tested": 1,
+        "nudge_bonuses_found": 1,
+        "average_bonus": 100.0
+      },
+      {
+        "fen": "rnbqkbnr/2ppp3/p6p/1p3pp1/3N4/8/PPPPPPPP/RNBQKB1R b Qkq -",
+        "moves_tested": 1,
+        "nudge_bonuses_found": 1,
+        "average_bonus": 193.5
+      },
+      {
+        "fen": "rnbqkbnr/pppppppp/8/8/8/2N5/PPPPPPPP/R1BQKBNR b KQkq -",
+        "moves_tested": 3,
+        "nudge_bonuses_found": 3,
+        "average_bonus": 150.0
+      }
+    ],
+    "instant_move_tests": [
+      {
+        "fen": "rnbqkbnr/ppppppp1/7p/8/8/5N2/PPPPPPPP/RNBQKBR1 b Qkq -",
+        "instant_move_found": false,
+        "instant_move": null
+      },
+      {
+        "fen": "rnbqkbnr/1pppppp1/p6p/8/8/5N2/PPPPPPPP/RNBQKB1R b Qkq -",
+        "instant_move_found": false,
+        "instant_move": null
+      },
+      {
+        "fen": "rnbqkbnr/2pppp2/p6p/1p4p1/8/5N2/PPPPPPPP/RNBQKB1R b Qkq -",
+        "instant_move_found": false,
+        "instant_move": null
+      },
+      {
+        "fen": "rnbqkbnr/2ppp3/p6p/1p3pp1/3N4/8/PPPPPPPP/RNBQKB1R b Qkq -",
+        "instant_move_found": false,
+        "instant_move": null
+      },
+      {
+        "fen": "rnbqkbnr/pppppppp/8/8/8/2N5/PPPPPPPP/R1BQKBNR b KQkq -",
+        "instant_move_found": false,
+        "instant_move": null
+      },
+      {
+        "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -",
+        "instant_move_found": false,
+        "instant_move": null
+      },
+      {
+        "fen": "r1bqkbnr/pppppppp/2n5/8/8/5N2/PPPPPPPP/RNBQKB1R w KQkq -",
+        "instant_move_found": true,
+        "instant_move": "b1c3"
+      },
+      {
+        "fen": "r1bqkbnr/pppppppp/8/8/1n6/2N2N2/PPPPPPPP/R1BQKB1R w KQkq -",
+        "instant_move_found": true,
+        "instant_move": "f3e5"
+      },
+      {
+        "fen": "r1bqkbnr/pppppppp/8/4N3/8/2N5/nPPPPPPP/R1BQKB1R w KQkq -",
+        "instant_move_found": true,
+        "instant_move": "a1a2"
+      },
+      {
+        "fen": "1rbqkbnr/pppppppp/8/4N3/8/2N5/RPPPPPPP/2BQKB1R w Kk -",
+        "instant_move_found": true,
+        "instant_move": "a2a7"
+      }
+    ],
+    "move_ordering_tests": []
+  },
+  "time_management": {
+    "time_manager_available": true,
+    "complexity_analysis_tests": [
+      {
+        "position_name": "Starting Position",
+        "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+        "allocated_time": 5.025,
+        "target_depth": 7,
+        "reasonable_allocation": true,
+        "reasonable_depth": true
+      },
+      {
+        "position_name": "Complex Kiwipete",
+        "fen": "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",
+        "allocated_time": 6.345432692307694,
+        "target_depth": 8,
+        "reasonable_allocation": true,
+        "reasonable_depth": true
+      },
+      {
+        "position_name": "Simple Endgame",
+        "fen": "8/8/8/4k3/4K3/8/8/8 w - - 0 1",
+        "allocated_time": 3.0,
+        "target_depth": 5,
+        "reasonable_allocation": true,
+        "reasonable_depth": true
+      }
+    ],
+    "time_allocation_tests": [],
+    "search_integration_tests": [
+      {
+        "position_name": "Starting Position",
+        "search_time": 0.8066067695617676,
+        "best_move": "e2e3",
+        "nodes_searched": 1707,
+        "time_respected": true,
+        "move_found": true
+      },
+      {
+        "position_name": "Complex Kiwipete",
+        "search_time": 0.3517448902130127,
+        "best_move": "d2d4",
+        "nodes_searched": 387,
+        "time_respected": true,
+        "move_found": true
+      }
+    ]
+  },
+  "strategic_enhancements": {
+    "move_ordering_tests": [
+      {
+        "total_moves": 19,
+        "nudge_moves_found": 1,
+        "nudge_moves_early": 1,
+        "ordering_working": true
+      }
+    ],
+    "lmr_tests": [],
+    "statistics_tracking": {
+      "nudge_stats": {
+        "hits": 63,
+        "misses": 1795,
+        "moves_boosted": 63,
+        "positions_matched": 33,
+        "instant_moves": 4,
+        "instant_time_saved": 0.0
+      },
+      "time_manager_stats": {
+        "positions_analyzed": 5,
+        "complex_positions": 0,
+        "simple_positions": 1,
+        "emergency_allocations": 2,
+        "average_complexity": 0.385474358974359
+      }
+    }
+  },
+  "overall_status": "PASS"
+}

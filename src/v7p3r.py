@@ -29,7 +29,9 @@ from collections import defaultdict
 from v7p3r_bitboard_evaluator import V7P3RScoringCalculationBitboard
 from v7p3r_advanced_pawn_evaluator import V7P3RAdvancedPawnEvaluator
 from v7p3r_king_safety_evaluator import V7P3RKingSafetyEvaluator
+from v7p3r_strategic_database import V7P3RStrategicDatabase
 from v7p3r_tactical_pattern_detector import TimeControlAdaptiveTacticalDetector  # V10.9 PHASE 3B: TIME-ADAPTIVE TACTICAL PATTERNS
+from v7p3r_time_manager import V7P3RTimeManager  # V11 PHASE 1: ADVANCED TIME MANAGEMENT
 
 
 class PVTracker:
@@ -258,6 +260,9 @@ class V7P3REngine:
         
         self._load_nudge_database()
         
+        # V11 PHASE 2: Enhanced Strategic Database
+        self.strategic_database = V7P3RStrategicDatabase()
+        
         # Configuration
         self.max_tt_entries = 50000  # Reasonable size for testing
         
@@ -280,6 +285,9 @@ class V7P3REngine:
         
         # PV Following System - V10 OPTIMIZATION
         self.pv_tracker = PVTracker()
+        
+        # V11 PHASE 1: Advanced Time Management System
+        self.time_manager = V7P3RTimeManager(base_time=300.0, increment=3.0)  # Default 5+3 time control
     
     def search(self, board: chess.Board, time_limit: float = 3.0, depth: Optional[int] = None, 
                alpha: float = -99999, beta: float = 99999, is_root: bool = True) -> chess.Move:
@@ -325,8 +333,15 @@ class V7P3REngine:
                 
                 return instant_nudge_move
             
-            # V11 ENHANCEMENT: Adaptive time management
-            target_time, max_time = self._calculate_adaptive_time_allocation(board, time_limit)
+            # V11 PHASE 1: Advanced time management with complexity analysis
+            time_remaining = time_limit  # For now, assume time_limit is our remaining time
+            allocated_time, target_depth = self.time_manager.calculate_time_allocation(board, time_remaining)
+            
+            # Update time control info if available
+            self.time_manager.update_time_info(time_remaining, len(board.move_stack))
+            
+            target_time = allocated_time
+            max_time = min(allocated_time * 1.5, time_limit * 0.9)  # Allow 50% overage but cap at 90% of limit
             
             # Iterative deepening
             best_move = legal_moves[0]
@@ -636,6 +651,20 @@ class V7P3REngine:
             # Fallback to base evaluation if advanced evaluation fails
             white_total = white_base
             black_total = black_base
+        
+        # V11 PHASE 2: Add strategic database evaluation bonus (optimized)
+        try:
+            # Only apply strategic bonus occasionally to avoid performance impact
+            if self.nodes_searched % 100 == 0:  # Every 100 nodes
+                strategic_bonus = self.strategic_database.get_strategic_evaluation_bonus(board)
+                # Apply strategic bonus from white's perspective
+                if board.turn:  # White to move
+                    white_total += strategic_bonus
+                else:  # Black to move
+                    black_total += strategic_bonus
+        except Exception as e:
+            # Ignore strategic bonus if there's an error
+            pass
         
         # V10.9 CRITICAL FIX: Return evaluation from side-to-move perspective for negamax
         # Always calculate base evaluation from White's perspective
@@ -1139,14 +1168,25 @@ class V7P3REngine:
             # Check if position exists in nudge database
             if position_key not in self.nudge_database:
                 self.nudge_stats['misses'] += 1
-                return 0.0
+                
+                # V11 PHASE 2: Try strategic database for similar positions
+                try:
+                    strategic_bonus = self.strategic_database.get_strategic_move_bonus(board, move)
+                    return strategic_bonus * 25.0  # Scale to match nudge bonus range
+                except:
+                    return 0.0
             
             position_data = self.nudge_database[position_key]
             move_uci = move.uci()
             
             # Check if move exists in nudge data
             if 'moves' not in position_data or move_uci not in position_data['moves']:
-                return 0.0
+                # Try strategic database bonus even if not in nudge data
+                try:
+                    strategic_bonus = self.strategic_database.get_strategic_move_bonus(board, move)
+                    return strategic_bonus * 25.0  # Scale to match nudge bonus range
+                except:
+                    return 0.0
             
             move_data = position_data['moves'][move_uci]
             
@@ -1164,6 +1204,13 @@ class V7P3REngine:
             eval_multiplier = max(evaluation / 0.5, 1.0) if evaluation > 0 else 1.0
             
             total_bonus = base_bonus * frequency_multiplier * eval_multiplier
+            
+            # V11 PHASE 2: Add strategic database bonus
+            try:
+                strategic_bonus = self.strategic_database.get_strategic_move_bonus(board, move)
+                total_bonus += strategic_bonus * 25.0  # Additional strategic bonus
+            except:
+                pass
             
             # Update statistics
             self.nudge_stats['hits'] += 1
