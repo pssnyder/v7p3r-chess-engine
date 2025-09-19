@@ -33,6 +33,7 @@ from v7p3r_strategic_database import V7P3RStrategicDatabase
 from v7p3r_posture_assessment import V7P3RPostureAssessment  # V11 PHASE 3B: POSTURE ASSESSMENT
 from v7p3r_adaptive_evaluation import V7P3RAdaptiveEvaluation  # V11 PHASE 3B: ADAPTIVE EVALUATION
 from v7p3r_adaptive_move_ordering import V7P3RAdaptiveMoveOrdering  # V11 PHASE 3B: ADAPTIVE MOVE ORDERING
+from v7p3r_fast_evaluator import V7P3RFastEvaluator  # V11 PERFORMANCE: FAST EVALUATION
 from v7p3r_tactical_pattern_detector import TimeControlAdaptiveTacticalDetector  # V10.9 PHASE 3B: TIME-ADAPTIVE TACTICAL PATTERNS
 from v7p3r_time_manager import V7P3RTimeManager  # V11 PHASE 1: ADVANCED TIME MANAGEMENT
 
@@ -270,6 +271,9 @@ class V7P3REngine:
         self.posture_assessor = V7P3RPostureAssessment()
         self.adaptive_evaluator = V7P3RAdaptiveEvaluation(self.posture_assessor)
         self.adaptive_move_orderer = V7P3RAdaptiveMoveOrdering(self.posture_assessor)
+        
+        # V11 PERFORMANCE: Fast evaluator for non-critical nodes
+        self.fast_evaluator = V7P3RFastEvaluator()
         
         # Configuration
         self.max_tt_entries = 50000  # Reasonable size for testing
@@ -630,7 +634,7 @@ class V7P3REngine:
         return ordered
     
     def _evaluate_position(self, board: chess.Board) -> float:
-        """V11 PHASE 3B: New Adaptive Evaluation System"""
+        """V11 PERFORMANCE: Optimized evaluation with fast path for most nodes"""
         # Create cache key
         cache_key = board.fen()
         
@@ -640,30 +644,36 @@ class V7P3REngine:
         
         self.search_stats['cache_misses'] += 1
         
-        # V11 PHASE 3B: Use new adaptive evaluation system
-        try:
-            evaluation_score = self.adaptive_evaluator.evaluate_position(board, depth=0)
-            
-            # V11 PHASE 2: Add strategic database evaluation bonus (optimized)
+        # V11 PERFORMANCE OPTIMIZATION: Use fast evaluator for most nodes
+        # Only use expensive adaptive evaluator for root nodes and critical positions
+        use_adaptive_evaluation = (
+            self.nodes_searched < 1000 or  # Early in search (root and near-root nodes)
+            board.is_check() or            # Check positions are critical
+            len(list(board.legal_moves)) < 10 or  # Few moves = critical position
+            self.nodes_searched % 500 == 0  # Occasionally for accuracy
+        )
+        
+        if use_adaptive_evaluation:
+            # Use expensive but accurate adaptive evaluation for critical positions
             try:
-                # Only apply strategic bonus occasionally to avoid performance impact
-                if self.nodes_searched % 100 == 0:  # Every 100 nodes
-                    strategic_bonus = self.strategic_database.get_strategic_evaluation_bonus(board)
-                    evaluation_score += strategic_bonus * 0.1  # Reduced weight for adaptive system
-            except Exception as e:
-                # Ignore strategic bonus if there's an error
-                pass
+                evaluation_score = self.adaptive_evaluator.evaluate_position(board, depth=0)
                 
-        except Exception as e:
-            # Fallback to legacy evaluation if adaptive system fails
-            white_base = self.bitboard_evaluator.calculate_score_optimized(board, True)
-            black_base = self.bitboard_evaluator.calculate_score_optimized(board, False)
-            
-            # Calculate final score from current player's perspective
-            if board.turn:  # White to move
-                evaluation_score = (white_base - black_base) / 100.0
-            else:  # Black to move  
-                evaluation_score = (black_base - white_base) / 100.0
+                # V11 PHASE 2: Add strategic database evaluation bonus (optimized)
+                try:
+                    # Only apply strategic bonus occasionally to avoid performance impact
+                    if self.nodes_searched % 100 == 0:  # Every 100 nodes
+                        strategic_bonus = self.strategic_database.get_strategic_evaluation_bonus(board)
+                        evaluation_score += strategic_bonus * 0.1  # Reduced weight for adaptive system
+                except Exception as e:
+                    # Ignore strategic bonus if there's an error
+                    pass
+                    
+            except Exception as e:
+                # Fallback to fast evaluation if adaptive system fails
+                evaluation_score = self.fast_evaluator.evaluate_position_fast(board)
+        else:
+            # Use fast evaluation for most nodes (performance optimization)
+            evaluation_score = self.fast_evaluator.evaluate_position_fast(board)
         
         # Cache and return result
         self.evaluation_cache[cache_key] = evaluation_score
