@@ -34,6 +34,7 @@ from v7p3r_posture_assessment import V7P3RPostureAssessment  # V11 PHASE 3B: POS
 from v7p3r_adaptive_evaluation import V7P3RAdaptiveEvaluation  # V11 PHASE 3B: ADAPTIVE EVALUATION
 from v7p3r_adaptive_move_ordering import V7P3RAdaptiveMoveOrdering  # V11 PHASE 3B: ADAPTIVE MOVE ORDERING
 from v7p3r_fast_evaluator import V7P3RFastEvaluator  # V11 PERFORMANCE: FAST EVALUATION
+from v7p3r_dynamic_move_selector import V7P3RDynamicMoveSelector  # V11 PERFORMANCE: DYNAMIC MOVE PRUNING
 from v7p3r_tactical_pattern_detector import TimeControlAdaptiveTacticalDetector  # V10.9 PHASE 3B: TIME-ADAPTIVE TACTICAL PATTERNS
 from v7p3r_time_manager import V7P3RTimeManager  # V11 PHASE 1: ADVANCED TIME MANAGEMENT
 
@@ -275,6 +276,9 @@ class V7P3REngine:
         # V11 PERFORMANCE: Fast evaluator for non-critical nodes
         self.fast_evaluator = V7P3RFastEvaluator()
         
+        # V11 PERFORMANCE: Dynamic move selector for depth-based pruning
+        self.dynamic_move_selector = V7P3RDynamicMoveSelector()
+        
         # Configuration
         self.max_tt_entries = 50000  # Reasonable size for testing
         
@@ -476,6 +480,11 @@ class V7P3REngine:
         
         ordered_moves = self._order_moves_advanced(board, legal_moves, search_depth, tt_move)
         
+        # V11 PERFORMANCE: Dynamic move pruning based on search depth
+        # Progressively reduce move count as depth increases for speed
+        if search_depth >= 3:
+            ordered_moves = self.dynamic_move_selector.filter_moves_by_depth(board, ordered_moves, search_depth)
+        
         # 5. MAIN SEARCH LOOP (NEGAMAX WITH ALPHA-BETA)
         best_score = -99999.0
         best_move = None
@@ -644,26 +653,26 @@ class V7P3REngine:
         
         self.search_stats['cache_misses'] += 1
         
-        # V11 PERFORMANCE OPTIMIZATION: Use fast evaluator for most nodes
-        # Only use expensive adaptive evaluator for root nodes and critical positions
+        # V11 PERFORMANCE OPTIMIZATION: Drastically limit adaptive evaluation usage
+        # Only use expensive adaptive evaluator for truly critical positions
+        is_critical_position = board.is_check() or len(list(board.legal_moves)) < 6
+        is_early_search = self.nodes_searched < 50  # Very early in search only
+        
         use_adaptive_evaluation = (
-            self.nodes_searched < 1000 or  # Early in search (root and near-root nodes)
-            board.is_check() or            # Check positions are critical
-            len(list(board.legal_moves)) < 10 or  # Few moves = critical position
-            self.nodes_searched % 500 == 0  # Occasionally for accuracy
+            is_early_search and is_critical_position  # Only critical positions very early in search
         )
         
         if use_adaptive_evaluation:
-            # Use expensive but accurate adaptive evaluation for critical positions
+            # Use expensive but accurate adaptive evaluation for critical positions only
             try:
                 evaluation_score = self.adaptive_evaluator.evaluate_position(board, depth=0)
                 
-                # V11 PHASE 2: Add strategic database evaluation bonus (optimized)
+                # V11 PHASE 2: Add strategic database evaluation bonus (very selective)
                 try:
-                    # Only apply strategic bonus occasionally to avoid performance impact
-                    if self.nodes_searched % 100 == 0:  # Every 100 nodes
+                    # Only apply strategic bonus very rarely to avoid performance impact
+                    if self.nodes_searched < 10:  # Only first 10 nodes
                         strategic_bonus = self.strategic_database.get_strategic_evaluation_bonus(board)
-                        evaluation_score += strategic_bonus * 0.1  # Reduced weight for adaptive system
+                        evaluation_score += strategic_bonus * 0.05  # Minimal weight
                 except Exception as e:
                     # Ignore strategic bonus if there's an error
                     pass
@@ -672,7 +681,7 @@ class V7P3REngine:
                 # Fallback to fast evaluation if adaptive system fails
                 evaluation_score = self.fast_evaluator.evaluate_position_fast(board)
         else:
-            # Use fast evaluation for most nodes (performance optimization)
+            # Use fast evaluation for 99%+ of nodes (performance optimization)
             evaluation_score = self.fast_evaluator.evaluate_position_fast(board)
         
         # Cache and return result
