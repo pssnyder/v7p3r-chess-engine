@@ -24,20 +24,887 @@ import sys
 import random
 import json
 import os
-from typing import Optional, Tuple, List, Dict
+from typing import Optional, Tuple, List, Dict, Any
 from collections import defaultdict
+from enum import Enum
 from v7p3r_bitboard_evaluator import V7P3RScoringCalculationBitboard
 from v7p3r_advanced_pawn_evaluator import V7P3RAdvancedPawnEvaluator
 from v7p3r_king_safety_evaluator import V7P3RKingSafetyEvaluator
 from v7p3r_strategic_database import V7P3RStrategicDatabase
-from v7p3r_lightweight_defense import V7P3RLightweightDefense  # V11 PHASE 3A: LIGHTWEIGHT DEFENSE
-from v7p3r_posture_assessment import V7P3RPostureAssessment  # V11 PHASE 3B: POSTURE ASSESSMENT
-from v7p3r_adaptive_evaluation import V7P3RAdaptiveEvaluation  # V11 PHASE 3B: ADAPTIVE EVALUATION
-from v7p3r_adaptive_move_ordering import V7P3RAdaptiveMoveOrdering  # V11 PHASE 3B: ADAPTIVE MOVE ORDERING
-from v7p3r_fast_evaluator import V7P3RFastEvaluator  # V11 PERFORMANCE: FAST EVALUATION
-from v7p3r_dynamic_move_selector import V7P3RDynamicMoveSelector  # V11 PERFORMANCE: DYNAMIC MOVE PRUNING
 from v7p3r_tactical_pattern_detector import TimeControlAdaptiveTacticalDetector  # V10.9 PHASE 3B: TIME-ADAPTIVE TACTICAL PATTERNS
 from v7p3r_time_manager import V7P3RTimeManager  # V11 PHASE 1: ADVANCED TIME MANAGEMENT
+
+
+# ==============================================================================
+# V11 CONSOLIDATED MODULES: Position Posture Assessment
+# ==============================================================================
+
+class PositionVolatility(Enum):
+    """Position volatility levels"""
+    STABLE = "stable"          # Quiet, positional game
+    TACTICAL = "tactical"      # Some tactics, moderate complexity
+    VOLATILE = "volatile"      # High tactics, many threats
+    CRITICAL = "critical"      # Immediate danger, forcing moves
+
+
+class GamePosture(Enum):
+    """Current game posture for evaluation priorities"""
+    OFFENSIVE = "offensive"    # We have initiative, prioritize attacks
+    BALANCED = "balanced"      # Equal position, standard evaluation
+    DEFENSIVE = "defensive"    # Under pressure, prioritize defense
+    EMERGENCY = "emergency"    # Immediate threats, survival mode
+
+
+class V7P3RPostureAssessment:
+    """Fast position posture assessment for adaptive evaluation"""
+    
+    def __init__(self):
+        self.piece_values = {
+            chess.PAWN: 100,
+            chess.KNIGHT: 320,
+            chess.BISHOP: 330,
+            chess.ROOK: 500,
+            chess.QUEEN: 900,
+            chess.KING: 10000
+        }
+        
+        # Cached assessments for performance
+        self.posture_cache = {}
+        self.assessment_stats = {
+            'calls': 0,
+            'cache_hits': 0,
+            'total_time': 0.0
+        }
+    
+    def assess_position_posture(self, board: chess.Board) -> Tuple[PositionVolatility, GamePosture]:
+        """
+        Main entry point: assess position volatility and determine game posture
+        Returns: (volatility_level, game_posture)
+        """
+        self.assessment_stats['calls'] += 1
+        
+        # Quick cache check
+        cache_key = self._generate_cache_key(board)
+        if cache_key in self.posture_cache:
+            self.assessment_stats['cache_hits'] += 1
+            return self.posture_cache[cache_key]
+        
+        # Perform fast assessment
+        volatility = self._assess_volatility(board)
+        posture = self._determine_posture(board, volatility)
+        
+        # Cache result
+        result = (volatility, posture)
+        self.posture_cache[cache_key] = result
+        
+        return result
+    
+    def _generate_cache_key(self, board: chess.Board) -> str:
+        """Generate lightweight cache key for position"""
+        key_parts = []
+        
+        # Material counts for both sides
+        white_material = sum(len(board.pieces(piece_type, True)) * value 
+                           for piece_type, value in self.piece_values.items())
+        black_material = sum(len(board.pieces(piece_type, False)) * value 
+                           for piece_type, value in self.piece_values.items())
+        
+        key_parts.append(f"mat_{white_material}_{black_material}")
+        key_parts.append(f"turn_{board.turn}")
+        
+        # King positions (critical for threat assessment)
+        if board.king(True):
+            key_parts.append(f"wk_{board.king(True)}")
+        if board.king(False):
+            key_parts.append(f"bk_{board.king(False)}")
+        
+        # Castling rights (affects king safety)
+        key_parts.append(f"castle_{board.castling_rights}")
+        
+        return "_".join(key_parts)
+    
+    def _assess_volatility(self, board: chess.Board) -> PositionVolatility:
+        """Assess position volatility level"""
+        volatility_score = 0
+        
+        # Factor 1: Pieces under attack
+        attacked_pieces = self._count_attacked_pieces(board)
+        volatility_score += attacked_pieces * 8
+        
+        # Factor 2: Undefended pieces
+        undefended_pieces = self._count_undefended_pieces(board)
+        volatility_score += undefended_pieces * 12
+        
+        # Factor 3: Pins and skewers
+        tactical_threats = self._count_tactical_patterns(board)
+        volatility_score += tactical_threats * 15
+        
+        # Factor 4: King exposure
+        king_danger = self._assess_king_exposure(board)
+        volatility_score += king_danger * 18
+        
+        # Factor 5: Material imbalance
+        material_imbalance = self._assess_material_imbalance(board)
+        if abs(material_imbalance) >= 300:
+            volatility_score += abs(material_imbalance) // 150
+        
+        # Classify volatility
+        if volatility_score <= 10:
+            return PositionVolatility.STABLE
+        elif volatility_score <= 30:
+            return PositionVolatility.TACTICAL
+        elif volatility_score <= 60:
+            return PositionVolatility.VOLATILE
+        else:
+            return PositionVolatility.CRITICAL
+    
+    def _determine_posture(self, board: chess.Board, volatility: PositionVolatility) -> GamePosture:
+        """Determine game posture based on position assessment"""
+        
+        # Emergency posture for critical positions
+        if volatility == PositionVolatility.CRITICAL:
+            return GamePosture.EMERGENCY
+        
+        # Assess threat balance
+        our_threats = self._count_our_threats(board)
+        their_threats = self._count_their_threats(board)
+        
+        # Assess material advantage
+        material_advantage = self._get_material_advantage(board)
+        
+        # Assess initiative
+        initiative_factor = our_threats - their_threats
+        
+        # Combine factors to determine posture
+        posture_score = initiative_factor + (material_advantage // 100)
+        
+        # Factor in volatility
+        if volatility == PositionVolatility.VOLATILE:
+            if posture_score <= 1:
+                return GamePosture.DEFENSIVE
+        
+        # Determine posture
+        if their_threats >= our_threats + 2:
+            return GamePosture.DEFENSIVE
+        elif their_threats > our_threats and volatility in [PositionVolatility.VOLATILE, PositionVolatility.CRITICAL]:
+            return GamePosture.DEFENSIVE
+        elif our_threats >= their_threats + 2:
+            return GamePosture.OFFENSIVE
+        elif material_advantage >= 200:
+            return GamePosture.OFFENSIVE
+        elif material_advantage <= -200:
+            return GamePosture.DEFENSIVE
+        else:
+            return GamePosture.BALANCED
+    
+    def _count_attacked_pieces(self, board: chess.Board) -> int:
+        """Count pieces under attack for current player"""
+        attacked_count = 0
+        current_color = board.turn
+        
+        for square in chess.SQUARES:
+            piece = board.piece_at(square)
+            if piece and piece.color == current_color:
+                if board.is_attacked_by(not current_color, square):
+                    attacked_count += 1
+        
+        return attacked_count
+    
+    def _count_undefended_pieces(self, board: chess.Board) -> int:
+        """Count undefended pieces for current player"""
+        undefended_count = 0
+        current_color = board.turn
+        
+        for square in chess.SQUARES:
+            piece = board.piece_at(square)
+            if piece and piece.color == current_color and piece.piece_type != chess.KING:
+                if (board.is_attacked_by(not current_color, square) and 
+                    not board.is_attacked_by(current_color, square)):
+                    undefended_count += 1
+        
+        return undefended_count
+    
+    def _count_tactical_patterns(self, board: chess.Board) -> int:
+        """Count basic tactical patterns (pins, skewers, forks)"""
+        tactical_count = 0
+        current_color = board.turn
+        
+        # Look for potential forks
+        for move in board.legal_moves:
+            board.push(move)
+            
+            # Count how many enemy pieces this move would attack
+            attacking_count = 0
+            for square in chess.SQUARES:
+                piece = board.piece_at(square)
+                if piece and piece.color != current_color:
+                    if board.is_attacked_by(current_color, square):
+                        attacking_count += 1
+            
+            if attacking_count >= 2:
+                tactical_count += 1
+            
+            board.pop()
+            
+            if tactical_count >= 5:
+                break
+        
+        return min(tactical_count, 3)
+    
+    def _assess_king_exposure(self, board: chess.Board) -> int:
+        """Assess king exposure for current player"""
+        current_color = board.turn
+        king_square = board.king(current_color)
+        
+        if king_square is None:
+            return 10
+        
+        danger_score = 0
+        
+        # Count attackers on king
+        if board.is_attacked_by(not current_color, king_square):
+            danger_score += 3
+        
+        # Check squares around king
+        king_file = chess.square_file(king_square)
+        king_rank = chess.square_rank(king_square)
+        
+        for file_offset in [-1, 0, 1]:
+            for rank_offset in [-1, 0, 1]:
+                if file_offset == 0 and rank_offset == 0:
+                    continue
+                
+                new_file = king_file + file_offset
+                new_rank = king_rank + rank_offset
+                
+                if 0 <= new_file <= 7 and 0 <= new_rank <= 7:
+                    square = chess.square(new_file, new_rank)
+                    if board.is_attacked_by(not current_color, square):
+                        danger_score += 1
+        
+        return danger_score
+    
+    def _assess_material_imbalance(self, board: chess.Board) -> int:
+        """Assess material imbalance from current player's perspective"""
+        white_material = sum(len(board.pieces(piece_type, True)) * value 
+                           for piece_type, value in self.piece_values.items())
+        black_material = sum(len(board.pieces(piece_type, False)) * value 
+                           for piece_type, value in self.piece_values.items())
+        
+        if board.turn:
+            return white_material - black_material
+        else:
+            return black_material - white_material
+    
+    def _count_our_threats(self, board: chess.Board) -> int:
+        """Count threats we can create"""
+        threat_count = 0
+        current_color = board.turn
+        
+        for move in list(board.legal_moves)[:20]:
+            board.push(move)
+            
+            for square in chess.SQUARES:
+                piece = board.piece_at(square)
+                if piece and piece.color != current_color:
+                    if board.is_attacked_by(current_color, square):
+                        threat_count += 1
+            
+            board.pop()
+        
+        return threat_count
+    
+    def _count_their_threats(self, board: chess.Board) -> int:
+        """Count threats opponent can create on their turn"""
+        current_color = board.turn
+        
+        threat_count = 0
+        for square in chess.SQUARES:
+            piece = board.piece_at(square)
+            if piece and piece.color == current_color:
+                if board.is_attacked_by(not current_color, square):
+                    threat_count += 1
+        
+        return threat_count
+    
+    def _get_material_advantage(self, board: chess.Board) -> int:
+        """Get material advantage for current player"""
+        return self._assess_material_imbalance(board)
+    
+    def get_cache_stats(self) -> Dict:
+        """Get performance statistics"""
+        hit_rate = 0.0
+        if self.assessment_stats['calls'] > 0:
+            hit_rate = (self.assessment_stats['cache_hits'] / self.assessment_stats['calls']) * 100
+        
+        return {
+            'calls': self.assessment_stats['calls'],
+            'cache_hits': self.assessment_stats['cache_hits'],
+            'hit_rate_percent': hit_rate,
+            'cache_size': len(self.posture_cache)
+        }
+
+
+# ==============================================================================
+# V11 CONSOLIDATED MODULES: Fast Evaluation System
+# ==============================================================================
+
+class V7P3RFastEvaluator:
+    """Lightweight evaluator for performance-critical search nodes"""
+    
+    def __init__(self):
+        # Standard piece values
+        self.piece_values = {
+            chess.PAWN: 100,
+            chess.KNIGHT: 320,
+            chess.BISHOP: 330,
+            chess.ROOK: 500,
+            chess.QUEEN: 900,
+            chess.KING: 10000
+        }
+        
+        # Simple positional tables for piece-square values
+        self.pawn_table = [
+            0,  0,  0,  0,  0,  0,  0,  0,
+            50, 50, 50, 50, 50, 50, 50, 50,
+            10, 10, 20, 30, 30, 20, 10, 10,
+            5,  5, 10, 25, 25, 10,  5,  5,
+            0,  0,  0, 20, 20,  0,  0,  0,
+            5, -5,-10,  0,  0,-10, -5,  5,
+            5, 10, 10,-20,-20, 10, 10,  5,
+            0,  0,  0,  0,  0,  0,  0,  0
+        ]
+        
+        self.knight_table = [
+            -50,-40,-30,-30,-30,-30,-40,-50,
+            -40,-20,  0,  0,  0,  0,-20,-40,
+            -30,  0, 10, 15, 15, 10,  0,-30,
+            -30,  5, 15, 20, 20, 15,  5,-30,
+            -30,  0, 15, 20, 20, 15,  0,-30,
+            -30,  5, 10, 15, 15, 10,  5,-30,
+            -40,-20,  0,  5,  5,  0,-20,-40,
+            -50,-40,-30,-30,-30,-30,-40,-50
+        ]
+        
+        self.bishop_table = [
+            -20,-10,-10,-10,-10,-10,-10,-20,
+            -10,  0,  0,  0,  0,  0,  0,-10,
+            -10,  0,  5, 10, 10,  5,  0,-10,
+            -10,  5,  5, 10, 10,  5,  5,-10,
+            -10,  0, 10, 10, 10, 10,  0,-10,
+            -10, 10, 10, 10, 10, 10, 10,-10,
+            -10,  5,  0,  0,  0,  0,  5,-10,
+            -20,-10,-10,-10,-10,-10,-10,-20
+        ]
+        
+        self.rook_table = [
+            0,  0,  0,  0,  0,  0,  0,  0,
+            5, 10, 10, 10, 10, 10, 10,  5,
+            -5,  0,  0,  0,  0,  0,  0, -5,
+            -5,  0,  0,  0,  0,  0,  0, -5,
+            -5,  0,  0,  0,  0,  0,  0, -5,
+            -5,  0,  0,  0,  0,  0,  0, -5,
+            -5,  0,  0,  0,  0,  0,  0, -5,
+            0,  0,  0,  5,  5,  0,  0,  0
+        ]
+        
+        self.queen_table = [
+            -20,-10,-10, -5, -5,-10,-10,-20,
+            -10,  0,  0,  0,  0,  0,  0,-10,
+            -10,  0,  5,  5,  5,  5,  0,-10,
+            -5,  0,  5,  5,  5,  5,  0, -5,
+            0,  0,  5,  5,  5,  5,  0, -5,
+            -10,  5,  5,  5,  5,  5,  0,-10,
+            -10,  0,  5,  0,  0,  0,  0,-10,
+            -20,-10,-10, -5, -5,-10,-10,-20
+        ]
+        
+        self.king_table = [
+            -30,-40,-40,-50,-50,-40,-40,-30,
+            -30,-40,-40,-50,-50,-40,-40,-30,
+            -30,-40,-40,-50,-50,-40,-40,-30,
+            -30,-40,-40,-50,-50,-40,-40,-30,
+            -20,-30,-30,-40,-40,-30,-30,-20,
+            -10,-20,-20,-20,-20,-20,-20,-10,
+            20, 20,  0,  0,  0,  0, 20, 20,
+            20, 30, 10,  0,  0, 10, 30, 20
+        ]
+        
+        # Simple evaluation cache
+        self.evaluation_cache: Dict[str, float] = {}
+        self.cache_hits = 0
+        self.cache_misses = 0
+        
+    def evaluate_position_fast(self, board: chess.Board) -> float:
+        """Fast evaluation for performance-critical nodes"""
+        # Check cache first
+        position_hash = str(board.board_fen())
+        if position_hash in self.evaluation_cache:
+            self.cache_hits += 1
+            return self.evaluation_cache[position_hash]
+        
+        self.cache_misses += 1
+        
+        # Quick material + piece-square evaluation
+        white_score = 0
+        black_score = 0
+        
+        for square in chess.SQUARES:
+            piece = board.piece_at(square)
+            if piece:
+                # Material value
+                material_value = self.piece_values[piece.piece_type]
+                
+                # Piece-square table value
+                positional_value = self._get_piece_square_value(piece, square)
+                
+                total_value = material_value + positional_value
+                
+                if piece.color:
+                    white_score += total_value
+                else:
+                    black_score += total_value
+        
+        # Simple mobility bonus
+        mobility_bonus = 0
+        if not board.is_game_over():
+            try:
+                num_moves = len(list(board.legal_moves))
+                mobility_bonus = min(num_moves * 5, 100)
+            except:
+                mobility_bonus = 0
+        
+        # Apply mobility to current player
+        if board.turn:
+            white_score += mobility_bonus
+        else:
+            black_score += mobility_bonus
+        
+        # Calculate final score from current player's perspective
+        if board.turn:
+            final_score = (white_score - black_score) / 100.0
+        else:
+            final_score = (black_score - white_score) / 100.0
+        
+        # Cache the result
+        self.evaluation_cache[position_hash] = final_score
+        
+        return final_score
+    
+    def _get_piece_square_value(self, piece: chess.Piece, square: int) -> int:
+        """Get piece-square table value for piece at square"""
+        # Convert square to table index (flip for black pieces)
+        if piece.color:
+            table_index = square
+        else:
+            table_index = square ^ 56
+        
+        # Select appropriate table
+        if piece.piece_type == chess.PAWN:
+            return self.pawn_table[table_index]
+        elif piece.piece_type == chess.KNIGHT:
+            return self.knight_table[table_index]
+        elif piece.piece_type == chess.BISHOP:
+            return self.bishop_table[table_index]
+        elif piece.piece_type == chess.ROOK:
+            return self.rook_table[table_index]
+        elif piece.piece_type == chess.QUEEN:
+            return self.queen_table[table_index]
+        elif piece.piece_type == chess.KING:
+            return self.king_table[table_index]
+        
+        return 0
+    
+    def clear_cache(self):
+        """Clear evaluation cache"""
+        self.evaluation_cache.clear()
+        self.cache_hits = 0
+        self.cache_misses = 0
+    
+    def get_cache_stats(self) -> Dict[str, int]:
+        """Get cache statistics"""
+        total_requests = self.cache_hits + self.cache_misses
+        hit_rate = (self.cache_hits / max(total_requests, 1)) * 100
+        
+        return {
+            'cache_hits': self.cache_hits,
+            'cache_misses': self.cache_misses,
+            'hit_rate': hit_rate,
+            'cache_size': len(self.evaluation_cache)
+        }
+
+
+# ==============================================================================
+# V11 CONSOLIDATED MODULES: Dynamic Move Selection
+# ==============================================================================
+
+class V7P3RDynamicMoveSelector:
+    """V11 ENHANCEMENT: Dynamic move selection based on search depth"""
+    
+    def __init__(self):
+        self.depth_thresholds = {
+            1: 50,   # Depth 1-2: Consider most moves
+            2: 50,
+            3: 25,   # Depth 3-4: Moderate pruning
+            4: 18,   # Slightly less aggressive
+            5: 12,   # Depth 5-6: Selective
+            6: 8,    # Less aggressive for depth 6
+            7: 5,    # Depth 7+: Very selective
+            8: 3
+        }
+    
+    def get_move_limit_for_depth(self, depth: int) -> int:
+        """Get maximum number of moves to consider at given depth"""
+        if depth <= 2:
+            return self.depth_thresholds[1]
+        elif depth <= 4:
+            return self.depth_thresholds[min(depth, 4)]
+        elif depth <= 6:
+            return self.depth_thresholds[min(depth, 6)]
+        else:
+            return self.depth_thresholds[8]
+    
+    def should_prune_move(self, board: chess.Board, move: chess.Move, depth: int, move_index: int) -> bool:
+        """Determine if a move should be pruned based on depth and position"""
+        # Never prune in shallow depths
+        if depth <= 2:
+            return False
+        
+        # Get move limit for this depth
+        move_limit = self.get_move_limit_for_depth(depth)
+        
+        # Always keep moves within the limit based on their ordering
+        if move_index < move_limit:
+            return False
+        
+        # For deeper searches, be very aggressive about pruning
+        if depth >= 5:
+            # Always keep captures and checks
+            if board.is_capture(move) or board.gives_check(move):
+                return False
+            
+            # Always keep moves that escape check
+            if board.is_check():
+                return False
+            
+            # Prune quiet moves beyond the limit
+            return True
+        
+        # For medium depths (3-4), prune less aggressively
+        if depth >= 3:
+            # Keep tactical moves
+            if board.is_capture(move) or board.gives_check(move):
+                return False
+            
+            # Keep castling
+            if board.is_castling(move):
+                return False
+            
+            # Prune quiet moves beyond limit
+            return move_index >= move_limit
+        
+        return False
+    
+    def filter_moves_by_depth(self, board: chess.Board, ordered_moves: List[chess.Move], depth: int) -> List[chess.Move]:
+        """Filter moves based on search depth - more aggressive pruning at deeper levels"""
+        if depth <= 2:
+            return ordered_moves  # No pruning for shallow depths
+        
+        filtered_moves = []
+        move_limit = self.get_move_limit_for_depth(depth)
+        
+        # Categorize moves for depth-based selection
+        critical_moves = []
+        tactical_moves = []
+        positional_moves = []
+        quiet_moves = []
+        
+        for move in ordered_moves:
+            if board.is_check() or board.is_capture(move) or board.gives_check(move):
+                critical_moves.append(move)
+            elif board.is_castling(move) or self._is_promotion(move):
+                tactical_moves.append(move)
+            elif self._is_central_move(board, move) or self._is_development_move(board, move):
+                positional_moves.append(move)
+            else:
+                quiet_moves.append(move)
+        
+        # Select moves based on depth
+        if depth >= 6:
+            # Depth 6+: Only critical moves
+            filtered_moves = critical_moves[:move_limit]
+        elif depth >= 5:
+            # Depth 5: Critical + very few tactical
+            filtered_moves = critical_moves[:int(move_limit * 0.8)]
+            remaining = move_limit - len(filtered_moves)
+            filtered_moves.extend(tactical_moves[:remaining])
+        elif depth >= 4:
+            # Depth 4: Critical + some tactical
+            filtered_moves = critical_moves[:int(move_limit * 0.7)]
+            remaining = move_limit - len(filtered_moves)
+            filtered_moves.extend(tactical_moves[:remaining])
+        else:
+            # Depth 3: Critical + tactical + some positional
+            filtered_moves = critical_moves[:int(move_limit * 0.6)]
+            remaining = move_limit - len(filtered_moves)
+            filtered_moves.extend(tactical_moves[:int(remaining * 0.7)])
+            remaining = move_limit - len(filtered_moves)
+            filtered_moves.extend(positional_moves[:remaining])
+        
+        # Ensure we have at least one move
+        if not filtered_moves and ordered_moves:
+            filtered_moves = [ordered_moves[0]]
+        
+        return filtered_moves
+    
+    def _is_promotion(self, move: chess.Move) -> bool:
+        """Check if move is a promotion"""
+        return move.promotion is not None
+    
+    def _is_central_move(self, board: chess.Board, move: chess.Move) -> bool:
+        """Check if move involves central squares"""
+        central_squares = {chess.D4, chess.D5, chess.E4, chess.E5}
+        return move.to_square in central_squares or move.from_square in central_squares
+    
+    def _is_development_move(self, board: chess.Board, move: chess.Move) -> bool:
+        """Check if move develops a piece"""
+        piece = board.piece_at(move.from_square)
+        if not piece:
+            return False
+        
+        # Check if piece is moving from back rank for first time
+        if piece.piece_type in [chess.KNIGHT, chess.BISHOP]:
+            back_rank = 0 if piece.color == chess.BLACK else 7
+            return chess.square_rank(move.from_square) == back_rank
+        
+        return False
+
+
+# ==============================================================================
+# V11 CONSOLIDATED MODULES: Lightweight Defense Analysis
+# ==============================================================================
+
+class V7P3RLightweightDefense:
+    """Fast defensive analysis with performance safeguards"""
+    
+    def __init__(self):
+        self.defense_cache = {}
+        self.performance_stats = {
+            'calls': 0,
+            'cache_hits': 0,
+            'cache_misses': 0,
+            'total_time': 0.0,
+            'avg_time_ms': 0.0
+        }
+        
+        # Piece values for defense calculation
+        self.piece_values = {
+            chess.PAWN: 100,
+            chess.KNIGHT: 320,
+            chess.BISHOP: 330,
+            chess.ROOK: 500,
+            chess.QUEEN: 900,
+            chess.KING: 20000
+        }
+    
+    def quick_defensive_assessment(self, board: chess.Board) -> float:
+        """Fast defensive assessment (target: <2ms)"""
+        start_time = time.time()
+        self.performance_stats['calls'] += 1
+        
+        # Create cache key
+        cache_key = self._create_position_key(board)
+        
+        # Check cache first
+        if cache_key in self.defense_cache:
+            self.performance_stats['cache_hits'] += 1
+            return self.defense_cache[cache_key]
+        
+        self.performance_stats['cache_misses'] += 1
+        
+        try:
+            defense_score = 0.0
+            
+            # Quick piece safety assessment
+            defense_score += self._evaluate_piece_safety(board) * 0.4
+            
+            # Basic king shelter evaluation
+            defense_score += self._evaluate_king_shelter(board) * 0.3
+            
+            # Simple piece coordination
+            defense_score += self._evaluate_piece_coordination(board) * 0.3
+            
+            # Cache the result (with size limit)
+            if len(self.defense_cache) < 1000:
+                self.defense_cache[cache_key] = defense_score
+            
+            # Update performance stats
+            elapsed_time = time.time() - start_time
+            self.performance_stats['total_time'] += elapsed_time
+            self.performance_stats['avg_time_ms'] = (
+                self.performance_stats['total_time'] / self.performance_stats['calls'] * 1000
+            )
+            
+            return defense_score
+            
+        except Exception as e:
+            return 0.0
+    
+    def _create_position_key(self, board: chess.Board) -> str:
+        """Create simplified position key for caching"""
+        key_parts = []
+        
+        # Material count by piece type
+        material_counts = {}
+        for piece_type in [chess.PAWN, chess.KNIGHT, chess.BISHOP, chess.ROOK, chess.QUEEN]:
+            white_count = len(board.pieces(piece_type, True))
+            black_count = len(board.pieces(piece_type, False))
+            material_counts[piece_type] = (white_count, black_count)
+        
+        # King positions
+        white_king = board.king(True)
+        black_king = board.king(False)
+        
+        # Create stable cache key
+        key_parts.append(f"mat_{material_counts}")
+        key_parts.append(f"wk_{white_king}")
+        key_parts.append(f"bk_{black_king}")
+        key_parts.append(f"turn_{board.turn}")
+        
+        return "_".join(key_parts)
+    
+    def _evaluate_piece_safety(self, board: chess.Board) -> float:
+        """Quick evaluation of piece safety"""
+        safety_score = 0.0
+        
+        for color in [True, False]:
+            color_multiplier = 1.0 if color == board.turn else -1.0
+            
+            for square in chess.SQUARES:
+                piece = board.piece_at(square)
+                if piece and piece.color == color:
+                    # Check if piece is defended
+                    if self._is_piece_defended(board, square, color):
+                        safety_score += self.piece_values[piece.piece_type] * 0.01 * color_multiplier
+                    
+                    # Check if piece is attacked
+                    if board.is_attacked_by(not color, square):
+                        # Penalty for undefended attacked pieces
+                        if not self._is_piece_defended(board, square, color):
+                            safety_score -= self.piece_values[piece.piece_type] * 0.02 * color_multiplier
+        
+        return safety_score / 100.0
+    
+    def _is_piece_defended(self, board: chess.Board, square: int, color: bool) -> bool:
+        """Quick check if piece is defended"""
+        return board.is_attacked_by(color, square)
+    
+    def _evaluate_king_shelter(self, board: chess.Board) -> float:
+        """Basic king shelter evaluation"""
+        shelter_score = 0.0
+        
+        for color in [True, False]:
+            color_multiplier = 1.0 if color == board.turn else -1.0
+            king_square = board.king(color)
+            
+            if king_square is None:
+                continue
+            
+            king_file = chess.square_file(king_square)
+            king_rank = chess.square_rank(king_square)
+            
+            # Check pawn shelter in front of king
+            pawn_shelter = 0
+            
+            if color:  # White king
+                shelter_squares = [
+                    chess.square(f, king_rank + 1) for f in range(max(0, king_file-1), min(8, king_file+2))
+                    if king_rank < 7
+                ]
+            else:  # Black king
+                shelter_squares = [
+                    chess.square(f, king_rank - 1) for f in range(max(0, king_file-1), min(8, king_file+2))
+                    if king_rank > 0
+                ]
+            
+            for square in shelter_squares:
+                piece = board.piece_at(square)
+                if piece and piece.piece_type == chess.PAWN and piece.color == color:
+                    pawn_shelter += 1
+            
+            # Bonus for pawn shelter
+            shelter_score += pawn_shelter * 0.2 * color_multiplier
+            
+            # Penalty for open files near king
+            open_files_near_king = 0
+            for file_offset in [-1, 0, 1]:
+                check_file = king_file + file_offset
+                if 0 <= check_file < 8:
+                    file_has_pawn = False
+                    for rank in range(8):
+                        piece = board.piece_at(chess.square(check_file, rank))
+                        if piece and piece.piece_type == chess.PAWN:
+                            file_has_pawn = True
+                            break
+                    if not file_has_pawn:
+                        open_files_near_king += 1
+            
+            shelter_score -= open_files_near_king * 0.1 * color_multiplier
+        
+        return shelter_score
+    
+    def _evaluate_piece_coordination(self, board: chess.Board) -> float:
+        """Simple piece coordination evaluation"""
+        coordination_score = 0.0
+        
+        for color in [True, False]:
+            color_multiplier = 1.0 if color == board.turn else -1.0
+            
+            # Count pieces defending each other
+            defended_pieces = 0
+            total_pieces = 0
+            
+            for square in chess.SQUARES:
+                piece = board.piece_at(square)
+                if piece and piece.color == color and piece.piece_type != chess.KING:
+                    total_pieces += 1
+                    if board.is_attacked_by(color, square):
+                        defended_pieces += 1
+            
+            if total_pieces > 0:
+                coordination_ratio = defended_pieces / total_pieces
+                coordination_score += coordination_ratio * 0.3 * color_multiplier
+        
+        return coordination_score
+    
+    def get_performance_stats(self) -> Dict:
+        """Get performance statistics for monitoring"""
+        if self.performance_stats['calls'] > 0:
+            cache_hit_rate = (self.performance_stats['cache_hits'] / 
+                            self.performance_stats['calls'] * 100)
+        else:
+            cache_hit_rate = 0.0
+        
+        return {
+            'calls': self.performance_stats['calls'],
+            'cache_hit_rate': cache_hit_rate,
+            'avg_time_ms': self.performance_stats['avg_time_ms'],
+            'cache_size': len(self.defense_cache)
+        }
+    
+    def clear_cache(self):
+        """Clear defense cache to free memory"""
+        self.defense_cache.clear()
+    
+    def reset_performance_stats(self):
+        """Reset performance tracking"""
+        self.performance_stats = {
+            'calls': 0,
+            'cache_hits': 0,
+            'cache_misses': 0,
+            'total_time': 0.0,
+            'avg_time_ms': 0.0
+        }
 
 
 class PVTracker:
@@ -211,6 +1078,672 @@ class ZobristHashing:
             hash_value ^= self.side_to_move
             
         return hash_value
+
+
+# ==============================================================================
+# V11 CONSOLIDATED MODULES: Adaptive Evaluation Framework
+# ==============================================================================
+
+class V7P3RAdaptiveEvaluation:
+    """Adaptive evaluation system that adapts based on position posture"""
+    
+    def __init__(self, posture_assessor: V7P3RPostureAssessment):
+        self.posture_assessor = posture_assessor
+        
+        # Piece values for basic material evaluation
+        self.piece_values = {
+            chess.PAWN: 100,
+            chess.KNIGHT: 320,
+            chess.BISHOP: 330,
+            chess.ROOK: 500,
+            chess.QUEEN: 900,
+            chess.KING: 10000
+        }
+        
+        # Evaluation component weights for different postures
+        self.evaluation_weights = {
+            GamePosture.EMERGENCY: {
+                'material': 1.0,
+                'king_safety': 2.0,
+                'piece_safety': 1.5,
+                'mobility': 0.3,
+                'positional': 0.1,
+                'development': 0.2,
+                'strategic': 0.0
+            },
+            GamePosture.DEFENSIVE: {
+                'material': 1.0,
+                'king_safety': 1.5,
+                'piece_safety': 1.3,
+                'mobility': 0.6,
+                'positional': 0.4,
+                'development': 0.5,
+                'strategic': 0.2
+            },
+            GamePosture.BALANCED: {
+                'material': 1.0,
+                'king_safety': 1.0,
+                'piece_safety': 1.0,
+                'mobility': 1.0,
+                'positional': 1.0,
+                'development': 0.8,
+                'strategic': 0.6
+            },
+            GamePosture.OFFENSIVE: {
+                'material': 1.0,
+                'king_safety': 0.8,
+                'piece_safety': 0.7,
+                'mobility': 1.2,
+                'positional': 1.1,
+                'development': 1.0,
+                'strategic': 1.0
+            }
+        }
+        
+        # Performance tracking
+        self.evaluation_stats = {
+            'calls': 0,
+            'posture_breakdown': {
+                'emergency': 0,
+                'defensive': 0,
+                'balanced': 0,
+                'offensive': 0
+            },
+            'total_time': 0.0,
+            'component_times': {
+                'posture_assessment': 0.0,
+                'material': 0.0,
+                'king_safety': 0.0,
+                'piece_safety': 0.0,
+                'mobility': 0.0,
+                'positional': 0.0,
+                'strategic': 0.0
+            }
+        }
+    
+    def evaluate_position(self, board: chess.Board, depth: int = 0) -> float:
+        """Main evaluation function that adapts based on position posture"""
+        start_time = time.time()
+        
+        self.evaluation_stats['calls'] += 1
+        
+        # Step 1: Assess position posture
+        posture_start = time.time()
+        volatility, posture = self.posture_assessor.assess_position_posture(board)
+        self.evaluation_stats['component_times']['posture_assessment'] += time.time() - posture_start
+        
+        # Track posture statistics
+        self.evaluation_stats['posture_breakdown'][posture.value] += 1
+        
+        # Step 2: Get evaluation weights for this posture
+        weights = self.evaluation_weights[posture]
+        
+        # Step 3: Run evaluation components based on weights
+        total_score = 0.0
+        
+        # Material evaluation (always run)
+        if weights['material'] > 0:
+            component_start = time.time()
+            material_score = self._evaluate_material(board) * weights['material']
+            total_score += material_score
+            self.evaluation_stats['component_times']['material'] += time.time() - component_start
+        
+        # King safety
+        if weights['king_safety'] > 0:
+            component_start = time.time()
+            king_safety_score = self._evaluate_king_safety(board) * weights['king_safety']
+            total_score += king_safety_score
+            self.evaluation_stats['component_times']['king_safety'] += time.time() - component_start
+        
+        # Piece safety
+        if weights['piece_safety'] > 0:
+            component_start = time.time()
+            piece_safety_score = self._evaluate_piece_safety(board) * weights['piece_safety']
+            total_score += piece_safety_score
+            self.evaluation_stats['component_times']['piece_safety'] += time.time() - component_start
+        
+        # Mobility
+        if weights['mobility'] > 0:
+            component_start = time.time()
+            mobility_score = self._evaluate_mobility(board) * weights['mobility']
+            total_score += mobility_score
+            self.evaluation_stats['component_times']['mobility'] += time.time() - component_start
+        
+        # Positional factors
+        if weights['positional'] > 0:
+            component_start = time.time()
+            positional_score = self._evaluate_positional(board) * weights['positional']
+            total_score += positional_score
+            self.evaluation_stats['component_times']['positional'] += time.time() - component_start
+        
+        # Strategic analysis
+        if weights['strategic'] > 0:
+            component_start = time.time()
+            strategic_score = self._evaluate_strategic(board) * weights['strategic']
+            total_score += strategic_score
+            self.evaluation_stats['component_times']['strategic'] += time.time() - component_start
+        
+        # Posture-specific bonuses
+        posture_bonus = self._get_posture_bonus(board, posture, volatility)
+        total_score += posture_bonus
+        
+        self.evaluation_stats['total_time'] += time.time() - start_time
+        
+        return total_score
+    
+    def _evaluate_material(self, board: chess.Board) -> float:
+        """Basic material evaluation"""
+        white_material = 0
+        black_material = 0
+        
+        for square in chess.SQUARES:
+            piece = board.piece_at(square)
+            if piece:
+                value = self.piece_values[piece.piece_type]
+                if piece.color:
+                    white_material += value
+                else:
+                    black_material += value
+        
+        # Return from current player's perspective
+        if board.turn:
+            return (white_material - black_material) / 100.0
+        else:
+            return (black_material - white_material) / 100.0
+    
+    def _evaluate_king_safety(self, board: chess.Board) -> float:
+        """Evaluate king safety for current player"""
+        score = 0.0
+        current_color = board.turn
+        king_square = board.king(current_color)
+        
+        if king_square is None:
+            return -100.0
+        
+        # Count attackers on king
+        attackers = 0
+        for square in chess.SQUARES:
+            piece = board.piece_at(square)
+            if piece and piece.color != current_color:
+                if board.is_attacked_by(not current_color, king_square):
+                    attackers += 1
+        
+        score -= attackers * 0.5
+        
+        # King shelter evaluation
+        king_file = chess.square_file(king_square)
+        king_rank = chess.square_rank(king_square)
+        
+        # Check for pawn shelter
+        shelter_bonus = 0
+        for file_offset in [-1, 0, 1]:
+            for rank_offset in [1, 2]:
+                new_file = king_file + file_offset
+                new_rank = king_rank + (rank_offset if current_color else -rank_offset)
+                
+                if 0 <= new_file <= 7 and 0 <= new_rank <= 7:
+                    square = chess.square(new_file, new_rank)
+                    piece = board.piece_at(square)
+                    if piece and piece.piece_type == chess.PAWN and piece.color == current_color:
+                        shelter_bonus += 0.1
+        
+        score += shelter_bonus
+        
+        return score
+    
+    def _evaluate_piece_safety(self, board: chess.Board) -> float:
+        """Evaluate safety of our pieces"""
+        score = 0.0
+        current_color = board.turn
+        
+        for square in chess.SQUARES:
+            piece = board.piece_at(square)
+            if piece and piece.color == current_color:
+                piece_value = self.piece_values[piece.piece_type] / 1000.0
+                
+                # Penalty for undefended pieces
+                if board.is_attacked_by(not current_color, square):
+                    if not board.is_attacked_by(current_color, square):
+                        score -= piece_value * 0.5
+                    else:
+                        score -= piece_value * 0.1
+                
+                # Bonus for defended pieces
+                elif board.is_attacked_by(current_color, square):
+                    score += piece_value * 0.05
+        
+        return score
+    
+    def _evaluate_mobility(self, board: chess.Board) -> float:
+        """Evaluate piece mobility and control"""
+        our_mobility = len(list(board.legal_moves))
+        
+        # Switch sides to count opponent mobility
+        board.push(chess.Move.null())
+        try:
+            their_mobility = len(list(board.legal_moves))
+        except:
+            their_mobility = 0
+        finally:
+            board.pop()
+        
+        # Mobility advantage
+        mobility_advantage = our_mobility - their_mobility
+        return mobility_advantage / 100.0
+    
+    def _evaluate_positional(self, board: chess.Board) -> float:
+        """Basic positional evaluation"""
+        score = 0.0
+        current_color = board.turn
+        
+        # Center control
+        center_squares = [chess.D4, chess.D5, chess.E4, chess.E5]
+        for square in center_squares:
+            if board.is_attacked_by(current_color, square):
+                score += 0.1
+            if board.is_attacked_by(not current_color, square):
+                score -= 0.1
+        
+        # Development bonus
+        back_rank = 0 if current_color else 7
+        developed_pieces = 0
+        total_pieces = 0
+        
+        for square in chess.SQUARES:
+            piece = board.piece_at(square)
+            if piece and piece.color == current_color:
+                if piece.piece_type in [chess.KNIGHT, chess.BISHOP, chess.QUEEN]:
+                    total_pieces += 1
+                    if chess.square_rank(square) != back_rank:
+                        developed_pieces += 1
+        
+        if total_pieces > 0:
+            development_ratio = developed_pieces / total_pieces
+            score += development_ratio * 0.2
+        
+        return score
+    
+    def _evaluate_strategic(self, board: chess.Board) -> float:
+        """Strategic pattern evaluation (simplified)"""
+        score = 0.0
+        
+        # Pawn structure basics
+        current_color = board.turn
+        our_pawns = board.pieces(chess.PAWN, current_color)
+        their_pawns = board.pieces(chess.PAWN, not current_color)
+        
+        # Passed pawn bonus
+        for square in our_pawns:
+            file = chess.square_file(square)
+            rank = chess.square_rank(square)
+            
+            # Check if pawn is passed (simplified)
+            blocked = False
+            for enemy_square in their_pawns:
+                enemy_file = chess.square_file(enemy_square)
+                enemy_rank = chess.square_rank(enemy_square)
+                
+                if abs(enemy_file - file) <= 1:
+                    if current_color:
+                        if enemy_rank > rank:
+                            blocked = True
+                            break
+                    else:
+                        if enemy_rank < rank:
+                            blocked = True
+                            break
+            
+            if not blocked:
+                distance_to_promotion = 7 - rank if current_color else rank
+                score += (8 - distance_to_promotion) * 0.05
+        
+        return score
+    
+    def _get_posture_bonus(self, board: chess.Board, posture: GamePosture, volatility: PositionVolatility) -> float:
+        """Get posture-specific evaluation bonus"""
+        bonus = 0.0
+        
+        if posture == GamePosture.EMERGENCY:
+            bonus -= 0.5
+        elif posture == GamePosture.DEFENSIVE:
+            bonus -= 0.2
+        elif posture == GamePosture.OFFENSIVE:
+            bonus += 0.3
+        
+        # Volatility adjustment
+        if volatility == PositionVolatility.CRITICAL:
+            bonus -= 0.3
+        elif volatility == PositionVolatility.STABLE:
+            bonus += 0.1
+        
+        return bonus
+    
+    def get_evaluation_stats(self) -> Dict[str, Any]:
+        """Get performance and usage statistics"""
+        stats = self.evaluation_stats.copy()
+        
+        if stats['calls'] > 0:
+            # Add average times
+            stats['avg_total_time'] = stats['total_time'] / stats['calls']
+            stats['avg_component_times'] = {}
+            for component, total_time in stats['component_times'].items():
+                stats['avg_component_times'][component] = total_time / stats['calls']
+            
+            # Add posture percentages
+            stats['posture_percentages'] = {}
+            for posture, count in stats['posture_breakdown'].items():
+                stats['posture_percentages'][posture] = (count / stats['calls']) * 100
+        
+        return stats
+    
+    def reset_stats(self):
+        """Reset performance statistics"""
+        self.evaluation_stats = {
+            'calls': 0,
+            'posture_breakdown': {
+                'emergency': 0,
+                'defensive': 0,
+                'balanced': 0,
+                'offensive': 0
+            },
+            'total_time': 0.0,
+            'component_times': {
+                'posture_assessment': 0.0,
+                'material': 0.0,
+                'king_safety': 0.0,
+                'piece_safety': 0.0,
+                'mobility': 0.0,
+                'positional': 0.0,
+                'strategic': 0.0
+            }
+        }
+
+
+# ==============================================================================
+# V11 CONSOLIDATED MODULES: Adaptive Move Ordering
+# ==============================================================================
+
+class V7P3RAdaptiveMoveOrdering:
+    """Adaptive move ordering system that prioritizes moves based on position posture"""
+    
+    def __init__(self, posture_assessor: V7P3RPostureAssessment):
+        self.posture_assessor = posture_assessor
+        
+        # Move type priorities for different postures
+        self.posture_priorities = {
+            GamePosture.EMERGENCY: {
+                'escape_moves': 1000,
+                'blocking_moves': 900,
+                'defensive_captures': 800,
+                'defensive_moves': 700,
+                'other_captures': 200,
+                'other_moves': 100
+            },
+            GamePosture.DEFENSIVE: {
+                'defensive_captures': 900,
+                'defensive_moves': 800,
+                'escape_moves': 700,
+                'development': 600,
+                'good_captures': 500,
+                'other_captures': 300,
+                'other_moves': 200
+            },
+            GamePosture.BALANCED: {
+                'good_captures': 900,
+                'tactical_moves': 800,
+                'development': 700,
+                'defensive_moves': 600,
+                'other_captures': 500,
+                'castling': 400,
+                'other_moves': 300
+            },
+            GamePosture.OFFENSIVE: {
+                'tactical_moves': 1000,
+                'good_captures': 900,
+                'attacking_moves': 800,
+                'development': 700,
+                'other_captures': 600,
+                'defensive_moves': 400,
+                'other_moves': 300
+            }
+        }
+        
+        # Piece values for capture evaluation
+        self.piece_values = {
+            chess.PAWN: 100,
+            chess.KNIGHT: 320,
+            chess.BISHOP: 330,
+            chess.ROOK: 500,
+            chess.QUEEN: 900,
+            chess.KING: 10000
+        }
+    
+    def order_moves(self, board: chess.Board, moves: List[chess.Move]) -> List[Tuple[chess.Move, int]]:
+        """Order moves based on current position posture"""
+        if not moves:
+            return []
+        
+        # Assess current position posture
+        volatility, posture = self.posture_assessor.assess_position_posture(board)
+        
+        # Get priority scheme for this posture
+        priorities = self.posture_priorities[posture]
+        
+        # Score each move
+        scored_moves = []
+        for move in moves:
+            move_type, base_score = self._classify_move(board, move, posture, volatility)
+            priority = priorities.get(move_type, 100)
+            
+            # Final score combines priority and base score
+            final_score = priority + base_score
+            scored_moves.append((move, final_score))
+        
+        # Sort by score (highest first)
+        scored_moves.sort(key=lambda x: x[1], reverse=True)
+        
+        return scored_moves
+    
+    def _classify_move(self, board: chess.Board, move: chess.Move, 
+                      posture: GamePosture, volatility: PositionVolatility) -> Tuple[str, int]:
+        """Classify a move and assign a base score"""
+        base_score = 0
+        
+        # Check basic move properties
+        is_capture = board.is_capture(move)
+        is_check = board.gives_check(move)
+        piece = board.piece_at(move.from_square)
+        
+        if piece is None:
+            return ('other_moves', 0)
+        
+        # Handle captures
+        if is_capture:
+            captured_piece = board.piece_at(move.to_square)
+            if captured_piece:
+                capture_value = self.piece_values[captured_piece.piece_type] - self.piece_values[piece.piece_type]
+                
+                # Check if this capture defends us
+                if self._is_defensive_capture(board, move):
+                    base_score = capture_value + 50
+                    return ('defensive_captures', base_score)
+                elif capture_value > 0:
+                    base_score = capture_value
+                    return ('good_captures', base_score)
+                else:
+                    base_score = capture_value
+                    return ('other_captures', base_score)
+        
+        # Check for special move types based on posture
+        if posture in [GamePosture.EMERGENCY, GamePosture.DEFENSIVE]:
+            if self._is_escape_move(board, move):
+                return ('escape_moves', base_score + 100)
+            elif self._is_blocking_move(board, move):
+                return ('blocking_moves', base_score + 80)
+            elif self._is_defensive_move(board, move):
+                return ('defensive_moves', base_score + 60)
+        
+        elif posture == GamePosture.OFFENSIVE:
+            if self._is_tactical_move(board, move):
+                return ('tactical_moves', base_score + 100)
+            elif self._creates_threats(board, move):
+                return ('attacking_moves', base_score + 80)
+        
+        # Check for development moves
+        if self._is_development_move(board, move):
+            return ('development', base_score + 40)
+        
+        # Check for castling
+        if board.is_castling(move):
+            return ('castling', base_score + 30)
+        
+        # Default classification
+        return ('other_moves', base_score)
+    
+    def _is_defensive_capture(self, board: chess.Board, move: chess.Move) -> bool:
+        """Check if capture removes a piece that was attacking us"""
+        target_square = move.to_square
+        
+        # Check if the captured piece was attacking any of our pieces
+        for square in chess.SQUARES:
+            piece = board.piece_at(square)
+            if piece and piece.color == board.turn:
+                if board.is_attacked_by(not board.turn, square):
+                    # Check if the piece being captured was one of the attackers
+                    board.push(move)
+                    still_attacked = board.is_attacked_by(not board.turn, square)
+                    board.pop()
+                    
+                    if not still_attacked:
+                        return True
+        
+        return False
+    
+    def _is_escape_move(self, board: chess.Board, move: chess.Move) -> bool:
+        """Check if move escapes a piece from attack"""
+        from_square = move.from_square
+        
+        # Check if the piece was under attack and moves to safety
+        if board.is_attacked_by(not board.turn, from_square):
+            board.push(move)
+            safe = not board.is_attacked_by(not board.turn, move.to_square)
+            board.pop()
+            return safe
+        
+        return False
+    
+    def _is_blocking_move(self, board: chess.Board, move: chess.Move) -> bool:
+        """Check if move blocks an attack on our pieces"""
+        board.push(move)
+        
+        # Count how many of our pieces are under attack after the move
+        our_attacked_after = 0
+        for square in chess.SQUARES:
+            piece = board.piece_at(square)
+            if piece and piece.color == board.turn:
+                if board.is_attacked_by(not board.turn, square):
+                    our_attacked_after += 1
+        
+        board.pop()
+        
+        # Count how many were under attack before
+        our_attacked_before = 0
+        for square in chess.SQUARES:
+            piece = board.piece_at(square)
+            if piece and piece.color == board.turn:
+                if board.is_attacked_by(not board.turn, square):
+                    our_attacked_before += 1
+        
+        # If fewer pieces are attacked after the move, it might be blocking
+        return our_attacked_after < our_attacked_before
+    
+    def _is_defensive_move(self, board: chess.Board, move: chess.Move) -> bool:
+        """Check if move defends one of our pieces"""
+        to_square = move.to_square
+        
+        # Check if the destination square defends any of our pieces
+        for square in chess.SQUARES:
+            piece = board.piece_at(square)
+            if piece and piece.color == board.turn:
+                # See if this move would defend that piece
+                board.push(move)
+                defended = board.is_attacked_by(board.turn, square)
+                board.pop()
+                
+                if defended and board.is_attacked_by(not board.turn, square):
+                    return True
+        
+        return False
+    
+    def _is_tactical_move(self, board: chess.Board, move: chess.Move) -> bool:
+        """Check if move creates tactical threats"""
+        board.push(move)
+        
+        # Count enemy pieces under attack after the move
+        enemy_attacked = 0
+        for square in chess.SQUARES:
+            piece = board.piece_at(square)
+            if piece and piece.color != board.turn:
+                if board.is_attacked_by(board.turn, square):
+                    enemy_attacked += 1
+        
+        board.pop()
+        
+        # If we attack 2+ enemy pieces, it's tactical
+        return enemy_attacked >= 2
+    
+    def _creates_threats(self, board: chess.Board, move: chess.Move) -> bool:
+        """Check if move creates new threats"""
+        # Count threats before move
+        threats_before = 0
+        for square in chess.SQUARES:
+            piece = board.piece_at(square)
+            if piece and piece.color != board.turn:
+                if board.is_attacked_by(board.turn, square):
+                    threats_before += 1
+        
+        # Count threats after move
+        board.push(move)
+        threats_after = 0
+        for square in chess.SQUARES:
+            piece = board.piece_at(square)
+            if piece and piece.color != board.turn:
+                if board.is_attacked_by(board.turn, square):
+                    threats_after += 1
+        board.pop()
+        
+        return threats_after > threats_before
+    
+    def _is_development_move(self, board: chess.Board, move: chess.Move) -> bool:
+        """Check if move develops a piece"""
+        piece = board.piece_at(move.from_square)
+        if piece is None:
+            return False
+        
+        # Check if piece is moving from back rank (development)
+        back_rank = 0 if piece.color else 7
+        from_rank = chess.square_rank(move.from_square)
+        to_rank = chess.square_rank(move.to_square)
+        
+        # Simple heuristic: moving from back rank towards center
+        if from_rank == back_rank and piece.piece_type in [chess.KNIGHT, chess.BISHOP]:
+            return abs(to_rank - 3.5) < abs(from_rank - 3.5)
+        
+        return False
+    
+    def get_best_moves(self, board: chess.Board, count: int = 10) -> List[chess.Move]:
+        """Get the best moves according to current posture assessment"""
+        legal_moves = list(board.legal_moves)
+        scored_moves = self.order_moves(board, legal_moves)
+        
+        # Return top 'count' moves
+        return [move for move, score in scored_moves[:count]]
+    
+    def get_move_classification(self, board: chess.Board, move: chess.Move) -> str:
+        """Get the classification of a specific move for debugging"""
+        volatility, posture = self.posture_assessor.assess_position_posture(board)
+        move_type, base_score = self._classify_move(board, move, posture, volatility)
+        return f"{move_type} (posture: {posture.value}, score: {base_score})"
 
 
 class V7P3REngine:
