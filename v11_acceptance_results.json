@@ -1,7 +1,7 @@
 {
   "search_depth": {
     "target": 6,
-    "achieved": 5,
+    "achieved": 8,
     "details": [
       [
         "Opening",
@@ -9,14 +9,14 @@
       ],
       [
         "Middlegame",
-        5
+        8
       ],
       [
         "Endgame",
         8
       ]
     ],
-    "passed": false
+    "passed": true
   },
   "node_efficiency": {
     "target_reduction": 50,
@@ -29,19 +29,19 @@
     "details": [
       {
         "time_control": "5-minute game",
-        "final_remaining_percent": 78.73789674148921,
+        "final_remaining_percent": 81.27088020305642,
         "reasonable_allocation": true,
         "adaptive_depth": true
       },
       {
         "time_control": "10-minute game",
-        "final_remaining_percent": 81.44216000364665,
+        "final_remaining_percent": 86.30599305331464,
         "reasonable_allocation": true,
         "adaptive_depth": true
       },
       {
         "time_control": "30-minute game",
-        "final_remaining_percent": 83.24500217841828,
+        "final_remaining_percent": 89.66273495348676,
         "reasonable_allocation": true,
         "adaptive_depth": true
       }
@@ -75,7 +75,7 @@
     "details": [
       {
         "pattern": "Opening development",
-        "best_move": "g1h3",
+        "best_move": "e2e4",
         "expected": [
           "g1f3",
           "b1c3",

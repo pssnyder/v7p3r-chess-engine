@@ -1,19 +1,22 @@
 #!/usr/bin/env python3
 """
-V7P3R Chess Engine v10.9 - Critical Perspective Bug Fix
-Built from v10.8 stable foundation with critical evaluation perspective fix
-Phase 1: Core search + Phase 2: Nudge system + Phase 3A: Advanced evaluation + Phase 3B: Time-Adaptive Tactical Patterns
+V7P3R Chess Engine v11.1 - EMERGENCY PERFORMANCE FIXES
+Built from v11 with critical simplifications for performance recovery
+Phase 1 Fixes: Simplified time management, basic move ordering, consistent evaluation
 
 VERSION LINEAGE:
 - v10.6: Tournament baseline (19.5/30 points)
 - v10.7: Failed tactical patterns (70% performance loss)  
 - v10.8: Recovery baseline for v11 development (but had critical perspective bug)
 - v10.9: CRITICAL PERSPECTIVE FIX - resolves 42% performance gap between White/Black play
+- v11.0: Advanced features but severe performance regression (4.0/21 points)
+- v11.1: EMERGENCY FIXES - simplified systems for performance recovery
 
-CRITICAL FIX:
-- Fixed double-perspective-flip bug in _evaluate_position()
-- Engine no longer helps opponent when playing as Black
-- Expected 100+ Elo improvement from consistent evaluation
+CRITICAL FIXES IN v11.1:
+- Simplified time management (reliable 70% allocation)
+- Basic move ordering (tactical priorities only)
+- Consistent evaluation (fast evaluator only)
+- Reduced search complexity (minimal pruning)
 
 Author: Pat Snyder
 """
@@ -32,7 +35,8 @@ from v7p3r_advanced_pawn_evaluator import V7P3RAdvancedPawnEvaluator
 from v7p3r_king_safety_evaluator import V7P3RKingSafetyEvaluator
 from v7p3r_strategic_database import V7P3RStrategicDatabase
 from v7p3r_tactical_pattern_detector import TimeControlAdaptiveTacticalDetector  # V10.9 PHASE 3B: TIME-ADAPTIVE TACTICAL PATTERNS
-from v7p3r_time_manager import V7P3RTimeManager  # V11 PHASE 1: ADVANCED TIME MANAGEMENT
+from v7p3r_simple_time_manager import V7P3RSimpleTimeManager  # V11.1 SIMPLIFIED TIME MANAGEMENT
+from v7p3r_simple_move_orderer import V7P3RSimpleMoveOrderer  # V11.1 SIMPLIFIED MOVE ORDERING
 
 
 # ==============================================================================
@@ -1839,8 +1843,11 @@ class V7P3REngine:
         # PV Following System - V10 OPTIMIZATION
         self.pv_tracker = PVTracker()
         
+        # V11.1 SIMPLIFIED SYSTEMS FOR PERFORMANCE RECOVERY
+        self.simple_move_orderer = V7P3RSimpleMoveOrderer()  # Replace complex move ordering
+        
         # V11 PHASE 1: Advanced Time Management System
-        self.time_manager = V7P3RTimeManager(base_time=300.0, increment=3.0)  # Default 5+3 time control
+        self.time_manager = V7P3RSimpleTimeManager(base_time=300.0, increment=3.0)  # V11.1 SIMPLIFIED TIME CONTROL
     
     def search(self, board: chess.Board, time_limit: float = 3.0, depth: Optional[int] = None, 
                alpha: float = -99999, beta: float = 99999, is_root: bool = True) -> chess.Move:
@@ -2071,35 +2078,8 @@ class V7P3REngine:
     
     def _order_moves_advanced(self, board: chess.Board, moves: List[chess.Move], depth: int, 
                               tt_move: Optional[chess.Move] = None) -> List[chess.Move]:
-        """V11 PHASE 3B ENHANCED: Adaptive move ordering with posture-based prioritization"""
-        if len(moves) <= 2:
-            return moves
-        
-        # V11 PHASE 3B: Try adaptive move ordering first
-        try:
-            scored_moves = self.adaptive_move_orderer.order_moves(board, moves)
-            
-            # Apply transposition table move override (highest priority)
-            if tt_move and tt_move in moves:
-                # Remove TT move from scored list and put it first
-                scored_moves = [(move, score) for move, score in scored_moves if move != tt_move]
-                final_moves = [tt_move] + [move for move, score in scored_moves]
-                return final_moves
-            else:
-                return [move for move, score in scored_moves]
-                
-        except Exception as e:
-            # Fallback to legacy move ordering if adaptive system fails
-            pass
-        
-        # V11 PHASE 2 LEGACY: Enhanced move ordering - TT, NUDGES, MVV-LVA, Checks, Killers, BITBOARD TACTICS
-        if len(moves) <= 2:
-            return moves
-        
-        # Pre-calculate move categories for efficiency
-        captures = []
-        checks = []
-        killers = []
+        """V11.1 SIMPLIFIED: Use basic tactical move ordering for reliable performance"""
+        return self.simple_move_orderer.order_moves(board, moves, depth, tt_move)
         quiet_moves = []
         tactical_moves = []  # NEW: Bitboard tactical moves
         nudge_moves = []     # V11 PHASE 2: Nudge system moves
