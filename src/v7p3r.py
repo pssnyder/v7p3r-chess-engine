@@ -30,6 +30,7 @@ from v7p3r_bitboard_evaluator import V7P3RScoringCalculationBitboard
 from v7p3r_advanced_pawn_evaluator import V7P3RAdvancedPawnEvaluator
 from v7p3r_king_safety_evaluator import V7P3RKingSafetyEvaluator
 from v7p3r_strategic_database import V7P3RStrategicDatabase
+from v7p3r_lightweight_defense import V7P3RLightweightDefense  # V11 PHASE 3A: LIGHTWEIGHT DEFENSE
 from v7p3r_posture_assessment import V7P3RPostureAssessment  # V11 PHASE 3B: POSTURE ASSESSMENT
 from v7p3r_adaptive_evaluation import V7P3RAdaptiveEvaluation  # V11 PHASE 3B: ADAPTIVE EVALUATION
 from v7p3r_adaptive_move_ordering import V7P3RAdaptiveMoveOrdering  # V11 PHASE 3B: ADAPTIVE MOVE ORDERING
@@ -272,6 +273,9 @@ class V7P3REngine:
         self.posture_assessor = V7P3RPostureAssessment()
         self.adaptive_evaluator = V7P3RAdaptiveEvaluation(self.posture_assessor)
         self.adaptive_move_orderer = V7P3RAdaptiveMoveOrdering(self.posture_assessor)
+        
+        # V11 PHASE 3A: Lightweight Defense System
+        self.lightweight_defense = V7P3RLightweightDefense()
         
         # V11 PERFORMANCE: Fast evaluator for non-critical nodes
         self.fast_evaluator = V7P3RFastEvaluator()
@@ -667,12 +671,10 @@ class V7P3REngine:
             try:
                 evaluation_score = self.adaptive_evaluator.evaluate_position(board, depth=0)
                 
-                # V11 PHASE 2: Add strategic database evaluation bonus (very selective)
+                # V11 PHASE 2: Add strategic database evaluation bonus (always for adaptive eval)
                 try:
-                    # Only apply strategic bonus very rarely to avoid performance impact
-                    if self.nodes_searched < 10:  # Only first 10 nodes
-                        strategic_bonus = self.strategic_database.get_strategic_evaluation_bonus(board)
-                        evaluation_score += strategic_bonus * 0.05  # Minimal weight
+                    strategic_bonus = self.strategic_database.get_strategic_evaluation_bonus(board)
+                    evaluation_score += strategic_bonus * 0.1  # Strategic input
                 except Exception as e:
                     # Ignore strategic bonus if there's an error
                     pass
@@ -682,6 +684,15 @@ class V7P3REngine:
                 evaluation_score = self.fast_evaluator.evaluate_position_fast(board)
         else:
             # Use fast evaluation for 99%+ of nodes (performance optimization)
+            evaluation_score = self.fast_evaluator.evaluate_position_fast(board)
+            
+            # V11 INTEGRATION: Add lightweight strategic input even for fast evaluation
+            try:
+                if self.nodes_searched % 10 == 0:  # Every 10th node
+                    strategic_bonus = self.strategic_database.get_strategic_evaluation_bonus(board)
+                    evaluation_score += strategic_bonus * 0.05  # Light strategic influence
+            except Exception as e:
+                pass
             evaluation_score = self.fast_evaluator.evaluate_position_fast(board)
         
         # Cache and return result

@@ -17,11 +17,11 @@ class V7P3RDynamicMoveSelector:
         self.depth_thresholds = {
             1: 50,   # Depth 1-2: Consider most moves
             2: 50,
-            3: 20,   # Depth 3-4: More aggressive pruning
-            4: 15,
-            5: 8,    # Depth 5-6: Very aggressive
-            6: 6,
-            7: 4,    # Depth 7+: Only critical moves
+            3: 25,   # Depth 3-4: Moderate pruning (was 20)
+            4: 18,   # Slightly less aggressive
+            5: 12,   # Depth 5-6: Selective (was 8)
+            6: 8,    # Less aggressive for depth 6
+            7: 5,    # Depth 7+: Very selective
             8: 3
         }
     

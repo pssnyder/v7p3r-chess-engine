@@ -1,0 +1,171 @@
+{
+  "search_depth": {
+    "target": 6,
+    "achieved": 5,
+    "details": [
+      [
+        "Opening",
+        8
+      ],
+      [
+        "Middlegame",
+        5
+      ],
+      [
+        "Endgame",
+        8
+      ]
+    ],
+    "passed": false
+  },
+  "node_efficiency": {
+    "target_reduction": 50,
+    "achieved_reduction": 99.99821428571428,
+    "nodes_searched": 5,
+    "baseline_nodes": 280000,
+    "passed": true
+  },
+  "time_management": {
+    "details": [
+      {
+        "time_control": "5-minute game",
+        "final_remaining_percent": 78.73789674148921,
+        "reasonable_allocation": true,
+        "adaptive_depth": true
+      },
+      {
+        "time_control": "10-minute game",
+        "final_remaining_percent": 81.44216000364665,
+        "reasonable_allocation": true,
+        "adaptive_depth": true
+      },
+      {
+        "time_control": "30-minute game",
+        "final_remaining_percent": 83.24500217841828,
+        "reasonable_allocation": true,
+        "adaptive_depth": true
+      }
+    ],
+    "passed": true
+  },
+  "strategic_consistency": {
+    "details": [
+      {
+        "position": "King safety",
+        "evaluation": 1.0,
+        "strategic_input": false
+      },
+      {
+        "position": "Center control",
+        "evaluation": 1.0,
+        "strategic_input": false
+      },
+      {
+        "position": "Piece activity",
+        "evaluation": 0.3,
+        "strategic_input": false
+      }
+    ],
+    "strategic_system_active": false,
+    "passed": false
+  },
+  "pattern_recognition": {
+    "target_accuracy": 90,
+    "achieved_accuracy": 0.0,
+    "details": [
+      {
+        "pattern": "Opening development",
+        "best_move": "g1h3",
+        "expected": [
+          "g1f3",
+          "b1c3",
+          "f1e2"
+        ],
+        "pattern_match": false,
+        "nudge_active": false
+      },
+      {
+        "pattern": "King safety castling",
+        "best_move": "f3e5",
+        "expected": [
+          "e1g1"
+        ],
+        "pattern_match": false,
+        "nudge_active": false
+      },
+      {
+        "pattern": "Center control",
+        "best_move": "e4d5",
+        "expected": [
+          "d2d4"
+        ],
+        "pattern_match": false,
+        "nudge_active": false
+      }
+    ],
+    "passed": false
+  },
+  "tactical_balance": {
+    "defense_systems_active": false,
+    "posture_systems_active": false,
+    "details": [
+      {
+        "position": "White attacking",
+        "type": "white",
+        "evaluation": 0.5,
+        "defense_score": 0,
+        "defense_active": false,
+        "posture": null,
+        "posture_active": false
+      },
+      {
+        "position": "Black attacking",
+        "type": "black",
+        "evaluation": 0.5,
+        "defense_score": 0,
+        "defense_active": false,
+        "posture": null,
+        "posture_active": false
+      },
+      {
+        "position": "Defensive position",
+        "type": "neutral",
+        "evaluation": 0.3,
+        "defense_score": 0,
+        "defense_active": false,
+        "posture": null,
+        "posture_active": false
+      }
+    ],
+    "passed": false
+  },
+  "tournament_readiness": {
+    "uci_tests": [
+      {
+        "test": "Engine identification",
+        "passed": true
+      },
+      {
+        "test": "Move generation",
+        "passed": true
+      },
+      {
+        "test": "Search function",
+        "passed": true
+      },
+      {
+        "test": "Time management",
+        "passed": true
+      },
+      {
+        "test": "Evaluation",
+        "passed": true
+      },
+      {
+        "test": "Performance stability",
+        "passed": true
+      }
+    ],
+    "passed": true
+  }
+}
