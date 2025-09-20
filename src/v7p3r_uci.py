@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-V7P3R v10.9 UCI Interface
-Standard UCI interface for tournament play with unified search and time-adaptive tactical patterns
+V7P3R v11 UCI Interface
+Standard UCI interface for tournament play with adaptive evaluation and performance optimizations
 """
 
 import sys
@@ -28,7 +28,7 @@ def main():
                 break
                 
             elif command == "uci":
-                print("id name V7P3R v10.9")
+                print("id name V7P3R v11")
                 print("id author Pat Snyder")
                 print("uciok")
                 
