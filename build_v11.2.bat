@@ -28,7 +28,7 @@ pyinstaller --onefile ^
     --hidden-import random ^
     --hidden-import math ^
     --hidden-import dataclasses ^
-    src\v7p3r_v11_2_enhanced.py
+    src\v7p3r_v11_2_uci.py
 
 if %ERRORLEVEL% NEQ 0 (
     echo ERROR: Build failed!
