@@ -1,0 +1,44 @@
+{
+  "version": "V10.6 Baseline",
+  "timestamp": "2025-09-21T08:58:35.750841",
+  "search_depth": {
+    "Starting position": {
+      "depth_achieved": 0,
+      "nodes_searched": 7447,
+      "time_used": 3.6014370918273926,
+      "nps": 2067.7856672546636
+    },
+    "Middlegame tactical": {
+      "depth_achieved": 0,
+      "nodes_searched": 9156,
+      "time_used": 3.7898290157318115,
+      "nps": 2415.940128695222
+    },
+    "Endgame position": {
+      "depth_achieved": 0,
+      "nodes_searched": 8792,
+      "time_used": 1.401379108428955,
+      "nps": 6273.81980159277
+    },
+    "Complex tactical": {
+      "depth_achieved": 0,
+      "nodes_searched": 4504,
+      "time_used": 2.4826276302337646,
+      "nps": 1814.2068287445518
+    }
+  },
+  "node_efficiency": {},
+  "evaluation_timing": {
+    "average_ms": 0.0,
+    "max_ms": 0.0,
+    "min_ms": 0.0,
+    "evaluations_per_second": 0
+  },
+  "tactical_accuracy": {
+    "baseline_detection_rate": 1.0
+  },
+  "endgame_performance": {
+    "average_depth": 0.0,
+    "positions_tested": 3
+  }
+}

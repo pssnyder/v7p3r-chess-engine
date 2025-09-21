@@ -596,14 +596,34 @@ class V7P3REngine:
             white_tactical_score = 0  # V10.4: Disabled Phase 3B
             black_tactical_score = 0  # V10.4: Disabled Phase 3B
             
+            # V11.3 PHASE 1: Draw penalty heuristics
+            draw_penalty = self._evaluate_draw_penalty(board)
+            draw_position_bonus = self._evaluate_draw_position_heuristic(board)
+            
             # Combine all evaluation components
-            white_total = white_base + white_pawn_score + white_king_score + white_tactical_score
-            black_total = black_base + black_pawn_score + black_king_score + black_tactical_score
+            white_total = white_base + white_pawn_score + white_king_score + white_tactical_score + draw_position_bonus
+            black_total = black_base + black_pawn_score + black_king_score + black_tactical_score + draw_position_bonus
+            
+            # Apply draw penalty from current player's perspective
+            if board.turn:  # White to move
+                white_total += draw_penalty
+            else:  # Black to move  
+                black_total += draw_penalty
             
         except Exception as e:
             # Fallback to base evaluation if advanced evaluation fails
             white_total = white_base
             black_total = black_base
+            
+            # Still apply basic draw penalty in fallback
+            try:
+                draw_penalty = self._evaluate_draw_penalty(board)
+                if board.turn:  # White to move
+                    white_total += draw_penalty
+                else:  # Black to move  
+                    black_total += draw_penalty
+            except:
+                pass  # Ignore draw penalty errors in fallback
         
         # Calculate final score from current player's perspective
         if board.turn:  # White to move
@@ -1173,3 +1193,82 @@ class V7P3REngine:
         except Exception as e:
             # Silently handle errors to avoid disrupting search
             return None
+
+    # V11.3 PHASE 1: DRAW PENALTY HEURISTICS
+    def _evaluate_draw_penalty(self, board: chess.Board) -> float:
+        """
+        V11.3: Evaluate draw tendency penalty to encourage decisive play.
+        Returns penalty value (negative score for draw-like positions)
+        """
+        penalty = 0.0
+        
+        # 1. REPETITION PENALTY: Discourage immediate repetition
+        if len(board.move_stack) >= 4:
+            # Check for position repetition in recent moves
+            try:
+                current_fen = board.fen().split(' ')[0]  # Position only
+                
+                # Check last 2 moves for immediate repetition
+                board.pop()
+                board.pop()
+                prev_fen = board.fen().split(' ')[0]
+                board.push(board.move_stack[-1])  # Restore moves
+                board.push(board.move_stack[-2])
+                
+                if current_fen == prev_fen:
+                    penalty -= 15.0  # Mild penalty for repetition
+                    
+            except:
+                pass  # Ignore errors, keep searching
+        
+        # 2. STALEMATE AVOIDANCE: Detect potential stalemate setups
+        if board.is_stalemate():
+            penalty -= 50.0  # Strong penalty for actual stalemate
+        elif len(list(board.legal_moves)) <= 3:
+            # Few legal moves - potential stalemate risk
+            penalty -= 10.0
+            
+        # 3. INSUFFICIENT MATERIAL PENALTY: Encourage trades when winning
+        white_material = self._count_material(board, chess.WHITE)
+        black_material = self._count_material(board, chess.BLACK)
+        material_diff = abs(white_material - black_material)
+        
+        # If one side has clear material advantage but insufficient to mate
+        if material_diff > 200:  # Clear advantage
+            total_material = white_material + black_material
+            if total_material < 1000:  # Low material endgame
+                # Encourage keeping material for mating attack
+                penalty -= 5.0
+        
+        # 4. FIFTY MOVE RULE AWARENESS: Slight penalty as we approach 50-move rule
+        halfmove_clock = board.halfmove_clock
+        if halfmove_clock > 30:  # Getting close to 50-move rule
+            # Gradually increase penalty
+            penalty -= (halfmove_clock - 30) * 0.5
+            
+        return penalty
+    
+    def _evaluate_draw_position_heuristic(self, board: chess.Board) -> float:
+        """
+        V11.3: Additional draw-aware position evaluation
+        """
+        bonus = 0.0
+        
+        # Encourage piece activity in simplified positions
+        piece_count = len(board.piece_map())
+        if piece_count <= 12:  # Simplified endgame
+            # Count active pieces (not on starting squares or edge)
+            active_pieces = 0
+            for square, piece in board.piece_map().items():
+                if piece.piece_type != chess.PAWN:
+                    # Consider piece active if not on back rank
+                    rank = chess.square_rank(square)
+                    if piece.color == chess.WHITE and rank > 1:
+                        active_pieces += 1
+                    elif piece.color == chess.BLACK and rank < 6:
+                        active_pieces += 1
+            
+            # Bonus for active piece play
+            bonus += active_pieces * 3.0
+            
+        return bonus
