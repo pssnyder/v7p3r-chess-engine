@@ -18,6 +18,10 @@ import chess
 from typing import List, Dict, Tuple, Optional
 from dataclasses import dataclass
 
+# V11.3 PERFORMANCE OPTIMIZATION: Emergency time budgets
+EMERGENCY_TIME_BUDGET_MS = 2.0  # Maximum 2ms for tactical analysis
+FAST_TACTICAL_BUDGET_MS = 0.5   # Ultra-fast mode for bullet games
+
 
 @dataclass
 class TacticalPattern:
@@ -77,6 +81,24 @@ class TimeControlAdaptiveTacticalDetector:
     def detect_tactical_patterns(self, board: chess.Board, time_remaining_ms: int, 
                                 moves_played: int) -> Tuple[List[TacticalPattern], float]:
         """
+        V11.3 OPTIMIZED: Tactical pattern detection with strict time budgets
+        
+        Returns:
+            Tuple of (patterns_found, tactical_score_bonus)
+        """
+        # V11.3 CRITICAL OPTIMIZATION: Emergency time budget check
+        pattern_start_time = time.time()
+        
+        # Determine maximum time budget based on game speed
+        if time_remaining_ms < 30000:  # < 30 seconds
+            max_budget_ms = FAST_TACTICAL_BUDGET_MS
+        else:
+            max_budget_ms = min(EMERGENCY_TIME_BUDGET_MS, time_remaining_ms / 1000 * 0.001)  # 0.1% of remaining time
+        
+        # Emergency fallback: skip tactical analysis if time is too tight
+        if max_budget_ms < 0.1:
+            return [], 0.0
+        """
         Main entry point for tactical pattern detection
         
         Returns:
@@ -106,11 +128,11 @@ class TimeControlAdaptiveTacticalDetector:
         enabled_patterns = self._get_enabled_patterns(tactical_budget_ms)
         
         for pattern_name in enabled_patterns:
-            # Check if we have time remaining
-            elapsed_ms = (time.time() - budget_start) * 1000
-            if elapsed_ms >= tactical_budget_ms:
+            # V11.3 CRITICAL: Check time budget every pattern
+            elapsed_ms = (time.time() - pattern_start_time) * 1000
+            if elapsed_ms >= max_budget_ms:
                 self.detection_stats['time_budget_exceeded'] += 1
-                break
+                break  # Emergency exit
                 
             # Detect this pattern type
             detector = self.pattern_detectors[pattern_name]

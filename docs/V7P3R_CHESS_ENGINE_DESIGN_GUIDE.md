@@ -2,36 +2,58 @@
 
 This document serves as a living design and brainstorming document outlining the current engine's functional goals and expectations.
 
-## Engine Configuration
-
-A config.json will be provided for reference of prefered configurable settings to start with, these will guide the mvp functionality of the engine. These config settings should not be expanded beyond simple boolean feature flags and up to 1 weight or control value per function. Example: use_move_ordering has one configurable setting for max_ordered_moves to assist with performance and move duration, quiescence has no additional configuration variables needed just enabled/disabled, any other configurations will be permanently set within modules with the best settings to make configuration simpler.
-
-### Configuration Options
-* Engine ID: the coded id name of the current v7p3r engine instance
-* Core Engine Name: v7p3r, stockfish, chatfish, or any other engine name can be used (code can be updated to add specific engine handlers)
-* Engine Version: the version number of the engine
-* Search Algorithm: negamax (can be forced into simple or random as needed)
-  * Use Alpha Beta Pruning
-* Depth: 1-10 (sets the depth limit for th engine (should be even numbered to include opponent countermoves)
-* Use Opening Book
-* Use Move Ordering
-* Max Ordered Moves
-* Use AB Pruning
-* Use Quiescence
-* Use Tempo Scoring
-  * Use Checkmate Detection
-  * Use Stalemate Detection
-  * Use Draw Prevention
-  * Use Game Phase
-* Use Primary Scoring
-  * Use Material Count
-  * Use Material Score
-  * Use Piece Square Positioning
-  * Use MVV-LVA
-* Use Secondary Scoring
-  * Use Castling
-  * Use Tactics
-  * Use Captures to Escape Check
+### Engine Information
+* Engine ID: V7P3R_v11.3
+* Core Engine Name: v7p3r
+* Engine Version: v11.3 (Built on V10.6 Proven Baseline)
+* Search Algorithm: Alpha-Beta Negamax with Iterative Deepening
+  * Pruning: Alpha-Beta with aspiration windows
+  * Transposition Tables: 50,000 entries with Zobrist hashing
+* Depth: 1-12 (adaptive based on time control)
+* No Opening Book
+* No Endgame Tablebase
+* Time Management: Adaptive for different time controls (10+5, 2+1, bullet)
+* Move Ordering: Advanced Multi-Stage
+  * PV moves from transposition table
+  * Killer moves (2 per depth)
+  * History heuristic
+  * MVV-LVA capture ordering
+  * Tactical pattern bonus
+  * Nudge system instant moves
+* Quiescence Search: Capture and check extensions
+* Scoring Components:
+  * **Critical Detection:**
+    * Checkmate Detection (within 5 moves)
+    * Stalemate Detection and avoidance
+    * Draw Prevention heuristics
+  * **V11.3 Enhanced Heuristics:**
+    * Draw penalty system
+    * Enhanced endgame king evaluation
+    * Move classification (development, consolidation, etc.)
+    * King restriction ("closing the box")
+    * Phase-aware evaluation weighting
+  * **Core Evaluation:**
+    * Material Count and Values
+    * Bitboard-powered piece-square tables
+    * Advanced pawn structure analysis
+    * King safety with attack zone analysis
+    * Castling rights and timing
+  * **Tactical Analysis:**
+    * Time-budget adaptive tactical pattern recognition
+    * Pin, fork, skewer, discovered attack detection
+    * Hanging piece identification
+    * Double attack patterns
+* Advanced Features:
+  * **Nudge System:** Database of 439 proven move patterns for instant play
+  * **PV Tracking:** Principal variation following with predicted board states
+  * **Evaluation Caching:** Position hash-based caching system
+  * **Search Extensions:** Check extensions and tactical position extensions
+* Performance Optimizations:
+  * Bitboard evaluation for speed (~217K NPS baseline)
+  * Incremental move generation
+  * Lazy evaluation with early cutoffs
+  * Memory-efficient data structures
+* UCI Compatible with full feature set
 
 ## Piece Values
 

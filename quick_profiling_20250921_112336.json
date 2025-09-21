@@ -1,0 +1,440 @@
+{
+  "Starting": {
+    "result": {
+      "success": true,
+      "search_time": 8.672965800040402,
+      "nodes_searched": 2894,
+      "nps": 333.6805501973176,
+      "best_move": "b1c3",
+      "score": 0,
+      "profile_output": "         21650163 function calls (21647262 primitive calls) in 8.420 seconds\n\n   Ordered by: cumulative time\n   List reduced from 312 to 25 due to restriction <25>\n\n   ncalls  tottime  percall  cumtime  percall filename:lineno(function)\n        1    0.000    0.000    8.673    8.673 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:283(search)\n   2894/4    0.023    0.000    8.666    2.166 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:397(_recursive_search)\n      666    0.050    0.000    7.267    0.011 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:495(_order_moves_advanced)\n    13932    0.032    0.000    4.818    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:828(_detect_bitboard_tactics)\n    13932    0.011    0.000    4.564    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_tactical_pattern_detector.py:397(evaluate_tactical_patterns)\n    13932    0.119    0.000    4.553    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_tactical_pattern_detector.py:81(detect_tactical_patterns)\n  5688750    2.237    0.000    3.452    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:701(piece_at)\n    19689    0.025    0.000    2.523    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:2389(fen)\n    19689    0.040    0.000    2.493    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:2657(epd)\n    15523    0.045    0.000    2.082    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:1134(_get_position_key)\n    14856    0.014    0.000    2.000    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:1148(_get_nudge_bonus)\n    19689    0.621    0.000    1.989    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:955(board_fen)\n    13805    0.238    0.000    1.616    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_tactical_pattern_detector.py:210(_detect_hanging_pieces)\n     2148    0.010    0.000    1.037    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:638(_evaluate_position)\n  5783188    0.991    0.000    0.991    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:711(piece_type_at)\n    12724    0.218    0.000    0.814    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_tactical_pattern_detector.py:233(_detect_simple_forks)\n   220814    0.088    0.000    0.712    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_tactical_pattern_detector.py:311(_is_piece_defended)\n    12196    0.179    0.000    0.642    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_tactical_pattern_detector.py:266(_detect_basic_pins)\n    10960    0.180    0.000    0.612    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_tactical_pattern_detector.py:297(_detect_discovered_attacks)\n    11650    0.165    0.000    0.599    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_tactical_pattern_detector.py:282(_detect_skewers)\n   257881    0.141    0.000    0.553    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:811(attackers)\n   629679    0.202    0.000    0.451    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:472(symbol)\n    19689    0.176    0.000    0.436    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:2352(castling_xfen)\n   276746    0.086    0.000    0.387    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:799(attackers_mask)\n    31475    0.147    0.000    0.335    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:2176(push)\n\n\n"
+    },
+    "functions": [
+      {
+        "function": "_recursive_search",
+        "calls": 2894,
+        "total_time_ms": 23.0,
+        "cumulative_time_ms": 8666.0,
+        "percent": 99.9196837598464
+      },
+      {
+        "function": "_order_moves_advanced",
+        "calls": 666,
+        "total_time_ms": 50.0,
+        "cumulative_time_ms": 7267.0,
+        "percent": 83.7891001480272
+      },
+      {
+        "function": "_detect_bitboard_tactics",
+        "calls": 13932,
+        "total_time_ms": 32.0,
+        "cumulative_time_ms": 4818.0,
+        "percent": 55.551931266436625
+      },
+      {
+        "function": "evaluate_tactical_patterns",
+        "calls": 13932,
+        "total_time_ms": 11.0,
+        "cumulative_time_ms": 4564.0,
+        "percent": 52.62329063927289
+      },
+      {
+        "function": "detect_tactical_patterns",
+        "calls": 13932,
+        "total_time_ms": 119.0,
+        "cumulative_time_ms": 4553.0,
+        "percent": 52.496459745970526
+      },
+      {
+        "function": "piece_at",
+        "calls": 5688750,
+        "total_time_ms": 2237.0,
+        "cumulative_time_ms": 3452.0,
+        "percent": 39.80184033452455
+      },
+      {
+        "function": "fen",
+        "calls": 19689,
+        "total_time_ms": 25.0,
+        "cumulative_time_ms": 2523.0,
+        "percent": 29.090394891079214
+      },
+      {
+        "function": "epd",
+        "calls": 19689,
+        "total_time_ms": 40.0,
+        "cumulative_time_ms": 2493.0,
+        "percent": 28.744492454800024
+      },
+      {
+        "function": "_get_position_key",
+        "calls": 15523,
+        "total_time_ms": 45.0,
+        "cumulative_time_ms": 2082.0,
+        "percent": 24.005629077775232
+      },
+      {
+        "function": "_get_nudge_bonus",
+        "calls": 14856,
+        "total_time_ms": 14.0,
+        "cumulative_time_ms": 2000.0,
+        "percent": 23.060162418612133
+      },
+      {
+        "function": "board_fen",
+        "calls": 19689,
+        "total_time_ms": 621.0,
+        "cumulative_time_ms": 1989.0,
+        "percent": 22.933331525309768
+      },
+      {
+        "function": "_detect_hanging_pieces",
+        "calls": 13805,
+        "total_time_ms": 238.0,
+        "cumulative_time_ms": 1616.0,
+        "percent": 18.63261123423861
+      },
+      {
+        "function": "_evaluate_position",
+        "calls": 2148,
+        "total_time_ms": 10.0,
+        "cumulative_time_ms": 1037.0,
+        "percent": 11.95669421405039
+      },
+      {
+        "function": "piece_type_at",
+        "calls": 5783188,
+        "total_time_ms": 991.0,
+        "cumulative_time_ms": 991.0,
+        "percent": 11.426310478422314
+      },
+      {
+        "function": "_detect_simple_forks",
+        "calls": 12724,
+        "total_time_ms": 218.0,
+        "cumulative_time_ms": 814.0,
+        "percent": 9.385486104375138
+      },
+      {
+        "function": "_is_piece_defended",
+        "calls": 220814,
+        "total_time_ms": 88.0,
+        "cumulative_time_ms": 712.0,
+        "percent": 8.20941782102592
+      },
+      {
+        "function": "_detect_basic_pins",
+        "calls": 12196,
+        "total_time_ms": 179.0,
+        "cumulative_time_ms": 642.0,
+        "percent": 7.402312136374496
+      },
+      {
+        "function": "_detect_discovered_attacks",
+        "calls": 10960,
+        "total_time_ms": 180.0,
+        "cumulative_time_ms": 612.0,
+        "percent": 7.056409700095314
+      },
+      {
+        "function": "_detect_skewers",
+        "calls": 11650,
+        "total_time_ms": 165.0,
+        "cumulative_time_ms": 599.0,
+        "percent": 6.9065186443743345
+      }
+    ]
+  },
+  "Tactical": {
+    "result": {
+      "success": true,
+      "search_time": 14.062492500001099,
+      "nodes_searched": 4161,
+      "nps": 295.8934911431721,
+      "best_move": "g1h1",
+      "score": 0,
+      "profile_output": "         34735986 function calls (34731828 primitive calls) in 13.667 seconds\n\n   Ordered by: cumulative time\n   List reduced from 231 to 25 due to restriction <25>\n\n   ncalls  tottime  percall  cumtime  percall filename:lineno(function)\n        1    0.000    0.000   14.062   14.062 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:283(search)\n   4161/4    0.028    0.000   14.060    3.515 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:397(_recursive_search)\n      563    0.077    0.000   12.087    0.021 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:495(_order_moves_advanced)\n    22853    0.060    0.000    8.563    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:828(_detect_bitboard_tactics)\n    22855    0.019    0.000    7.862    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_tactical_pattern_detector.py:397(evaluate_tactical_patterns)\n    22855    0.195    0.000    7.844    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_tactical_pattern_detector.py:81(detect_tactical_patterns)\n  9487883    3.700    0.000    5.723    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:701(piece_at)\n    30376    0.038    0.000    3.663    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:2389(fen)\n    30376    0.063    0.000    3.618    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:2657(epd)\n    30376    1.018    0.000    3.108    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:955(board_fen)\n    23549    0.068    0.000    3.027    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:1134(_get_position_key)\n    22987    0.021    0.000    2.973    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:1148(_get_nudge_bonus)\n    22697    0.483    0.000    2.867    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_tactical_pattern_detector.py:210(_detect_hanging_pieces)\n  9625191    1.673    0.000    1.673    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:711(piece_type_at)\n     3580    0.015    0.000    1.513    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:638(_evaluate_position)\n    21091    0.400    0.000    1.486    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_tactical_pattern_detector.py:233(_detect_simple_forks)\n   341165    0.137    0.000    1.114    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_tactical_pattern_detector.py:311(_is_piece_defended)\n    20058    0.298    0.000    1.055    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_tactical_pattern_detector.py:266(_detect_basic_pins)\n    17509    0.291    0.000    0.978    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_tactical_pattern_detector.py:297(_detect_discovered_attacks)\n    18997    0.271    0.000    0.976    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_tactical_pattern_detector.py:282(_detect_skewers)\n   451941    0.252    0.000    0.967    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:811(attackers)\n   910062    0.301    0.000    0.671    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:472(symbol)\n   476576    0.149    0.000    0.655    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:799(attackers_mask)\n   478088    0.508    0.000    0.508    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:781(_attackers_mask)\n    45030    0.207    0.000    0.493    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:2176(push)\n\n\n"
+    },
+    "functions": [
+      {
+        "function": "_recursive_search",
+        "calls": 4161,
+        "total_time_ms": 28.0,
+        "cumulative_time_ms": 14060.0,
+        "percent": 99.9822755460947
+      },
+      {
+        "function": "_order_moves_advanced",
+        "calls": 563,
+        "total_time_ms": 77.0,
+        "cumulative_time_ms": 12087.0,
+        "percent": 85.9520458410844
+      },
+      {
+        "function": "_detect_bitboard_tactics",
+        "calls": 22853,
+        "total_time_ms": 60.0,
+        "cumulative_time_ms": 8563.0,
+        "percent": 60.892476920427384
+      },
+      {
+        "function": "evaluate_tactical_patterns",
+        "calls": 22855,
+        "total_time_ms": 19.0,
+        "cumulative_time_ms": 7862.0,
+        "percent": 55.90758537293006
+      },
+      {
+        "function": "detect_tactical_patterns",
+        "calls": 22855,
+        "total_time_ms": 195.0,
+        "cumulative_time_ms": 7844.0,
+        "percent": 55.77958530466336
+      },
+      {
+        "function": "piece_at",
+        "calls": 9487883,
+        "total_time_ms": 3700.0,
+        "cumulative_time_ms": 5723.0,
+        "percent": 40.69691059390469
+      },
+      {
+        "function": "fen",
+        "calls": 30376,
+        "total_time_ms": 38.0,
+        "cumulative_time_ms": 3663.0,
+        "percent": 26.04801389227204
+      },
+      {
+        "function": "epd",
+        "calls": 30376,
+        "total_time_ms": 63.0,
+        "cumulative_time_ms": 3618.0,
+        "percent": 25.728013721605308
+      },
+      {
+        "function": "board_fen",
+        "calls": 30376,
+        "total_time_ms": 1018.0,
+        "cumulative_time_ms": 3108.0,
+        "percent": 22.10134512071567
+      },
+      {
+        "function": "_get_position_key",
+        "calls": 23549,
+        "total_time_ms": 68.0,
+        "cumulative_time_ms": 3027.0,
+        "percent": 21.525344813515552
+      },
+      {
+        "function": "_get_nudge_bonus",
+        "calls": 22987,
+        "total_time_ms": 21.0,
+        "cumulative_time_ms": 2973.0,
+        "percent": 21.14134460871547
+      },
+      {
+        "function": "_detect_hanging_pieces",
+        "calls": 22697,
+        "total_time_ms": 483.0,
+        "cumulative_time_ms": 2867.0,
+        "percent": 20.387566428922725
+      },
+      {
+        "function": "piece_type_at",
+        "calls": 9625191,
+        "total_time_ms": 1673.0,
+        "cumulative_time_ms": 1673.0,
+        "percent": 11.89689523389875
+      },
+      {
+        "function": "_evaluate_position",
+        "calls": 3580,
+        "total_time_ms": 15.0,
+        "cumulative_time_ms": 1513.0,
+        "percent": 10.759116849305922
+      },
+      {
+        "function": "_detect_simple_forks",
+        "calls": 21091,
+        "total_time_ms": 400.0,
+        "cumulative_time_ms": 1486.0,
+        "percent": 10.567116746905883
+      },
+      {
+        "function": "_is_piece_defended",
+        "calls": 341165,
+        "total_time_ms": 137.0,
+        "cumulative_time_ms": 1114.0,
+        "percent": 7.921782002727561
+      },
+      {
+        "function": "_detect_basic_pins",
+        "calls": 20058,
+        "total_time_ms": 298.0,
+        "cumulative_time_ms": 1055.0,
+        "percent": 7.502226223408955
+      },
+      {
+        "function": "_detect_discovered_attacks",
+        "calls": 17509,
+        "total_time_ms": 291.0,
+        "cumulative_time_ms": 978.0,
+        "percent": 6.954670375823657
+      },
+      {
+        "function": "_detect_skewers",
+        "calls": 18997,
+        "total_time_ms": 271.0,
+        "cumulative_time_ms": 976.0,
+        "percent": 6.940448146016247
+      }
+    ]
+  },
+  "Endgame": {
+    "result": {
+      "success": true,
+      "search_time": 23.911418000003323,
+      "nodes_searched": 13430,
+      "nps": 561.6563601538869,
+      "best_move": "b4f4",
+      "score": 0,
+      "profile_output": "         73275060 function calls (73261634 primitive calls) in 23.531 seconds\n\n   Ordered by: cumulative time\n   List reduced from 216 to 25 due to restriction <25>\n\n   ncalls  tottime  percall  cumtime  percall filename:lineno(function)\n        1    0.000    0.000   23.911   23.911 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:283(search)\n  13430/6    0.099    0.000   23.908    3.985 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:397(_recursive_search)\n     4566    0.209    0.000   20.571    0.005 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:495(_order_moves_advanced)\n    61994    0.143    0.000   13.795    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:828(_detect_bitboard_tactics)\n    61998    0.045    0.000   12.296    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_tactical_pattern_detector.py:397(evaluate_tactical_patterns)\n    61998    0.481    0.000   12.250    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_tactical_pattern_detector.py:81(detect_tactical_patterns)\n 25573734    6.078    0.000    9.620    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:701(piece_at)\n    84442    0.096    0.000    5.916    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:2389(fen)\n    84442    0.152    0.000    5.803    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:2657(epd)\n    70171    0.182    0.000    5.312    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:1134(_get_position_key)\n    84442    2.021    0.000    5.086    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:955(board_fen)\n    65646    0.052    0.000    4.999    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:1148(_get_nudge_bonus)\n    61299    0.822    0.000    3.873    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_tactical_pattern_detector.py:210(_detect_hanging_pieces)\n 25983182    3.286    0.000    3.286    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:711(piece_type_at)\n     7579    0.032    0.000    1.910    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:638(_evaluate_position)\n    57024    0.559    0.000    1.900    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_tactical_pattern_detector.py:233(_detect_simple_forks)\n    54996    0.562    0.000    1.835    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_tactical_pattern_detector.py:266(_detect_basic_pins)\n    51653    0.560    0.000    1.768    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_tactical_pattern_detector.py:297(_detect_discovered_attacks)\n    53245    0.524    0.000    1.738    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_tactical_pattern_detector.py:282(_detect_skewers)\n   136399    0.588    0.000    1.377    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:2176(push)\n    61212    0.053    0.000    1.004    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:1785(gives_check)\n   462900    0.265    0.000    0.976    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:811(attackers)\n   281508    0.122    0.000    0.963    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_tactical_pattern_detector.py:311(_is_piece_defended)\n   578980    0.190    0.000    0.781    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:799(attackers_mask)\n    18010    0.209    0.000    0.651    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:186(hash_position)\n\n\n"
+    },
+    "functions": [
+      {
+        "function": "_recursive_search",
+        "calls": 13430,
+        "total_time_ms": 99.0,
+        "cumulative_time_ms": 23908.0,
+        "percent": 99.98570557378353
+      },
+      {
+        "function": "_order_moves_advanced",
+        "calls": 4566,
+        "total_time_ms": 209.0,
+        "cumulative_time_ms": 20571.0,
+        "percent": 86.03002967033215
+      },
+      {
+        "function": "_detect_bitboard_tactics",
+        "calls": 61994,
+        "total_time_ms": 143.0,
+        "cumulative_time_ms": 13795.0,
+        "percent": 57.69210341267959
+      },
+      {
+        "function": "evaluate_tactical_patterns",
+        "calls": 61998,
+        "total_time_ms": 45.0,
+        "cumulative_time_ms": 12296.0,
+        "percent": 51.42313182764104
+      },
+      {
+        "function": "detect_tactical_patterns",
+        "calls": 61998,
+        "total_time_ms": 481.0,
+        "cumulative_time_ms": 12250.0,
+        "percent": 51.230755114557816
+      },
+      {
+        "function": "piece_at",
+        "calls": 25573734,
+        "total_time_ms": 6078.0,
+        "cumulative_time_ms": 9620.0,
+        "percent": 40.23182564914662
+      },
+      {
+        "function": "fen",
+        "calls": 84442,
+        "total_time_ms": 96.0,
+        "cumulative_time_ms": 5916.0,
+        "percent": 24.74131814348768
+      },
+      {
+        "function": "epd",
+        "calls": 84442,
+        "total_time_ms": 152.0,
+        "cumulative_time_ms": 5803.0,
+        "percent": 24.268740565696245
+      },
+      {
+        "function": "_get_position_key",
+        "calls": 70171,
+        "total_time_ms": 182.0,
+        "cumulative_time_ms": 5312.0,
+        "percent": 22.2153282586556
+      },
+      {
+        "function": "board_fen",
+        "calls": 84442,
+        "total_time_ms": 2021.0,
+        "cumulative_time_ms": 5086.0,
+        "percent": 21.27017310307274
+      },
+      {
+        "function": "_get_nudge_bonus",
+        "calls": 65646,
+        "total_time_ms": 52.0,
+        "cumulative_time_ms": 4999.0,
+        "percent": 20.906330189197917
+      },
+      {
+        "function": "_detect_hanging_pieces",
+        "calls": 61299,
+        "total_time_ms": 822.0,
+        "cumulative_time_ms": 3873.0,
+        "percent": 16.197282821116932
+      },
+      {
+        "function": "piece_type_at",
+        "calls": 25983182,
+        "total_time_ms": 3286.0,
+        "cumulative_time_ms": 3286.0,
+        "percent": 13.74238867807649
+      },
+      {
+        "function": "_evaluate_position",
+        "calls": 7579,
+        "total_time_ms": 32.0,
+        "cumulative_time_ms": 1910.0,
+        "percent": 7.987815695412687
+      },
+      {
+        "function": "_detect_simple_forks",
+        "calls": 57024,
+        "total_time_ms": 559.0,
+        "cumulative_time_ms": 1900.0,
+        "percent": 7.945994670829375
+      },
+      {
+        "function": "_detect_basic_pins",
+        "calls": 54996,
+        "total_time_ms": 562.0,
+        "cumulative_time_ms": 1835.0,
+        "percent": 7.674158011037843
+      },
+      {
+        "function": "_detect_discovered_attacks",
+        "calls": 51653,
+        "total_time_ms": 560.0,
+        "cumulative_time_ms": 1768.0,
+        "percent": 7.393957146329651
+      },
+      {
+        "function": "_detect_skewers",
+        "calls": 53245,
+        "total_time_ms": 524.0,
+        "cumulative_time_ms": 1738.0,
+        "percent": 7.268494072579712
+      },
+      {
+        "function": "push",
+        "calls": 136399,
+        "total_time_ms": 588.0,
+        "cumulative_time_ms": 1377.0,
+        "percent": 5.758755085122131
+      }
+    ]
+  }
+}

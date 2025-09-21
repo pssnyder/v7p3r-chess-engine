@@ -17,8 +17,14 @@ from collections import defaultdict
 from v7p3r_bitboard_evaluator import V7P3RScoringCalculationBitboard
 from v7p3r_advanced_pawn_evaluator import V7P3RAdvancedPawnEvaluator
 from v7p3r_king_safety_evaluator import V7P3RKingSafetyEvaluator
-# from v7p3r_tactical_pattern_detector import V7P3RTacticalPatternDetector  # V10.4 ROLLBACK: DISABLED PHASE 3B
+from v7p3r_tactical_pattern_detector import V7P3RTacticalPatternDetector  # V11.3 RE-ENABLED PHASE 3B
 
+
+
+# V11.3 QUIESCENCE OPTIMIZATION CONSTANTS
+QUIESCENCE_OPTIMIZATION = True
+MAX_QUIESCENCE_DEPTH = 4  # Limit quiescence depth
+MIN_CAPTURE_VALUE = 100   # Only consider captures worth >= 1 pawn
 
 class PVTracker:
     """Tracks principal variation using predicted board states for instant move recognition"""
@@ -211,14 +217,20 @@ class V7P3REngine:
         self.default_depth = 6
         self.nodes_searched = 0
         
-        # Evaluation components - V10 BITBOARD POWERED + V11 PHASE 3A ADVANCED (V10.4: PHASE 3B TACTICAL DISABLED)
+        # Evaluation components - V10 BITBOARD POWERED + V11 PHASE 3A ADVANCED + V11.3 TACTICAL RE-ENABLED
         self.bitboard_evaluator = V7P3RScoringCalculationBitboard(self.piece_values)
         self.advanced_pawn_evaluator = V7P3RAdvancedPawnEvaluator()  # V11 PHASE 3A
         self.king_safety_evaluator = V7P3RKingSafetyEvaluator()      # V11 PHASE 3A
-        # self.tactical_pattern_detector = V7P3RTacticalPatternDetector()  # V10.4 ROLLBACK: DISABLED PHASE 3B
+        self.tactical_pattern_detector = V7P3RTacticalPatternDetector()  # V11.3 RE-ENABLED PHASE 3B
         
         # Simple evaluation cache for speed
         self.evaluation_cache = {}  # position_hash -> evaluation
+        
+        # V11.3 PERFORMANCE: Enhanced evaluation caching
+        self.enhanced_eval_cache = {}  # More aggressive caching
+        self.eval_cache_hits = 0
+        self.eval_cache_misses = 0
+        self.max_eval_cache_size = 25000  # Larger cache
         
         # Advanced search infrastructure
         self.transposition_table: Dict[int, TranspositionEntry] = {}
@@ -248,6 +260,10 @@ class V7P3REngine:
         
         # Configuration
         self.max_tt_entries = 50000  # Reasonable size for testing
+        
+        # V11.3 PERFORMANCE: Piece position caching to reduce piece_at() calls
+        self.piece_position_cache = {}
+        self.board_hash_cache = None
         
         # Performance monitoring
         self.search_stats = {
@@ -390,7 +406,7 @@ class V7P3REngine:
             elapsed = time.time() - self.search_start_time
             if elapsed > time_limit:
                 # Emergency return with current best evaluation
-                return self._evaluate_position(board), None
+                return self._evaluate_position(board, depth=self.default_depth - search_depth), None
         
         # 1. TRANSPOSITION TABLE PROBE
         tt_hit, tt_score, tt_move = self._probe_transposition_table(board, search_depth, int(alpha), int(beta))
@@ -399,8 +415,8 @@ class V7P3REngine:
         
         # 2. TERMINAL CONDITIONS
         if search_depth == 0:
-            # Enter quiescence search for tactical stability
-            score = self._quiescence_search(board, alpha, beta, 4)
+            # V11.4: Use depth-aware evaluation instead of separate quiescence search
+            score = self._evaluate_position(board, depth=self.default_depth - search_depth + 4)
             return score, None
             
         if board.is_game_over():
@@ -519,16 +535,22 @@ class V7P3REngine:
                 # MVV-LVA: Most Valuable Victim - Least Valuable Attacker
                 mvv_lva_score = victim_value * 100 - attacker_value
                 
-                # Add tactical bonus using bitboards
-                tactical_bonus = self._detect_bitboard_tactics(board, move)
+                # V11.4: Depth-aware tactical analysis for move ordering
+                if depth <= 4:  # Only do full tactical analysis at shallow depths
+                    tactical_bonus = self._detect_bitboard_tactics(board, move)
+                else:
+                    tactical_bonus = 0  # Skip tactical analysis at deep depths
                 total_score = mvv_lva_score + tactical_bonus
                 
                 captures.append((total_score, move))
             
             # 4. Checks (high priority for tactical play)
             elif board.gives_check(move):
-                # Add tactical bonus for checking moves too
-                tactical_bonus = self._detect_bitboard_tactics(board, move)
+                # V11.4: Depth-aware tactical analysis for checking moves
+                if depth <= 4:
+                    tactical_bonus = self._detect_bitboard_tactics(board, move)
+                else:
+                    tactical_bonus = 20.0  # Small fixed bonus for checks at deep depths
                 checks.append((tactical_bonus, move))
             
             # 5. Killer moves
@@ -539,7 +561,12 @@ class V7P3REngine:
             # 6. Check for tactical patterns in quiet moves
             else:
                 history_score = self.history_heuristic.get_history_score(move)
-                tactical_bonus = self._detect_bitboard_tactics(board, move)
+                
+                # V11.4: Skip expensive tactical analysis for quiet moves at deep depths
+                if depth <= 4:
+                    tactical_bonus = self._detect_bitboard_tactics(board, move)
+                else:
+                    tactical_bonus = 0  # No tactical analysis for quiet moves at deep depths
                 
                 if tactical_bonus > 20.0:  # Significant tactical move
                     tactical_moves.append((tactical_bonus + history_score, move))
@@ -565,8 +592,70 @@ class V7P3REngine:
         
         return ordered
     
-    def _evaluate_position(self, board: chess.Board) -> float:
-        """V11 PHASE 3B ENHANCED: Position evaluation with tactical pattern detection"""
+    def _detect_position_tone(self, board: chess.Board) -> str:
+        """V11.4: Detect position tone for dynamic evaluation selection"""
+        try:
+            # Basic material analysis
+            white_material = sum(self.piece_values[piece.piece_type] for piece in board.piece_map().values() if piece.color == chess.WHITE)
+            black_material = sum(self.piece_values[piece.piece_type] for piece in board.piece_map().values() if piece.color == chess.BLACK)
+            
+            current_player_material = white_material if board.turn else black_material
+            opponent_material = black_material if board.turn else white_material
+            material_balance = current_player_material - opponent_material
+            
+            # Check for immediate threats (king in check, pieces under attack)
+            is_in_check = board.is_check()
+            king_square = board.king(board.turn)
+            attackers_count = len(board.attackers(not board.turn, king_square)) if king_square else 0
+            
+            # Determine position tone
+            if is_in_check or material_balance < -200 or attackers_count > 2:
+                return "defensive"
+            elif material_balance > 200 and not is_in_check:
+                return "offensive"
+            else:
+                return "neutral"
+                
+        except Exception:
+            return "neutral"  # Fallback to neutral if analysis fails
+    
+    def _get_evaluation_components(self, depth: int, position_tone: str, time_pressure: bool = False) -> List[str]:
+        """V11.4: Determine which evaluation components to include based on depth and position"""
+        if time_pressure:
+            return ["critical"]
+        
+        components = ["critical"]  # Always include critical components
+        
+        # Depth-based component inclusion
+        if depth <= 6:
+            components.append("primary")
+        if depth <= 4:
+            components.append("secondary")
+        if depth <= 2:
+            components.append("tertiary")
+            
+        # Position tone adjustments
+        if position_tone == "defensive" and depth <= 8:
+            # Continue deeper evaluation for safety
+            if "secondary" not in components:
+                components.append("secondary")
+        elif position_tone == "offensive":
+            # Lean forward, reduce complexity
+            if "tertiary" in components:
+                components.remove("tertiary")
+                
+        return components
+
+    def _evaluate_position(self, board: chess.Board, depth: int = 0) -> float:
+        """V11.4 DIMINISHING EVALUATIONS: Depth-aware position evaluation"""
+        # V11.3 CRITICAL: Enhanced evaluation caching
+        position_hash = hash(board.fen())
+        if position_hash in self.enhanced_eval_cache:
+            self.eval_cache_hits += 1
+            return self.enhanced_eval_cache[position_hash]
+        
+        self.eval_cache_misses += 1
+        
         # Create cache key
         cache_key = board.fen()
         
@@ -576,54 +665,90 @@ class V7P3REngine:
         
         self.search_stats['cache_misses'] += 1
         
-        # V10 Base bitboard evaluation for material and basic positioning
+        # V11.4: Detect position tone and determine evaluation components
+        position_tone = self._detect_position_tone(board)
+        time_pressure = hasattr(self, 'time_remaining') and getattr(self, 'time_remaining', 10.0) < 2.0
+        components = self._get_evaluation_components(depth, position_tone, time_pressure)
+        
+        # CRITICAL EVALUATIONS (Always computed)
         white_base = self.bitboard_evaluator.calculate_score_optimized(board, True)
         black_base = self.bitboard_evaluator.calculate_score_optimized(board, False)
         
-        # V11 PHASE 3A & 3B: Advanced evaluation components (V10.4: Phase 3B Tactical disabled)
+        # Initialize totals with critical evaluation
+        white_total = white_base
+        black_total = black_base
+        
         try:
-            # V11 PHASE 3A: Advanced pawn structure evaluation
-            white_pawn_score = self.advanced_pawn_evaluator.evaluate_pawn_structure(board, True)
-            black_pawn_score = self.advanced_pawn_evaluator.evaluate_pawn_structure(board, False)
+            # PRIMARY EVALUATIONS (Depth <= 6)
+            if "primary" in components:
+                white_pawn_score = self.advanced_pawn_evaluator.evaluate_pawn_structure(board, True)
+                black_pawn_score = self.advanced_pawn_evaluator.evaluate_pawn_structure(board, False)
+                
+                white_king_score = self.king_safety_evaluator.evaluate_king_safety(board, True)
+                black_king_score = self.king_safety_evaluator.evaluate_king_safety(board, False)
+                
+                # Apply phase-aware weighting to primary components
+                white_adjusted, black_adjusted = self._apply_phase_aware_weighting(
+                    board, white_base, black_base, white_pawn_score, black_pawn_score,
+                    white_king_score, black_king_score
+                )
+                white_total = white_adjusted
+                black_total = black_adjusted
             
-            # V11 PHASE 3A: Enhanced king safety evaluation
-            white_king_score = self.king_safety_evaluator.evaluate_king_safety(board, True)
-            black_king_score = self.king_safety_evaluator.evaluate_king_safety(board, False)
+            # SECONDARY EVALUATIONS (Depth <= 4)
+            if "secondary" in components:
+                # Tactical pattern evaluation - but only at reasonable depths
+                if depth <= 4 or (depth <= 6 and position_tone == "defensive"):
+                    white_tactical_score = self.tactical_pattern_detector.evaluate_tactical_patterns(board, True)
+                    black_tactical_score = self.tactical_pattern_detector.evaluate_tactical_patterns(board, False)
+                    white_total += white_tactical_score
+                    black_total += black_tactical_score
+                
+                # Enhanced endgame king evaluation
+                endgame_king_bonus = self._evaluate_enhanced_endgame_king(board)
+                move_classification_bonus = self._evaluate_move_classification_bonuses(board)
+                
+                if board.turn:  # White to move
+                    white_total += endgame_king_bonus + move_classification_bonus
+                else:  # Black to move
+                    black_total += endgame_king_bonus + move_classification_bonus
             
-            # V10.4 ROLLBACK: Tactical pattern evaluation disabled
-            # white_tactical_score = self.tactical_pattern_detector.evaluate_tactical_patterns(board, True)
-            # black_tactical_score = self.tactical_pattern_detector.evaluate_tactical_patterns(board, False)
-            white_tactical_score = 0  # V10.4: Disabled Phase 3B
-            black_tactical_score = 0  # V10.4: Disabled Phase 3B
-            
-            # V11.3 PHASE 1: Draw penalty heuristics
-            draw_penalty = self._evaluate_draw_penalty(board)
-            draw_position_bonus = self._evaluate_draw_position_heuristic(board)
-            
-            # Combine all evaluation components
-            white_total = white_base + white_pawn_score + white_king_score + white_tactical_score + draw_position_bonus
-            black_total = black_base + black_pawn_score + black_king_score + black_tactical_score + draw_position_bonus
-            
-            # Apply draw penalty from current player's perspective
-            if board.turn:  # White to move
-                white_total += draw_penalty
-            else:  # Black to move  
-                black_total += draw_penalty
-            
+            # TERTIARY EVALUATIONS (Depth <= 2)
+            if "tertiary" in components:
+                # Deep analysis components
+                draw_penalty = self._evaluate_draw_penalty(board)
+                draw_position_bonus = self._evaluate_draw_position_heuristic(board)
+                king_restriction_bonus = self._evaluate_king_restriction_bonus(board)
+                
+                # Apply phase-aware multipliers to tertiary components
+                phase_multipliers = self._get_phase_bonus_multipliers(board)
+                weighted_draw_penalty = draw_penalty * phase_multipliers['draw_penalty']
+                weighted_king_restriction = king_restriction_bonus * phase_multipliers['king_restriction']
+                
+                # Add tertiary scores
+                white_total += draw_position_bonus
+                black_total += draw_position_bonus
+                
+                if board.turn:  # White to move
+                    white_total += weighted_draw_penalty + weighted_king_restriction
+                else:  # Black to move
+                    black_total += weighted_draw_penalty + weighted_king_restriction
+                    
         except Exception as e:
-            # Fallback to base evaluation if advanced evaluation fails
+            # Fallback to critical evaluation only if advanced evaluation fails
             white_total = white_base
             black_total = black_base
             
-            # Still apply basic draw penalty in fallback
-            try:
-                draw_penalty = self._evaluate_draw_penalty(board)
-                if board.turn:  # White to move
-                    white_total += draw_penalty
-                else:  # Black to move  
-                    black_total += draw_penalty
-            except:
-                pass  # Ignore draw penalty errors in fallback
+            # Still apply basic heuristics in fallback if not at deep depth
+            if depth <= 4:
+                try:
+                    endgame_king_bonus = self._evaluate_enhanced_endgame_king(board)
+                    if board.turn:  # White to move
+                        white_total += endgame_king_bonus
+                    else:  # Black to move
+                        black_total += endgame_king_bonus
+                except:
+                    pass  # Ignore heuristic errors in fallback
         
         # Calculate final score from current player's perspective
         if board.turn:  # White to move
@@ -631,8 +756,9 @@ class V7P3REngine:
         else:  # Black to move
             final_score = black_total - white_total
         
-        # Cache the result
+        # Cache the result with depth awareness
         self.evaluation_cache[cache_key] = final_score
+        self.enhanced_eval_cache[position_hash] = final_score
         return final_score
     
     def _probe_transposition_table(self, board: chess.Board, depth: int, alpha: int, beta: int) -> Tuple[bool, int, Optional[chess.Move]]:
@@ -709,77 +835,6 @@ class V7P3REngine:
         
         return pv
     
-    def _quiescence_search(self, board: chess.Board, alpha: float, beta: float, depth: int) -> float:
-        """
-        Quiescence search for tactical stability - V10 PHASE 2
-        Only search captures and checks to avoid horizon effects
-        """
-        self.nodes_searched += 1
-        
-        # Stand pat evaluation
-        stand_pat = self._evaluate_position(board)
-        
-        # Beta cutoff on stand pat
-        if stand_pat >= beta:
-            return beta
-        
-        # Update alpha if stand pat is better
-        if stand_pat > alpha:
-            alpha = stand_pat
-        
-        # Depth limit reached
-        if depth <= 0:
-            return stand_pat
-        
-        # Generate and search tactical moves only
-        legal_moves = list(board.legal_moves)
-        tactical_moves = []
-        
-        for move in legal_moves:
-            # Only consider captures and checks for quiescence
-            if board.is_capture(move) or board.gives_check(move):
-                tactical_moves.append(move)
-        
-        # If no tactical moves, return stand pat
-        if not tactical_moves:
-            return stand_pat
-        
-        # Sort tactical moves by MVV-LVA for better ordering
-        capture_scores = []
-        for move in tactical_moves:
-            if board.is_capture(move):
-                victim = board.piece_at(move.to_square)
-                victim_value = self.piece_values.get(victim.piece_type, 0) if victim else 0
-                attacker = board.piece_at(move.from_square)
-                attacker_value = self.piece_values.get(attacker.piece_type, 0) if attacker else 0
-                mvv_lva = victim_value * 100 - attacker_value
-                capture_scores.append((mvv_lva, move))
-            else:
-                # Check moves get lower priority
-                capture_scores.append((0, move))
-        
-        # Sort by MVV-LVA score
-        capture_scores.sort(key=lambda x: x[0], reverse=True)
-        ordered_tactical = [move for _, move in capture_scores]
-        
-        # Search tactical moves
-        best_score = stand_pat
-        for move in ordered_tactical:
-            board.push(move)
-            score = -self._quiescence_search(board, -beta, -alpha, depth - 1)
-            board.pop()
-            
-            if score > best_score:
-                best_score = score
-            
-            if score > alpha:
-                alpha = score
-            
-            if alpha >= beta:
-                break  # Beta cutoff
-        
-        return best_score
-    
     def _detect_bitboard_tactics(self, board: chess.Board, move: chess.Move) -> float:
         """
         V11 PHASE 3B ENHANCED: Detect tactical patterns using advanced pattern detector
@@ -793,10 +848,9 @@ class V7P3REngine:
         try:
             our_color = not board.turn  # We just moved, so it's opponent's turn
             
-            # V10.4 ROLLBACK: Use legacy tactical analysis only
-            # tactical_score = self.tactical_pattern_detector.evaluate_tactical_patterns(board, our_color)
-            # tactical_bonus += tactical_score * 0.1  # Scale down for move ordering
-            tactical_bonus += 0  # V10.4: Disabled Phase 3B advanced tactical detection
+            # V11.3 RE-ENABLED: Advanced tactical pattern detection
+            tactical_score = self.tactical_pattern_detector.evaluate_tactical_patterns(board, our_color)
+            tactical_bonus += tactical_score * 0.1  # Scale down for move ordering
             
             # Legacy bitboard tactics for additional analysis
             moving_piece = board.piece_at(move.to_square)
@@ -1055,19 +1109,34 @@ class V7P3REngine:
     # V11 PHASE 2: NUDGE SYSTEM METHODS
     
     def _load_nudge_database(self):
-        """Load the nudge database from JSON file"""
+        """Load the enhanced nudge database from JSON file"""
         try:
             # Construct path relative to this file
             current_dir = os.path.dirname(os.path.abspath(__file__))
-            nudge_db_path = os.path.join(current_dir, 'v7p3r_nudge_database.json')
             
-            if os.path.exists(nudge_db_path):
-                with open(nudge_db_path, 'r', encoding='utf-8') as f:
+            # Try enhanced database first, fallback to original
+            enhanced_db_path = os.path.join(current_dir, 'v7p3r_enhanced_nudges.json')
+            original_db_path = os.path.join(current_dir, 'v7p3r_nudge_database.json')
+            
+            if os.path.exists(enhanced_db_path):
+                with open(enhanced_db_path, 'r', encoding='utf-8') as f:
                     self.nudge_database = json.load(f)
-                print(f"info string Loaded {len(self.nudge_database)} nudge positions")
+                
+                # Count tactical positions
+                tactical_count = sum(1 for pos in self.nudge_database.values() 
+                                   for move in pos['moves'].values() 
+                                   if move.get('source') == 'puzzle')
+                
+                print(f"info string Loaded enhanced nudge database: {len(self.nudge_database)} positions ({tactical_count} tactical)")
+                
+            elif os.path.exists(original_db_path):
+                with open(original_db_path, 'r', encoding='utf-8') as f:
+                    self.nudge_database = json.load(f)
+                print(f"info string Loaded original nudge database: {len(self.nudge_database)} positions")
             else:
-                print(f"info string Nudge database not found at {nudge_db_path}")
+                print(f"info string No nudge database found")
                 self.nudge_database = {}
+                
         except Exception as e:
             print(f"info string Error loading nudge database: {e}")
             self.nudge_database = {}
@@ -1087,7 +1156,7 @@ class V7P3REngine:
         return hashlib.md5(key_fen.encode()).hexdigest()[:12]
     
     def _get_nudge_bonus(self, board: chess.Board, move: chess.Move) -> float:
-        """Calculate nudge bonus for a move in current position"""
+        """Calculate enhanced nudge bonus for a move in current position"""
         try:
             position_key = self._get_position_key(board)
             
@@ -1105,12 +1174,17 @@ class V7P3REngine:
             
             move_data = position_data['moves'][move_uci]
             
-            # Calculate bonus based on frequency and evaluation
+            # Enhanced bonus calculation using new schema
+            base_bonus = 50.0
+            
+            # Use confidence score if available (enhanced format)
+            if 'confidence' in move_data:
+                confidence = move_data['confidence']
+                base_bonus *= (1.0 + confidence)  # Scale by confidence
+            
+            # Use frequency and evaluation
             frequency = move_data.get('frequency', 1)
             evaluation = move_data.get('eval', 0.0)
-            
-            # Base bonus for nudge moves
-            base_bonus = 50.0
             
             # Frequency multiplier (more frequent = higher bonus, capped at 3x)
             frequency_multiplier = min(frequency / 2.0, 3.0)
@@ -1118,7 +1192,24 @@ class V7P3REngine:
             # Evaluation multiplier (better evaluation = higher bonus)
             eval_multiplier = max(evaluation / 0.5, 1.0) if evaluation > 0 else 1.0
             
-            total_bonus = base_bonus * frequency_multiplier * eval_multiplier
+            # Enhanced tactical bonuses
+            tactical_info = move_data.get('tactical_info', {})
+            tactical_bonus = 1.0
+            
+            if tactical_info:
+                classification = tactical_info.get('classification', 'development')
+                
+                # Bonus based on tactical classification
+                if classification == 'offensive':
+                    tactical_bonus = 1.5  # Higher bonus for tactical strikes
+                elif classification == 'defensive':
+                    tactical_bonus = 1.2  # Moderate bonus for defensive moves
+                
+                # Additional bonus for puzzle-derived moves
+                if move_data.get('source') == 'puzzle' or move_data.get('source') == 'hybrid':
+                    tactical_bonus *= 1.3  # Proven tactical knowledge bonus
+            
+            total_bonus = base_bonus * frequency_multiplier * eval_multiplier * tactical_bonus
             
             # Update statistics
             self.nudge_stats['hits'] += 1
@@ -1133,7 +1224,7 @@ class V7P3REngine:
     def _check_instant_nudge_move(self, board: chess.Board) -> Optional[chess.Move]:
         """
         V11 PHASE 2 ENHANCEMENT: Check for instant nudge moves that bypass search
-        Returns move if confidence is high enough, None otherwise
+        Enhanced with confidence scores and tactical awareness
         """
         try:
             position_key = self._get_position_key(board)
@@ -1160,29 +1251,43 @@ class V7P3REngine:
                     if move not in board.legal_moves:
                         continue
                     
-                    frequency = move_data.get('frequency', 0)
-                    evaluation = move_data.get('eval', 0.0)
-                    
-                    # Check minimum thresholds
-                    if (frequency < self.nudge_instant_config['min_frequency'] or 
-                        evaluation < self.nudge_instant_config['min_eval']):
-                        continue
-                    
-                    # Calculate confidence score (frequency + eval bonus)
-                    confidence = frequency + (evaluation * 10)  # Scale eval to match frequency range
+                    # Enhanced confidence calculation
+                    if 'confidence' in move_data:
+                        # Use actual confidence score from enhanced database
+                        move_confidence = move_data['confidence']
+                        
+                        # Boost confidence for tactical moves
+                        tactical_info = move_data.get('tactical_info', {})
+                        if tactical_info.get('classification') == 'offensive':
+                            move_confidence *= 1.2
+                        
+                        # Extra boost for puzzle-derived moves
+                        if move_data.get('source') in ['puzzle', 'hybrid']:
+                            move_confidence *= 1.3
+                    else:
+                        # Fallback to old calculation
+                        frequency = move_data.get('frequency', 0)
+                        evaluation = move_data.get('eval', 0.0)
+                        
+                        # Check minimum thresholds
+                        if (frequency < self.nudge_instant_config['min_frequency'] or 
+                            evaluation < self.nudge_instant_config['min_eval']):
+                            continue
+                        
+                        move_confidence = (frequency + evaluation * 10) / 20.0  # Normalize to 0-1
                     
                     # Track best candidate
-                    if confidence > best_confidence:
-                        best_confidence = confidence
+                    if move_confidence > best_confidence:
+                        best_confidence = move_confidence
                         best_move = move
                 
                 except:
                     continue
             
-            # Check if best move meets confidence threshold
-            if (best_move and 
-                best_confidence >= self.nudge_instant_config['confidence_threshold']):
-                
+            # Check if best move meets confidence threshold (adjusted for 0-1 scale)
+            confidence_threshold = 0.9  # High threshold for instant moves
+            
+            if best_move and best_confidence >= confidence_threshold:
                 # Update statistics
                 self.nudge_stats['instant_moves'] += 1
                 
@@ -1208,17 +1313,18 @@ class V7P3REngine:
             try:
                 current_fen = board.fen().split(' ')[0]  # Position only
                 
+                # Create a copy to avoid modifying the original board
+                temp_board = board.copy()
+                
                 # Check last 2 moves for immediate repetition
-                board.pop()
-                board.pop()
-                prev_fen = board.fen().split(' ')[0]
-                board.push(board.move_stack[-1])  # Restore moves
-                board.push(board.move_stack[-2])
+                temp_board.pop()
+                temp_board.pop()
+                prev_fen = temp_board.fen().split(' ')[0]
                 
                 if current_fen == prev_fen:
                     penalty -= 15.0  # Mild penalty for repetition
                     
-            except:
+            except Exception:
                 pass  # Ignore errors, keep searching
         
         # 2. STALEMATE AVOIDANCE: Detect potential stalemate setups
@@ -1272,3 +1378,497 @@ class V7P3REngine:
             bonus += active_pieces * 3.0
             
         return bonus
+
+    # V11.3 PHASE 2: ENHANCED ENDGAME KING EVALUATION
+    def _evaluate_enhanced_endgame_king(self, board: chess.Board) -> float:
+        """
+        V11.3: Enhanced endgame king evaluation focusing on activity, centralization,
+        and pawn support when material is low.
+        """
+        # Check if we're in an endgame
+        total_material = self._count_material(board, chess.WHITE) + self._count_material(board, chess.BLACK)
+        if total_material > 1500:  # Not endgame yet
+            return 0.0
+            
+        bonus = 0.0
+        
+        # Evaluate both kings
+        white_king_square = board.king(chess.WHITE)
+        black_king_square = board.king(chess.BLACK)
+        
+        if white_king_square is None or black_king_square is None:
+            return 0.0
+            
+        # 1. KING CENTRALIZATION (more important in endgames)
+        white_centralization = self._calculate_king_centralization_bonus(white_king_square)
+        black_centralization = self._calculate_king_centralization_bonus(black_king_square)
+        
+        # 2. KING ACTIVITY (mobility in endgame)
+        white_activity = self._calculate_king_activity_bonus(board, white_king_square, chess.WHITE)
+        black_activity = self._calculate_king_activity_bonus(board, black_king_square, chess.BLACK)
+        
+        # 3. KING-PAWN COORDINATION
+        white_pawn_support = self._calculate_king_pawn_support(board, white_king_square, chess.WHITE)
+        black_pawn_support = self._calculate_king_pawn_support(board, black_king_square, chess.BLACK)
+        
+        # 4. OPPOSITION (basic king vs king positioning)
+        opposition_bonus = self._calculate_opposition_bonus(board, white_king_square, black_king_square)
+        
+        # Combine bonuses from current player's perspective
+        if board.turn:  # White to move
+            bonus = (white_centralization - black_centralization) + \
+                   (white_activity - black_activity) + \
+                   (white_pawn_support - black_pawn_support) + \
+                   opposition_bonus
+        else:  # Black to move
+            bonus = (black_centralization - white_centralization) + \
+                   (black_activity - white_activity) + \
+                   (black_pawn_support - white_pawn_support) - \
+                   opposition_bonus
+        
+        return bonus
+        
+    def _calculate_king_centralization_bonus(self, king_square: int) -> float:
+        """Calculate centralization bonus for a king in endgame"""
+        king_file = chess.square_file(king_square)
+        king_rank = chess.square_rank(king_square)
+        
+        # Distance from center (files 3,4 and ranks 3,4 are most central)
+        file_distance = min(abs(king_file - 3), abs(king_file - 4))
+        rank_distance = min(abs(king_rank - 3), abs(king_rank - 4))
+        
+        # Higher bonus for more central positions
+        centralization_score = 5 - (file_distance + rank_distance)
+        return max(centralization_score * 4.0, 0.0)  # Scale for significant impact
+        
+    def _calculate_king_activity_bonus(self, board: chess.Board, king_square: int, color: chess.Color) -> float:
+        """Calculate king activity (mobility) bonus"""
+        # Save original turn
+        original_turn = board.turn
+        board.turn = color
+        
+        # Count legal king moves
+        king_moves = len([move for move in board.legal_moves if move.from_square == king_square])
+        
+        # Restore turn
+        board.turn = original_turn
+        
+        # Bonus for mobile king (up to 8 moves possible)
+        return king_moves * 2.5
+        
+    def _calculate_king_pawn_support(self, board: chess.Board, king_square: int, color: chess.Color) -> float:
+        """Calculate king-pawn coordination bonus"""
+        king_file = chess.square_file(king_square)
+        king_rank = chess.square_rank(king_square)
+        
+        support_bonus = 0.0
+        pawns = board.pieces(chess.PAWN, color)
+        
+        for pawn_square in pawns:
+            pawn_file = chess.square_file(pawn_square)
+            pawn_rank = chess.square_rank(pawn_square)
+            
+            # Distance between king and pawn
+            distance = max(abs(king_file - pawn_file), abs(king_rank - pawn_rank))
+            
+            # Bonus for king near own pawns (support/escort)
+            if distance <= 2:
+                support_bonus += 3.0
+            elif distance <= 3:
+                support_bonus += 1.5
+                
+            # Special bonus for king in front of advanced pawns
+            if color == chess.WHITE:
+                if king_rank > pawn_rank and abs(king_file - pawn_file) <= 1 and pawn_rank >= 4:
+                    support_bonus += 5.0  # King supporting pawn advance
+            else:
+                if king_rank < pawn_rank and abs(king_file - pawn_file) <= 1 and pawn_rank <= 3:
+                    support_bonus += 5.0
+                    
+        return support_bonus
+        
+    def _calculate_opposition_bonus(self, board: chess.Board, white_king: int, black_king: int) -> float:
+        """Calculate basic opposition bonus (white's perspective)"""
+        white_file = chess.square_file(white_king)
+        white_rank = chess.square_rank(white_king)
+        black_file = chess.square_file(black_king)
+        black_rank = chess.square_rank(black_king)
+        
+        file_diff = abs(white_file - black_file)
+        rank_diff = abs(white_rank - black_rank)
+        
+        # Direct opposition (same file/rank, 2 squares apart)
+        if (file_diff == 0 and rank_diff == 2) or (rank_diff == 0 and file_diff == 2):
+            # Bonus for player to move (they have the opposition)
+            return 8.0 if board.turn else -8.0
+            
+        # Distant opposition (same file/rank, even number of squares apart)
+        if file_diff == 0 and rank_diff > 2 and rank_diff % 2 == 0:
+            return 4.0 if board.turn else -4.0
+        if rank_diff == 0 and file_diff > 2 and file_diff % 2 == 0:
+            return 4.0 if board.turn else -4.0
+            
+        return 0.0
+
+    # V11.3 PHASE 3: MOVE CLASSIFICATION SYSTEM
+    def _evaluate_move_classification_bonuses(self, board: chess.Board) -> float:
+        """
+        V11.3: Evaluate move classification bonuses to improve strategic decision-making.
+        Classifies moves as offensive, defensive, or developing and applies phase-appropriate bonuses.
+        """
+        if len(board.move_stack) == 0:
+            return 0.0  # No moves to analyze
+            
+        last_move = board.move_stack[-1]
+        bonus = 0.0
+        
+        # Determine game phase
+        total_material = self._count_material(board, chess.WHITE) + self._count_material(board, chess.BLACK)
+        
+        if total_material > 2500:  # Opening phase
+            bonus += self._evaluate_developing_moves(board, last_move)
+        elif total_material > 1500:  # Middlegame phase  
+            bonus += self._evaluate_offensive_moves(board, last_move)
+            bonus += self._evaluate_defensive_moves(board, last_move)
+        else:  # Endgame phase
+            bonus += self._evaluate_endgame_moves(board, last_move)
+            
+        return bonus
+        
+    def _evaluate_developing_moves(self, board: chess.Board, move: chess.Move) -> float:
+        """Bonus for good developing moves in opening"""
+        bonus = 0.0
+        piece = board.piece_at(move.to_square)
+        
+        if piece is None:
+            return 0.0
+            
+        # Knight and bishop development
+        if piece.piece_type in [chess.KNIGHT, chess.BISHOP]:
+            from_rank = chess.square_rank(move.from_square)
+            to_rank = chess.square_rank(move.to_square)
+            
+            # Bonus for moving pieces off back rank
+            if piece.color == chess.WHITE:
+                if from_rank == 0 and to_rank > 0:
+                    bonus += 8.0  # Good development
+                # Extra bonus for central development
+                to_file = chess.square_file(move.to_square)
+                if to_file in [2, 3, 4, 5]:  # Central files
+                    bonus += 4.0
+            else:
+                if from_rank == 7 and to_rank < 7:
+                    bonus += 8.0
+                to_file = chess.square_file(move.to_square)
+                if to_file in [2, 3, 4, 5]:
+                    bonus += 4.0
+                    
+        # Castling bonus
+        if board.is_castling(move):
+            bonus += 15.0
+            
+        # Central pawn moves
+        if piece.piece_type == chess.PAWN:
+            to_file = chess.square_file(move.to_square)
+            if to_file in [3, 4]:  # d and e files
+                bonus += 5.0
+                
+        return bonus
+        
+    def _evaluate_offensive_moves(self, board: chess.Board, move: chess.Move) -> float:
+        """Bonus for good offensive moves in middlegame"""
+        bonus = 0.0
+        
+        # Captures
+        if board.is_capture(move):
+            bonus += 6.0
+            
+        # Checks
+        if board.gives_check(move):
+            bonus += 4.0
+            
+        # Attacks on enemy pieces
+        piece_at_destination = board.piece_at(move.to_square)
+        if piece_at_destination:
+            # Bonus for attacking higher value pieces
+            attacked_squares = list(board.attacks(move.to_square))
+            for square in attacked_squares:
+                enemy_piece = board.piece_at(square)
+                if enemy_piece and enemy_piece.color != piece_at_destination.color:
+                    if enemy_piece.piece_type == chess.QUEEN:
+                        bonus += 3.0
+                    elif enemy_piece.piece_type in [chess.ROOK, chess.BISHOP, chess.KNIGHT]:
+                        bonus += 2.0
+                        
+        return bonus
+        
+    def _evaluate_defensive_moves(self, board: chess.Board, move: chess.Move) -> float:
+        """Bonus for good defensive moves"""
+        bonus = 0.0
+        piece = board.piece_at(move.to_square)
+        
+        if piece is None:
+            return 0.0
+            
+        # Defending own pieces
+        defended_squares = list(board.attacks(move.to_square))
+        for square in defended_squares:
+            friendly_piece = board.piece_at(square)
+            if friendly_piece and friendly_piece.color == piece.color:
+                # Bonus for defending valuable pieces
+                if friendly_piece.piece_type == chess.QUEEN:
+                    bonus += 4.0
+                elif friendly_piece.piece_type in [chess.ROOK, chess.BISHOP, chess.KNIGHT]:
+                    bonus += 2.0
+                elif friendly_piece.piece_type == chess.KING:
+                    bonus += 3.0
+                    
+        # King safety moves
+        if piece.piece_type == chess.KING:
+            king_square = move.to_square
+            # Bonus for moving king to safety
+            enemy_attackers = len(list(board.attackers(not piece.color, king_square)))
+            if enemy_attackers == 0:
+                bonus += 5.0  # Safe king move
+                
+        return bonus
+        
+    def _evaluate_endgame_moves(self, board: chess.Board, move: chess.Move) -> float:
+        """Bonus for good endgame moves"""
+        bonus = 0.0
+        piece = board.piece_at(move.to_square)
+        
+        if piece is None:
+            return 0.0
+            
+        # King activity
+        if piece.piece_type == chess.KING:
+            bonus += 4.0  # Active king is good in endgame
+            
+        # Pawn promotion threats
+        if piece.piece_type == chess.PAWN:
+            to_rank = chess.square_rank(move.to_square)
+            if piece.color == chess.WHITE:
+                if to_rank >= 6:  # 7th or 8th rank
+                    bonus += 8.0
+            else:
+                if to_rank <= 1:  # 2nd or 1st rank
+                    bonus += 8.0
+                    
+        # Supporting passed pawns
+        if piece.piece_type in [chess.KING, chess.ROOK]:
+            # Check if move supports own pawns
+            own_pawns = board.pieces(chess.PAWN, piece.color)
+            for pawn_square in own_pawns:
+                distance = max(abs(chess.square_file(move.to_square) - chess.square_file(pawn_square)),
+                              abs(chess.square_rank(move.to_square) - chess.square_rank(pawn_square)))
+                if distance <= 2:
+                    bonus += 2.0  # Supporting pawn
+                    
+        return bonus
+
+    # V11.3 PHASE 4: KING RESTRICTION "CLOSING THE BOX" HEURISTIC
+    def _evaluate_king_restriction_bonus(self, board: chess.Board) -> float:
+        """
+        V11.3: "Closing the box" heuristic - bonus for moves that reduce opponent 
+        king mobility in winning endgames, especially when ahead in material.
+        """
+        # Only apply in simplified positions where king mobility matters
+        total_material = self._count_material(board, chess.WHITE) + self._count_material(board, chess.BLACK)
+        if total_material > 1200:  # Not simplified enough
+            return 0.0
+            
+        # Check if we have a material advantage
+        white_material = self._count_material(board, chess.WHITE)
+        black_material = self._count_material(board, chess.BLACK)
+        material_diff = white_material - black_material
+        
+        # Only apply if we have a significant advantage
+        if abs(material_diff) < 200:  # Not enough advantage
+            return 0.0
+            
+        bonus = 0.0
+        
+        # Determine which side has the advantage
+        if material_diff > 0:  # White has advantage
+            # Evaluate black king restriction
+            black_king = board.king(chess.BLACK)
+            if black_king is not None:
+                restriction_bonus = self._calculate_king_restriction_score(board, black_king, chess.BLACK)
+                bonus += restriction_bonus if board.turn else -restriction_bonus
+        else:  # Black has advantage
+            # Evaluate white king restriction
+            white_king = board.king(chess.WHITE)
+            if white_king is not None:
+                restriction_bonus = self._calculate_king_restriction_score(board, white_king, chess.WHITE)
+                bonus += -restriction_bonus if board.turn else restriction_bonus
+                
+        return bonus
+        
+    def _calculate_king_restriction_score(self, board: chess.Board, king_square: int, king_color: chess.Color) -> float:
+        """Calculate how restricted the king is (higher = more restricted)"""
+        score = 0.0
+        
+        # 1. MOBILITY RESTRICTION: Count available moves
+        original_turn = board.turn
+        board.turn = king_color
+        
+        king_moves = [move for move in board.legal_moves if move.from_square == king_square]
+        mobility_score = len(king_moves)
+        
+        board.turn = original_turn
+        
+        # Bonus for restricting king mobility (fewer moves = higher bonus)
+        max_moves = 8  # King can have at most 8 moves
+        restriction_score = (max_moves - mobility_score) * 3.0
+        score += restriction_score
+        
+        # 2. EDGE/CORNER RESTRICTION: Bonus for driving king to edges
+        king_file = chess.square_file(king_square)
+        king_rank = chess.square_rank(king_square)
+        
+        # Edge bonus
+        if king_file == 0 or king_file == 7:  # a-file or h-file
+            score += 8.0
+        elif king_file == 1 or king_file == 6:  # b-file or g-file
+            score += 4.0
+            
+        if king_rank == 0 or king_rank == 7:  # 1st or 8th rank
+            score += 8.0
+        elif king_rank == 1 or king_rank == 6:  # 2nd or 7th rank
+            score += 4.0
+            
+        # Corner bonus (cumulative with edge)
+        if ((king_file == 0 or king_file == 7) and (king_rank == 0 or king_rank == 7)):
+            score += 12.0  # Big bonus for cornering the king
+            
+        # 3. MATING NET: Bonus for controlling escape squares
+        escape_squares_controlled = 0
+        for file_offset in [-1, 0, 1]:
+            for rank_offset in [-1, 0, 1]:
+                if file_offset == 0 and rank_offset == 0:
+                    continue
+                    
+                target_file = king_file + file_offset
+                target_rank = king_rank + rank_offset
+                
+                if 0 <= target_file <= 7 and 0 <= target_rank <= 7:
+                    target_square = chess.square(target_file, target_rank)
+                    
+                    # Check if enemy controls this square
+                    if board.is_attacked_by(not king_color, target_square):
+                        escape_squares_controlled += 1
+                        
+        # Bonus for controlling king's escape squares
+        score += escape_squares_controlled * 2.0
+        
+        # 4. OPPOSITION AND KING COORDINATION: Bonus for good king positioning when winning
+        our_king = board.king(not king_color)
+        if our_king is not None:
+            our_king_file = chess.square_file(our_king)
+            our_king_rank = chess.square_rank(our_king)
+            
+            file_distance = abs(king_file - our_king_file)
+            rank_distance = abs(king_rank - our_king_rank)
+            
+            # Bonus for maintaining optimal distance (close but not too close)
+            if file_distance == 2 and rank_distance <= 1:  # Good opposition
+                score += 6.0
+            elif rank_distance == 2 and file_distance <= 1:
+                score += 6.0
+            elif file_distance + rank_distance == 3:  # Knight's move away
+                score += 4.0
+                
+        return score
+
+    # V11.3 PHASE 5: PHASE-AWARE EVALUATION PRIORITIES  
+    def _apply_phase_aware_weighting(self, board: chess.Board, white_total: float, black_total: float,
+                                   white_pawn_score: float, black_pawn_score: float,
+                                   white_king_score: float, black_king_score: float) -> tuple:
+        """
+        V11.3: Apply phase-aware weighting to evaluation components.
+        Opening: emphasize development, Middlegame: emphasize tactics, Endgame: emphasize king activity
+        """
+        total_material = self._count_material(board, chess.WHITE) + self._count_material(board, chess.BLACK)
+        
+        # Determine game phase weights
+        if total_material > 2500:  # Opening phase
+            development_weight = 1.5
+            pawn_structure_weight = 0.8
+            king_safety_weight = 1.2
+            tactical_weight = 1.0
+        elif total_material > 1500:  # Middlegame phase
+            development_weight = 0.7
+            pawn_structure_weight = 1.3
+            king_safety_weight = 1.0
+            tactical_weight = 1.4
+        else:  # Endgame phase
+            development_weight = 0.5
+            pawn_structure_weight = 1.1
+            king_safety_weight = 0.6  # Less important in endgame
+            tactical_weight = 1.2
+            
+        # Apply weights to specific components
+        # Note: We're applying relative adjustments to the component scores
+        adjusted_white_pawn = white_pawn_score * pawn_structure_weight
+        adjusted_black_pawn = black_pawn_score * pawn_structure_weight
+        
+        # For king scores, we adjust based on phase (safety vs activity)
+        adjusted_white_king = white_king_score * king_safety_weight  
+        adjusted_black_king = black_king_score * king_safety_weight
+        
+        # Recalculate totals with phase-aware weights
+        # We keep the base material score unchanged and adjust only the positional components
+        white_material_base = self._count_material(board, chess.WHITE)
+        black_material_base = self._count_material(board, chess.BLACK)
+        
+        adjusted_white_total = white_material_base + adjusted_white_pawn + adjusted_white_king
+        adjusted_black_total = black_material_base + adjusted_black_pawn + adjusted_black_king
+        
+        return adjusted_white_total, adjusted_black_total
+        
+    def _update_piece_cache(self, board: chess.Board):
+        """V11.3 OPTIMIZATION: Cache piece positions to reduce piece_at() calls"""
+        board_hash = hash(board.fen())
+        if self.board_hash_cache != board_hash:
+            self.piece_position_cache.clear()
+            
+            # Cache all piece positions
+            for square in range(64):
+                piece = board.piece_at(square)
+                if piece:
+                    self.piece_position_cache[square] = piece
+                    
+            self.board_hash_cache = board_hash
+    
+    def _get_cached_piece(self, square: int):
+        """V11.3 OPTIMIZATION: Get piece from cache instead of board.piece_at()"""
+        return self.piece_position_cache.get(square, None)
+    def _get_phase_bonus_multipliers(self, board: chess.Board) -> dict:
+        """
+        V11.3: Get phase-specific bonus multipliers for V11.3 heuristics
+        """
+        total_material = self._count_material(board, chess.WHITE) + self._count_material(board, chess.BLACK)
+        
+        if total_material > 2500:  # Opening
+            return {
+                'draw_penalty': 0.5,  # Less important in opening
+                'endgame_king': 0.3,  # Much less important in opening
+                'move_classification': 1.5,  # Very important for development
+                'king_restriction': 0.1  # Almost irrelevant in opening
+            }
+        elif total_material > 1500:  # Middlegame  
+            return {
+                'draw_penalty': 1.0,  # Normal importance
+                'endgame_king': 0.7,  # Some importance
+                'move_classification': 1.2,  # Important for tactics
+                'king_restriction': 0.6  # Some importance
+            }
+        else:  # Endgame
+            return {
+                'draw_penalty': 1.3,  # More important to avoid draws
+                'endgame_king': 1.5,  # Very important in endgame
+                'move_classification': 0.8,  # Less important
+                'king_restriction': 1.4  # Very important for winning
+            }
+    
