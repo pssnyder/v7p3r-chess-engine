@@ -19,6 +19,54 @@ from v7p3r_advanced_pawn_evaluator import V7P3RAdvancedPawnEvaluator
 from v7p3r_king_safety_evaluator import V7P3RKingSafetyEvaluator
 from v7p3r_tactical_pattern_detector import V7P3RTacticalPatternDetector  # V11.3 RE-ENABLED PHASE 3B
 
+# V11.5 PERFORMANCE FIX: Tactical cache for eliminating redundant pattern detection
+class TacticalCache:
+    """High-speed tactical result cache"""
+    def __init__(self, max_size: int = 5000):
+        self.cache = {}  # FEN -> (score, timestamp)
+        self.max_size = max_size
+        self.hits = 0
+        self.misses = 0
+        
+    def get_cached_result(self, board, color):
+        fen = board.fen()
+        if fen in self.cache:
+            self.hits += 1
+            score, timestamp = self.cache[fen]
+            return score if color == board.turn else -score
+        self.misses += 1
+        return None
+    
+    def cache_result(self, board, score, color):
+        fen = board.fen()
+        # Store from white's perspective
+        if color != chess.WHITE:
+            score = -score
+        self.cache[fen] = (score, time.time())
+        if len(self.cache) > self.max_size:
+            # Remove oldest 25%
+            sorted_entries = sorted(self.cache.items(), key=lambda x: x[1][1])
+            prune_count = len(sorted_entries) // 4
+            for i in range(prune_count):
+                del self.cache[sorted_entries[i][0]]
+    
+    def clear(self):
+        self.cache.clear()
+        self.hits = 0
+        self.misses = 0
+        
+    def get_stats(self):
+        """Get cache performance statistics"""
+        total = self.hits + self.misses
+        hit_rate = (self.hits / total * 100) if total > 0 else 0
+        return {
+            'hits': self.hits,
+            'misses': self.misses,
+            'hit_rate_percent': hit_rate,
+            'cache_size': len(self.cache),
+            'enabled': True
+        }
+
 
 
 # V11.3 QUIESCENCE OPTIMIZATION CONSTANTS
@@ -176,6 +224,10 @@ class ZobristHashing:
         self.piece_square_table = {}
         self.side_to_move = random.getrandbits(64)
         
+        # V11.5 PERFORMANCE: Position hash cache for repeated calculations
+        self._position_hash_cache = {}
+        self._position_hash_cache_size = 1000  # Limit cache size
+        
         # Generate random numbers for each piece on each square
         for square in range(64):
             for piece_type in range(1, 7):  # PAWN to KING
@@ -184,7 +236,12 @@ class ZobristHashing:
                     self.piece_square_table[key] = random.getrandbits(64)
     
     def hash_position(self, board: chess.Board) -> int:
-        """Generate Zobrist hash for the position"""
+        """Generate Zobrist hash for the position - V11.5 OPTIMIZED with caching"""
+        # V11.5 PERFORMANCE BOOST: Use cached hash if available
+        board_fen = board.fen()
+        if board_fen in self._position_hash_cache:
+            return self._position_hash_cache[board_fen]
+        
         hash_value = 0
         
         for square in range(64):
@@ -195,7 +252,11 @@ class ZobristHashing:
         
         if board.turn == chess.BLACK:
             hash_value ^= self.side_to_move
-            
+        
+        # V11.5 PERFORMANCE: Cache the result, with size limit
+        if len(self._position_hash_cache) < self._position_hash_cache_size:
+            self._position_hash_cache[board_fen] = hash_value
+        
         return hash_value
 
 
@@ -222,6 +283,9 @@ class V7P3REngine:
         self.advanced_pawn_evaluator = V7P3RAdvancedPawnEvaluator()  # V11 PHASE 3A
         self.king_safety_evaluator = V7P3RKingSafetyEvaluator()      # V11 PHASE 3A
         self.tactical_pattern_detector = V7P3RTacticalPatternDetector()  # V11.3 RE-ENABLED PHASE 3B
+        
+        # V11.5 PERFORMANCE FIX: Tactical cache to eliminate redundant pattern detection
+        self.tactical_cache = TacticalCache(max_size=5000)
         
         # Simple evaluation cache for speed
         self.evaluation_cache = {}  # position_hash -> evaluation
@@ -281,7 +345,7 @@ class V7P3REngine:
         self.pv_tracker = PVTracker()
     
     def search(self, board: chess.Board, time_limit: float = 3.0, depth: Optional[int] = None, 
-               alpha: float = -99999, beta: float = 99999, is_root: bool = True) -> chess.Move:
+               alpha: float = -99999, beta: float = 99999, is_root: bool = True) -> Tuple[chess.Move, float, dict]:
         """
         UNIFIED SEARCH - Single function with ALL advanced features:
         - Iterative deepening with stable best move handling (root level)
@@ -292,6 +356,8 @@ class V7P3REngine:
         - Proper time management with periodic checks
         - Full PV extraction and following
         - Quiescence search for tactical stability
+        
+        V11.5 PERFORMANCE FIX: Now returns (move, score, search_info) tuple for compatibility
         """
         
         # ROOT LEVEL: Iterative deepening with time management
@@ -299,14 +365,25 @@ class V7P3REngine:
             self.nodes_searched = 0
             self.search_start_time = time.time()
             
+            # Helper function for early returns
+            def _create_search_info(move, score=0, depth=0, nodes=0):
+                total_time = time.time() - self.search_start_time
+                return move, score, {
+                    'nodes': nodes,
+                    'time': total_time,
+                    'nps': nodes / max(total_time, 0.001),
+                    'depth': depth,
+                    'score': score
+                }
+            
             legal_moves = list(board.legal_moves)
             if not legal_moves:
-                return chess.Move.null()
+                return _create_search_info(chess.Move.null())
 
             # PV FOLLOWING OPTIMIZATION - check if current position triggers instant move
             pv_move = self.pv_tracker.check_position_for_instant_move(board)
             if pv_move:
-                return pv_move
+                return _create_search_info(pv_move, 50, 1, 1)
             
             # V11 PHASE 2 ENHANCEMENT: Check for instant nudge moves (high confidence)
             instant_nudge_move = self._check_instant_nudge_move(board)
@@ -319,7 +396,7 @@ class V7P3REngine:
                 print(f"info depth NUDGE score cp 50 nodes 0 time 0 pv {instant_nudge_move}")
                 print(f"info string Instant nudge move: {instant_nudge_move} (high confidence)")
                 
-                return instant_nudge_move
+                return _create_search_info(instant_nudge_move, 50, 1, 1)
             
             # V11 ENHANCEMENT: Adaptive time management
             target_time, max_time = self._calculate_adaptive_time_allocation(board, time_limit)
@@ -385,14 +462,32 @@ class V7P3REngine:
                 except Exception as e:
                     print(f"info string Search interrupted at depth {current_depth}: {e}")
                     break
-                    
-            return best_move
+            
+            # V11.5 PERFORMANCE FIX: Return proper tuple format for compatibility
+            total_time = time.time() - self.search_start_time
+            search_info = {
+                'nodes': self.nodes_searched,
+                'time': total_time,
+                'nps': self.nodes_searched / max(total_time, 0.001),
+                'depth': current_depth,
+                'score': best_score
+            }
+            return best_move, best_score, search_info
         
         # This should never be called directly with is_root=False from external code
         else:
             # Fallback - call the recursive search method
             score, move = self._recursive_search(board, depth or 1, alpha, beta, time_limit)
-            return move if move else chess.Move.null()
+            final_move = move if move else chess.Move.null()
+            total_time = time.time() - self.search_start_time if hasattr(self, 'search_start_time') else 0.001
+            search_info = {
+                'nodes': self.nodes_searched,
+                'time': total_time,
+                'nps': self.nodes_searched / max(total_time, 0.001),
+                'depth': depth or 1,
+                'score': score
+            }
+            return final_move, score, search_info
     
     def _recursive_search(self, board: chess.Board, search_depth: int, alpha: float, beta: float, time_limit: float) -> Tuple[float, Optional[chess.Move]]:
         """
@@ -699,8 +794,8 @@ class V7P3REngine:
             if "secondary" in components:
                 # Tactical pattern evaluation - but only at reasonable depths
                 if depth <= 4 or (depth <= 6 and position_tone == "defensive"):
-                    white_tactical_score = self.tactical_pattern_detector.evaluate_tactical_patterns(board, True)
-                    black_tactical_score = self.tactical_pattern_detector.evaluate_tactical_patterns(board, False)
+                    white_tactical_score = self._get_cached_tactical_evaluation(board, True)
+                    black_tactical_score = self._get_cached_tactical_evaluation(board, False)
                     white_total += white_tactical_score
                     black_total += black_tactical_score
                 
@@ -835,6 +930,23 @@ class V7P3REngine:
         
         return pv
     
+    def _get_cached_tactical_evaluation(self, board: chess.Board, color: chess.Color) -> float:
+        """
+        V11.5 PERFORMANCE FIX: Cached tactical evaluation to eliminate redundant pattern detection
+        """
+        # Check cache first
+        cached_result = self.tactical_cache.get_cached_result(board, color)
+        if cached_result is not None:
+            return cached_result
+        
+        # Original tactical detection code
+        tactical_score = self.tactical_pattern_detector.evaluate_tactical_patterns(board, color)
+        
+        # Cache the result
+        self.tactical_cache.cache_result(board, tactical_score, color)
+        
+        return tactical_score
+
     def _detect_bitboard_tactics(self, board: chess.Board, move: chess.Move) -> float:
         """
         V11 PHASE 3B ENHANCED: Detect tactical patterns using advanced pattern detector
@@ -848,8 +960,8 @@ class V7P3REngine:
         try:
             our_color = not board.turn  # We just moved, so it's opponent's turn
             
-            # V11.3 RE-ENABLED: Advanced tactical pattern detection
-            tactical_score = self.tactical_pattern_detector.evaluate_tactical_patterns(board, our_color)
+            # V11.5 PERFORMANCE FIX: Use cached tactical evaluation
+            tactical_score = self._get_cached_tactical_evaluation(board, our_color)
             tactical_bonus += tactical_score * 0.1  # Scale down for move ordering
             
             # Legacy bitboard tactics for additional analysis

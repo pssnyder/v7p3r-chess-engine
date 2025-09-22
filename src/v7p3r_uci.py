@@ -45,6 +45,9 @@ def main():
             elif command == "ucinewgame":
                 board = chess.Board()
                 engine.new_game()
+                # V11.5 PERFORMANCE FIX: Clear tactical cache for new game
+                if hasattr(engine, 'tactical_cache'):
+                    engine.tactical_cache.clear()
                 
             elif command == "position":
                 if len(parts) > 1:
