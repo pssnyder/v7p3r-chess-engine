@@ -424,7 +424,7 @@ class V7P3REngine:
                     previous_best = best_move
                     previous_score = best_score
                     
-                    # Call recursive search for this depth
+                    # Call FAST recursive search for this depth
                     score, move = self._recursive_search(board, current_depth, -99999, 99999, time_limit)
                     
                     # Update best move if we got a valid result
@@ -489,19 +489,97 @@ class V7P3REngine:
             }
             return final_move, score, search_info
     
+    def _is_tactical_position(self, board: chess.Board) -> bool:
+        """
+        Detect if position requires tactical analysis
+        """
+        # Always analyze if in check
+        if board.is_check():
+            return True
+        
+        # Analyze if there are hanging pieces (pieces under attack)
+        for square, piece in board.piece_map().items():
+            if piece.color == board.turn:
+                attackers = board.attackers(not board.turn, square)
+                defenders = board.attackers(board.turn, square)
+                if len(attackers) > len(defenders):
+                    return True
+        
+        # Analyze if there are tactical patterns (pins, forks, etc.)
+        # Check for pieces that can potentially be pinned or forked
+        piece_squares = [sq for sq, piece in board.piece_map().items() 
+                        if piece.color != board.turn and piece.piece_type in [chess.QUEEN, chess.ROOK]]
+        
+        if len(piece_squares) >= 2:
+            # Multiple high-value pieces - potential for tactics
+            return True
+        
+        # Analyze positions with few pieces (endgame tactics)
+        total_pieces = len(board.piece_map())
+        if total_pieces <= 12:
+            return True
+        
+        return False
+    
+    def _order_moves_fast(self, board: chess.Board, moves: List[chess.Move], search_depth: int = 1, tt_move: Optional[chess.Move] = None) -> List[chess.Move]:
+        """
+        Fast move ordering without tactical analysis
+        """
+        tt_moves = []
+        captures = []
+        checks = []
+        killers = []
+        quiet = []
+        
+        # Safe killer move access
+        try:
+            killer_set = set(self.killer_moves.get_killers(search_depth))
+        except:
+            killer_set = set()  # Empty set if no killers available
+        
+        for move in moves:
+            # 1. TT move first
+            if tt_move and move == tt_move:
+                tt_moves.append(move)
+            # 2. Captures with simple MVV-LVA
+            elif board.is_capture(move):
+                victim = board.piece_at(move.to_square)
+                victim_value = self.piece_values.get(victim.piece_type, 0) if victim else 0
+                captures.append((victim_value, move))
+            # 3. Checks
+            elif board.gives_check(move):
+                checks.append(move)
+            # 4. Killer moves
+            elif move in killer_set:
+                killers.append(move)
+            # 5. Quiet moves
+            else:
+                quiet.append(move)
+        
+        # Sort captures by victim value
+        captures.sort(reverse=True, key=lambda x: x[0])
+        
+        # Combine in order
+        ordered = []
+        ordered.extend(tt_moves)
+        ordered.extend([move for _, move in captures])
+        ordered.extend(checks)
+        ordered.extend(killers)
+        ordered.extend(quiet)
+        
+        return ordered
+
     def _recursive_search(self, board: chess.Board, search_depth: int, alpha: float, beta: float, time_limit: float) -> Tuple[float, Optional[chess.Move]]:
         """
-        Recursive alpha-beta search with all advanced features
-        Returns (score, best_move) tuple
+        V11.5 BALANCED SEARCH - Speed + Tactical Accuracy
         """
         self.nodes_searched += 1
         
-        # CRITICAL: Time checking during recursive search to prevent timeouts
-        if hasattr(self, 'search_start_time') and self.nodes_searched % 1000 == 0:
+        # Time checking every 3000 nodes (balance between speed and responsiveness)
+        if hasattr(self, 'search_start_time') and self.nodes_searched % 3000 == 0:
             elapsed = time.time() - self.search_start_time
             if elapsed > time_limit:
-                # Emergency return with current best evaluation
-                return self._evaluate_position(board, depth=self.default_depth - search_depth), None
+                return self._evaluate_position(board, depth=0), None
         
         # 1. TRANSPOSITION TABLE PROBE
         tt_hit, tt_score, tt_move = self._probe_transposition_table(board, search_depth, int(alpha), int(beta))
@@ -510,18 +588,16 @@ class V7P3REngine:
         
         # 2. TERMINAL CONDITIONS
         if search_depth == 0:
-            # V11.4: Use depth-aware evaluation instead of separate quiescence search
-            score = self._evaluate_position(board, depth=self.default_depth - search_depth + 4)
+            score = self._evaluate_position(board, depth=0)
             return score, None
             
         if board.is_game_over():
             if board.is_checkmate():
-                score = -29000.0 + (self.default_depth - search_depth)  # Prefer quicker mates
+                return -29000.0 + (self.default_depth - search_depth), None
             else:
-                score = 0.0  # Stalemate
-            return score, None
+                return 0.0, None
         
-        # 3. NULL MOVE PRUNING
+        # 3. NULL MOVE PRUNING (keep for performance)
         if (search_depth >= 3 and not board.is_check() and 
             self._has_non_pawn_pieces(board) and beta - alpha > 1):
             
@@ -533,56 +609,47 @@ class V7P3REngine:
             if null_score >= beta:
                 return null_score, None
         
-        # 4. MOVE GENERATION AND ORDERING
+        # 4. SMART MOVE ORDERING - tactical analysis only when needed
         legal_moves = list(board.legal_moves)
         if not legal_moves:
             return 0.0, None
         
-        ordered_moves = self._order_moves_advanced(board, legal_moves, search_depth, tt_move)
+        # Determine if this position needs tactical analysis
+        needs_tactical_analysis = self._is_tactical_position(board)
         
-        # 5. MAIN SEARCH LOOP (NEGAMAX WITH ALPHA-BETA)
+        if needs_tactical_analysis:
+            # Use full tactical move ordering
+            ordered_moves = self._order_moves_advanced(board, legal_moves, search_depth, tt_move)
+        else:
+            # Use fast move ordering
+            ordered_moves = self._order_moves_fast(board, legal_moves, search_depth, tt_move)
+        
+        # 5. MAIN SEARCH LOOP
         best_score = -99999.0
         best_move = None
         original_alpha = alpha
         moves_searched = 0
         
         for move in ordered_moves:
-            board.push(move)
-            
-            # V11 ENHANCEMENT: Enhanced Late Move Reduction
-            reduction = self._calculate_lmr_reduction(move, moves_searched, search_depth, board)
-            
-            # Search with possible reduction
-            if reduction > 0:
-                score, _ = self._recursive_search(board, search_depth - 1 - reduction, -beta, -alpha, time_limit)
-                score = -score
-                
-                # Re-search at full depth if reduced search failed high
-                if score > alpha:
-                    score, _ = self._recursive_search(board, search_depth - 1, -beta, -alpha, time_limit)
-                    score = -score
-            else:
-                score, _ = self._recursive_search(board, search_depth - 1, -beta, -alpha, time_limit)
-                score = -score
+            # Simplified search - no LMR for now to maintain stability
+            score, _ = self._recursive_search(board, search_depth - 1, -beta, -alpha, time_limit)
+            score = -score
             
             board.pop()
             moves_searched += 1
             
-            # Update best move
             if best_move is None or score > best_score:
                 best_score = score
                 best_move = move
             
             alpha = max(alpha, score)
             if alpha >= beta:
-                # Beta cutoff - update heuristics
-                if not board.is_capture(move):
+                # Update killer moves for pruning move
+                if not board.is_capture(move) and not board.gives_check(move):
                     self.killer_moves.store_killer(move, search_depth)
-                    self.history_heuristic.update_history(move, search_depth)
-                    self.search_stats['killer_hits'] += 1
                 break
         
-        # 7. TRANSPOSITION TABLE STORE
+        # 6. TRANSPOSITION TABLE STORE
         self._store_transposition_table(board, search_depth, int(best_score), best_move, int(original_alpha), int(beta))
         
         return best_score, best_move
