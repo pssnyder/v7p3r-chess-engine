@@ -1,0 +1,31 @@
+{
+  "version": "v12.1",
+  "timestamp": "20250922_223404",
+  "summary": {
+    "passed": 5,
+    "total": 5,
+    "duration": 0.715
+  },
+  "tests": {
+    "castling_bonus": {
+      "passed": true,
+      "duration": 0.0
+    },
+    "center_control": {
+      "passed": true,
+      "duration": 0.0
+    },
+    "development_penalties": {
+      "passed": true,
+      "duration": 0.0
+    },
+    "draw_prevention": {
+      "passed": true,
+      "duration": 0.0
+    },
+    "basic_functionality": {
+      "passed": true,
+      "duration": 0.715
+    }
+  }
+}
