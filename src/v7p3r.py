@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
 """
-V7P3R Chess Engine v10.8 - Recovery Baseline
-Built from v10.6 stable foundation with lessons learned from v10.7 failure
-Phase 1: Core search + Phase 2: Nudge system + Phase 3A: Advanced evaluation
-Phase 3B (Tactical patterns) DISABLED - Target for v11 redesign
+V7P3R Chess Engine v12.0 - Clean Foundation
+Built from v10.8 stable baseline with proven v11 improvements
+Core: Search + Evaluation + Nudge System
+
+ARCHITECTURE:
+- Phase 1: Core search (alpha-beta, TT, iterative deepening)
+- Phase 2: Enhanced nudge system (2160+ positions)  
+- Phase 3A: Advanced evaluation (pawns, king safety)
+- Clean codebase focused on playing strength and stability
 
 VERSION LINEAGE:
-- v10.6: Tournament baseline (19.5/30 points)
-- v10.7: Failed tactical patterns (70% performance loss)  
-- v10.8: Recovery baseline for v11 development
+- v10.8: Recovery baseline (19.5/30 tournament points)
+- v11.x: Experimental variants (lessons learned, features extracted)
+- v12.0: Clean evolution with proven improvements only
 
 Author: Pat Snyder
 """
@@ -24,7 +29,6 @@ from collections import defaultdict
 from v7p3r_bitboard_evaluator import V7P3RScoringCalculationBitboard
 from v7p3r_advanced_pawn_evaluator import V7P3RAdvancedPawnEvaluator
 from v7p3r_king_safety_evaluator import V7P3RKingSafetyEvaluator
-# from v7p3r_tactical_pattern_detector import V7P3RTacticalPatternDetector  # V10.6 ROLLBACK: DISABLED PHASE 3B
 
 
 class PVTracker:
@@ -201,7 +205,7 @@ class ZobristHashing:
 
 
 class V7P3REngine:
-    """V7P3R Chess Engine v9.5 - Bitboard-powered version"""
+    """V7P3R Chess Engine v12.0 - Clean Foundation"""
     
     def __init__(self):
         # Basic configuration
@@ -218,11 +222,10 @@ class V7P3REngine:
         self.default_depth = 6
         self.nodes_searched = 0
         
-        # Evaluation components - V10 BITBOARD POWERED + V11 PHASE 3A ADVANCED (V10.6 ROLLBACK: PHASE 3B DISABLED)
+        # Evaluation components - V12.0: Proven stable (bitboard + advanced)
         self.bitboard_evaluator = V7P3RScoringCalculationBitboard(self.piece_values)
-        self.advanced_pawn_evaluator = V7P3RAdvancedPawnEvaluator()  # V11 PHASE 3A
-        self.king_safety_evaluator = V7P3RKingSafetyEvaluator()      # V11 PHASE 3A
-        # self.tactical_pattern_detector = V7P3RTacticalPatternDetector()  # V10.6 ROLLBACK: DISABLED PHASE 3B
+        self.advanced_pawn_evaluator = V7P3RAdvancedPawnEvaluator()
+        self.king_safety_evaluator = V7P3RKingSafetyEvaluator()
         
         # Simple evaluation cache for speed
         self.evaluation_cache = {}  # position_hash -> evaluation
@@ -1040,18 +1043,31 @@ class V7P3REngine:
     # V11 PHASE 2: NUDGE SYSTEM METHODS
     
     def _load_nudge_database(self):
-        """Load the nudge database from JSON file"""
+        """Load the enhanced nudge database from JSON file - V12.0 upgrade"""
         try:
-            # Construct path relative to this file
+            # V12.0: Try enhanced database first, fallback to basic
             current_dir = os.path.dirname(os.path.abspath(__file__))
-            nudge_db_path = os.path.join(current_dir, 'v7p3r_nudge_database.json')
+            enhanced_path = os.path.join(current_dir, 'v7p3r_enhanced_nudges.json')
+            basic_path = os.path.join(current_dir, 'v7p3r_nudge_database.json')
             
-            if os.path.exists(nudge_db_path):
-                with open(nudge_db_path, 'r', encoding='utf-8') as f:
+            if os.path.exists(enhanced_path):
+                with open(enhanced_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    if isinstance(data, dict) and 'positions' in data:
+                        self.nudge_database = data['positions']
+                        tactical_count = sum(1 for pos in data['positions'].values() 
+                                           if pos.get('is_tactical', False))
+                        print(f"info string Loaded enhanced nudge database: {len(self.nudge_database)} positions ({tactical_count} tactical)")
+                    else:
+                        # Old format
+                        self.nudge_database = data
+                        print(f"info string Loaded {len(self.nudge_database)} nudge positions (basic format)")
+            elif os.path.exists(basic_path):
+                with open(basic_path, 'r', encoding='utf-8') as f:
                     self.nudge_database = json.load(f)
-                print(f"info string Loaded {len(self.nudge_database)} nudge positions")
+                print(f"info string Loaded {len(self.nudge_database)} nudge positions (basic database)")
             else:
-                print(f"info string Nudge database not found at {nudge_db_path}")
+                print(f"info string No nudge database found")
                 self.nudge_database = {}
         except Exception as e:
             print(f"info string Error loading nudge database: {e}")
