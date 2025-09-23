@@ -1043,12 +1043,19 @@ class V7P3REngine:
     # V11 PHASE 2: NUDGE SYSTEM METHODS
     
     def _load_nudge_database(self):
-        """Load the enhanced nudge database from JSON file - V12.0 upgrade"""
+        """Load the enhanced nudge database from JSON file - V12.0 upgrade with PyInstaller support"""
         try:
-            # V12.0: Try enhanced database first, fallback to basic
-            current_dir = os.path.dirname(os.path.abspath(__file__))
-            enhanced_path = os.path.join(current_dir, 'v7p3r_enhanced_nudges.json')
-            basic_path = os.path.join(current_dir, 'v7p3r_nudge_database.json')
+            # V12.0: Handle both development and PyInstaller bundled execution
+            if getattr(sys, 'frozen', False):
+                # Running as PyInstaller executable
+                bundle_dir = sys._MEIPASS
+                enhanced_path = os.path.join(bundle_dir, 'v7p3r_enhanced_nudges.json')
+                basic_path = os.path.join(bundle_dir, 'v7p3r_nudge_database.json')
+            else:
+                # Running as Python script
+                current_dir = os.path.dirname(os.path.abspath(__file__))
+                enhanced_path = os.path.join(current_dir, 'v7p3r_enhanced_nudges.json')
+                basic_path = os.path.join(current_dir, 'v7p3r_nudge_database.json')
             
             if os.path.exists(enhanced_path):
                 with open(enhanced_path, 'r', encoding='utf-8') as f:
