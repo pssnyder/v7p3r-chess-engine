@@ -63,8 +63,11 @@ def test_v12_foundation():
         for _ in range(100):
             engine._evaluate_position(board)
         eval_time = time.time() - start_time
-        evals_per_sec = 100 / eval_time
-        print(f"   ✅ Evaluation speed: {evals_per_sec:.0f} evals/sec")
+        if eval_time > 0:
+            evals_per_sec = 100 / eval_time
+            print(f"   ✅ Evaluation speed: {evals_per_sec:.0f} evals/sec")
+        else:
+            print(f"   ✅ Evaluation speed: >100,000 evals/sec (too fast to measure)")
         print()
         
         print("🎉 V12.0 Foundation Test: ALL PASSED")
