@@ -191,6 +191,9 @@ class V7P3RBitboardEvaluator:
         black_pieces = black_pawns | black_knights | black_bishops | black_rooks | black_queens | black_king
         all_pieces = white_pieces | black_pieces
         
+        # V12.1: Calculate material count for game phase detection
+        total_material = self._popcount(all_pieces & ~(white_pawns | black_pawns))
+        
         score = 0.0
         
         # 1. MATERIAL (ultra-fast bit counting)
@@ -206,7 +209,7 @@ class V7P3RBitboardEvaluator:
         score -= self._popcount(black_rooks) * self.piece_values[chess.ROOK]
         score -= self._popcount(black_queens) * self.piece_values[chess.QUEEN]
         
-        # 2. CENTER CONTROL (ultra-fast bitwise AND)
+        # 2. CENTER CONTROL (V12.1: Enhanced for opening aggression)
         white_center_pawns = white_pawns & self.CENTER
         black_center_pawns = black_pawns & self.CENTER
         score += self._popcount(white_center_pawns) * 10
@@ -217,34 +220,115 @@ class V7P3RBitboardEvaluator:
         score += self._popcount(white_extended_center) * 5
         score -= self._popcount(black_extended_center) * 5
         
-        # 3. PIECE DEVELOPMENT (knight outposts)
+        # V12.1: Opening phase center control bonus for pieces (not just pawns)
+        if total_material >= 20:  # Opening/early middlegame
+            white_center_pieces = (white_knights | white_bishops) & self.CENTER
+            black_center_pieces = (black_knights | black_bishops) & self.CENTER
+            score += self._popcount(white_center_pieces) * 15  # Bonus for pieces on center
+            score -= self._popcount(black_center_pieces) * 15
+            
+            white_extended_pieces = (white_knights | white_bishops) & self.EXTENDED_CENTER
+            black_extended_pieces = (black_knights | black_bishops) & self.EXTENDED_CENTER
+            score += self._popcount(white_extended_pieces) * 8  # Bonus for pieces near center
+            score -= self._popcount(black_extended_pieces) * 8
+        
+        # 3. PIECE DEVELOPMENT (V12.1: Enhanced development evaluation)
         white_knight_outposts = white_knights & self.KNIGHT_OUTPOSTS
         black_knight_outposts = black_knights & self.KNIGHT_OUTPOSTS
         score += self._popcount(white_knight_outposts) * 15
         score -= self._popcount(black_knight_outposts) * 15
         
-        # 4. KING SAFETY (castling positions)
+        # V12.1: Opening development penalty - punish undeveloped pieces
+        if total_material >= 18:  # Opening phase
+            # Count pieces still on starting squares
+            white_undeveloped = 0
+            black_undeveloped = 0
+            
+            # Knights on starting squares (b1, g1 for white; b8, g8 for black)
+            if white_knights & (1 << 1):  # b1
+                white_undeveloped += 1
+            if white_knights & (1 << 6):  # g1
+                white_undeveloped += 1
+            if black_knights & (1 << 57):  # b8
+                black_undeveloped += 1
+            if black_knights & (1 << 62):  # g8
+                black_undeveloped += 1
+                
+            # Bishops on starting squares (c1, f1 for white; c8, f8 for black)
+            if white_bishops & (1 << 2):  # c1
+                white_undeveloped += 1
+            if white_bishops & (1 << 5):  # f1
+                white_undeveloped += 1
+            if black_bishops & (1 << 58):  # c8
+                black_undeveloped += 1
+            if black_bishops & (1 << 61):  # f8
+                black_undeveloped += 1
+            
+            # Apply development penalties
+            score -= white_undeveloped * 12  # Penalty for undeveloped White pieces
+            score += black_undeveloped * 12  # Penalty for undeveloped Black pieces
+        
+        # 4. KING SAFETY (V12.1: INCREASED castling bonus for better king safety)
         if white_king & self.WHITE_KINGSIDE_CASTLE:
-            score += 20
+            score += 40  # Increased from 20 to 40
         if white_king & self.WHITE_QUEENSIDE_CASTLE:
-            score += 15
+            score += 30  # Increased from 15 to 30
         if black_king & self.BLACK_KINGSIDE_CASTLE:
-            score -= 20
+            score -= 40  # Increased from 20 to 40
         if black_king & self.BLACK_QUEENSIDE_CASTLE:
-            score -= 15
+            score -= 30  # Increased from 15 to 30
         
         # 5. PAWN STRUCTURE (passed pawns - ultra-fast)
         score += self._count_passed_pawns(white_pawns, black_pawns, True) * 20
         score -= self._count_passed_pawns(black_pawns, white_pawns, False) * 20
         
         # 6. ENDGAME CONSIDERATIONS  
-        total_material = self._popcount(all_pieces & ~(white_pawns | black_pawns))
         if total_material <= 8:  # Endgame
             # Drive enemy king to edge (always from White's perspective)
             black_king_on_edge = black_king & self.EDGES
             white_king_on_edge = white_king & self.EDGES
             score += self._popcount(black_king_on_edge) * 10  # Good for White if Black king on edge
             score -= self._popcount(white_king_on_edge) * 10  # Bad for White if White king on edge
+        
+        # 7. V12.1: STRICTER DRAW PREVENTION
+        # Encourage aggressive play and discourage repetitive/passive positions
+        
+        # Fifty-move rule awareness: stronger penalty as we approach limit
+        if board.halfmove_clock > 30:
+            draw_penalty = (board.halfmove_clock - 30) * 2.0  # Escalating penalty
+            score -= draw_penalty if color == chess.WHITE else -draw_penalty
+        
+        # Repetition penalty: discourage position repetition
+        if hasattr(board, 'move_stack') and len(board.move_stack) >= 4:
+            try:
+                # Check for 2-fold repetition in recent moves
+                board_copy = board.copy()
+                recent_positions = []
+                
+                # Collect last 4 positions
+                for _ in range(min(4, len(board.move_stack))):
+                    if board_copy.move_stack:
+                        recent_positions.append(board_copy.fen().split(' ')[0])  # Position only
+                        board_copy.pop()
+                
+                # Count repetitions
+                current_pos = board.fen().split(' ')[0]
+                repetition_count = recent_positions.count(current_pos)
+                
+                if repetition_count >= 1:
+                    repetition_penalty = repetition_count * 25.0  # Strong penalty for repetition
+                    score -= repetition_penalty if color == chess.WHITE else -repetition_penalty
+                    
+            except:
+                pass  # Ignore errors in repetition detection
+        
+        # Encourage piece activity: penalty for pieces on back ranks in middlegame
+        if total_material >= 12:  # Middlegame
+            white_back_rank_pieces = (white_knights | white_bishops | white_rooks | white_queens) & (self.RANK_1 | self.RANK_2)
+            black_back_rank_pieces = (black_knights | black_bishops | black_rooks | black_queens) & (self.RANK_7 | self.RANK_8)
+            
+            activity_penalty = (self._popcount(white_back_rank_pieces) - self._popcount(black_back_rank_pieces)) * 3
+            score -= activity_penalty if color == chess.WHITE else -activity_penalty
         
         return score if color == chess.WHITE else -score
     
