@@ -205,7 +205,12 @@ class ZobristHashing:
 
 
 class V7P3REngine:
-    """V7P3R Chess Engine v12.0 - Clean Foundation"""
+    """V7P3R Chess Engine v12.2 - Performance Recovery"""
+    
+    # V12.2 FEATURE TOGGLES - Performance Recovery Configuration
+    ENABLE_NUDGE_SYSTEM = False      # Disabled for v12.2 performance
+    ENABLE_PV_FOLLOWING = True       # Keep - high value feature
+    ENABLE_ADVANCED_EVALUATION = False  # V12.2: Disabled for performance testing
     
     def __init__(self):
         # Basic configuration
@@ -236,25 +241,30 @@ class V7P3REngine:
         self.history_heuristic = HistoryHeuristic()
         self.zobrist = ZobristHashing()
         
-        # V11 PHASE 2: Nudge System Integration
-        self.nudge_database = {}
-        self.nudge_stats = {
-            'hits': 0,
-            'misses': 0,
-            'moves_boosted': 0,
-            'positions_matched': 0,
-            'instant_moves': 0,      # V11 PHASE 2 ENHANCEMENT
-            'instant_time_saved': 0.0  # V11 PHASE 2 ENHANCEMENT
-        }
-        
-        # V11 PHASE 2 ENHANCEMENT: Nudge threshold configuration
-        self.nudge_instant_config = {
-            'min_frequency': 8,        # Move must be played at least 8 times
-            'min_eval': 0.4,          # Move must have eval improvement >= 0.4
-            'confidence_threshold': 12.0  # Combined confidence score threshold
-        }
-        
-        self._load_nudge_database()
+        # V12.2 CONDITIONAL: Nudge System Integration (DISABLED for performance)
+        if self.ENABLE_NUDGE_SYSTEM:
+            self.nudge_database = {}
+            self.nudge_stats = {
+                'hits': 0,
+                'misses': 0,
+                'moves_boosted': 0,
+                'positions_matched': 0,
+                'instant_moves': 0,
+                'instant_time_saved': 0.0
+            }
+            
+            # V11 PHASE 2 ENHANCEMENT: Nudge threshold configuration
+            self.nudge_instant_config = {
+                'min_frequency': 8,        # Move must be played at least 8 times
+                'min_eval': 0.4,          # Move must have eval improvement >= 0.4
+                'confidence_threshold': 12.0  # Combined confidence score threshold
+            }
+            
+            self._load_nudge_database()
+        else:
+            # V12.2: Nudge system disabled - initialize empty placeholders
+            self.nudge_database = {}
+            self.nudge_stats = {'instant_time_saved': 0.0}  # Keep for compatibility
         
         # Configuration
         self.max_tt_entries = 50000  # Reasonable size for testing
@@ -293,29 +303,30 @@ class V7P3REngine:
             self.nodes_searched = 0
             self.search_start_time = time.time()
             
+            
             legal_moves = list(board.legal_moves)
             if not legal_moves:
                 return chess.Move.null()
 
             # PV FOLLOWING OPTIMIZATION - check if current position triggers instant move
-            pv_move = self.pv_tracker.check_position_for_instant_move(board)
-            if pv_move:
-                return pv_move
+            if self.ENABLE_PV_FOLLOWING:
+                pv_move = self.pv_tracker.check_position_for_instant_move(board)
+                if pv_move:
+                    return pv_move
             
-            # V11 PHASE 2 ENHANCEMENT: Check for instant nudge moves (high confidence)
-            instant_nudge_move = self._check_instant_nudge_move(board)
-            if instant_nudge_move:
-                # Calculate time saved
-                time_saved = time_limit * 0.8  # Estimate time that would have been used
-                self.nudge_stats['instant_time_saved'] += time_saved
-                
-                # Output instant move info
-                print(f"info depth NUDGE score cp 50 nodes 0 time 0 pv {instant_nudge_move}")
-                print(f"info string Instant nudge move: {instant_nudge_move} (high confidence)")
-                
-                return instant_nudge_move
-            
-            # V11 ENHANCEMENT: Adaptive time management
+            # V12.2 CONDITIONAL: Check for instant nudge moves (DISABLED for performance)
+            if self.ENABLE_NUDGE_SYSTEM:
+                instant_nudge_move = self._check_instant_nudge_move(board)
+                if instant_nudge_move:
+                    # Calculate time saved
+                    time_saved = time_limit * 0.8  # Estimate time that would have been used
+                    self.nudge_stats['instant_time_saved'] += time_saved
+
+                    # Output instant move info
+                    print(f"info depth NUDGE score cp 50 nodes 0 time 0 pv {instant_nudge_move}")
+                    print(f"info string Instant nudge move: {instant_nudge_move} (high confidence)")
+
+                    return instant_nudge_move            # V11 ENHANCEMENT: Adaptive time management
             target_time, max_time = self._calculate_adaptive_time_allocation(board, time_limit)
             
             # Iterative deepening
@@ -509,14 +520,17 @@ class V7P3REngine:
             self.nudge_stats['positions_matched'] += 1
         
         for move in moves:
-            # Calculate nudge bonus for this move (V11 PHASE 2)
-            nudge_bonus = self._get_nudge_bonus(board, move)
+            # V12.2 CONDITIONAL: Calculate nudge bonus for this move (DISABLED for performance)
+            if self.ENABLE_NUDGE_SYSTEM:
+                nudge_bonus = self._get_nudge_bonus(board, move)
+            else:
+                nudge_bonus = 0.0  # No nudge bonus when disabled
             
             # 1. Transposition table move (highest priority)
             if tt_move and move == tt_move:
                 tt_moves.append(move)
             
-            # 2. Nudge moves (second highest priority - V11 PHASE 2)
+            # 2. Nudge moves (second highest priority - V11 PHASE 2, disabled in v12.2)
             elif nudge_bonus > 0:
                 nudge_moves.append((nudge_bonus, move))
             
@@ -576,9 +590,9 @@ class V7P3REngine:
         return ordered
     
     def _evaluate_position(self, board: chess.Board) -> float:
-        """V11 PHASE 3B ENHANCED: Position evaluation with tactical pattern detection"""
-        # Create cache key
-        cache_key = board.fen()
+        """V12.2 OPTIMIZED: Position evaluation with Zobrist-based caching"""
+        # V12.2 OPTIMIZATION: Use Zobrist hash instead of expensive FEN for cache key
+        cache_key = self.zobrist.hash_position(board)
         
         if cache_key in self.evaluation_cache:
             self.search_stats['cache_hits'] += 1
@@ -590,15 +604,24 @@ class V7P3REngine:
         white_base = self.bitboard_evaluator.calculate_score_optimized(board, True)
         black_base = self.bitboard_evaluator.calculate_score_optimized(board, False)
         
-        # V11 PHASE 3A & 3B: Advanced evaluation components (V10.4: Phase 3B Tactical disabled)
+        # V12.2 CONDITIONAL: Advanced evaluation components 
         try:
-            # V11 PHASE 3A: Advanced pawn structure evaluation
-            white_pawn_score = self.advanced_pawn_evaluator.evaluate_pawn_structure(board, True)
-            black_pawn_score = self.advanced_pawn_evaluator.evaluate_pawn_structure(board, False)
-            
-            # V11 PHASE 3A: Enhanced king safety evaluation
-            white_king_score = self.king_safety_evaluator.evaluate_king_safety(board, True)
-            black_king_score = self.king_safety_evaluator.evaluate_king_safety(board, False)
+            if self.ENABLE_ADVANCED_EVALUATION:
+                # V11 PHASE 3A: Advanced pawn structure evaluation
+                white_pawn_score = self.advanced_pawn_evaluator.evaluate_pawn_structure(board, True)
+                black_pawn_score = self.advanced_pawn_evaluator.evaluate_pawn_structure(board, False)
+                
+                # Advanced king safety evaluation
+                white_king_score = self.king_safety_evaluator.evaluate_king_safety(board, True)
+                black_king_score = self.king_safety_evaluator.evaluate_king_safety(board, False)
+            else:
+                # V12.2: Simplified evaluation for performance
+                white_pawn_score = 0  # Skip advanced pawn evaluation
+                black_pawn_score = 0
+                
+                # V12.2: Simple king safety - just check if king is castled
+                white_king_score = self._simple_king_safety(board, True)
+                black_king_score = self._simple_king_safety(board, False)
             
             # V10.6 ROLLBACK: Tactical pattern evaluation disabled for performance
             # Phase 3B showed 70% performance degradation in tournament play
@@ -623,6 +646,24 @@ class V7P3REngine:
         # Cache the result
         self.evaluation_cache[cache_key] = final_score
         return final_score
+    
+    def _simple_king_safety(self, board: chess.Board, color: bool) -> float:
+        """V12.2: Simplified king safety evaluation for performance"""
+        score = 0.0
+        
+        # Basic castling bonus
+        if color == chess.WHITE:
+            if board.has_kingside_castling_rights(color):
+                score += 15
+            if board.has_queenside_castling_rights(color):
+                score += 10
+        else:
+            if board.has_kingside_castling_rights(color):
+                score += 15
+            if board.has_queenside_castling_rights(color):
+                score += 10
+        
+        return score
     
     def _probe_transposition_table(self, board: chess.Board, depth: int, alpha: int, beta: int) -> Tuple[bool, int, Optional[chess.Move]]:
         """Probe transposition table for this position - PHASE 1 FEATURE"""
@@ -1040,15 +1081,20 @@ class V7P3REngine:
         
         return reduction
 
-    # V11 PHASE 2: NUDGE SYSTEM METHODS
+    # V12.2 CONDITIONAL: NUDGE SYSTEM METHODS (disabled for performance)
     
     def _load_nudge_database(self):
+        """V12.2: Load nudge database only if enabled"""
+        if not self.ENABLE_NUDGE_SYSTEM:
+            print("info string V12.2: Nudge system disabled for performance")
+            return
+            
         """Load the enhanced nudge database from JSON file - V12.0 upgrade with PyInstaller support"""
         try:
             # V12.0: Handle both development and PyInstaller bundled execution
             if getattr(sys, 'frozen', False):
                 # Running as PyInstaller executable
-                bundle_dir = sys._MEIPASS
+                bundle_dir = getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
                 enhanced_path = os.path.join(bundle_dir, 'v7p3r_enhanced_nudges.json')
                 basic_path = os.path.join(bundle_dir, 'v7p3r_nudge_database.json')
             else:
@@ -1095,6 +1141,10 @@ class V7P3REngine:
         return hashlib.md5(key_fen.encode()).hexdigest()[:12]
     
     def _get_nudge_bonus(self, board: chess.Board, move: chess.Move) -> float:
+        """V12.2: Calculate nudge bonus for a move in current position (disabled)"""
+        if not self.ENABLE_NUDGE_SYSTEM:
+            return 0.0
+            
         """Calculate nudge bonus for a move in current position"""
         try:
             position_key = self._get_position_key(board)
@@ -1139,6 +1189,10 @@ class V7P3REngine:
             return 0.0
 
     def _check_instant_nudge_move(self, board: chess.Board) -> Optional[chess.Move]:
+        """V12.2: Check for instant nudge moves (disabled)"""
+        if not self.ENABLE_NUDGE_SYSTEM:
+            return None
+            
         """
         V11 PHASE 2 ENHANCEMENT: Check for instant nudge moves that bypass search
         Returns move if confidence is high enough, None otherwise

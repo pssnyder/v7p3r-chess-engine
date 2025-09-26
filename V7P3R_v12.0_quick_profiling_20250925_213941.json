@@ -1,0 +1,440 @@
+{
+  "Starting": {
+    "result": {
+      "success": true,
+      "search_time": 15.573956100000942,
+      "nodes_searched": 7443,
+      "nps": 477.9132515982596,
+      "best_move": "e2e3",
+      "score": 0,
+      "profile_output": "         43997674 function calls (43985622 primitive calls) in 15.414 seconds\n\n   Ordered by: cumulative time\n   List reduced from 332 to 25 due to restriction <25>\n\n   ncalls  tottime  percall  cumtime  percall filename:lineno(function)\n        1    0.000    0.000   15.574   15.574 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:277(search)\n   3844/4    0.032    0.000   15.565    3.891 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:391(_recursive_search)\n3599/2969    0.027    0.000   11.897    0.004 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:701(_quiescence_search)\n     3600    0.020    0.000   11.362    0.003 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:578(_evaluate_position)\n    46675    0.055    0.000    5.855    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:2389(fen)\n    46675    0.090    0.000    5.790    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:2657(epd)\n    46675    1.446    0.000    4.671    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:955(board_fen)\n     6328    0.025    0.000    4.467    0.001 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_king_safety_evaluator.py:31(evaluate_king_safety)\n    81700    0.875    0.000    3.807    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_king_safety_evaluator.py:319(_is_attacked_by_enemy)\n     6328    0.008    0.000    3.623    0.001 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_bitboard_evaluator.py:373(calculate_score_optimized)\n     6328    0.154    0.000    3.615    0.001 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_bitboard_evaluator.py:170(evaluate_bitboard)\n      745    0.053    0.000    3.189    0.004 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:489(_order_moves_advanced)\n     6328    0.024    0.000    2.761    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_advanced_pawn_evaluator.py:29(evaluate_pawn_structure)\n    18864    0.049    0.000    2.469    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:1083(_get_position_key)\n    18120    0.015    0.000    2.371    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:1097(_get_nudge_bonus)\n  3403346    1.447    0.000    2.231    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:701(piece_at)\n     6328    0.010    0.000    1.934    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_king_safety_evaluator.py:122(_evaluate_king_exposure)\n     6328    0.028    0.000    1.837    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_king_safety_evaluator.py:287(_count_enemy_attacks_near_king)\n     6328    0.035    0.000    1.799    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_king_safety_evaluator.py:165(_evaluate_attack_zone)\n  3992521    1.099    0.000    1.451    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:281(scan_forward)\n  1487079    0.456    0.000    1.020    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:472(symbol)\n    46675    0.394    0.000    0.979    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:2352(castling_xfen)\n   902190    0.502    0.000    0.895    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:693(pieces)\n   645785    0.564    0.000    0.837    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_king_safety_evaluator.py:340(_pawn_attacks_square)\n   631903    0.343    0.000    0.796    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:770(attacks)\n\n\n"
+    },
+    "functions": [
+      {
+        "function": "_recursive_search",
+        "calls": 3844,
+        "total_time_ms": 32.0,
+        "cumulative_time_ms": 15565.0,
+        "percent": 99.94249309588756
+      },
+      {
+        "function": "_quiescence_search",
+        "calls": 3599,
+        "total_time_ms": 27.0,
+        "cumulative_time_ms": 11897.0,
+        "percent": 76.39035273766619
+      },
+      {
+        "function": "_evaluate_position",
+        "calls": 3600,
+        "total_time_ms": 20.0,
+        "cumulative_time_ms": 11362.0,
+        "percent": 72.95513052075005
+      },
+      {
+        "function": "fen",
+        "calls": 46675,
+        "total_time_ms": 55.0,
+        "cumulative_time_ms": 5855.0,
+        "percent": 37.59481510288607
+      },
+      {
+        "function": "epd",
+        "calls": 46675,
+        "total_time_ms": 90.0,
+        "cumulative_time_ms": 5790.0,
+        "percent": 37.17745165597102
+      },
+      {
+        "function": "board_fen",
+        "calls": 46675,
+        "total_time_ms": 1446.0,
+        "cumulative_time_ms": 4671.0,
+        "percent": 29.992379392925844
+      },
+      {
+        "function": "evaluate_king_safety",
+        "calls": 6328,
+        "total_time_ms": 25.0,
+        "cumulative_time_ms": 4467.0,
+        "percent": 28.682500267223237
+      },
+      {
+        "function": "_is_attacked_by_enemy",
+        "calls": 81700,
+        "total_time_ms": 875.0,
+        "cumulative_time_ms": 3807.0,
+        "percent": 24.444656037008926
+      },
+      {
+        "function": "calculate_score_optimized",
+        "calls": 6328,
+        "total_time_ms": 8.0,
+        "cumulative_time_ms": 3623.0,
+        "percent": 23.26319643343403
+      },
+      {
+        "function": "evaluate_bitboard",
+        "calls": 6328,
+        "total_time_ms": 154.0,
+        "cumulative_time_ms": 3615.0,
+        "percent": 23.211828624582946
+      },
+      {
+        "function": "_order_moves_advanced",
+        "calls": 745,
+        "total_time_ms": 53.0,
+        "cumulative_time_ms": 3189.0,
+        "percent": 20.476492803262797
+      },
+      {
+        "function": "evaluate_pawn_structure",
+        "calls": 6328,
+        "total_time_ms": 24.0,
+        "cumulative_time_ms": 2761.0,
+        "percent": 17.728315029729877
+      },
+      {
+        "function": "_get_position_key",
+        "calls": 18864,
+        "total_time_ms": 49.0,
+        "cumulative_time_ms": 2469.0,
+        "percent": 15.853390006665363
+      },
+      {
+        "function": "_get_nudge_bonus",
+        "calls": 18120,
+        "total_time_ms": 15.0,
+        "cumulative_time_ms": 2371.0,
+        "percent": 15.224134348239602
+      },
+      {
+        "function": "piece_at",
+        "calls": 3403346,
+        "total_time_ms": 1447.0,
+        "cumulative_time_ms": 2231.0,
+        "percent": 14.325197693345656
+      },
+      {
+        "function": "_evaluate_king_exposure",
+        "calls": 6328,
+        "total_time_ms": 10.0,
+        "cumulative_time_ms": 1934.0,
+        "percent": 12.418167789749216
+      },
+      {
+        "function": "_count_enemy_attacks_near_king",
+        "calls": 6328,
+        "total_time_ms": 28.0,
+        "cumulative_time_ms": 1837.0,
+        "percent": 11.795333107429839
+      },
+      {
+        "function": "_evaluate_attack_zone",
+        "calls": 6328,
+        "total_time_ms": 35.0,
+        "cumulative_time_ms": 1799.0,
+        "percent": 11.551336015387196
+      },
+      {
+        "function": "scan_forward",
+        "calls": 3992521,
+        "total_time_ms": 1099.0,
+        "cumulative_time_ms": 1451.0,
+        "percent": 9.316836330365105
+      }
+    ]
+  },
+  "Tactical": {
+    "result": {
+      "success": true,
+      "search_time": 7.376634699998249,
+      "nodes_searched": 3695,
+      "nps": 500.90592123273734,
+      "best_move": "c4c5",
+      "score": 0,
+      "profile_output": "         22913714 function calls (22909021 primitive calls) in 7.309 seconds\n\n   Ordered by: cumulative time\n   List reduced from 205 to 25 due to restriction <25>\n\n   ncalls  tottime  percall  cumtime  percall filename:lineno(function)\n        1    0.000    0.000    7.377    7.377 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:277(search)\n    593/3    0.005    0.000    7.375    2.458 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:391(_recursive_search)\n 3102/480    0.030    0.000    6.609    0.014 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:701(_quiescence_search)\n     3102    0.010    0.000    6.149    0.002 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:578(_evaluate_position)\n    22665    0.024    0.000    2.456    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:2389(fen)\n    22665    0.039    0.000    2.428    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:2657(epd)\n     4078    0.013    0.000    2.358    0.001 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_king_safety_evaluator.py:31(evaluate_king_safety)\n    22665    0.684    0.000    2.108    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:955(board_fen)\n     4078    0.005    0.000    2.009    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_bitboard_evaluator.py:373(calculate_score_optimized)\n     4078    0.087    0.000    2.005    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_bitboard_evaluator.py:170(evaluate_bitboard)\n    56417    0.461    0.000    1.999    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_king_safety_evaluator.py:319(_is_attacked_by_enemy)\n     4078    0.013    0.000    1.426    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_advanced_pawn_evaluator.py:29(evaluate_pawn_structure)\n  1649096    0.635    0.000    0.983    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:701(piece_at)\n     4078    0.005    0.000    0.902    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_king_safety_evaluator.py:122(_evaluate_king_exposure)\n     4078    0.015    0.000    0.849    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_king_safety_evaluator.py:287(_count_enemy_attacks_near_king)\n     4078    0.019    0.000    0.826    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_king_safety_evaluator.py:165(_evaluate_attack_zone)\n  2262593    0.589    0.000    0.767    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:281(scan_forward)\n      113    0.011    0.000    0.698    0.006 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:489(_order_moves_advanced)\n   559100    0.274    0.000    0.489    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:693(pieces)\n     4113    0.009    0.000    0.477    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:1083(_get_position_key)\n     4000    0.003    0.000    0.465    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:1097(_get_nudge_bonus)\n   392216    0.308    0.000    0.457    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_king_safety_evaluator.py:340(_pawn_attacks_square)\n   659975    0.197    0.000    0.438    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:472(symbol)\n     4078    0.012    0.000    0.403    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_king_safety_evaluator.py:139(_evaluate_escape_squares)\n    21352    0.010    0.000    0.391    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_king_safety_evaluator.py:306(_is_safe_escape_square)\n\n\n"
+    },
+    "functions": [
+      {
+        "function": "_recursive_search",
+        "calls": 593,
+        "total_time_ms": 5.0,
+        "cumulative_time_ms": 7375.0,
+        "percent": 99.97783948826626
+      },
+      {
+        "function": "_quiescence_search",
+        "calls": 3102,
+        "total_time_ms": 30.0,
+        "cumulative_time_ms": 6609.0,
+        "percent": 89.5937004987053
+      },
+      {
+        "function": "_evaluate_position",
+        "calls": 3102,
+        "total_time_ms": 10.0,
+        "cumulative_time_ms": 6149.0,
+        "percent": 83.35779457808124
+      },
+      {
+        "function": "fen",
+        "calls": 22665,
+        "total_time_ms": 24.0,
+        "cumulative_time_ms": 2456.0,
+        "percent": 33.294315089245
+      },
+      {
+        "function": "epd",
+        "calls": 22665,
+        "total_time_ms": 39.0,
+        "cumulative_time_ms": 2428.0,
+        "percent": 32.91473820712006
+      },
+      {
+        "function": "evaluate_king_safety",
+        "calls": 4078,
+        "total_time_ms": 13.0,
+        "cumulative_time_ms": 2358.0,
+        "percent": 31.965796001807707
+      },
+      {
+        "function": "board_fen",
+        "calls": 22665,
+        "total_time_ms": 684.0,
+        "cumulative_time_ms": 2108.0,
+        "percent": 28.576716697120712
+      },
+      {
+        "function": "calculate_score_optimized",
+        "calls": 4078,
+        "total_time_ms": 5.0,
+        "cumulative_time_ms": 2009.0,
+        "percent": 27.234641292464662
+      },
+      {
+        "function": "evaluate_bitboard",
+        "calls": 4078,
+        "total_time_ms": 87.0,
+        "cumulative_time_ms": 2005.0,
+        "percent": 27.18041602358967
+      },
+      {
+        "function": "_is_attacked_by_enemy",
+        "calls": 56417,
+        "total_time_ms": 461.0,
+        "cumulative_time_ms": 1999.0,
+        "percent": 27.099078120277188
+      },
+      {
+        "function": "evaluate_pawn_structure",
+        "calls": 4078,
+        "total_time_ms": 13.0,
+        "cumulative_time_ms": 1426.0,
+        "percent": 19.3313083539346
+      },
+      {
+        "function": "piece_at",
+        "calls": 1649096,
+        "total_time_ms": 635.0,
+        "cumulative_time_ms": 983.0,
+        "percent": 13.325859826029252
+      },
+      {
+        "function": "_evaluate_king_exposure",
+        "calls": 4078,
+        "total_time_ms": 5.0,
+        "cumulative_time_ms": 902.0,
+        "percent": 12.227798131310665
+      },
+      {
+        "function": "_count_enemy_attacks_near_king",
+        "calls": 4078,
+        "total_time_ms": 15.0,
+        "cumulative_time_ms": 849.0,
+        "percent": 11.509313318717023
+      },
+      {
+        "function": "_evaluate_attack_zone",
+        "calls": 4078,
+        "total_time_ms": 19.0,
+        "cumulative_time_ms": 826.0,
+        "percent": 11.19751802268582
+      },
+      {
+        "function": "scan_forward",
+        "calls": 2262593,
+        "total_time_ms": 589.0,
+        "cumulative_time_ms": 767.0,
+        "percent": 10.39769530677969
+      },
+      {
+        "function": "_order_moves_advanced",
+        "calls": 113,
+        "total_time_ms": 11.0,
+        "cumulative_time_ms": 698.0,
+        "percent": 9.462309418686079
+      },
+      {
+        "function": "pieces",
+        "calls": 559100,
+        "total_time_ms": 274.0,
+        "cumulative_time_ms": 489.0,
+        "percent": 6.629039119967755
+      },
+      {
+        "function": "_get_position_key",
+        "calls": 4113,
+        "total_time_ms": 9.0,
+        "cumulative_time_ms": 477.0,
+        "percent": 6.46636331334278
+      }
+    ]
+  },
+  "Endgame": {
+    "result": {
+      "success": true,
+      "search_time": 8.458443900002749,
+      "nodes_searched": 11471,
+      "nps": 1356.1596122894748,
+      "best_move": "b4f4",
+      "score": 0,
+      "profile_output": "         23431853 function calls (23420855 primitive calls) in 8.392 seconds\n\n   Ordered by: cumulative time\n   List reduced from 193 to 25 due to restriction <25>\n\n   ncalls  tottime  percall  cumtime  percall filename:lineno(function)\n        1    0.000    0.000    8.458    8.458 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:277(search)\n   5208/5    0.031    0.000    8.456    1.691 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:391(_recursive_search)\n6263/4120    0.028    0.000    6.265    0.002 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:701(_quiescence_search)\n     6263    0.020    0.000    5.827    0.001 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:578(_evaluate_position)\n    59088    0.061    0.000    4.144    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:2389(fen)\n    59088    0.095    0.000    4.072    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:2657(epd)\n    59088    1.422    0.000    3.622    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:955(board_fen)\n     8744    0.010    0.000    3.431    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_bitboard_evaluator.py:373(calculate_score_optimized)\n     8744    0.191    0.000    3.421    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_bitboard_evaluator.py:170(evaluate_bitboard)\n  4432540    1.154    0.000    1.826    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:701(piece_at)\n      938    0.041    0.000    1.757    0.002 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:489(_order_moves_advanced)\n    14923    0.037    0.000    1.136    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:1083(_get_position_key)\n    13999    0.010    0.000    1.068    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:1097(_get_nudge_bonus)\n     8744    0.026    0.000    1.034    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_advanced_pawn_evaluator.py:29(evaluate_pawn_structure)\n     8744    0.011    0.000    0.893    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_king_safety_evaluator.py:31(evaluate_king_safety)\n   181598    0.104    0.000    0.796    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:3554(generate_legal_moves)\n     8744    0.056    0.000    0.689    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r_king_safety_evaluator.py:223(_evaluate_king_activity)\n  4589594    0.637    0.000    0.637    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:711(piece_type_at)\n    52333    0.212    0.000    0.497    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:2176(push)\n    31762    0.025    0.000    0.460    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:1785(gives_check)\n   532805    0.184    0.000    0.411    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:472(symbol)\n   359129    0.191    0.000    0.339    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:693(pieces)\n    13245    0.024    0.000    0.330    0.000 S:\\Maker Stuff\\Programming\\Chess Engines\\V7P3R Chess Engine\\v7p3r-chess-engine\\src\\v7p3r.py:772(_detect_bitboard_tactics)\n   192032    0.168    0.000    0.326    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:1682(generate_pseudo_legal_moves)\n   191132    0.095    0.000    0.315    0.000 C:\\Users\\patss\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\chess\\__init__.py:3516(_is_safe)\n\n\n"
+    },
+    "functions": [
+      {
+        "function": "_recursive_search",
+        "calls": 5208,
+        "total_time_ms": 31.0,
+        "cumulative_time_ms": 8456.0,
+        "percent": 99.97110697864002
+      },
+      {
+        "function": "_quiescence_search",
+        "calls": 6263,
+        "total_time_ms": 28.0,
+        "cumulative_time_ms": 6265.0,
+        "percent": 74.06799730619439
+      },
+      {
+        "function": "_evaluate_position",
+        "calls": 6263,
+        "total_time_ms": 20.0,
+        "cumulative_time_ms": 5827.0,
+        "percent": 68.8897398728164
+      },
+      {
+        "function": "fen",
+        "calls": 59088,
+        "total_time_ms": 61.0,
+        "cumulative_time_ms": 4144.0,
+        "percent": 48.992463022644785
+      },
+      {
+        "function": "epd",
+        "calls": 59088,
+        "total_time_ms": 95.0,
+        "cumulative_time_ms": 4072.0,
+        "percent": 48.14124262263744
+      },
+      {
+        "function": "board_fen",
+        "calls": 59088,
+        "total_time_ms": 1422.0,
+        "cumulative_time_ms": 3622.0,
+        "percent": 42.82111512259155
+      },
+      {
+        "function": "calculate_score_optimized",
+        "calls": 8744,
+        "total_time_ms": 10.0,
+        "cumulative_time_ms": 3431.0,
+        "percent": 40.56301656146097
+      },
+      {
+        "function": "evaluate_bitboard",
+        "calls": 8744,
+        "total_time_ms": 191.0,
+        "cumulative_time_ms": 3421.0,
+        "percent": 40.44479150590439
+      },
+      {
+        "function": "piece_at",
+        "calls": 4432540,
+        "total_time_ms": 1154.0,
+        "cumulative_time_ms": 1826.0,
+        "percent": 21.587895144630643
+      },
+      {
+        "function": "_order_moves_advanced",
+        "calls": 938,
+        "total_time_ms": 41.0,
+        "cumulative_time_ms": 1757.0,
+        "percent": 20.77214226129027
+      },
+      {
+        "function": "_get_position_key",
+        "calls": 14923,
+        "total_time_ms": 37.0,
+        "cumulative_time_ms": 1136.0,
+        "percent": 13.430366311226946
+      },
+      {
+        "function": "_get_nudge_bonus",
+        "calls": 13999,
+        "total_time_ms": 10.0,
+        "cumulative_time_ms": 1068.0,
+        "percent": 12.626435933442238
+      },
+      {
+        "function": "evaluate_pawn_structure",
+        "calls": 8744,
+        "total_time_ms": 26.0,
+        "cumulative_time_ms": 1034.0,
+        "percent": 12.224470744549881
+      },
+      {
+        "function": "evaluate_king_safety",
+        "calls": 8744,
+        "total_time_ms": 11.0,
+        "cumulative_time_ms": 893.0,
+        "percent": 10.55749746120217
+      },
+      {
+        "function": "generate_legal_moves",
+        "calls": 181598,
+        "total_time_ms": 104.0,
+        "cumulative_time_ms": 796.0,
+        "percent": 9.41071442230339
+      },
+      {
+        "function": "_evaluate_king_activity",
+        "calls": 8744,
+        "total_time_ms": 56.0,
+        "cumulative_time_ms": 689.0,
+        "percent": 8.145706327848035
+      },
+      {
+        "function": "piece_type_at",
+        "calls": 4589594,
+        "total_time_ms": 637.0,
+        "cumulative_time_ms": 637.0,
+        "percent": 7.530936038953843
+      },
+      {
+        "function": "push",
+        "calls": 52333,
+        "total_time_ms": 212.0,
+        "cumulative_time_ms": 497.0,
+        "percent": 5.8757852611617905
+      },
+      {
+        "function": "gives_check",
+        "calls": 31762,
+        "total_time_ms": 25.0,
+        "cumulative_time_ms": 460.0,
+        "percent": 5.438352555602462
+      }
+    ]
+  }
+}

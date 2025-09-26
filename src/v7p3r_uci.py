@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-V7P3R v12.0 UCI Interface
-Standard UCI interface for tournament play with enhanced nudge system and clean foundation
+V7P3R v12.2 UCI Interface
+Performance Recovery: Disabled nudge system, optimized evaluation, aggressive time management
 """
 
 import sys
@@ -28,7 +28,7 @@ def main():
                 break
                 
             elif command == "uci":
-                print("id name V7P3R v12.0")
+                print("id name V7P3R v12.2")
                 print("id author Pat Snyder")
                 print("uciok")
                 
@@ -45,9 +45,7 @@ def main():
             elif command == "ucinewgame":
                 board = chess.Board()
                 engine.new_game()
-                # V11.5 PERFORMANCE FIX: Clear tactical cache for new game
-                if hasattr(engine, 'tactical_cache'):
-                    engine.tactical_cache.clear()
+                # V12.2: Skip tactical cache clearing (not used in simplified version)
                 
             elif command == "position":
                 if len(parts) > 1:
@@ -106,39 +104,57 @@ def main():
                     elif part == "wtime" and i + 1 < len(parts):
                         try:
                             if board.turn == chess.WHITE:
-                                # More aggressive time management - compete with SlowMate
+                                # V12.2: Balanced aggressive time management
                                 remaining_time = int(parts[i + 1]) / 1000.0
-                                remaining_time_ms = int(parts[i + 1])  # V10.9: Store milliseconds for tactical detector
-                                engine.update_time_control_info(remaining_time_ms)  # V10.9: Update tactical detector
+                                # Skip tactical detector for simplified version
                                 
-                                # Use more time early game, less time in endgame
+                                # V12.2: Reasonable time usage - aim for using time but not burning it
                                 moves_played = len(board.move_stack)
-                                if moves_played < 20:
-                                    time_factor = 25.0  # Early game: use 1/25th
+                                if moves_played < 10:
+                                    time_factor = 30.0  # Opening: use 1/30th (10min game = 20s/move)
+                                elif moves_played < 20:
+                                    time_factor = 25.0  # Early game: use 1/25th  
                                 elif moves_played < 40:
-                                    time_factor = 30.0  # Mid game: use 1/30th  
+                                    time_factor = 20.0  # Mid game: use 1/20th (more time for complex positions)
                                 else:
-                                    time_factor = 40.0  # End game: use 1/40th
-                                time_limit = min(remaining_time / time_factor, 10.0)
+                                    time_factor = 15.0  # End game: use 1/15th (precision matters)
+                                
+                                # Apply reasonable time cap to prevent burning too much time
+                                calculated_time = remaining_time / time_factor
+                                if remaining_time > 120:  # More than 2 minutes remaining
+                                    time_limit = min(calculated_time, 30.0)  # Max 30s per move
+                                elif remaining_time > 60:   # 1-2 minutes remaining
+                                    time_limit = min(calculated_time, 15.0)  # Max 15s per move  
+                                else:  # Less than 1 minute - be more careful
+                                    time_limit = min(calculated_time, 8.0)   # Max 8s per move
                         except:
                             pass
                     elif part == "btime" and i + 1 < len(parts):
                         try:
                             if board.turn == chess.BLACK:
-                                # More aggressive time management - compete with SlowMate
+                                # V12.2: Balanced aggressive time management
                                 remaining_time = int(parts[i + 1]) / 1000.0
-                                remaining_time_ms = int(parts[i + 1])  # V10.9: Store milliseconds for tactical detector
-                                engine.update_time_control_info(remaining_time_ms)  # V10.9: Update tactical detector
+                                # Skip tactical detector for simplified version
                                 
-                                # Use more time early game, less time in endgame
+                                # V12.2: Reasonable time usage - aim for using time but not burning it
                                 moves_played = len(board.move_stack)
-                                if moves_played < 20:
-                                    time_factor = 25.0  # Early game: use 1/25th
+                                if moves_played < 10:
+                                    time_factor = 30.0  # Opening: use 1/30th (10min game = 20s/move)
+                                elif moves_played < 20:
+                                    time_factor = 25.0  # Early game: use 1/25th  
                                 elif moves_played < 40:
-                                    time_factor = 30.0  # Mid game: use 1/30th  
+                                    time_factor = 20.0  # Mid game: use 1/20th (more time for complex positions)
                                 else:
-                                    time_factor = 40.0  # End game: use 1/40th
-                                time_limit = min(remaining_time / time_factor, 10.0)
+                                    time_factor = 15.0  # End game: use 1/15th (precision matters)
+                                
+                                # Apply reasonable time cap to prevent burning too much time
+                                calculated_time = remaining_time / time_factor
+                                if remaining_time > 120:  # More than 2 minutes remaining
+                                    time_limit = min(calculated_time, 30.0)  # Max 30s per move
+                                elif remaining_time > 60:   # 1-2 minutes remaining
+                                    time_limit = min(calculated_time, 15.0)  # Max 15s per move  
+                                else:  # Less than 1 minute - be more careful
+                                    time_limit = min(calculated_time, 8.0)   # Max 8s per move
                         except:
                             pass
                 
