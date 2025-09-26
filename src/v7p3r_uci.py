@@ -104,57 +104,57 @@ def main():
                     elif part == "wtime" and i + 1 < len(parts):
                         try:
                             if board.turn == chess.WHITE:
-                                # V12.2: Balanced aggressive time management
+                                # V12.3: More aggressive time management
                                 remaining_time = int(parts[i + 1]) / 1000.0
                                 # Skip tactical detector for simplified version
                                 
-                                # V12.2: Reasonable time usage - aim for using time but not burning it
+                                # V12.3: More aggressive time usage to achieve better depth
                                 moves_played = len(board.move_stack)
                                 if moves_played < 10:
-                                    time_factor = 30.0  # Opening: use 1/30th (10min game = 20s/move)
+                                    time_factor = 25.0  # Reduced from 30.0 - use more time in opening
                                 elif moves_played < 20:
-                                    time_factor = 25.0  # Early game: use 1/25th  
+                                    time_factor = 20.0  # Reduced from 25.0 - more time in early game  
                                 elif moves_played < 40:
-                                    time_factor = 20.0  # Mid game: use 1/20th (more time for complex positions)
+                                    time_factor = 15.0  # Reduced from 20.0 - much more time for complex middle game
                                 else:
-                                    time_factor = 15.0  # End game: use 1/15th (precision matters)
+                                    time_factor = 12.0  # Reduced from 15.0 - more time in endgame for precision
                                 
-                                # Apply reasonable time cap to prevent burning too much time
+                                # V12.3: Higher time caps to allow deeper search
                                 calculated_time = remaining_time / time_factor
                                 if remaining_time > 120:  # More than 2 minutes remaining
-                                    time_limit = min(calculated_time, 30.0)  # Max 30s per move
+                                    time_limit = min(calculated_time, 45.0)  # Increased from 30.0s
                                 elif remaining_time > 60:   # 1-2 minutes remaining
-                                    time_limit = min(calculated_time, 15.0)  # Max 15s per move  
+                                    time_limit = min(calculated_time, 20.0)  # Increased from 15.0s  
                                 else:  # Less than 1 minute - be more careful
-                                    time_limit = min(calculated_time, 8.0)   # Max 8s per move
+                                    time_limit = min(calculated_time, 10.0)  # Increased from 8.0s
                         except:
                             pass
                     elif part == "btime" and i + 1 < len(parts):
                         try:
                             if board.turn == chess.BLACK:
-                                # V12.2: Balanced aggressive time management
+                                # V12.3: More aggressive time management
                                 remaining_time = int(parts[i + 1]) / 1000.0
                                 # Skip tactical detector for simplified version
                                 
-                                # V12.2: Reasonable time usage - aim for using time but not burning it
+                                # V12.3: More aggressive time usage to achieve better depth
                                 moves_played = len(board.move_stack)
                                 if moves_played < 10:
-                                    time_factor = 30.0  # Opening: use 1/30th (10min game = 20s/move)
+                                    time_factor = 25.0  # Reduced from 30.0 - use more time in opening
                                 elif moves_played < 20:
-                                    time_factor = 25.0  # Early game: use 1/25th  
+                                    time_factor = 20.0  # Reduced from 25.0 - more time in early game  
                                 elif moves_played < 40:
-                                    time_factor = 20.0  # Mid game: use 1/20th (more time for complex positions)
+                                    time_factor = 15.0  # Reduced from 20.0 - much more time for complex middle game
                                 else:
-                                    time_factor = 15.0  # End game: use 1/15th (precision matters)
+                                    time_factor = 12.0  # Reduced from 15.0 - more time in endgame for precision
                                 
-                                # Apply reasonable time cap to prevent burning too much time
+                                # V12.3: Higher time caps to allow deeper search
                                 calculated_time = remaining_time / time_factor
                                 if remaining_time > 120:  # More than 2 minutes remaining
-                                    time_limit = min(calculated_time, 30.0)  # Max 30s per move
+                                    time_limit = min(calculated_time, 45.0)  # Increased from 30.0s
                                 elif remaining_time > 60:   # 1-2 minutes remaining
-                                    time_limit = min(calculated_time, 15.0)  # Max 15s per move  
+                                    time_limit = min(calculated_time, 20.0)  # Increased from 15.0s  
                                 else:  # Less than 1 minute - be more careful
-                                    time_limit = min(calculated_time, 8.0)   # Max 8s per move
+                                    time_limit = min(calculated_time, 10.0)  # Increased from 8.0s
                         except:
                             pass
                 

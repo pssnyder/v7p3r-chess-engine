@@ -26,9 +26,7 @@ import json
 import os
 from typing import Optional, Tuple, List, Dict
 from collections import defaultdict
-from v7p3r_bitboard_evaluator import V7P3RScoringCalculationBitboard
-from v7p3r_advanced_pawn_evaluator import V7P3RAdvancedPawnEvaluator
-from v7p3r_king_safety_evaluator import V7P3RKingSafetyEvaluator
+from v7p3r_bitboard_evaluator import V7P3RBitboardEvaluator
 
 
 class PVTracker:
@@ -210,7 +208,8 @@ class V7P3REngine:
     # V12.2 FEATURE TOGGLES - Performance Recovery Configuration
     ENABLE_NUDGE_SYSTEM = False      # Disabled for v12.2 performance
     ENABLE_PV_FOLLOWING = True       # Keep - high value feature
-    ENABLE_ADVANCED_EVALUATION = False  # V12.2: Disabled for performance testing
+    # V12.3: Advanced evaluation is now integrated into the unified bitboard evaluator
+    # No longer need separate ENABLE_ADVANCED_EVALUATION flag
     
     def __init__(self):
         # Basic configuration
@@ -227,10 +226,8 @@ class V7P3REngine:
         self.default_depth = 6
         self.nodes_searched = 0
         
-        # Evaluation components - V12.0: Proven stable (bitboard + advanced)
-        self.bitboard_evaluator = V7P3RScoringCalculationBitboard(self.piece_values)
-        self.advanced_pawn_evaluator = V7P3RAdvancedPawnEvaluator()
-        self.king_safety_evaluator = V7P3RKingSafetyEvaluator()
+        # Evaluation components - V12.3: Unified bitboard evaluator with integrated advanced features
+        self.bitboard_evaluator = V7P3RBitboardEvaluator(self.piece_values)
         
         # Simple evaluation cache for speed
         self.evaluation_cache = {}  # position_hash -> evaluation
@@ -332,19 +329,30 @@ class V7P3REngine:
             # Iterative deepening
             best_move = legal_moves[0]
             best_score = -99999
+            iteration_times = []  # V12.3: Track iteration times for better prediction
             
             for current_depth in range(1, self.default_depth + 1):
                 iteration_start = time.time()
                 
-                # V11 ENHANCEMENT: Improved time checking with adaptive limits
+                # V12.3 ENHANCED: Smart time checking with exponential growth prediction
                 elapsed = time.time() - self.search_start_time
                 if elapsed > target_time:
                     break
                 
-                # Predict if next iteration will exceed max time
-                if current_depth > 1:
-                    last_iteration_time = time.time() - iteration_start
-                    if elapsed + (last_iteration_time * 2) > max_time:
+                # V12.3: Better prediction using exponential growth model
+                if current_depth > 2 and len(iteration_times) >= 2:
+                    # Calculate average growth factor from previous iterations
+                    if iteration_times[-1] > 0:
+                        growth_factor = min(iteration_times[-1] / max(iteration_times[-2], 0.01), 10.0)  # Cap at 10x growth
+                    else:
+                        growth_factor = 4.0  # Default assumption
+                    
+                    # Predict next iteration time
+                    predicted_next_time = iteration_times[-1] * growth_factor
+                    
+                    # Don't start if prediction shows we'll exceed max time by significant margin
+                    if elapsed + predicted_next_time > max_time:
+                        print(f"info string Skipping depth {current_depth}: predicted time {predicted_next_time:.2f}s would exceed limit")
                         break
                 
                 try:
@@ -378,14 +386,14 @@ class V7P3REngine:
                         best_move = previous_best
                         best_score = previous_score
                     
-                    # V11 ENHANCEMENT: Better time management for next iteration
+                    # V12.3 ENHANCED: Better time management with iteration tracking
                     elapsed = time.time() - self.search_start_time
                     iteration_time = time.time() - iteration_start
+                    iteration_times.append(iteration_time)  # V12.3: Track this iteration time
                     
                     if elapsed > target_time:
                         break
-                    elif elapsed + (iteration_time * 1.5) > max_time:
-                        break  # Don't start next iteration if likely to exceed max time
+                    # V12.3: Removed the simple 1.5x prediction in favor of exponential model above
                         
                 except Exception as e:
                     print(f"info string Search interrupted at depth {current_depth}: {e}")
@@ -511,6 +519,7 @@ class V7P3REngine:
         tactical_moves = []  # NEW: Bitboard tactical moves
         nudge_moves = []     # V11 PHASE 2: Nudge system moves
         tt_moves = []
+        castling_moves = []  # V12.3: High priority castling moves
         
         killer_set = set(self.killer_moves.get_killers(depth))
         
@@ -534,7 +543,13 @@ class V7P3REngine:
             elif nudge_bonus > 0:
                 nudge_moves.append((nudge_bonus, move))
             
-            # 3. Captures (will be sorted by MVV-LVA)
+            # 3. V12.3: CASTLING MOVES (very high priority - fix castling avoidance)
+            elif self._is_castling_move(board, move):
+                # Give castling moves a very high bonus to encourage them
+                castling_bonus = 200.0  # High priority for castling
+                castling_moves.append((castling_bonus, move))
+            
+            # 4. Captures (will be sorted by MVV-LVA)
             elif board.is_capture(move):
                 victim = board.piece_at(move.to_square)
                 victim_value = self.piece_values.get(victim.piece_type, 0) if victim else 0
@@ -549,18 +564,18 @@ class V7P3REngine:
                 
                 captures.append((total_score, move))
             
-            # 4. Checks (high priority for tactical play)
+            # 5. Checks (high priority for tactical play)
             elif board.gives_check(move):
                 # Add tactical bonus for checking moves too
                 tactical_bonus = self._detect_bitboard_tactics(board, move)
                 checks.append((tactical_bonus, move))
             
-            # 5. Killer moves
+            # 6. Killer moves
             elif move in killer_set:
                 killers.append(move)
                 self.search_stats['killer_hits'] += 1
             
-            # 6. Check for tactical patterns in quiet moves
+            # 7. Check for tactical patterns in quiet moves
             else:
                 history_score = self.history_heuristic.get_history_score(move)
                 tactical_bonus = self._detect_bitboard_tactics(board, move)
@@ -576,11 +591,13 @@ class V7P3REngine:
         tactical_moves.sort(key=lambda x: x[0], reverse=True)
         quiet_moves.sort(key=lambda x: x[0], reverse=True)
         nudge_moves.sort(key=lambda x: x[0], reverse=True)  # V11 PHASE 2
+        castling_moves.sort(key=lambda x: x[0], reverse=True)  # V12.3: Sort castling moves by bonus
         
-        # Combine in V11 PHASE 2 ENHANCED order
+        # Combine in V12.3 ENHANCED order (castling moves get high priority)
         ordered = []
         ordered.extend(tt_moves)  # TT move first
         ordered.extend([move for _, move in nudge_moves])  # Then nudge moves (V11 PHASE 2)
+        ordered.extend([move for _, move in castling_moves])  # V12.3: Then castling moves (high priority)
         ordered.extend([move for _, move in captures])  # Then captures (with tactical bonus)
         ordered.extend([move for _, move in checks])  # Then checks (with tactical bonus)
         ordered.extend([move for _, move in tactical_moves])  # Then tactical patterns
@@ -590,7 +607,7 @@ class V7P3REngine:
         return ordered
     
     def _evaluate_position(self, board: chess.Board) -> float:
-        """V12.2 OPTIMIZED: Position evaluation with Zobrist-based caching"""
+        """V12.3: Position evaluation with unified bitboard evaluator and Zobrist-based caching"""
         # V12.2 OPTIMIZATION: Use Zobrist hash instead of expensive FEN for cache key
         cache_key = self.zobrist.hash_position(board)
         
@@ -600,68 +617,53 @@ class V7P3REngine:
         
         self.search_stats['cache_misses'] += 1
         
-        # V10 Base bitboard evaluation for material and basic positioning
-        white_base = self.bitboard_evaluator.calculate_score_optimized(board, True)
-        black_base = self.bitboard_evaluator.calculate_score_optimized(board, False)
-        
-        # V12.2 CONDITIONAL: Advanced evaluation components 
-        try:
-            if self.ENABLE_ADVANCED_EVALUATION:
-                # V11 PHASE 3A: Advanced pawn structure evaluation
-                white_pawn_score = self.advanced_pawn_evaluator.evaluate_pawn_structure(board, True)
-                black_pawn_score = self.advanced_pawn_evaluator.evaluate_pawn_structure(board, False)
-                
-                # Advanced king safety evaluation
-                white_king_score = self.king_safety_evaluator.evaluate_king_safety(board, True)
-                black_king_score = self.king_safety_evaluator.evaluate_king_safety(board, False)
-            else:
-                # V12.2: Simplified evaluation for performance
-                white_pawn_score = 0  # Skip advanced pawn evaluation
-                black_pawn_score = 0
-                
-                # V12.2: Simple king safety - just check if king is castled
-                white_king_score = self._simple_king_safety(board, True)
-                black_king_score = self._simple_king_safety(board, False)
-            
-            # V10.6 ROLLBACK: Tactical pattern evaluation disabled for performance
-            # Phase 3B showed 70% performance degradation in tournament play
-            white_tactical_score = 0  # V10.6: Disabled Phase 3B
-            black_tactical_score = 0  # V10.6: Disabled Phase 3B
-            
-            # Combine all evaluation components
-            white_total = white_base + white_pawn_score + white_king_score + white_tactical_score
-            black_total = black_base + black_pawn_score + black_king_score + black_tactical_score
-            
-        except Exception as e:
-            # Fallback to base evaluation if advanced evaluation fails
-            white_total = white_base
-            black_total = black_base
-        
-        # Calculate final score from current player's perspective
-        if board.turn:  # White to move
-            final_score = white_total - black_total
-        else:  # Black to move
-            final_score = black_total - white_total
+        # V12.3: Use unified bitboard evaluator with integrated advanced features
+        # This includes material, positional, king safety, and advanced pawn structure all in one call
+        score = self.bitboard_evaluator.evaluate_bitboard(board, chess.WHITE)
         
         # Cache the result
-        self.evaluation_cache[cache_key] = final_score
-        return final_score
+        self.evaluation_cache[cache_key] = score
+        return score
     
     def _simple_king_safety(self, board: chess.Board, color: bool) -> float:
         """V12.2: Simplified king safety evaluation for performance"""
         score = 0.0
         
-        # Basic castling bonus
+        # V12.3: Enhanced castling evaluation
         if color == chess.WHITE:
             if board.has_kingside_castling_rights(color):
-                score += 15
+                score += 20  # Increased from 15 to emphasize castling value
             if board.has_queenside_castling_rights(color):
-                score += 10
+                score += 15  # Increased from 10
+                
+            # V12.3: Check if king is already castled (bonus for completed castling)
+            king_square = board.king(color)
+            if king_square:
+                # White king on g1 (kingside castled) or c1 (queenside castled)
+                if king_square == chess.G1:
+                    score += 30  # Bonus for completed kingside castling
+                elif king_square == chess.C1:
+                    score += 25  # Bonus for completed queenside castling
+                # Small penalty if king moved without castling (after move 10)
+                elif king_square != chess.E1 and len(board.move_stack) > 10:
+                    score -= 25  # Penalty for king moves without castling
         else:
             if board.has_kingside_castling_rights(color):
-                score += 15
+                score += 20
             if board.has_queenside_castling_rights(color):
-                score += 10
+                score += 15
+                
+            # Check if black king is castled
+            king_square = board.king(color)
+            if king_square:
+                # Black king on g8 (kingside castled) or c8 (queenside castled)
+                if king_square == chess.G8:
+                    score += 30  # Bonus for completed kingside castling
+                elif king_square == chess.C8:
+                    score += 25  # Bonus for completed queenside castling
+                # Small penalty if king moved without castling (after move 10)
+                elif king_square != chess.E8 and len(board.move_stack) > 10:
+                    score -= 25  # Penalty for king moves without castling
         
         return score
     
@@ -850,7 +852,7 @@ class V7P3REngine:
         """Analyze fork patterns using bitboards"""
         if piece.piece_type == chess.KNIGHT:
             # Knight fork detection
-            attacks = self.bitboard_evaluator.bitboard_evaluator.KNIGHT_ATTACKS[square]
+            attacks = self.bitboard_evaluator.KNIGHT_ATTACKS[square]
             enemy_pieces = 0
             high_value_targets = 0
             
@@ -987,7 +989,7 @@ class V7P3REngine:
 
     def _calculate_adaptive_time_allocation(self, board: chess.Board, base_time_limit: float) -> Tuple[float, float]:
         """
-        V11 ENHANCEMENT: Adaptive time management based on position complexity
+        V12.3 ENHANCEMENT: More aggressive adaptive time management for better depth reaching
         
         Returns: (target_time, max_time)
         """
@@ -995,25 +997,25 @@ class V7P3REngine:
         legal_moves = list(board.legal_moves)
         num_legal_moves = len(legal_moves)
         
-        # Base time factor
-        time_factor = 1.0
+        # V12.3: More aggressive base time factor
+        time_factor = 1.2  # Increased from 1.0 to use more time by default
         
-        # Game phase adjustment
+        # Game phase adjustment - V12.3: More aggressive in all phases
         if moves_played < 15:  # Opening
-            time_factor *= 0.8  # Faster in opening
+            time_factor *= 0.9  # Increased from 0.8 - use more time in opening for better development
         elif moves_played < 40:  # Middle game
-            time_factor *= 1.2  # More time in complex middle game
+            time_factor *= 1.4  # Increased from 1.2 - much more time in complex middle game
         else:  # Endgame
-            time_factor *= 0.9  # Moderate time in endgame
+            time_factor *= 1.1  # Increased from 0.9 - more time in endgame for precise calculation
         
         # Position complexity factors
         if board.is_check():
-            time_factor *= 1.3  # More time when in check
+            time_factor *= 1.4  # Increased from 1.3 - more time when in check
         
         if num_legal_moves <= 5:
-            time_factor *= 0.7  # Less time with few options
+            time_factor *= 0.8  # Increased from 0.7 - still less time but not too rushed
         elif num_legal_moves >= 35:
-            time_factor *= 1.4  # More time with many options
+            time_factor *= 1.6  # Increased from 1.4 - much more time with many options
         
         # Material balance consideration
         our_material = self._count_material(board, board.turn)
@@ -1021,13 +1023,13 @@ class V7P3REngine:
         material_diff = our_material - their_material
         
         if material_diff < -300:  # We're behind
-            time_factor *= 1.2  # Take more time when behind
+            time_factor *= 1.3  # Increased from 1.2 - take even more time when behind
         elif material_diff > 300:  # We're ahead
-            time_factor *= 0.9  # Play faster when ahead
+            time_factor *= 0.95  # Increased from 0.9 - play only slightly faster when ahead
         
-        # Calculate final times
-        target_time = min(base_time_limit * time_factor * 0.8, base_time_limit * 0.9)
-        max_time = min(base_time_limit * time_factor, base_time_limit)
+        # V12.3: More aggressive time allocation
+        target_time = min(base_time_limit * time_factor * 0.9, base_time_limit * 0.95)  # Increased from 0.8 and 0.9
+        max_time = min(base_time_limit * time_factor * 1.1, base_time_limit)  # Added 1.1 multiplier for max time
         
         return target_time, max_time
     
@@ -1080,6 +1082,29 @@ class V7P3REngine:
         reduction = min(reduction, search_depth - 1)
         
         return reduction
+
+    def _is_castling_move(self, board: chess.Board, move: chess.Move) -> bool:
+        """
+        V12.3: Detect if a move is a castling move
+        
+        Returns True if the move is kingside or queenside castling
+        """
+        # Check if the moving piece is a king
+        piece = board.piece_at(move.from_square)
+        if not piece or piece.piece_type != chess.KING:
+            return False
+        
+        # Check if this is a castling move (king moves 2 squares)
+        from_file = chess.square_file(move.from_square)
+        to_file = chess.square_file(move.to_square)
+        
+        # Kingside castling: king moves from e-file to g-file (2 squares right)
+        # Queenside castling: king moves from e-file to c-file (2 squares left)
+        if from_file == 4:  # King starting from e-file
+            if to_file == 6 or to_file == 2:  # g-file (kingside) or c-file (queenside)
+                return True
+        
+        return False
 
     # V12.2 CONDITIONAL: NUDGE SYSTEM METHODS (disabled for performance)
     
