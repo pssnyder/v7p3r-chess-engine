@@ -1,7 +1,32 @@
 #!/usr/bin/env python3
 """
-V7P3R v12.3 UCI Interface
+=== PAT'S V7P3R v12.3 UCI INTERFACE ===
 Performance Recovery: Disabled nudge system, optimized evaluation, aggressive time management
+
+UNIVERSAL CHESS INTERFACE (UCI) PROTOCOL IMPLEMENTATION
+This is the communication bridge between your engine and chess GUIs (Arena, ChessBase, etc.)
+
+=== UCI COMMANDS SUPPORTED (Pat's Quick Reference) ===
+- uci: Engine identification and options
+- setoption: Set engine parameters (acknowledged but not used in v12.3)  
+- isready: Engine readiness check
+- ucinewgame: Reset for new game
+- position: Set up board position with moves
+- go: Start thinking with time controls
+- go perft N: Performance testing (node counting)
+- quit: Shutdown engine
+
+=== TIME MANAGEMENT (Pat's Aggressive Settings) ===
+V12.3 uses more aggressive time allocation for deeper search:
+- Opening (moves <10): 25x divisor (more time for development)
+- Early game (moves 10-20): 20x divisor  
+- Middle game (moves 20-40): 15x divisor (most time for complex positions)
+- Endgame (moves >40): 12x divisor (precision calculations)
+
+MAXIMUM TIME CAPS (increased in v12.3):
+- >2 minutes remaining: 45s maximum per move
+- 1-2 minutes remaining: 20s maximum  
+- <1 minute remaining: 10s maximum (careful time management)
 """
 
 import sys
@@ -11,7 +36,17 @@ from v7p3r import V7P3REngine
 
 
 def main():
-    """UCI interface"""
+    """
+    === PAT'S UCI MAIN LOOP ===
+    UCI interface - handles all communication with chess GUIs
+    
+    COMMUNICATION FLOW:
+    1. Read command from stdin
+    2. Parse command and parameters  
+    3. Execute engine action
+    4. Send response to stdout
+    5. Flush output immediately (critical for real-time play)
+    """
     engine = V7P3REngine()
     board = chess.Board()
     
@@ -104,20 +139,20 @@ def main():
                     elif part == "wtime" and i + 1 < len(parts):
                         try:
                             if board.turn == chess.WHITE:
-                                # V12.3: More aggressive time management
+                                # === PAT'S V12.3 AGGRESSIVE TIME MANAGEMENT (WHITE) ===
                                 remaining_time = int(parts[i + 1]) / 1000.0
                                 # Skip tactical detector for simplified version
                                 
                                 # V12.3: More aggressive time usage to achieve better depth
                                 moves_played = len(board.move_stack)
                                 if moves_played < 10:
-                                    time_factor = 25.0  # Reduced from 30.0 - use more time in opening
+                                    time_factor = 25.0  # TUNE: Reduced from 30.0 - use more time in opening
                                 elif moves_played < 20:
-                                    time_factor = 20.0  # Reduced from 25.0 - more time in early game  
+                                    time_factor = 20.0  # TUNE: Reduced from 25.0 - more time in early game  
                                 elif moves_played < 40:
-                                    time_factor = 15.0  # Reduced from 20.0 - much more time for complex middle game
+                                    time_factor = 15.0  # TUNE: Reduced from 20.0 - much more time for complex middle game
                                 else:
-                                    time_factor = 12.0  # Reduced from 15.0 - more time in endgame for precision
+                                    time_factor = 12.0  # TUNE: Reduced from 15.0 - more time in endgame for precision
                                 
                                 # V12.3: Higher time caps to allow deeper search
                                 calculated_time = remaining_time / time_factor
@@ -132,20 +167,20 @@ def main():
                     elif part == "btime" and i + 1 < len(parts):
                         try:
                             if board.turn == chess.BLACK:
-                                # V12.3: More aggressive time management
+                                # === PAT'S V12.3 AGGRESSIVE TIME MANAGEMENT (BLACK) ===
                                 remaining_time = int(parts[i + 1]) / 1000.0
                                 # Skip tactical detector for simplified version
                                 
                                 # V12.3: More aggressive time usage to achieve better depth
                                 moves_played = len(board.move_stack)
                                 if moves_played < 10:
-                                    time_factor = 25.0  # Reduced from 30.0 - use more time in opening
+                                    time_factor = 25.0  # TUNE: Reduced from 30.0 - use more time in opening
                                 elif moves_played < 20:
-                                    time_factor = 20.0  # Reduced from 25.0 - more time in early game  
+                                    time_factor = 20.0  # TUNE: Reduced from 25.0 - more time in early game  
                                 elif moves_played < 40:
-                                    time_factor = 15.0  # Reduced from 20.0 - much more time for complex middle game
+                                    time_factor = 15.0  # TUNE: Reduced from 20.0 - much more time for complex middle game
                                 else:
-                                    time_factor = 12.0  # Reduced from 15.0 - more time in endgame for precision
+                                    time_factor = 12.0  # TUNE: Reduced from 15.0 - more time in endgame for precision
                                 
                                 # V12.3: Higher time caps to allow deeper search
                                 calculated_time = remaining_time / time_factor

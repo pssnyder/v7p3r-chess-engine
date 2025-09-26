@@ -1,8 +1,18 @@
-# V7P3R v12.3 Core Engine Files
+# === PAT'S V7P3R v12.3 CORE ENGINE FILES ===
 
-## Clean src/ Directory Structure
+## Clean src/ Directory Structure  
 
 The `src/` directory now contains only the essential v12.3 core engine files with unified evaluator:
+
+## === PAT'S ENGINE FEATURES QUICK MAP ===
+
+**Want to adjust search behavior?** → `v7p3r.py` lines 190-220 (piece values, depth, TT size)
+**Want to tune time management?** → `v7p3r.py` lines 1250-1280 + `v7p3r_uci.py` lines 90-120
+**Want to modify evaluation?** → `v7p3r_bitboard_evaluator.py` lines 50-90 (tuning constants)
+**Want to change move ordering?** → `v7p3r.py` lines 800-950 (advanced move ordering)
+**Want to adjust king safety?** → `v7p3r_bitboard_evaluator.py` lines 50-80 (king safety constants)
+**Want to tweak pawn evaluation?** → `v7p3r_bitboard_evaluator.py` lines 60-90 (pawn structure)
+**Want to enable/disable features?** → `v7p3r.py` lines 180-190 (feature toggles)
 
 ### **Core Engine Implementation**
 - **`v7p3r.py`** - Main chess engine with search, unified evaluation, and tactical detection

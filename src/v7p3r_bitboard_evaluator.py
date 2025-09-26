@@ -1,8 +1,31 @@
 #!/usr/bin/env python3
 """
-V7P3R Bitboard-Based Evaluation System v12.3
+=== PAT'S V7P3R BITBOARD EVALUATION SYSTEM v12.3 ===
 Ultra-fast evaluation using bitboard operations for tens of thousands of NPS
 Integrated king safety and advanced pawn evaluation for comprehensive positional assessment
+
+PERFORMANCE TARGET: 20,000+ evaluations per second (10x faster than piece-square tables)
+
+=== KEY EVALUATION COMPONENTS (Pat's Quick Reference) ===
+1. MATERIAL BALANCE: Standard piece values with fast bit counting
+2. CENTER CONTROL: Pawn and piece presence in center squares  
+3. PIECE DEVELOPMENT: Opening development bonuses/penalties
+4. KING SAFETY: Pawn shield, castling rights, king exposure (lines 200-350)
+5. ADVANCED PAWN STRUCTURE: Passed, doubled, isolated, backward pawns (lines 400-600)
+6. ENDGAME FACTORS: King activity, passed pawn promotion potential
+
+=== BITBOARD MAGIC (Pat's Performance Secrets) ===
+- Pre-calculated attack tables for instant piece mobility
+- Bitwise operations replace loops (AND, OR, XOR, shifts)
+- Population count (bin().count('1')) for instant piece counting
+- Mask-based pattern detection (files, ranks, diagonals)
+
+=== TUNING PARAMETERS (Pat's Adjustment Points) ===
+- Piece activity bonuses: lines 180-220
+- King safety factors: lines 50-80  
+- Pawn structure penalties: lines 60-90
+- Center control weights: lines 160-180
+- Development penalties: lines 200-240
 """
 
 import chess
@@ -11,8 +34,15 @@ from typing import Dict, Tuple
 
 class V7P3RBitboardEvaluator:
     """
+    === PAT'S HIGH-PERFORMANCE BITBOARD EVALUATION SYSTEM ===
     High-performance bitboard-based evaluation system with integrated advanced features
-    Uses bitwise operations for 10x+ speed improvement
+    Uses bitwise operations for 10x+ speed improvement over traditional evaluation
+    
+    ARCHITECTURE:
+    - Bitboard constants: Pre-calculated masks for ranks, files, centers, etc.
+    - Attack tables: Knight, king, pawn attacks for every square
+    - Pattern detection: Fast bitwise operations for tactical/positional patterns
+    - Integrated features: All evaluation in one pass for maximum speed
     """
     
     def __init__(self, piece_values: Dict[int, int]):
@@ -26,22 +56,26 @@ class V7P3RBitboardEvaluator:
         self._init_advanced_evaluation_constants()
     
     def _init_advanced_evaluation_constants(self):
-        """V12.3: Initialize constants for integrated king safety and pawn evaluation"""
+        """
+        === PAT'S ADVANCED EVALUATION CONSTANTS ===
+        V12.3: Initialize constants for integrated king safety and pawn evaluation
+        """
         
-        # King safety constants
-        self.pawn_shelter_bonus = [0, 8, 16, 24, 32]  # By number of shelter pawns
-        self.castling_rights_bonus = 25
-        self.king_exposure_penalty = 20
-        self.escape_square_bonus = 6
-        self.king_activity_bonus = 4  # For endgame
+        # === PAT'S KING SAFETY TUNING PARAMETERS ===
+        self.pawn_shelter_bonus = [0, 8, 16, 24, 32]  # By number of shelter pawns (TUNE: increase for safer play)
+        self.castling_rights_bonus = 25               # Bonus for having castling rights (TUNE: 20-35 range)
+        self.king_exposure_penalty = 20               # Penalty for exposed king (TUNE: 15-30 range)
+        self.escape_square_bonus = 6                  # Bonus for king escape squares (TUNE: 4-10 range)
+        self.king_activity_bonus = 4                  # For endgame king activity (TUNE: 2-8 range)
         
-        # Advanced pawn structure constants
-        self.passed_pawn_bonus = [0, 15, 25, 40, 65, 100, 150, 200]  # By rank
-        self.isolated_pawn_penalty = 12
-        self.doubled_pawn_penalty = 18
-        self.backward_pawn_penalty = 10
-        self.connected_pawn_bonus = 6
-        self.pawn_chain_bonus = 4
+        # === PAT'S ADVANCED PAWN STRUCTURE CONSTANTS ===
+        # MAJOR TUNING AREA: These values significantly impact playing style
+        self.passed_pawn_bonus = [0, 15, 25, 40, 65, 100, 150, 200]  # By rank (TUNE: more aggressive = higher values)
+        self.isolated_pawn_penalty = 12                               # Penalty for pawns without neighbors (TUNE: 8-20)
+        self.doubled_pawn_penalty = 18                                # Penalty for doubled pawns (TUNE: 12-25)
+        self.backward_pawn_penalty = 10                               # Penalty for backward pawns (TUNE: 6-15)
+        self.connected_pawn_bonus = 6                                 # Bonus for connected pawns (TUNE: 4-10)
+        self.pawn_chain_bonus = 4                                     # Bonus for pawn chains (TUNE: 2-8)
         
         # Pawn storm/shelter patterns
         self.pawn_storm_bonus = 8
@@ -219,8 +253,24 @@ class V7P3RBitboardEvaluator:
     
     def evaluate_bitboard(self, board: chess.Board, color: chess.Color) -> float:
         """
+        === PAT'S MAIN EVALUATION FUNCTION ===
         V12.3 ENHANCED: Ultra-fast bitboard evaluation with integrated advanced features
         Target: 15,000+ NPS with comprehensive positional evaluation
+        
+        EVALUATION FLOW:
+        1. Convert chess.Board to bitboards (fastest representation)
+        2. Game phase detection (opening/middle/endgame)
+        3. Material counting (ultra-fast bit population)
+        4. Center control and piece activity
+        5. Integrated king safety evaluation  
+        6. Advanced pawn structure analysis
+        7. Endgame-specific adjustments
+        8. Draw detection and prevention
+        
+        PERFORMANCE NOTES:
+        - All piece bitboards extracted once at start
+        - Game phase affects feature weights
+        - Bitwise operations throughout for maximum speed
         """
         
         # Convert chess.Board to bitboards for fast processing
@@ -248,23 +298,25 @@ class V7P3RBitboardEvaluator:
         
         score = 0.0
         
-        # 1. MATERIAL (ultra-fast bit counting)
-        score += self._popcount(white_pawns) * self.piece_values[chess.PAWN]
+        # === 1. PAT'S MATERIAL EVALUATION (Ultra-fast bit counting) ===
+        # This is the foundation - material balance using population count
+        score += self._popcount(white_pawns) * self.piece_values[chess.PAWN]       # White material
         score += self._popcount(white_knights) * self.piece_values[chess.KNIGHT]
         score += self._popcount(white_bishops) * self.piece_values[chess.BISHOP]
         score += self._popcount(white_rooks) * self.piece_values[chess.ROOK]
         score += self._popcount(white_queens) * self.piece_values[chess.QUEEN]
         
-        score -= self._popcount(black_pawns) * self.piece_values[chess.PAWN]
+        score -= self._popcount(black_pawns) * self.piece_values[chess.PAWN]       # Black material
         score -= self._popcount(black_knights) * self.piece_values[chess.KNIGHT]
         score -= self._popcount(black_bishops) * self.piece_values[chess.BISHOP]
         score -= self._popcount(black_rooks) * self.piece_values[chess.ROOK]
         score -= self._popcount(black_queens) * self.piece_values[chess.QUEEN]
         
-        # 2. CENTER CONTROL (enhanced for opening aggression)
-        white_center_pawns = white_pawns & self.CENTER
+        # === 2. PAT'S CENTER CONTROL EVALUATION ===
+        # Enhanced for opening aggression - controlling center is crucial
+        white_center_pawns = white_pawns & self.CENTER      # d4, d5, e4, e5 squares
         black_center_pawns = black_pawns & self.CENTER
-        score += self._popcount(white_center_pawns) * 12
+        score += self._popcount(white_center_pawns) * 12    # TUNE: Increase for more aggressive center play
         score -= self._popcount(black_center_pawns) * 12
         
         white_extended_center = white_pawns & self.EXTENDED_CENTER
@@ -317,9 +369,10 @@ class V7P3RBitboardEvaluator:
             score -= self._popcount(white_back_pieces) * 4
             score += self._popcount(black_back_pieces) * 4
         
-        # 4. V12.3 INTEGRATED KING SAFETY EVALUATION
+        # === 4. PAT'S INTEGRATED KING SAFETY EVALUATION ===
+        # V12.3: Phase-dependent king evaluation
         if not is_endgame:
-            # Get king positions for detailed analysis
+            # MIDDLE GAME: King safety is paramount
             white_king_square = self._get_king_square(white_king)
             black_king_square = self._get_king_square(black_king)
             
@@ -333,7 +386,7 @@ class V7P3RBitboardEvaluator:
                     board, black_king_square, False, black_pawns, white_pawns, all_pieces)
                 score -= king_safety_black
         else:
-            # Endgame: King activity is important
+            # ENDGAME: King activity is important (help with pawn promotion)
             white_king_square = self._get_king_square(white_king)
             black_king_square = self._get_king_square(black_king)
             
@@ -342,7 +395,9 @@ class V7P3RBitboardEvaluator:
             if black_king_square >= 0:
                 score -= self._evaluate_king_activity_fast(black_king_square, False)
         
-        # 5. V12.3 INTEGRATED ADVANCED PAWN EVALUATION
+        # === 5. PAT'S INTEGRATED ADVANCED PAWN EVALUATION ===
+        # V12.3: Comprehensive pawn structure analysis
+        # This is a MAJOR evaluation component - pawn structure often determines the game
         white_pawn_score = self._evaluate_advanced_pawn_structure_fast(
             board, white_pawns, black_pawns, True, is_endgame)
         black_pawn_score = self._evaluate_advanced_pawn_structure_fast(
