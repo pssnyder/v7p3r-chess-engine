@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-V7P3R v12.2 UCI Interface
+V7P3R v12.3 UCI Interface
 Performance Recovery: Disabled nudge system, optimized evaluation, aggressive time management
 """
 
@@ -28,7 +28,7 @@ def main():
                 break
                 
             elif command == "uci":
-                print("id name V7P3R v12.2")
+                print("id name V7P3R v12.3")
                 print("id author Pat Snyder")
                 print("uciok")
                 

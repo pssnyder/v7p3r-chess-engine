@@ -1,19 +1,21 @@
 #!/usr/bin/env python3
 """
-V7P3R Chess Engine v12.0 - Clean Foundation
-Built from v10.8 stable baseline with proven v11 improvements
-Core: Search + Evaluation + Nudge System
+V7P3R Chess Engine v12.3 - Unified Evaluator
+Built from v12.2 with integrated advanced evaluation system
+Core: Search + Unified Bitboard Evaluation + Nudge System
 
 ARCHITECTURE:
 - Phase 1: Core search (alpha-beta, TT, iterative deepening)
 - Phase 2: Enhanced nudge system (2160+ positions)  
-- Phase 3A: Advanced evaluation (pawns, king safety)
-- Clean codebase focused on playing strength and stability
+- Phase 3: Unified bitboard evaluator (material, positional, king safety, pawn structure)
+- Clean codebase with consolidated evaluation for performance and maintainability
 
 VERSION LINEAGE:
 - v10.8: Recovery baseline (19.5/30 tournament points)
 - v11.x: Experimental variants (lessons learned, features extracted)
 - v12.0: Clean evolution with proven improvements only
+- v12.2: Performance optimizations and time management improvements
+- v12.3: Unified evaluator architecture with integrated advanced patterns
 
 Author: Pat Snyder
 """
@@ -203,10 +205,10 @@ class ZobristHashing:
 
 
 class V7P3REngine:
-    """V7P3R Chess Engine v12.2 - Performance Recovery"""
+    """V7P3R Chess Engine v12.3 - Unified Evaluator Performance"""
     
-    # V12.2 FEATURE TOGGLES - Performance Recovery Configuration
-    ENABLE_NUDGE_SYSTEM = False      # Disabled for v12.2 performance
+    # V12.3 FEATURE TOGGLES - Unified Evaluator Configuration
+    ENABLE_NUDGE_SYSTEM = False      # Disabled for v12.3 performance
     ENABLE_PV_FOLLOWING = True       # Keep - high value feature
     # V12.3: Advanced evaluation is now integrated into the unified bitboard evaluator
     # No longer need separate ENABLE_ADVANCED_EVALUATION flag

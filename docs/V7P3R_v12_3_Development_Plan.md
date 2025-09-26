@@ -166,28 +166,28 @@ if (move_is_castling) {
 ## Implementation Roadmap
 
 ### Week 1: Castling Fix
-- [ ] Implement castling move bonus system
-- [ ] Fix castling rights evaluation
-- [ ] Test castling behavior in various positions
-- [ ] Validate fix doesn't break other heuristics
+- [X] Implement castling move bonus system
+- [X] Fix castling rights evaluation
+- [X] Test castling behavior in various positions
+- [X] Validate fix doesn't break other heuristics
 
 ### Week 2: Time Management Overhaul  
-- [ ] Implement intelligent iteration cutoff
-- [ ] Adjust time allocation factors
-- [ ] Add position complexity analysis
-- [ ] Tournament testing of time improvements
+- [X] Implement intelligent iteration cutoff
+- [X] Adjust time allocation factors
+- [X] Add position complexity analysis
+- [X] Tournament testing of time improvements
 
 ### Week 3: Performance Baseline
-- [ ] Comprehensive depth-time analysis
-- [ ] NPS benchmarking across position types
-- [ ] Identify performance bottlenecks
-- [ ] Compare with v10.8 characteristics
+- [X] Comprehensive depth-time analysis
+- [X] NPS benchmarking across position types
+- [X] Identify performance bottlenecks
+- [X] Compare with v10.8 characteristics
 
 ### Week 4: Feature Analysis & Planning
-- [ ] Systematic evaluation of disabled features
-- [ ] Cost-benefit analysis for re-enabling components
-- [ ] Plan v12.4+ feature roadmap
-- [ ] Tournament validation testing
+- [X] Systematic evaluation of disabled features
+- [X] Cost-benefit analysis for re-enabling components
+- [X] Plan v12.4+ feature roadmap
+- [X] Tournament validation testing
 
 ## Success Metrics
 

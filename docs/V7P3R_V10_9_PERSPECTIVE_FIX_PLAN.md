@@ -157,14 +157,14 @@ return score  # Remove: if color == chess.WHITE else -score
 ## Success Criteria
 
 ### Primary Success
-- [ ] **Color performance gap < 10%** (currently 42%)
-- [ ] **No regression against external engines**
-- [ ] **Tactical position solving improves**
+- [X] **Color performance gap < 10%** (currently 42%)
+- [X] **No regression against external engines**
+- [X] **Tactical position solving improves**
 
 ### Secondary Success  
-- [ ] **Overall Elo improvement > 100 points**
-- [ ] **Consistent evaluation across positions**
-- [ ] **Ready for v11 development**
+- [X] **Overall Elo improvement > 100 points**
+- [X] **Consistent evaluation across positions**
+- [X] **Ready for v11 development**
 
 ## Timeline
 
