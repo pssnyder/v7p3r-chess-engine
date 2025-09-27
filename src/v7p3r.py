@@ -18,6 +18,8 @@ Core: Search + Unified Bitboard Evaluation + Nudge System
 5. BITBOARD EVALUATION: Ultra-fast position evaluation (v7p3r_bitboard_evaluator.py)
 6. NUDGE SYSTEM: Position-specific move hints (DISABLED for performance in v12.3)
 7. TIME MANAGEMENT: Adaptive allocation based on game phase and complexity (lines 1200-1300)
+8. UCI COMMUNICATION: Standard protocol for engine communication (lines 1400-1500)
+   8a. UCI Interface: Handles tournament calls (v7p3r_uci.py)
 
 === HEURISTICS & ADJUSTMENT POINTS ===
 KEY VALUES TO TUNE:
@@ -59,13 +61,13 @@ class PVTracker:
     === PV FOLLOWING SYSTEM (Pat's Feature #1) ===
     Tracks principal variation using predicted board states for instant move recognition
     
-    HOW IT WORKS:
+    WORKFLOW:
     - After each search, stores the expected sequence of moves (PV)
     - Predicts opponent's response and prepares our counter-move
     - If opponent plays the predicted move, we instantly respond (no search needed)
     - Saves significant time by avoiding re-search of already calculated lines
     
-    ADJUSTMENT POINTS:
+    CONFIGURATION:
     - Minimum PV length required: 3 moves (line 20)
     - Can be disabled via ENABLE_PV_FOLLOWING flag (line 190)
     """
@@ -315,7 +317,7 @@ class V7P3REngine:
         
         # === PAT'S SEARCH CONFIGURATION ===
         # MAIN TUNING PARAMETER: Increase for stronger but slower play
-        self.default_depth = 6        # Base search depth (can go up to 8 for stronger play)
+        self.default_depth = 7        # 🔧 INCREASED from 6 - better move selection with fixed evaluation
         self.nodes_searched = 0       # Performance counter
         
         # === PAT'S EVALUATION SYSTEM ===
@@ -755,7 +757,8 @@ class V7P3REngine:
         
         # V12.3: Use unified bitboard evaluator with integrated advanced features
         # This includes material, positional, king safety, and advanced pawn structure all in one call
-        score = self.bitboard_evaluator.evaluate_bitboard(board, chess.WHITE)
+        # 🚨 BUG FIX: Always evaluate from current player's perspective for proper negamax
+        score = self.bitboard_evaluator.evaluate_bitboard(board, board.turn)
         
         # Cache the result
         self.evaluation_cache[cache_key] = score
@@ -1155,15 +1158,15 @@ class V7P3REngine:
         num_legal_moves = len(legal_moves)
         
         # V12.3: More aggressive base time factor
-        time_factor = 1.2  # Increased from 1.0 to use more time by default
+        time_factor = 1.0  # 🔧 REDUCED from 1.2 - less aggressive time usage for more reliable play
         
-        # Game phase adjustment - V12.3: More aggressive in all phases
+        # Game phase adjustment - V12.3: Balanced time allocation
         if moves_played < 15:  # Opening
-            time_factor *= 0.9  # Increased from 0.8 - use more time in opening for better development
-        elif moves_played < 40:  # Middle game
-            time_factor *= 1.4  # Increased from 1.2 - much more time in complex middle game
+            time_factor *= 0.8  # 🔧 REDUCED from 0.9 - faster development moves
+        elif moves_played < 40:  # Middle game  
+            time_factor *= 1.2  # 🔧 REDUCED from 1.4 - still more time but not excessive
         else:  # Endgame
-            time_factor *= 1.1  # Increased from 0.9 - more time in endgame for precise calculation
+            time_factor *= 1.0  # 🔧 REDUCED from 1.1 - normal time for endgame precision
         
         # Position complexity factors
         if board.is_check():

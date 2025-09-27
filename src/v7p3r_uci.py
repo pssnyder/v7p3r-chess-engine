@@ -139,20 +139,20 @@ def main():
                     elif part == "wtime" and i + 1 < len(parts):
                         try:
                             if board.turn == chess.WHITE:
-                                # === PAT'S V12.3 AGGRESSIVE TIME MANAGEMENT (WHITE) ===
+                                # === PAT'S V12.3 BALANCED TIME MANAGEMENT (WHITE) ===
                                 remaining_time = int(parts[i + 1]) / 1000.0
                                 # Skip tactical detector for simplified version
                                 
-                                # V12.3: More aggressive time usage to achieve better depth
+                                # V12.3: More balanced time usage for reliable play
                                 moves_played = len(board.move_stack)
                                 if moves_played < 10:
-                                    time_factor = 25.0  # TUNE: Reduced from 30.0 - use more time in opening
+                                    time_factor = 30.0  # 🔧 INCREASED from 25.0 - safer opening play
                                 elif moves_played < 20:
-                                    time_factor = 20.0  # TUNE: Reduced from 25.0 - more time in early game  
+                                    time_factor = 25.0  # 🔧 INCREASED from 20.0 - safer early game  
                                 elif moves_played < 40:
-                                    time_factor = 15.0  # TUNE: Reduced from 20.0 - much more time for complex middle game
+                                    time_factor = 20.0  # 🔧 INCREASED from 15.0 - more conservative middle game
                                 else:
-                                    time_factor = 12.0  # TUNE: Reduced from 15.0 - more time in endgame for precision
+                                    time_factor = 18.0  # 🔧 INCREASED from 12.0 - safer endgame play
                                 
                                 # V12.3: Higher time caps to allow deeper search
                                 calculated_time = remaining_time / time_factor
@@ -167,20 +167,20 @@ def main():
                     elif part == "btime" and i + 1 < len(parts):
                         try:
                             if board.turn == chess.BLACK:
-                                # === PAT'S V12.3 AGGRESSIVE TIME MANAGEMENT (BLACK) ===
+                                # === PAT'S V12.3 BALANCED TIME MANAGEMENT (BLACK) ===
                                 remaining_time = int(parts[i + 1]) / 1000.0
                                 # Skip tactical detector for simplified version
                                 
-                                # V12.3: More aggressive time usage to achieve better depth
+                                # V12.3: More balanced time usage for reliable play
                                 moves_played = len(board.move_stack)
                                 if moves_played < 10:
-                                    time_factor = 25.0  # TUNE: Reduced from 30.0 - use more time in opening
+                                    time_factor = 30.0  # 🔧 INCREASED from 25.0 - safer opening play
                                 elif moves_played < 20:
-                                    time_factor = 20.0  # TUNE: Reduced from 25.0 - more time in early game  
+                                    time_factor = 25.0  # 🔧 INCREASED from 20.0 - safer early game  
                                 elif moves_played < 40:
-                                    time_factor = 15.0  # TUNE: Reduced from 20.0 - much more time for complex middle game
+                                    time_factor = 20.0  # 🔧 INCREASED from 15.0 - more conservative middle game
                                 else:
-                                    time_factor = 12.0  # TUNE: Reduced from 15.0 - more time in endgame for precision
+                                    time_factor = 18.0  # 🔧 INCREASED from 12.0 - safer endgame play
                                 
                                 # V12.3: Higher time caps to allow deeper search
                                 calculated_time = remaining_time / time_factor
