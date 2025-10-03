@@ -209,7 +209,7 @@ class V7P3REngine:
     """V7P3R Chess Engine v12.4 - Enhanced Castling"""
     
     # V12.4 FEATURE TOGGLES - Enhanced Castling Configuration
-    ENABLE_NUDGE_SYSTEM = False      # Disabled for v12.4 performance
+    ENABLE_NUDGE_SYSTEM = True       # V12.5: Re-enabled with Intelligent Nudge System v2.0
     ENABLE_PV_FOLLOWING = True       # Keep - high value feature
     ENABLE_ADVANCED_EVALUATION = False  # V12.4: Disabled for performance testing
     
@@ -242,8 +242,9 @@ class V7P3REngine:
         self.history_heuristic = HistoryHeuristic()
         self.zobrist = ZobristHashing()
         
-        # V12.2 CONDITIONAL: Nudge System Integration (DISABLED for performance)
+        # V12.2 CONDITIONAL: Nudge System Integration (V12.5: Enhanced with Intelligent Nudges v2.0)
         if self.ENABLE_NUDGE_SYSTEM:
+            # Initialize legacy nudge database
             self.nudge_database = {}
             self.nudge_stats = {
                 'hits': 0,
@@ -260,6 +261,10 @@ class V7P3REngine:
                 'min_eval': 0.4,          # Move must have eval improvement >= 0.4
                 'confidence_threshold': 12.0  # Combined confidence score threshold
             }
+            
+            # V12.5: Initialize Intelligent Nudge System v2.0
+            self.intelligent_nudges = None
+            self._init_intelligent_nudges()
             
             self._load_nudge_database()
         else:
@@ -1142,52 +1147,65 @@ class V7P3REngine:
         return hashlib.md5(key_fen.encode()).hexdigest()[:12]
     
     def _get_nudge_bonus(self, board: chess.Board, move: chess.Move) -> float:
-        """V12.2: Calculate nudge bonus for a move in current position (disabled)"""
+        """V12.5: Enhanced nudge bonus using Intelligent Nudge System v2.0"""
         if not self.ENABLE_NUDGE_SYSTEM:
             return 0.0
+        
+        total_bonus = 0.0
+        move_uci = move.uci()
+        
+        # 1. INTELLIGENT NUDGE SYSTEM v2.0 - Performance optimized
+        if hasattr(self, 'intelligent_nudges') and self.intelligent_nudges is not None:
+            # Opening move bonuses for better center control
+            if board.fullmove_number <= 8:
+                opening_bonus = self.intelligent_nudges.get_opening_bonus(move_uci, board.fullmove_number)
+                total_bonus += opening_bonus
             
-        """Calculate nudge bonus for a move in current position"""
+            # Move ordering bonuses for historically good moves
+            ordering_bonus = self.intelligent_nudges.get_move_ordering_bonus(move_uci)
+            total_bonus += ordering_bonus
+            
+            # Check if this is a preferred move with confidence
+            is_preferred, confidence_bonus = self.intelligent_nudges.is_preferred_move(move_uci, board.fen())
+            if is_preferred:
+                total_bonus += confidence_bonus
+        
+        # 2. LEGACY NUDGE DATABASE (if available)
         try:
             position_key = self._get_position_key(board)
             
             # Check if position exists in nudge database
-            if position_key not in self.nudge_database:
-                self.nudge_stats['misses'] += 1
-                return 0.0
-            
-            position_data = self.nudge_database[position_key]
-            move_uci = move.uci()
-            
-            # Check if move exists in nudge data
-            if 'moves' not in position_data or move_uci not in position_data['moves']:
-                return 0.0
-            
-            move_data = position_data['moves'][move_uci]
-            
-            # Calculate bonus based on frequency and evaluation
-            frequency = move_data.get('frequency', 1)
-            evaluation = move_data.get('eval', 0.0)
-            
-            # Base bonus for nudge moves
-            base_bonus = 50.0
-            
-            # Frequency multiplier (more frequent = higher bonus, capped at 3x)
-            frequency_multiplier = min(frequency / 2.0, 3.0)
-            
-            # Evaluation multiplier (better evaluation = higher bonus)
-            eval_multiplier = max(evaluation / 0.5, 1.0) if evaluation > 0 else 1.0
-            
-            total_bonus = base_bonus * frequency_multiplier * eval_multiplier
-            
-            # Update statistics
-            self.nudge_stats['hits'] += 1
-            self.nudge_stats['moves_boosted'] += 1
-            
-            return total_bonus
+            if position_key in self.nudge_database:
+                position_data = self.nudge_database[position_key]
+                
+                # Check if move exists in nudge data
+                if 'moves' in position_data and move_uci in position_data['moves']:
+                    move_data = position_data['moves'][move_uci]
+                    
+                    # Calculate bonus based on frequency and evaluation
+                    frequency = move_data.get('frequency', 1)
+                    evaluation = move_data.get('eval', 0.0)
+                    confidence = move_data.get('confidence', 0.5)
+                    
+                    # Legacy bonus calculation (reduced to avoid double-counting)
+                    if confidence >= 0.5:  # Only trust high-confidence moves
+                        legacy_bonus = min(30.0, frequency * 5 + max(0, evaluation) * 10)
+                        total_bonus += legacy_bonus
+                    
+                    # Update statistics
+                    self.nudge_stats['hits'] += 1
+                    self.nudge_stats['moves_boosted'] += 1
+                else:
+                    self.nudge_stats['misses'] += 1
             
         except Exception as e:
             # Silently handle errors to avoid disrupting search
-            return 0.0
+            pass
+        
+        # Scale total bonus to prevent overwhelming other move ordering factors
+        scaled_bonus = min(25.0, total_bonus * 0.4)  # Max 25 points, 40% influence
+        
+        return scaled_bonus
 
     def _check_instant_nudge_move(self, board: chess.Board) -> Optional[chess.Move]:
         """V12.2: Check for instant nudge moves (disabled)"""
@@ -1256,3 +1274,25 @@ class V7P3REngine:
         except Exception as e:
             # Silently handle errors to avoid disrupting search
             return None
+    
+    def _init_intelligent_nudges(self):
+        """V12.5: Initialize the Intelligent Nudge System v2.0"""
+        try:
+            from .v7p3r_intelligent_nudges import V7P3RIntelligentNudges
+            self.intelligent_nudges = V7P3RIntelligentNudges()
+            print("🧠 V7P3R Intelligent Nudge System v2.0 activated")
+        except (ImportError, ModuleNotFoundError):
+            # Try without relative import
+            try:
+                import sys
+                import os
+                sys.path.append(os.path.dirname(__file__))
+                from v7p3r_intelligent_nudges import V7P3RIntelligentNudges
+                self.intelligent_nudges = V7P3RIntelligentNudges()
+                print("🧠 V7P3R Intelligent Nudge System v2.0 activated")
+            except (ImportError, ModuleNotFoundError):
+                print("⚠️  Intelligent Nudge System not available - using legacy nudges only")
+                self.intelligent_nudges = None
+        except Exception as e:
+            print(f"⚠️  Intelligent Nudge System initialization error: {e}")
+            self.intelligent_nudges = None
