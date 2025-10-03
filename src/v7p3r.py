@@ -1,27 +1,19 @@
 #!/usr/bin/env python3
 """
-V7P3R Chess Engine v12.4 - Enhanced Castling Evaluation
-Built from v12.2 stable baseline with intelligent castling assessment
-Core: Search + Evaluation + Smart Castling Detection
+V7P3R Chess Engine v12.0 - Clean Foundation
+Built from v10.8 stable baseline with proven v11 improvements
+Core: Search + Evaluation + Nudge System
 
 ARCHITECTURE:
 - Phase 1: Core search (alpha-beta, TT, iterative deepening)
 - Phase 2: Enhanced nudge system (2160+ positions)  
 - Phase 3A: Advanced evaluation (pawns, king safety)
-- Phase 4: Smart castling evaluation (v12.4 NEW)
-
-V12.4 NEW FEATURES:
-- Castling state detection (actual castle vs manual king movement)
-- Enhanced penalties for wasted castling rights
-- Improved move ordering for castling opportunities
-- Prevents "fake castling" behavior
+- Clean codebase focused on playing strength and stability
 
 VERSION LINEAGE:
 - v10.8: Recovery baseline (19.5/30 tournament points)
 - v11.x: Experimental variants (lessons learned, features extracted)
 - v12.0: Clean evolution with proven improvements only
-- v12.2: Performance optimizations, tournament-ready (23.5/40 points)
-- v12.4: Enhanced castling intelligence
 
 Author: Pat Snyder
 """
@@ -96,9 +88,10 @@ class PVTracker:
             # Position matches prediction - return instant move
             move_to_play = self.next_our_move
             
-            # Clean UCI output for PV following
+            # Clean UCI output for PV following - FIXED UCI format
             remaining_pv_str = self.pv_display_string if self.pv_display_string else str(move_to_play)
-            print(f"info depth PV score cp 0 nodes 0 time 0 pv {remaining_pv_str}")
+            print(f"info depth 1 score cp 0 nodes 0 time 0 pv {remaining_pv_str}")
+            print(f"info string PV prediction match")
             
             # Set up for next prediction if we have more moves
             self._setup_next_prediction(current_board)
@@ -213,12 +206,12 @@ class ZobristHashing:
 
 
 class V7P3REngine:
-    """V7P3R Chess Engine v12.2 - Performance Recovery"""
+    """V7P3R Chess Engine v12.4 - Enhanced Castling"""
     
-    # V12.2 FEATURE TOGGLES - Performance Recovery Configuration
-    ENABLE_NUDGE_SYSTEM = False      # Disabled for v12.2 performance
+    # V12.4 FEATURE TOGGLES - Enhanced Castling Configuration
+    ENABLE_NUDGE_SYSTEM = False      # Disabled for v12.4 performance
     ENABLE_PV_FOLLOWING = True       # Keep - high value feature
-    ENABLE_ADVANCED_EVALUATION = False  # V12.2: Disabled for performance testing
+    ENABLE_ADVANCED_EVALUATION = False  # V12.4: Disabled for performance testing
     
     def __init__(self):
         # Basic configuration
@@ -330,8 +323,8 @@ class V7P3REngine:
                     time_saved = time_limit * 0.8  # Estimate time that would have been used
                     self.nudge_stats['instant_time_saved'] += time_saved
 
-                    # Output instant move info
-                    print(f"info depth NUDGE score cp 50 nodes 0 time 0 pv {instant_nudge_move}")
+                    # Output instant move info - FIXED UCI format
+                    print(f"info depth 1 score cp 50 nodes 0 time 0 pv {instant_nudge_move}")
                     print(f"info string Instant nudge move: {instant_nudge_move} (high confidence)")
 
                     return instant_nudge_move            # V11 ENHANCEMENT: Adaptive time management

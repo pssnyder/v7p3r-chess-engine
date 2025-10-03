@@ -268,15 +268,8 @@ class V7P3RBitboardEvaluator:
             score -= white_undeveloped * 12  # Penalty for undeveloped White pieces
             score += black_undeveloped * 12  # Penalty for undeveloped Black pieces
         
-        # 4. KING SAFETY (V12.1: INCREASED castling bonus for better king safety)
-        if white_king & self.WHITE_KINGSIDE_CASTLE:
-            score += 40  # Increased from 20 to 40
-        if white_king & self.WHITE_QUEENSIDE_CASTLE:
-            score += 30  # Increased from 15 to 30
-        if black_king & self.BLACK_KINGSIDE_CASTLE:
-            score -= 40  # Increased from 20 to 40
-        if black_king & self.BLACK_QUEENSIDE_CASTLE:
-            score -= 30  # Increased from 15 to 30
+        # 4. ENHANCED KING SAFETY & CASTLING EVALUATION (V12.4)
+        score += self._evaluate_enhanced_castling(board, color)
         
         # 5. PAWN STRUCTURE (passed pawns - ultra-fast)
         score += self._count_passed_pawns(white_pawns, black_pawns, True) * 20
@@ -358,6 +351,111 @@ class V7P3RBitboardEvaluator:
             pawns &= pawns - 1
         
         return passed_count
+    
+    def _evaluate_enhanced_castling(self, board: chess.Board, color: chess.Color) -> float:
+        """
+        Enhanced castling evaluation for V12.4
+        Rewards actual castling, penalizes wasted castling rights
+        """
+        score = 0.0
+        
+        # Determine if we're in opening phase
+        opening_phase = len(board.move_stack) < 20
+        
+        if color == chess.WHITE:
+            has_castled = self._has_castled(board, chess.WHITE)
+            
+            if has_castled:
+                # Reward successful castling - BALANCED for v12.4
+                score += 50.0  # Reduced from 150 to 50
+                king_square = board.king(chess.WHITE)
+                if king_square in [chess.G1, chess.C1]:
+                    score += 25.0  # Reduced safety bonus
+            else:
+                # Check castling availability
+                can_castle_kingside = board.has_kingside_castling_rights(chess.WHITE)
+                can_castle_queenside = board.has_queenside_castling_rights(chess.WHITE)
+                
+                if opening_phase:
+                    if can_castle_kingside:
+                        score += 30.0  # Reduced from 80 to 30
+                    if can_castle_queenside:
+                        score += 20.0  # Reduced from 60 to 20
+                    
+                    # Penalty for moving king without castling
+                    king_square = board.king(chess.WHITE)
+                    if king_square != chess.E1 and not has_castled:
+                        score -= 50.0
+                else:
+                    # Mild penalty for unused castling in middlegame
+                    if can_castle_kingside or can_castle_queenside:
+                        score -= 10.0
+        
+        else:  # BLACK
+            has_castled = self._has_castled(board, chess.BLACK)
+            
+            if has_castled:
+                # Reward successful castling - BALANCED for v12.4
+                score += 50.0  # Reduced from 150 to 50
+                king_square = board.king(chess.BLACK)
+                if king_square in [chess.G8, chess.C8]:
+                    score += 25.0  # Reduced safety bonus
+            else:
+                can_castle_kingside = board.has_kingside_castling_rights(chess.BLACK)
+                can_castle_queenside = board.has_queenside_castling_rights(chess.BLACK)
+                
+                if opening_phase:
+                    if can_castle_kingside:
+                        score += 30.0  # Reduced from 80 to 30
+                    if can_castle_queenside:
+                        score += 20.0  # Reduced from 60 to 20
+                    
+                    king_square = board.king(chess.BLACK)
+                    if king_square != chess.E8 and not has_castled:
+                        score -= 50.0
+                else:
+                    if can_castle_kingside or can_castle_queenside:
+                        score -= 10.0
+        
+        return score
+    
+    def _has_castled(self, board: chess.Board, color: chess.Color) -> bool:
+        """Check if the specified color has already castled"""
+        king_square = board.king(color)
+        
+        if color == chess.WHITE:
+            if king_square == chess.G1:
+                rook_on_f1 = board.piece_at(chess.F1)
+                return (rook_on_f1 is not None and 
+                       rook_on_f1.piece_type == chess.ROOK and 
+                       rook_on_f1.color == chess.WHITE)
+            elif king_square == chess.C1:
+                rook_on_d1 = board.piece_at(chess.D1)
+                return (rook_on_d1 is not None and 
+                       rook_on_d1.piece_type == chess.ROOK and 
+                       rook_on_d1.color == chess.WHITE)
+        else:  # BLACK
+            if king_square == chess.G8:
+                rook_on_f8 = board.piece_at(chess.F8)
+                return (rook_on_f8 is not None and 
+                       rook_on_f8.piece_type == chess.ROOK and 
+                       rook_on_f8.color == chess.BLACK)
+            elif king_square == chess.C8:
+                rook_on_d8 = board.piece_at(chess.D8)
+                return (rook_on_d8 is not None and 
+                       rook_on_d8.piece_type == chess.ROOK and 
+                       rook_on_d8.color == chess.BLACK)
+        
+        # Check move history for explicit castling moves
+        for move in board.move_stack:
+            if board.is_castling(move):
+                from_square = move.from_square
+                if color == chess.WHITE and from_square == chess.E1:
+                    return True
+                elif color == chess.BLACK and from_square == chess.E8:
+                    return True
+        
+        return False
 
 
 class V7P3RScoringCalculationBitboard:
