@@ -1,46 +1,27 @@
 #!/usr/bin/env python3
 """
-V7P3R Chess Engine v12.3 - Unified Evaluator
-Built from v12.2 with integrated advanced evaluation system
-Core: Search + Unified Bitboard Evaluation + Nudge System
+V7P3R Chess Engine v12.4 - Enhanced Castling Evaluation
+Built from v12.2 stable baseline with intelligent castling assessment
+Core: Search + Evaluation + Smart Castling Detection
 
-=== ARCHITECTURE OVERVIEW ===
+ARCHITECTURE:
 - Phase 1: Core search (alpha-beta, TT, iterative deepening)
-- Phase 2: Enhanced nudge system (2160+ positions) - DISABLED in v12.3 for performance  
-- Phase 3: Unified bitboard evaluator (material, positional, king safety, pawn structure)
-- Clean codebase with consolidated evaluation for performance and maintainability
+- Phase 2: Enhanced nudge system (2160+ positions)  
+- Phase 3A: Advanced evaluation (pawns, king safety)
+- Phase 4: Smart castling evaluation (v12.4 NEW)
 
-=== KEY ENGINE FEATURES (Pat's Quick Reference) ===
-1. SEARCH ENGINE: Alpha-beta with iterative deepening (lines 400-600)
-2. TRANSPOSITION TABLE: Zobrist hashing with replacement strategy (lines 650-750)
-3. MOVE ORDERING: TT + MVV-LVA + Killers + History + Tactical detection (lines 800-950)
-4. PV FOLLOWING: Instant moves when opponent follows predicted line (lines 60-140)
-5. BITBOARD EVALUATION: Ultra-fast position evaluation (v7p3r_bitboard_evaluator.py)
-6. NUDGE SYSTEM: Position-specific move hints (DISABLED for performance in v12.3)
-7. TIME MANAGEMENT: Adaptive allocation based on game phase and complexity (lines 1200-1300)
-8. UCI COMMUNICATION: Standard protocol for engine communication (lines 1400-1500)
-   8a. UCI Interface: Handles tournament calls (v7p3r_uci.py)
-
-=== HEURISTICS & ADJUSTMENT POINTS ===
-KEY VALUES TO TUNE:
-- Piece values: lines 200-210 (PAWN=100, KNIGHT=300, BISHOP=300, ROOK=500, QUEEN=900)
-- Time management factors: lines 1250-1280 (opening=0.9x, middle=1.4x, endgame=1.1x)
-- LMR reduction thresholds: lines 1350-1380 (moves_searched thresholds: 3, 8, 16)
-- Null move pruning: depth>=3, has non-pawn pieces (lines 550-570)
-- Quiescence search depth: 4 plies (line 520)
-
-SEARCH BEHAVIOR CONTROLS:
-- Default depth: 6 plies (line 215)
-- TT size: 50,000 entries (line 300)
-- Killer moves: 2 per depth (KillerMoves class)
-- History heuristic: depth^2 bonus (HistoryHeuristic class)
+V12.4 NEW FEATURES:
+- Castling state detection (actual castle vs manual king movement)
+- Enhanced penalties for wasted castling rights
+- Improved move ordering for castling opportunities
+- Prevents "fake castling" behavior
 
 VERSION LINEAGE:
 - v10.8: Recovery baseline (19.5/30 tournament points)
 - v11.x: Experimental variants (lessons learned, features extracted)
 - v12.0: Clean evolution with proven improvements only
-- v12.2: Performance optimizations and time management improvements
-- v12.3: Unified evaluator architecture with integrated advanced patterns
+- v12.2: Performance optimizations, tournament-ready (23.5/40 points)
+- v12.4: Enhanced castling intelligence
 
 Author: Pat Snyder
 """
@@ -53,24 +34,13 @@ import json
 import os
 from typing import Optional, Tuple, List, Dict
 from collections import defaultdict
-from v7p3r_bitboard_evaluator import V7P3RBitboardEvaluator
+from v7p3r_bitboard_evaluator import V7P3RScoringCalculationBitboard
+from v7p3r_advanced_pawn_evaluator import V7P3RAdvancedPawnEvaluator
+from v7p3r_king_safety_evaluator import V7P3RKingSafetyEvaluator
 
 
 class PVTracker:
-    """
-    === PV FOLLOWING SYSTEM (Pat's Feature #1) ===
-    Tracks principal variation using predicted board states for instant move recognition
-    
-    WORKFLOW:
-    - After each search, stores the expected sequence of moves (PV)
-    - Predicts opponent's response and prepares our counter-move
-    - If opponent plays the predicted move, we instantly respond (no search needed)
-    - Saves significant time by avoiding re-search of already calculated lines
-    
-    CONFIGURATION:
-    - Minimum PV length required: 3 moves (line 20)
-    - Can be disabled via ENABLE_PV_FOLLOWING flag (line 190)
-    """
+    """Tracks principal variation using predicted board states for instant move recognition"""
     
     def __init__(self):
         self.predicted_position_fen = None  # FEN of position we expect after opponent move
@@ -165,19 +135,7 @@ class PVTracker:
 
 
 class TranspositionEntry:
-    """
-    === TRANSPOSITION TABLE ENTRY (Pat's Feature #2) ===
-    Entry in the transposition table for position caching
-    
-    STORES:
-    - Position hash (Zobrist)
-    - Search depth achieved
-    - Best move found
-    - Score (evaluation)
-    - Node type: 'exact', 'lowerbound', 'upperbound'
-    
-    PURPOSE: Avoid re-searching identical positions that transpose from different move orders
-    """
+    """Entry in the transposition table"""
     def __init__(self, depth: int, score: int, best_move: Optional[chess.Move], 
                  node_type: str, zobrist_hash: int):
         self.depth = depth
@@ -188,18 +146,7 @@ class TranspositionEntry:
 
 
 class KillerMoves:
-    """
-    === KILLER MOVES HEURISTIC (Pat's Feature #3) ===
-    Killer move storage - 2 killer moves per depth
-    
-    CONCEPT: Non-capture moves that caused beta cutoffs (refutations) are likely
-    to cause cutoffs in sibling positions at the same depth
-    
-    TUNING PARAMETERS:
-    - Max killers per depth: 2 (industry standard)
-    - Storage: Dict[depth, List[moves]]
-    - Used in move ordering to try good refutation moves early
-    """
+    """Killer move storage - 2 killer moves per depth"""
     def __init__(self):
         self.killers: Dict[int, List[chess.Move]] = defaultdict(list)
     
@@ -220,18 +167,7 @@ class KillerMoves:
 
 
 class HistoryHeuristic:
-    """
-    === HISTORY HEURISTIC (Pat's Feature #4) ===
-    History heuristic for move ordering
-    
-    CONCEPT: Moves that caused cutoffs historically are tried earlier in similar positions
-    
-    SCORING FORMULA: depth^2 bonus (line 315)
-    ADJUSTMENT POINT: Change depth*depth to linear or other formula for different aggressiveness
-    
-    STORAGE: from_square-to_square -> accumulated score
-    PURPOSE: Improve move ordering for quiet moves that aren't killers
-    """
+    """History heuristic for move ordering"""
     def __init__(self):
         self.history: Dict[str, int] = defaultdict(int)
     
@@ -247,18 +183,7 @@ class HistoryHeuristic:
 
 
 class ZobristHashing:
-    """
-    === ZOBRIST HASHING (Pat's Feature #5) ===
-    Zobrist hashing for transposition table position keys
-    
-    CONCEPT: Each piece-square combination gets a random 64-bit number
-    Position hash = XOR of all piece-position numbers + side-to-move
-    
-    ADVANTAGE: Incremental updates, collision-resistant, position-independent
-    SEED: 12345 (deterministic for reproducible results)
-    
-    ADJUSTMENT POINT: Change seed for different hash distribution
-    """
+    """Zobrist hashing for transposition table"""
     def __init__(self):
         random.seed(12345)  # Deterministic for reproducibility
         self.piece_square_table = {}
@@ -288,52 +213,41 @@ class ZobristHashing:
 
 
 class V7P3REngine:
-    """
-    === V7P3R CHESS ENGINE v12.3 - MAIN ENGINE CLASS ===
+    """V7P3R Chess Engine v12.2 - Performance Recovery"""
     
-    PERFORMANCE TARGET: 15,000+ NPS with comprehensive evaluation
-    CURRENT STATUS: Unified evaluator with integrated advanced features
-    """
-    
-    # === PAT'S FEATURE CONTROL PANEL ===
-    # Toggle these flags to enable/disable major engine components
-    ENABLE_NUDGE_SYSTEM = False      # Disabled for v12.3 performance (saves ~30% search time)
-    ENABLE_PV_FOLLOWING = True       # Keep - high value feature (saves ~15% time on good predictions)
-    
-    # V12.3: Advanced evaluation is now integrated into the unified bitboard evaluator
-    # No longer need separate ENABLE_ADVANCED_EVALUATION flag
+    # V12.2 FEATURE TOGGLES - Performance Recovery Configuration
+    ENABLE_NUDGE_SYSTEM = False      # Disabled for v12.2 performance
+    ENABLE_PV_FOLLOWING = True       # Keep - high value feature
+    ENABLE_ADVANCED_EVALUATION = False  # V12.2: Disabled for performance testing
     
     def __init__(self):
-        # === PAT'S CORE EVALUATION VALUES ===
-        # ADJUSTMENT POINT: These are the fundamental piece values - tune for different playing styles
+        # Basic configuration
         self.piece_values = {
-            chess.PAWN: 100,      # Base unit (can increase for pawn-heavy endgames)
-            chess.KNIGHT: 300,    # Equal to bishop (classical evaluation)
-            chess.BISHOP: 300,    # Could increase to 310-320 for bishop preference
-            chess.ROOK: 500,      # Standard rook value  
-            chess.QUEEN: 900,     # Standard queen value
-            chess.KING: 0         # King safety handled separately in bitboard evaluator
+            chess.PAWN: 100,
+            chess.KNIGHT: 300, 
+            chess.BISHOP: 300,
+            chess.ROOK: 500,
+            chess.QUEEN: 900,
+            chess.KING: 0  # King safety handled separately
         }
         
-        # === PAT'S SEARCH CONFIGURATION ===
-        # MAIN TUNING PARAMETER: Increase for stronger but slower play
-        self.default_depth = 7        # 🔧 INCREASED from 6 - better move selection with fixed evaluation
-        self.nodes_searched = 0       # Performance counter
+        # Search configuration
+        self.default_depth = 6
+        self.nodes_searched = 0
         
-        # === PAT'S EVALUATION SYSTEM ===
-        # V12.3: Unified bitboard evaluator with integrated advanced features
-        # This is the HEART of position evaluation - handles material, position, king safety, pawn structure
-        self.bitboard_evaluator = V7P3RBitboardEvaluator(self.piece_values)
+        # Evaluation components - V12.0: Proven stable (bitboard + advanced)
+        self.bitboard_evaluator = V7P3RScoringCalculationBitboard(self.piece_values)
+        self.advanced_pawn_evaluator = V7P3RAdvancedPawnEvaluator()
+        self.king_safety_evaluator = V7P3RKingSafetyEvaluator()
         
-        # PERFORMANCE OPTIMIZATION: Simple evaluation cache for speed
-        # TUNING: Can increase cache size for more memory usage but better cache hit rate
+        # Simple evaluation cache for speed
         self.evaluation_cache = {}  # position_hash -> evaluation
         
-        # === PAT'S ADVANCED SEARCH INFRASTRUCTURE ===
-        self.transposition_table: Dict[int, TranspositionEntry] = {}  # Position cache
-        self.killer_moves = KillerMoves()                             # Refutation moves
-        self.history_heuristic = HistoryHeuristic()                  # Move ordering history
-        self.zobrist = ZobristHashing()                               # Position hashing
+        # Advanced search infrastructure
+        self.transposition_table: Dict[int, TranspositionEntry] = {}
+        self.killer_moves = KillerMoves()
+        self.history_heuristic = HistoryHeuristic()
+        self.zobrist = ZobristHashing()
         
         # V12.2 CONDITIONAL: Nudge System Integration (DISABLED for performance)
         if self.ENABLE_NUDGE_SYSTEM:
@@ -360,34 +274,28 @@ class V7P3REngine:
             self.nudge_database = {}
             self.nudge_stats = {'instant_time_saved': 0.0}  # Keep for compatibility
         
-        # === PAT'S MEMORY CONFIGURATION ===
-        # TUNING POINT: Increase for more memory usage but better performance
-        self.max_tt_entries = 50000  # Transposition table size (can increase to 100000+ for stronger play)
+        # Configuration
+        self.max_tt_entries = 50000  # Reasonable size for testing
         
-        # === PAT'S PERFORMANCE MONITORING ===
-        # Use these stats to identify bottlenecks and optimization areas
+        # Performance monitoring
         self.search_stats = {
-            'nodes_per_second': 0,    # Target: 15,000+ NPS
-            'cache_hits': 0,          # Higher is better (less recalculation)
-            'cache_misses': 0,        # Lower is better
-            'tt_hits': 0,             # Transposition table effectiveness
-            'tt_stores': 0,           # TT usage
-            'killer_hits': 0,         # Killer move effectiveness
-            'nudge_hits': 0,          # V11 PHASE 2 (disabled in v12.3)
-            'nudge_positions': 0,     # V11 PHASE 2 (disabled in v12.3)
+            'nodes_per_second': 0,
+            'cache_hits': 0,
+            'cache_misses': 0,
+            'tt_hits': 0,
+            'tt_stores': 0,
+            'killer_hits': 0,
+            'nudge_hits': 0,        # V11 PHASE 2
+            'nudge_positions': 0,   # V11 PHASE 2
         }
         
-        # === PAT'S PV FOLLOWING SYSTEM ===
-        # V10 OPTIMIZATION: Major time-saving feature
+        # PV Following System - V10 OPTIMIZATION
         self.pv_tracker = PVTracker()
     
     def search(self, board: chess.Board, time_limit: float = 3.0, depth: Optional[int] = None, 
                alpha: float = -99999, beta: float = 99999, is_root: bool = True) -> chess.Move:
         """
-        === PAT'S UNIFIED SEARCH ENGINE ===
-        This is the MAIN ENGINE FUNCTION - combines all advanced features:
-        
-        SEARCH FEATURES IMPLEMENTED:
+        UNIFIED SEARCH - Single function with ALL advanced features:
         - Iterative deepening with stable best move handling (root level)
         - Alpha-beta pruning with negamax framework (recursive level)  
         - Transposition table with Zobrist hashing
@@ -396,11 +304,6 @@ class V7P3REngine:
         - Proper time management with periodic checks
         - Full PV extraction and following
         - Quiescence search for tactical stability
-        
-        ADJUSTMENT POINTS:
-        - Time limits: 3.0s default (line 450)
-        - Alpha/beta windows: ±99999 (lines 450-451)
-        - Depth limits: self.default_depth (line 215)
         """
         
         # ROOT LEVEL: Iterative deepening with time management
@@ -431,37 +334,25 @@ class V7P3REngine:
                     print(f"info depth NUDGE score cp 50 nodes 0 time 0 pv {instant_nudge_move}")
                     print(f"info string Instant nudge move: {instant_nudge_move} (high confidence)")
 
-                    return instant_nudge_move            # === PAT'S ADAPTIVE TIME MANAGEMENT ===
-            # V11 ENHANCEMENT: Smart time allocation based on position complexity
+                    return instant_nudge_move            # V11 ENHANCEMENT: Adaptive time management
             target_time, max_time = self._calculate_adaptive_time_allocation(board, time_limit)
             
             # Iterative deepening
             best_move = legal_moves[0]
             best_score = -99999
-            iteration_times = []  # V12.3: Track iteration times for better prediction
             
             for current_depth in range(1, self.default_depth + 1):
                 iteration_start = time.time()
                 
-                # V12.3 ENHANCED: Smart time checking with exponential growth prediction
+                # V11 ENHANCEMENT: Improved time checking with adaptive limits
                 elapsed = time.time() - self.search_start_time
                 if elapsed > target_time:
                     break
                 
-                # V12.3: Better prediction using exponential growth model
-                if current_depth > 2 and len(iteration_times) >= 2:
-                    # Calculate average growth factor from previous iterations
-                    if iteration_times[-1] > 0:
-                        growth_factor = min(iteration_times[-1] / max(iteration_times[-2], 0.01), 10.0)  # Cap at 10x growth
-                    else:
-                        growth_factor = 4.0  # Default assumption
-                    
-                    # Predict next iteration time
-                    predicted_next_time = iteration_times[-1] * growth_factor
-                    
-                    # Don't start if prediction shows we'll exceed max time by significant margin
-                    if elapsed + predicted_next_time > max_time:
-                        print(f"info string Skipping depth {current_depth}: predicted time {predicted_next_time:.2f}s would exceed limit")
+                # Predict if next iteration will exceed max time
+                if current_depth > 1:
+                    last_iteration_time = time.time() - iteration_start
+                    if elapsed + (last_iteration_time * 2) > max_time:
                         break
                 
                 try:
@@ -495,14 +386,14 @@ class V7P3REngine:
                         best_move = previous_best
                         best_score = previous_score
                     
-                    # V12.3 ENHANCED: Better time management with iteration tracking
+                    # V11 ENHANCEMENT: Better time management for next iteration
                     elapsed = time.time() - self.search_start_time
                     iteration_time = time.time() - iteration_start
-                    iteration_times.append(iteration_time)  # V12.3: Track this iteration time
                     
                     if elapsed > target_time:
                         break
-                    # V12.3: Removed the simple 1.5x prediction in favor of exponential model above
+                    elif elapsed + (iteration_time * 1.5) > max_time:
+                        break  # Don't start next iteration if likely to exceed max time
                         
                 except Exception as e:
                     print(f"info string Search interrupted at depth {current_depth}: {e}")
@@ -616,22 +507,7 @@ class V7P3REngine:
     
     def _order_moves_advanced(self, board: chess.Board, moves: List[chess.Move], depth: int, 
                               tt_move: Optional[chess.Move] = None) -> List[chess.Move]:
-        """
-        === PAT'S ADVANCED MOVE ORDERING SYSTEM ===
-        V11 PHASE 2 ENHANCED move ordering - This is CRITICAL for search performance
-        
-        ORDERING PRIORITY (Pat's hierarchy):
-        1. Transposition table move (best from previous search)
-        2. Nudge system moves (position-specific hints) - DISABLED in v12.3
-        3. Castling moves (V12.3 enhancement - high priority)
-        4. Captures (sorted by MVV-LVA + tactical bonus)
-        5. Checks (with tactical bonus)
-        6. Tactical patterns (bitboard detection)
-        7. Killer moves (refutations from other branches)
-        8. Quiet moves (sorted by history heuristic)
-        
-        PERFORMANCE IMPACT: Good move ordering can reduce search tree by 5-10x
-        """
+        """V11 PHASE 2 ENHANCED move ordering - TT, NUDGES, MVV-LVA, Checks, Killers, BITBOARD TACTICS"""
         if len(moves) <= 2:
             return moves
         
@@ -643,7 +519,6 @@ class V7P3REngine:
         tactical_moves = []  # NEW: Bitboard tactical moves
         nudge_moves = []     # V11 PHASE 2: Nudge system moves
         tt_moves = []
-        castling_moves = []  # V12.3: High priority castling moves
         
         killer_set = set(self.killer_moves.get_killers(depth))
         
@@ -667,13 +542,7 @@ class V7P3REngine:
             elif nudge_bonus > 0:
                 nudge_moves.append((nudge_bonus, move))
             
-            # 3. V12.3: CASTLING MOVES (very high priority - fix castling avoidance)
-            elif self._is_castling_move(board, move):
-                # Give castling moves a very high bonus to encourage them
-                castling_bonus = 200.0  # High priority for castling
-                castling_moves.append((castling_bonus, move))
-            
-            # 4. Captures (will be sorted by MVV-LVA)
+            # 3. Captures (will be sorted by MVV-LVA)
             elif board.is_capture(move):
                 victim = board.piece_at(move.to_square)
                 victim_value = self.piece_values.get(victim.piece_type, 0) if victim else 0
@@ -688,18 +557,18 @@ class V7P3REngine:
                 
                 captures.append((total_score, move))
             
-            # 5. Checks (high priority for tactical play)
+            # 4. Checks (high priority for tactical play)
             elif board.gives_check(move):
                 # Add tactical bonus for checking moves too
                 tactical_bonus = self._detect_bitboard_tactics(board, move)
                 checks.append((tactical_bonus, move))
             
-            # 6. Killer moves
+            # 5. Killer moves
             elif move in killer_set:
                 killers.append(move)
                 self.search_stats['killer_hits'] += 1
             
-            # 7. Check for tactical patterns in quiet moves
+            # 6. Check for tactical patterns in quiet moves
             else:
                 history_score = self.history_heuristic.get_history_score(move)
                 tactical_bonus = self._detect_bitboard_tactics(board, move)
@@ -715,13 +584,11 @@ class V7P3REngine:
         tactical_moves.sort(key=lambda x: x[0], reverse=True)
         quiet_moves.sort(key=lambda x: x[0], reverse=True)
         nudge_moves.sort(key=lambda x: x[0], reverse=True)  # V11 PHASE 2
-        castling_moves.sort(key=lambda x: x[0], reverse=True)  # V12.3: Sort castling moves by bonus
         
-        # Combine in V12.3 ENHANCED order (castling moves get high priority)
+        # Combine in V11 PHASE 2 ENHANCED order
         ordered = []
         ordered.extend(tt_moves)  # TT move first
         ordered.extend([move for _, move in nudge_moves])  # Then nudge moves (V11 PHASE 2)
-        ordered.extend([move for _, move in castling_moves])  # V12.3: Then castling moves (high priority)
         ordered.extend([move for _, move in captures])  # Then captures (with tactical bonus)
         ordered.extend([move for _, move in checks])  # Then checks (with tactical bonus)
         ordered.extend([move for _, move in tactical_moves])  # Then tactical patterns
@@ -731,21 +598,7 @@ class V7P3REngine:
         return ordered
     
     def _evaluate_position(self, board: chess.Board) -> float:
-        """
-        === PAT'S POSITION EVALUATION SYSTEM ===
-        V12.3: Position evaluation with unified bitboard evaluator and Zobrist-based caching
-        
-        EVALUATION COMPONENTS (all integrated in bitboard evaluator):
-        - Material balance (piece values)
-        - Piece activity and development
-        - King safety and castling
-        - Pawn structure (passed, doubled, isolated, backward)
-        - Center control and space
-        - Tactical patterns
-        
-        PERFORMANCE TARGET: 20,000+ evaluations per second
-        CACHING: Uses Zobrist hash for ultra-fast cache lookups
-        """
+        """V12.2 OPTIMIZED: Position evaluation with Zobrist-based caching"""
         # V12.2 OPTIMIZATION: Use Zobrist hash instead of expensive FEN for cache key
         cache_key = self.zobrist.hash_position(board)
         
@@ -755,54 +608,68 @@ class V7P3REngine:
         
         self.search_stats['cache_misses'] += 1
         
-        # V12.3: Use unified bitboard evaluator with integrated advanced features
-        # This includes material, positional, king safety, and advanced pawn structure all in one call
-        # 🚨 BUG FIX: Always evaluate from current player's perspective for proper negamax
-        score = self.bitboard_evaluator.evaluate_bitboard(board, board.turn)
+        # V10 Base bitboard evaluation for material and basic positioning
+        white_base = self.bitboard_evaluator.calculate_score_optimized(board, True)
+        black_base = self.bitboard_evaluator.calculate_score_optimized(board, False)
+        
+        # V12.2 CONDITIONAL: Advanced evaluation components 
+        try:
+            if self.ENABLE_ADVANCED_EVALUATION:
+                # V11 PHASE 3A: Advanced pawn structure evaluation
+                white_pawn_score = self.advanced_pawn_evaluator.evaluate_pawn_structure(board, True)
+                black_pawn_score = self.advanced_pawn_evaluator.evaluate_pawn_structure(board, False)
+                
+                # Advanced king safety evaluation
+                white_king_score = self.king_safety_evaluator.evaluate_king_safety(board, True)
+                black_king_score = self.king_safety_evaluator.evaluate_king_safety(board, False)
+            else:
+                # V12.2: Simplified evaluation for performance
+                white_pawn_score = 0  # Skip advanced pawn evaluation
+                black_pawn_score = 0
+                
+                # V12.2: Simple king safety - just check if king is castled
+                white_king_score = self._simple_king_safety(board, True)
+                black_king_score = self._simple_king_safety(board, False)
+            
+            # V10.6 ROLLBACK: Tactical pattern evaluation disabled for performance
+            # Phase 3B showed 70% performance degradation in tournament play
+            white_tactical_score = 0  # V10.6: Disabled Phase 3B
+            black_tactical_score = 0  # V10.6: Disabled Phase 3B
+            
+            # Combine all evaluation components
+            white_total = white_base + white_pawn_score + white_king_score + white_tactical_score
+            black_total = black_base + black_pawn_score + black_king_score + black_tactical_score
+            
+        except Exception as e:
+            # Fallback to base evaluation if advanced evaluation fails
+            white_total = white_base
+            black_total = black_base
+        
+        # Calculate final score from current player's perspective
+        if board.turn:  # White to move
+            final_score = white_total - black_total
+        else:  # Black to move
+            final_score = black_total - white_total
         
         # Cache the result
-        self.evaluation_cache[cache_key] = score
-        return score
+        self.evaluation_cache[cache_key] = final_score
+        return final_score
     
     def _simple_king_safety(self, board: chess.Board, color: bool) -> float:
         """V12.2: Simplified king safety evaluation for performance"""
         score = 0.0
         
-        # V12.3: Enhanced castling evaluation
+        # Basic castling bonus
         if color == chess.WHITE:
             if board.has_kingside_castling_rights(color):
-                score += 20  # Increased from 15 to emphasize castling value
+                score += 15
             if board.has_queenside_castling_rights(color):
-                score += 15  # Increased from 10
-                
-            # V12.3: Check if king is already castled (bonus for completed castling)
-            king_square = board.king(color)
-            if king_square:
-                # White king on g1 (kingside castled) or c1 (queenside castled)
-                if king_square == chess.G1:
-                    score += 30  # Bonus for completed kingside castling
-                elif king_square == chess.C1:
-                    score += 25  # Bonus for completed queenside castling
-                # Small penalty if king moved without castling (after move 10)
-                elif king_square != chess.E1 and len(board.move_stack) > 10:
-                    score -= 25  # Penalty for king moves without castling
+                score += 10
         else:
             if board.has_kingside_castling_rights(color):
-                score += 20
-            if board.has_queenside_castling_rights(color):
                 score += 15
-                
-            # Check if black king is castled
-            king_square = board.king(color)
-            if king_square:
-                # Black king on g8 (kingside castled) or c8 (queenside castled)
-                if king_square == chess.G8:
-                    score += 30  # Bonus for completed kingside castling
-                elif king_square == chess.C8:
-                    score += 25  # Bonus for completed queenside castling
-                # Small penalty if king moved without castling (after move 10)
-                elif king_square != chess.E8 and len(board.move_stack) > 10:
-                    score -= 25  # Penalty for king moves without castling
+            if board.has_queenside_castling_rights(color):
+                score += 10
         
         return score
     
@@ -991,7 +858,7 @@ class V7P3REngine:
         """Analyze fork patterns using bitboards"""
         if piece.piece_type == chess.KNIGHT:
             # Knight fork detection
-            attacks = self.bitboard_evaluator.KNIGHT_ATTACKS[square]
+            attacks = self.bitboard_evaluator.bitboard_evaluator.KNIGHT_ATTACKS[square]
             enemy_pieces = 0
             high_value_targets = 0
             
@@ -1073,22 +940,14 @@ class V7P3REngine:
 
     def perft(self, board: chess.Board, depth: int, divide: bool = False, root_call: bool = True) -> int:
         """
-        === PAT'S PERFT TESTING SYSTEM ===
         V11 ENHANCEMENT: Perft (Performance Test) - counts nodes at given depth
-        
-        PURPOSE: Validate move generation correctness and measure raw performance
-        USAGE: "go perft 5" in UCI interface
-        
-        STANDARD PERFT RESULTS (for debugging):
-        - Starting position depth 5: 4,865,609 nodes
-        - Starting position depth 6: 119,060,324 nodes
         
         This is essential for move generation validation and testing.
         Standard chess engine requirement that was missing in V10.2.
         
         Args:
             board: Current chess position
-            depth: Depth to search (number of plies)  
+            depth: Depth to search (number of plies)
             divide: If True, show per-move breakdown at root
             root_call: Internal flag for root level tracking
             
@@ -1136,20 +995,7 @@ class V7P3REngine:
 
     def _calculate_adaptive_time_allocation(self, board: chess.Board, base_time_limit: float) -> Tuple[float, float]:
         """
-        === PAT'S ADAPTIVE TIME MANAGEMENT SYSTEM ===
-        V12.3 ENHANCEMENT: More aggressive adaptive time management for better depth reaching
-        
-        TIME ALLOCATION FACTORS (Pat's tuning parameters):
-        - Opening (moves <15): 0.9x time (quick development)
-        - Middle game (moves 15-40): 1.4x time (complex calculations)
-        - Endgame (moves >40): 1.1x time (precise calculation)
-        
-        COMPLEXITY ADJUSTMENTS:
-        - In check: +40% time
-        - Few moves (<5): -20% time  
-        - Many moves (>35): +60% time
-        - Material behind: +30% time
-        - Material ahead: -5% time
+        V11 ENHANCEMENT: Adaptive time management based on position complexity
         
         Returns: (target_time, max_time)
         """
@@ -1157,25 +1003,25 @@ class V7P3REngine:
         legal_moves = list(board.legal_moves)
         num_legal_moves = len(legal_moves)
         
-        # V12.3: More aggressive base time factor
-        time_factor = 1.0  # 🔧 REDUCED from 1.2 - less aggressive time usage for more reliable play
+        # Base time factor
+        time_factor = 1.0
         
-        # Game phase adjustment - V12.3: Balanced time allocation
+        # Game phase adjustment
         if moves_played < 15:  # Opening
-            time_factor *= 0.8  # 🔧 REDUCED from 0.9 - faster development moves
-        elif moves_played < 40:  # Middle game  
-            time_factor *= 1.2  # 🔧 REDUCED from 1.4 - still more time but not excessive
+            time_factor *= 0.8  # Faster in opening
+        elif moves_played < 40:  # Middle game
+            time_factor *= 1.2  # More time in complex middle game
         else:  # Endgame
-            time_factor *= 1.0  # 🔧 REDUCED from 1.1 - normal time for endgame precision
+            time_factor *= 0.9  # Moderate time in endgame
         
         # Position complexity factors
         if board.is_check():
-            time_factor *= 1.4  # Increased from 1.3 - more time when in check
+            time_factor *= 1.3  # More time when in check
         
         if num_legal_moves <= 5:
-            time_factor *= 0.8  # Increased from 0.7 - still less time but not too rushed
+            time_factor *= 0.7  # Less time with few options
         elif num_legal_moves >= 35:
-            time_factor *= 1.6  # Increased from 1.4 - much more time with many options
+            time_factor *= 1.4  # More time with many options
         
         # Material balance consideration
         our_material = self._count_material(board, board.turn)
@@ -1183,13 +1029,13 @@ class V7P3REngine:
         material_diff = our_material - their_material
         
         if material_diff < -300:  # We're behind
-            time_factor *= 1.3  # Increased from 1.2 - take even more time when behind
+            time_factor *= 1.2  # Take more time when behind
         elif material_diff > 300:  # We're ahead
-            time_factor *= 0.95  # Increased from 0.9 - play only slightly faster when ahead
+            time_factor *= 0.9  # Play faster when ahead
         
-        # V12.3: More aggressive time allocation
-        target_time = min(base_time_limit * time_factor * 0.9, base_time_limit * 0.95)  # Increased from 0.8 and 0.9
-        max_time = min(base_time_limit * time_factor * 1.1, base_time_limit)  # Added 1.1 multiplier for max time
+        # Calculate final times
+        target_time = min(base_time_limit * time_factor * 0.8, base_time_limit * 0.9)
+        max_time = min(base_time_limit * time_factor, base_time_limit)
         
         return target_time, max_time
     
@@ -1242,29 +1088,6 @@ class V7P3REngine:
         reduction = min(reduction, search_depth - 1)
         
         return reduction
-
-    def _is_castling_move(self, board: chess.Board, move: chess.Move) -> bool:
-        """
-        V12.3: Detect if a move is a castling move
-        
-        Returns True if the move is kingside or queenside castling
-        """
-        # Check if the moving piece is a king
-        piece = board.piece_at(move.from_square)
-        if not piece or piece.piece_type != chess.KING:
-            return False
-        
-        # Check if this is a castling move (king moves 2 squares)
-        from_file = chess.square_file(move.from_square)
-        to_file = chess.square_file(move.to_square)
-        
-        # Kingside castling: king moves from e-file to g-file (2 squares right)
-        # Queenside castling: king moves from e-file to c-file (2 squares left)
-        if from_file == 4:  # King starting from e-file
-            if to_file == 6 or to_file == 2:  # g-file (kingside) or c-file (queenside)
-                return True
-        
-        return False
 
     # V12.2 CONDITIONAL: NUDGE SYSTEM METHODS (disabled for performance)
     

@@ -1,32 +1,7 @@
 #!/usr/bin/env python3
 """
-=== PAT'S V7P3R v12.3 UCI INTERFACE ===
-Performance Recovery: Disabled nudge system, optimized evaluation, aggressive time management
-
-UNIVERSAL CHESS INTERFACE (UCI) PROTOCOL IMPLEMENTATION
-This is the communication bridge between your engine and chess GUIs (Arena, ChessBase, etc.)
-
-=== UCI COMMANDS SUPPORTED (Pat's Quick Reference) ===
-- uci: Engine identification and options
-- setoption: Set engine parameters (acknowledged but not used in v12.3)  
-- isready: Engine readiness check
-- ucinewgame: Reset for new game
-- position: Set up board position with moves
-- go: Start thinking with time controls
-- go perft N: Performance testing (node counting)
-- quit: Shutdown engine
-
-=== TIME MANAGEMENT (Pat's Aggressive Settings) ===
-V12.3 uses more aggressive time allocation for deeper search:
-- Opening (moves <10): 25x divisor (more time for development)
-- Early game (moves 10-20): 20x divisor  
-- Middle game (moves 20-40): 15x divisor (most time for complex positions)
-- Endgame (moves >40): 12x divisor (precision calculations)
-
-MAXIMUM TIME CAPS (increased in v12.3):
-- >2 minutes remaining: 45s maximum per move
-- 1-2 minutes remaining: 20s maximum  
-- <1 minute remaining: 10s maximum (careful time management)
+V7P3R v12.4 UCI Interface
+Enhanced Castling Evaluation: Smart detection of actual castling vs manual king movement
 """
 
 import sys
@@ -36,17 +11,7 @@ from v7p3r import V7P3REngine
 
 
 def main():
-    """
-    === PAT'S UCI MAIN LOOP ===
-    UCI interface - handles all communication with chess GUIs
-    
-    COMMUNICATION FLOW:
-    1. Read command from stdin
-    2. Parse command and parameters  
-    3. Execute engine action
-    4. Send response to stdout
-    5. Flush output immediately (critical for real-time play)
-    """
+    """UCI interface"""
     engine = V7P3REngine()
     board = chess.Board()
     
@@ -63,7 +28,7 @@ def main():
                 break
                 
             elif command == "uci":
-                print("id name V7P3R v12.3")
+                print("id name V7P3R v12.4")
                 print("id author Pat Snyder")
                 print("uciok")
                 
@@ -139,57 +104,57 @@ def main():
                     elif part == "wtime" and i + 1 < len(parts):
                         try:
                             if board.turn == chess.WHITE:
-                                # === PAT'S V12.3 BALANCED TIME MANAGEMENT (WHITE) ===
+                                # V12.2: Balanced aggressive time management
                                 remaining_time = int(parts[i + 1]) / 1000.0
                                 # Skip tactical detector for simplified version
                                 
-                                # V12.3: More balanced time usage for reliable play
+                                # V12.2: Reasonable time usage - aim for using time but not burning it
                                 moves_played = len(board.move_stack)
                                 if moves_played < 10:
-                                    time_factor = 30.0  # 🔧 INCREASED from 25.0 - safer opening play
+                                    time_factor = 30.0  # Opening: use 1/30th (10min game = 20s/move)
                                 elif moves_played < 20:
-                                    time_factor = 25.0  # 🔧 INCREASED from 20.0 - safer early game  
+                                    time_factor = 25.0  # Early game: use 1/25th  
                                 elif moves_played < 40:
-                                    time_factor = 20.0  # 🔧 INCREASED from 15.0 - more conservative middle game
+                                    time_factor = 20.0  # Mid game: use 1/20th (more time for complex positions)
                                 else:
-                                    time_factor = 18.0  # 🔧 INCREASED from 12.0 - safer endgame play
+                                    time_factor = 15.0  # End game: use 1/15th (precision matters)
                                 
-                                # V12.3: Higher time caps to allow deeper search
+                                # Apply reasonable time cap to prevent burning too much time
                                 calculated_time = remaining_time / time_factor
                                 if remaining_time > 120:  # More than 2 minutes remaining
-                                    time_limit = min(calculated_time, 45.0)  # Increased from 30.0s
+                                    time_limit = min(calculated_time, 30.0)  # Max 30s per move
                                 elif remaining_time > 60:   # 1-2 minutes remaining
-                                    time_limit = min(calculated_time, 20.0)  # Increased from 15.0s  
+                                    time_limit = min(calculated_time, 15.0)  # Max 15s per move  
                                 else:  # Less than 1 minute - be more careful
-                                    time_limit = min(calculated_time, 10.0)  # Increased from 8.0s
+                                    time_limit = min(calculated_time, 8.0)   # Max 8s per move
                         except:
                             pass
                     elif part == "btime" and i + 1 < len(parts):
                         try:
                             if board.turn == chess.BLACK:
-                                # === PAT'S V12.3 BALANCED TIME MANAGEMENT (BLACK) ===
+                                # V12.2: Balanced aggressive time management
                                 remaining_time = int(parts[i + 1]) / 1000.0
                                 # Skip tactical detector for simplified version
                                 
-                                # V12.3: More balanced time usage for reliable play
+                                # V12.2: Reasonable time usage - aim for using time but not burning it
                                 moves_played = len(board.move_stack)
                                 if moves_played < 10:
-                                    time_factor = 30.0  # 🔧 INCREASED from 25.0 - safer opening play
+                                    time_factor = 30.0  # Opening: use 1/30th (10min game = 20s/move)
                                 elif moves_played < 20:
-                                    time_factor = 25.0  # 🔧 INCREASED from 20.0 - safer early game  
+                                    time_factor = 25.0  # Early game: use 1/25th  
                                 elif moves_played < 40:
-                                    time_factor = 20.0  # 🔧 INCREASED from 15.0 - more conservative middle game
+                                    time_factor = 20.0  # Mid game: use 1/20th (more time for complex positions)
                                 else:
-                                    time_factor = 18.0  # 🔧 INCREASED from 12.0 - safer endgame play
+                                    time_factor = 15.0  # End game: use 1/15th (precision matters)
                                 
-                                # V12.3: Higher time caps to allow deeper search
+                                # Apply reasonable time cap to prevent burning too much time
                                 calculated_time = remaining_time / time_factor
                                 if remaining_time > 120:  # More than 2 minutes remaining
-                                    time_limit = min(calculated_time, 45.0)  # Increased from 30.0s
+                                    time_limit = min(calculated_time, 30.0)  # Max 30s per move
                                 elif remaining_time > 60:   # 1-2 minutes remaining
-                                    time_limit = min(calculated_time, 20.0)  # Increased from 15.0s  
+                                    time_limit = min(calculated_time, 15.0)  # Max 15s per move  
                                 else:  # Less than 1 minute - be more careful
-                                    time_limit = min(calculated_time, 10.0)  # Increased from 8.0s
+                                    time_limit = min(calculated_time, 8.0)   # Max 8s per move
                         except:
                             pass
                 
