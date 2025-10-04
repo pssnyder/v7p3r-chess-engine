@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-V7P3R Bitboard-Based Evaluation System
-Ultra-fast evaluation using bitboard operations for tens of thousands of NPS
+V7P3R Bitboard-Based Evaluation System v12.6 - Clean Performance Build
+Ultra-fast evaluation using bitboard operations for maximum performance
 
-Enhanced with Intelligent Nudge System v2.0 for better opening play and center control
+Optimized for tournament play with no nudge system overhead
 """
 
 import chess
@@ -12,41 +12,19 @@ from typing import Dict, Tuple
 
 class V7P3RBitboardEvaluator:
     """
+    V7P3R Bitboard Evaluation System v12.6 - Clean Performance Build
+    
     High-performance bitboard-based evaluation system
     Uses bitwise operations for 10x+ speed improvement
-    Enhanced with intelligent nudge system for better opening play
+    Optimized for maximum performance without nudge system overhead
     """
     
-    def __init__(self, piece_values: Dict[int, int]):
+    def __init__(self, piece_values: Dict[int, int], enable_nudges: bool = False):
         self.piece_values = piece_values
-        
-        # Initialize intelligent nudge system
-        self.nudges = None
-        self._try_init_nudges()
         
         # Pre-calculate bitboard masks for ultra-fast evaluation
         self._init_bitboard_constants()
         self._init_attack_tables()
-    
-    def _try_init_nudges(self):
-        """Try to initialize the intelligent nudge system"""
-        try:
-            from .v7p3r_intelligent_nudges import V7P3RIntelligentNudges
-            self.nudges = V7P3RIntelligentNudges()
-        except (ImportError, ModuleNotFoundError):
-            # Try without relative import
-            try:
-                import sys
-                import os
-                sys.path.append(os.path.dirname(__file__))
-                from v7p3r_intelligent_nudges import V7P3RIntelligentNudges
-                self.nudges = V7P3RIntelligentNudges()
-            except (ImportError, ModuleNotFoundError):
-                print("⚠️  Nudge system not available - using base evaluation")
-                self.nudges = None
-        except Exception as e:
-            print(f"⚠️  Nudge system initialization error: {e}")
-            self.nudges = None
     
     def _init_bitboard_constants(self):
         """Initialize constant bitboard masks"""
@@ -318,29 +296,34 @@ class V7P3RBitboardEvaluator:
             draw_penalty = (board.halfmove_clock - 30) * 2.0  # Escalating penalty
             score -= draw_penalty if color == chess.WHITE else -draw_penalty
         
-        # Repetition penalty: discourage position repetition
-        if hasattr(board, 'move_stack') and len(board.move_stack) >= 4:
-            try:
-                # Check for 2-fold repetition in recent moves
-                board_copy = board.copy()
-                recent_positions = []
-                
-                # Collect last 4 positions
-                for _ in range(min(4, len(board.move_stack))):
-                    if board_copy.move_stack:
-                        recent_positions.append(board_copy.fen().split(' ')[0])  # Position only
-                        board_copy.pop()
-                
-                # Count repetitions
-                current_pos = board.fen().split(' ')[0]
-                repetition_count = recent_positions.count(current_pos)
-                
-                if repetition_count >= 1:
-                    repetition_penalty = repetition_count * 25.0  # Strong penalty for repetition
-                    score -= repetition_penalty if color == chess.WHITE else -repetition_penalty
+        # V12.5: PERFORMANCE OPTIMIZATION - Disable expensive repetition detection during search
+        # The repetition detection was calling board.fen() multiple times per evaluation,
+        # causing massive performance degradation. Commenting out for tournament performance.
+        # TODO: Implement fast repetition detection using zobrist hashing
+        if False:  # Disabled for performance
+            # Repetition penalty: discourage position repetition
+            if hasattr(board, 'move_stack') and len(board.move_stack) >= 4:
+                try:
+                    # Check for 2-fold repetition in recent moves
+                    board_copy = board.copy()
+                    recent_positions = []
                     
-            except:
-                pass  # Ignore errors in repetition detection
+                    # Collect last 4 positions
+                    for _ in range(min(4, len(board.move_stack))):
+                        if board_copy.move_stack:
+                            recent_positions.append(board_copy.fen().split(' ')[0])  # Position only
+                            board_copy.pop()
+                    
+                    # Count repetitions
+                    current_pos = board.fen().split(' ')[0]
+                    repetition_count = recent_positions.count(current_pos)
+                    
+                    if repetition_count >= 1:
+                        repetition_penalty = repetition_count * 25.0  # Strong penalty for repetition
+                        score -= repetition_penalty if color == chess.WHITE else -repetition_penalty
+                        
+                except:
+                    pass  # Ignore errors in repetition detection
         
         # Encourage piece activity: penalty for pieces on back ranks in middlegame
         if total_material >= 12:  # Middlegame
@@ -350,104 +333,7 @@ class V7P3RBitboardEvaluator:
             activity_penalty = (self._popcount(white_back_rank_pieces) - self._popcount(black_back_rank_pieces)) * 3
             score -= activity_penalty if color == chess.WHITE else -activity_penalty
 
-        # V12.5: INTELLIGENT NUDGE SYSTEM v2.0 - Enhanced piece-square evaluations
-        if self.nudges is not None:
-            nudge_bonus = self._evaluate_nudge_enhancements(board, white_pieces, black_pieces, 
-                                                           white_pawns, black_pawns,
-                                                           white_knights, black_knights, 
-                                                           white_bishops, black_bishops,
-                                                           white_rooks, black_rooks,
-                                                           white_queens, black_queens, total_material)
-            score += nudge_bonus if color == chess.WHITE else -nudge_bonus
-
         return score if color == chess.WHITE else -score
-    
-    def _evaluate_nudge_enhancements(self, board: chess.Board, white_pieces: int, black_pieces: int,
-                                   white_pawns: int, black_pawns: int, white_knights: int, black_knights: int,
-                                   white_bishops: int, black_bishops: int, white_rooks: int, black_rooks: int,
-                                   white_queens: int, black_queens: int, total_material: int) -> float:
-        """
-        V12.5: Intelligent Nudge System v2.0 - Performance-optimized piece-square enhancements
-        Uses pre-computed adjustments based on historical game data and opening theory
-        """
-        nudge_score = 0.0
-        
-        # 1. ENHANCED PIECE-SQUARE EVALUATION
-        # Apply nudge-based piece square adjustments for better opening play
-        if total_material >= 16:  # Opening and early middlegame
-            # Pawns - encourage center control based on nudge data
-            nudge_score += self._evaluate_piece_nudges(white_pawns, chess.PAWN, chess.WHITE)
-            nudge_score -= self._evaluate_piece_nudges(black_pawns, chess.PAWN, chess.BLACK)
-            
-            # Knights - prioritize center and outpost squares from nudge database
-            nudge_score += self._evaluate_piece_nudges(white_knights, chess.KNIGHT, chess.WHITE)
-            nudge_score -= self._evaluate_piece_nudges(black_knights, chess.KNIGHT, chess.BLACK)
-            
-            # Bishops - encourage center control and long diagonals
-            nudge_score += self._evaluate_piece_nudges(white_bishops, chess.BISHOP, chess.WHITE)
-            nudge_score -= self._evaluate_piece_nudges(black_bishops, chess.BISHOP, chess.BLACK)
-        
-        # 2. OPENING PREFERENCES
-        # Apply opening move bonuses for early game center control
-        if board.fullmove_number <= 8:
-            move_number = board.fullmove_number
-            
-            # Check recent moves for opening preferences
-            if len(board.move_stack) > 0:
-                last_move = board.move_stack[-1]
-                # Create a temporary board to get the position before the last move
-                temp_board = board.copy()
-                temp_board.pop()
-                opening_bonus = self.nudges.get_opening_bonus(last_move.uci(), move_number, temp_board.fen())
-                if opening_bonus > 0:
-                    # Apply bonus based on whose move it was
-                    move_was_white = (len(board.move_stack) % 2 == 1)
-                    if move_was_white:
-                        nudge_score += opening_bonus * 0.5  # Scale down to avoid overwhelming
-                    else:
-                        nudge_score -= opening_bonus * 0.5
-        
-        # 3. CENTER AGGRESSION ENHANCEMENT
-        # Extra bonuses for center control from Caro-Kann and other openings
-        if total_material >= 18:  # Early opening
-            # Enhanced d4/d5/e4/e5 control
-            center_control_bonus = 0.0
-            
-            # Check for pieces attacking/controlling center squares
-            for square in [chess.D4, chess.D5, chess.E4, chess.E5]:
-                white_attackers = len(board.attackers(chess.WHITE, square))
-                black_attackers = len(board.attackers(chess.BLACK, square))
-                
-                # Bonus for controlling center squares
-                control_diff = white_attackers - black_attackers
-                center_control_bonus += control_diff * 3.0
-            
-            nudge_score += center_control_bonus
-        
-        # Scale nudge influence to avoid overwhelming base evaluation
-        return nudge_score * 0.3  # 30% influence to maintain balance
-    
-    def _evaluate_piece_nudges(self, piece_bitboard: int, piece_type: chess.PieceType, color: chess.Color) -> float:
-        """Evaluate nudge-based piece square bonuses for a specific piece type"""
-        if piece_bitboard == 0:
-            return 0.0
-        
-        total_bonus = 0.0
-        
-        # Iterate through all pieces of this type
-        temp_bitboard = piece_bitboard
-        while temp_bitboard:
-            # Find the least significant bit (rightmost 1)
-            square = (temp_bitboard & -temp_bitboard).bit_length() - 1
-            
-            # Get nudge adjustment for this piece and square
-            adjustment = self.nudges.get_piece_square_adjustment(piece_type, square)
-            total_bonus += adjustment
-            
-            # Remove this bit and continue
-            temp_bitboard &= temp_bitboard - 1
-        
-        return total_bonus
     
     def _popcount(self, bitboard: int) -> int:
         """Ultra-fast population count (number of 1 bits)"""
@@ -590,9 +476,9 @@ class V7P3RScoringCalculationBitboard:
     Uses bitboards for ultra-high performance
     """
     
-    def __init__(self, piece_values: Dict[int, int]):
+    def __init__(self, piece_values: Dict[int, int], enable_nudges: bool = False):
         self.piece_values = piece_values
-        self.bitboard_evaluator = V7P3RBitboardEvaluator(piece_values)
+        self.bitboard_evaluator = V7P3RBitboardEvaluator(piece_values, enable_nudges=enable_nudges)
     
     def calculate_score_optimized(self, board: chess.Board, color: chess.Color, endgame_factor: float = 0.0) -> float:
         """

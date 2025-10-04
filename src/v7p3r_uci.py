@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-V7P3R v12.5 UCI Interface - Intelligent Nudge System v2.0
+V7P3R v12.6 UCI Interface - Clean Performance Build
 """
 
 import sys
@@ -27,7 +27,7 @@ def main():
                 break
                 
             elif command == "uci":
-                print("id name V7P3R v12.5")
+                print("id name V7P3R v12.6")
                 print("id author Pat Snyder")
                 print("uciok")
                 
@@ -36,7 +36,7 @@ def main():
                     option_name = parts[2]
                     if len(parts) >= 5 and parts[3] == "value":
                         option_value = parts[4]
-                        print(f"info string Option {option_name}={option_value} acknowledged but not used in v10")
+                        print(f"info string Option {option_name}={option_value} acknowledged but not used")
                 
             elif command == "isready":
                 print("readyok")
