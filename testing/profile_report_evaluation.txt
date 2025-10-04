@@ -1,0 +1,89 @@
+V7P3R Engine Profile Report - evaluation
+==================================================
+
+TOP 50 FUNCTIONS BY CUMULATIVE TIME:
+----------------------------------------
+         13157 function calls in 0.005 seconds
+
+   Ordered by: cumulative time
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+     3000    0.001    0.000    0.005    0.000 S:\Maker Stuff\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\testing\..\src\v7p3r.py:602(_evaluate_position)
+     3000    0.001    0.000    0.003    0.000 C:\Users\patss\AppData\Local\Programs\Python\Python312\Lib\site-packages\chess\__init__.py:3797(_transposition_key)
+     3020    0.002    0.000    0.002    0.000 C:\Users\patss\AppData\Local\Programs\Python\Python312\Lib\site-packages\chess\__init__.py:3360(clean_castling_rights)
+        6    0.000    0.000    0.001    0.000 S:\Maker Stuff\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\testing\..\src\v7p3r_bitboard_evaluator.py:597(calculate_score_optimized)
+        6    0.000    0.000    0.001    0.000 S:\Maker Stuff\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\testing\..\src\v7p3r_bitboard_evaluator.py:197(evaluate_bitboard)
+     3000    0.000    0.000    0.000    0.000 C:\Users\patss\AppData\Local\Programs\Python\Python312\Lib\site-packages\chess\__init__.py:2519(has_legal_en_passant)
+        6    0.000    0.000    0.000    0.000 S:\Maker Stuff\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\testing\..\src\v7p3r_bitboard_evaluator.py:365(_evaluate_nudge_enhancements)
+        6    0.000    0.000    0.000    0.000 S:\Maker Stuff\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\testing\..\src\v7p3r_bitboard_evaluator.py:479(_evaluate_enhanced_castling)
+       24    0.000    0.000    0.000    0.000 S:\Maker Stuff\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\testing\..\src\v7p3r_bitboard_evaluator.py:430(_evaluate_piece_nudges)
+       72    0.000    0.000    0.000    0.000 C:\Users\patss\AppData\Local\Programs\Python\Python312\Lib\site-packages\chess\__init__.py:817(pieces)
+      114    0.000    0.000    0.000    0.000 S:\Maker Stuff\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\testing\..\src\v7p3r_bitboard_evaluator.py:452(_popcount)
+       12    0.000    0.000    0.000    0.000 S:\Maker Stuff\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\testing\..\src\v7p3r_bitboard_evaluator.py:456(_count_passed_pawns)
+       12    0.000    0.000    0.000    0.000 S:\Maker Stuff\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\testing\..\src\v7p3r_bitboard_evaluator.py:548(_has_castled)
+       94    0.000    0.000    0.000    0.000 S:\Maker Stuff\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\testing\..\src\v7p3r_intelligent_nudges.py:301(get_piece_square_adjustment)
+       72    0.000    0.000    0.000    0.000 C:\Users\patss\AppData\Local\Programs\Python\Python312\Lib\site-packages\chess\__init__.py:4039(__init__)
+       16    0.000    0.000    0.000    0.000 C:\Users\patss\AppData\Local\Programs\Python\Python312\Lib\site-packages\chess\__init__.py:3421(has_kingside_castling_rights)
+      114    0.000    0.000    0.000    0.000 {method 'count' of 'str' objects}
+       24    0.000    0.000    0.000    0.000 C:\Users\patss\AppData\Local\Programs\Python\Python312\Lib\site-packages\chess\__init__.py:864(king)
+      192    0.000    0.000    0.000    0.000 {method 'bit_length' of 'int' objects}
+        6    0.000    0.000    0.000    0.000 S:\Maker Stuff\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\testing\..\src\v7p3r.py:660(_simple_king_safety)
+       72    0.000    0.000    0.000    0.000 C:\Users\patss\AppData\Local\Programs\Python\Python312\Lib\site-packages\chess\__init__.py:799(pieces_mask)
+      114    0.000    0.000    0.000    0.000 {built-in method builtins.bin}
+        1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}
+       16    0.000    0.000    0.000    0.000 C:\Users\patss\AppData\Local\Programs\Python\Python312\Lib\site-packages\chess\__init__.py:3442(has_queenside_castling_rights)
+       24    0.000    0.000    0.000    0.000 C:\Users\patss\AppData\Local\Programs\Python\Python312\Lib\site-packages\chess\__init__.py:411(msb)
+        2    0.000    0.000    0.000    0.000 C:\Users\patss\AppData\Local\Programs\Python\Python312\Lib\site-packages\chess\__init__.py:825(piece_at)
+        8    0.000    0.000    0.000    0.000 C:\Users\patss\AppData\Local\Programs\Python\Python312\Lib\site-packages\chess\__init__.py:55(piece_name)
+       72    0.000    0.000    0.000    0.000 C:\Users\patss\AppData\Local\Programs\Python\Python312\Lib\site-packages\chess\__init__.py:4228(__int__)
+        8    0.000    0.000    0.000    0.000 {method 'get' of 'dict' objects}
+       18    0.000    0.000    0.000    0.000 {built-in method builtins.len}
+        2    0.000    0.000    0.000    0.000 C:\Users\patss\AppData\Local\Programs\Python\Python312\Lib\site-packages\chess\__init__.py:835(piece_type_at)
+        8    0.000    0.000    0.000    0.000 {method 'lower' of 'str' objects}
+        6    0.000    0.000    0.000    0.000 {built-in method builtins.hasattr}
+        8    0.000    0.000    0.000    0.000 C:\Users\patss\AppData\Local\Programs\Python\Python312\Lib\typing.py:2173(cast)
+        2    0.000    0.000    0.000    0.000 <string>:2(__init__)
+
+
+
+
+TOP 30 FUNCTIONS BY TOTAL TIME:
+----------------------------------------
+         13157 function calls in 0.005 seconds
+
+   Ordered by: internal time
+   List reduced from 35 to 30 due to restriction <30>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+     3020    0.002    0.000    0.002    0.000 C:\Users\patss\AppData\Local\Programs\Python\Python312\Lib\site-packages\chess\__init__.py:3360(clean_castling_rights)
+     3000    0.001    0.000    0.003    0.000 C:\Users\patss\AppData\Local\Programs\Python\Python312\Lib\site-packages\chess\__init__.py:3797(_transposition_key)
+     3000    0.001    0.000    0.005    0.000 S:\Maker Stuff\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\testing\..\src\v7p3r.py:602(_evaluate_position)
+     3000    0.000    0.000    0.000    0.000 C:\Users\patss\AppData\Local\Programs\Python\Python312\Lib\site-packages\chess\__init__.py:2519(has_legal_en_passant)
+        6    0.000    0.000    0.001    0.000 S:\Maker Stuff\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\testing\..\src\v7p3r_bitboard_evaluator.py:197(evaluate_bitboard)
+       24    0.000    0.000    0.000    0.000 S:\Maker Stuff\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\testing\..\src\v7p3r_bitboard_evaluator.py:430(_evaluate_piece_nudges)
+      114    0.000    0.000    0.000    0.000 S:\Maker Stuff\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\testing\..\src\v7p3r_bitboard_evaluator.py:452(_popcount)
+       72    0.000    0.000    0.000    0.000 C:\Users\patss\AppData\Local\Programs\Python\Python312\Lib\site-packages\chess\__init__.py:817(pieces)
+       12    0.000    0.000    0.000    0.000 S:\Maker Stuff\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\testing\..\src\v7p3r_bitboard_evaluator.py:456(_count_passed_pawns)
+        6    0.000    0.000    0.000    0.000 S:\Maker Stuff\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\testing\..\src\v7p3r_bitboard_evaluator.py:479(_evaluate_enhanced_castling)
+       72    0.000    0.000    0.000    0.000 C:\Users\patss\AppData\Local\Programs\Python\Python312\Lib\site-packages\chess\__init__.py:4039(__init__)
+      114    0.000    0.000    0.000    0.000 {method 'count' of 'str' objects}
+       94    0.000    0.000    0.000    0.000 S:\Maker Stuff\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\testing\..\src\v7p3r_intelligent_nudges.py:301(get_piece_square_adjustment)
+      192    0.000    0.000    0.000    0.000 {method 'bit_length' of 'int' objects}
+       72    0.000    0.000    0.000    0.000 C:\Users\patss\AppData\Local\Programs\Python\Python312\Lib\site-packages\chess\__init__.py:799(pieces_mask)
+      114    0.000    0.000    0.000    0.000 {built-in method builtins.bin}
+        1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}
+       16    0.000    0.000    0.000    0.000 C:\Users\patss\AppData\Local\Programs\Python\Python312\Lib\site-packages\chess\__init__.py:3421(has_kingside_castling_rights)
+       12    0.000    0.000    0.000    0.000 S:\Maker Stuff\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\testing\..\src\v7p3r_bitboard_evaluator.py:548(_has_castled)
+        6    0.000    0.000    0.001    0.000 S:\Maker Stuff\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\testing\..\src\v7p3r_bitboard_evaluator.py:597(calculate_score_optimized)
+        6    0.000    0.000    0.000    0.000 S:\Maker Stuff\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\testing\..\src\v7p3r_bitboard_evaluator.py:365(_evaluate_nudge_enhancements)
+       24    0.000    0.000    0.000    0.000 C:\Users\patss\AppData\Local\Programs\Python\Python312\Lib\site-packages\chess\__init__.py:864(king)
+       16    0.000    0.000    0.000    0.000 C:\Users\patss\AppData\Local\Programs\Python\Python312\Lib\site-packages\chess\__init__.py:3442(has_queenside_castling_rights)
+       24    0.000    0.000    0.000    0.000 C:\Users\patss\AppData\Local\Programs\Python\Python312\Lib\site-packages\chess\__init__.py:411(msb)
+       72    0.000    0.000    0.000    0.000 C:\Users\patss\AppData\Local\Programs\Python\Python312\Lib\site-packages\chess\__init__.py:4228(__int__)
+        8    0.000    0.000    0.000    0.000 C:\Users\patss\AppData\Local\Programs\Python\Python312\Lib\site-packages\chess\__init__.py:55(piece_name)
+        6    0.000    0.000    0.000    0.000 S:\Maker Stuff\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\testing\..\src\v7p3r.py:660(_simple_king_safety)
+        2    0.000    0.000    0.000    0.000 C:\Users\patss\AppData\Local\Programs\Python\Python312\Lib\site-packages\chess\__init__.py:825(piece_at)
+        8    0.000    0.000    0.000    0.000 {method 'get' of 'dict' objects}
+       18    0.000    0.000    0.000    0.000 {built-in method builtins.len}
+
+
