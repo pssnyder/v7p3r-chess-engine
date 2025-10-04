@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-V7P3R v12.4 UCI Interface - Enhanced Castling
+V7P3R v12.5 UCI Interface - Intelligent Nudge System v2.0
 """
 
 import sys
@@ -27,7 +27,7 @@ def main():
                 break
                 
             elif command == "uci":
-                print("id name V7P3R v12.4 Enhanced Castling")
+                print("id name V7P3R v12.5")
                 print("id author Pat Snyder")
                 print("uciok")
                 

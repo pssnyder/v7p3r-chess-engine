@@ -1,0 +1,242 @@
+{
+  "starting_position": {
+    "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -",
+    "moves": {
+      "e2e4": {
+        "eval": 0.25,
+        "frequency": 10,
+        "confidence": 0.8,
+        "source": "opening",
+        "tactical_info": {
+          "themes": ["opening", "development"],
+          "classification": "development",
+          "puzzle_rating": 0,
+          "perfect_sequences": 0
+        },
+        "references": {
+          "games": [],
+          "puzzles": []
+        }
+      },
+      "d2d4": {
+        "eval": 0.25,
+        "frequency": 10,
+        "confidence": 0.8,
+        "source": "opening",
+        "tactical_info": {
+          "themes": ["opening", "development"],
+          "classification": "development",
+          "puzzle_rating": 0,
+          "perfect_sequences": 0
+        },
+        "references": {
+          "games": [],
+          "puzzles": []
+        }
+      }
+    },
+    "source_type": "opening"
+  },
+  "after_e4": {
+    "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq -",
+    "moves": {
+      "c7c6": {
+        "eval": 0.0,
+        "frequency": 10,
+        "confidence": 0.9,
+        "source": "opening",
+        "tactical_info": {
+          "themes": ["opening", "caro-kann"],
+          "classification": "development",
+          "puzzle_rating": 0,
+          "perfect_sequences": 0
+        },
+        "references": {
+          "games": [],
+          "puzzles": []
+        }
+      },
+      "e7e5": {
+        "eval": 0.0,
+        "frequency": 10,
+        "confidence": 0.8,
+        "source": "opening",
+        "tactical_info": {
+          "themes": ["opening", "kings-pawn"],
+          "classification": "development",
+          "puzzle_rating": 0,
+          "perfect_sequences": 0
+        },
+        "references": {
+          "games": [],
+          "puzzles": []
+        }
+      },
+      "e7e6": {
+        "eval": -0.1,
+        "frequency": 5,
+        "confidence": 0.6,
+        "source": "opening",
+        "tactical_info": {
+          "themes": ["opening", "french"],
+          "classification": "development",
+          "puzzle_rating": 0,
+          "perfect_sequences": 0
+        },
+        "references": {
+          "games": [],
+          "puzzles": []
+        }
+      }
+    },
+    "source_type": "opening"
+  },
+  "after_d4": {
+    "fen": "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq -",
+    "moves": {
+      "d7d5": {
+        "eval": 0.0,
+        "frequency": 10,
+        "confidence": 0.8,
+        "source": "opening",
+        "tactical_info": {
+          "themes": ["opening", "queens-gambit"],
+          "classification": "development",
+          "puzzle_rating": 0,
+          "perfect_sequences": 0
+        },
+        "references": {
+          "games": [],
+          "puzzles": []
+        }
+      },
+      "g8f6": {
+        "eval": 0.0,
+        "frequency": 8,
+        "confidence": 0.8,
+        "source": "opening",
+        "tactical_info": {
+          "themes": ["opening", "indian"],
+          "classification": "development",
+          "puzzle_rating": 0,
+          "perfect_sequences": 0
+        },
+        "references": {
+          "games": [],
+          "puzzles": []
+        }
+      }
+    },
+    "source_type": "opening"
+  },
+  "caro_kann_start": {
+    "fen": "rnbqkbnr/pp1ppppp/2p5/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq -",
+    "moves": {
+      "d2d4": {
+        "eval": 0.3,
+        "frequency": 10,
+        "confidence": 0.9,
+        "source": "opening",
+        "tactical_info": {
+          "themes": ["opening", "caro-kann"],
+          "classification": "development",
+          "puzzle_rating": 0,
+          "perfect_sequences": 0
+        },
+        "references": {
+          "games": [],
+          "puzzles": []
+        }
+      }
+    },
+    "source_type": "opening"
+  },
+  "london_system": {
+    "fen": "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq -",
+    "moves": {
+      "c1f4": {
+        "eval": 0.2,
+        "frequency": 8,
+        "confidence": 0.8,
+        "source": "opening",
+        "tactical_info": {
+          "themes": ["opening", "london"],
+          "classification": "development",
+          "puzzle_rating": 0,
+          "perfect_sequences": 0
+        },
+        "references": {
+          "games": [],
+          "puzzles": []
+        }
+      }
+    },
+    "source_type": "opening"
+  },
+  "vienna_game": {
+    "fen": "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq -",
+    "moves": {
+      "b1c3": {
+        "eval": 0.2,
+        "frequency": 8,
+        "confidence": 0.8,
+        "source": "opening",
+        "tactical_info": {
+          "themes": ["opening", "vienna"],
+          "classification": "development",
+          "puzzle_rating": 0,
+          "perfect_sequences": 0
+        },
+        "references": {
+          "games": [],
+          "puzzles": []
+        }
+      }
+    },
+    "source_type": "opening"
+  },
+  "kings_indian_setup": {
+    "fen": "rnbqkbnr/pppppp1p/6p1/8/3P4/8/PPP1PPPP/RNBQKBNR w KQkq -",
+    "moves": {
+      "g1f3": {
+        "eval": 0.15,
+        "frequency": 8,
+        "confidence": 0.7,
+        "source": "opening",
+        "tactical_info": {
+          "themes": ["opening", "kings-indian"],
+          "classification": "development",
+          "puzzle_rating": 0,
+          "perfect_sequences": 0
+        },
+        "references": {
+          "games": [],
+          "puzzles": []
+        }
+      }
+    },
+    "source_type": "opening"
+  },
+  "bad_moves_to_avoid": {
+    "fen": "rnbqkbnr/pppp1ppp/4p3/8/3PP3/8/PPP2PPP/RNBQKBNR b KQkq d3 0 2",
+    "moves": {
+      "e8e7": {
+        "eval": -5.0,
+        "frequency": 1,
+        "confidence": 0.05,
+        "source": "opening",
+        "tactical_info": {
+          "themes": ["blunder", "king-safety"],
+          "classification": "terrible",
+          "puzzle_rating": 0,
+          "perfect_sequences": 0
+        },
+        "references": {
+          "games": [],
+          "puzzles": []
+        }
+      }
+    },
+    "source_type": "anti-opening"
+  }
+}

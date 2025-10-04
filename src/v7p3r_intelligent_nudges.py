@@ -30,12 +30,13 @@ class NudgeStats:
 class V7P3RIntelligentNudges:
     """Intelligent nudge system with pre-computed optimizations"""
     
-    def __init__(self, nudge_db_path: str = "src/v7p3r_enhanced_nudges.json"):
+    def __init__(self, nudge_db_path: str = "src/v7p3r_simple_nudges.json"):
         self.nudge_db_path = nudge_db_path
         self.nudge_data = {}
         self.piece_square_adjustments = {}
         self.opening_preferences = {}
         self.move_ordering_bonuses = {}
+        self.bad_moves = {}  # Track moves to avoid
         
         # Performance settings
         self.max_positions_analyzed = 5000  # Limit for performance
@@ -47,12 +48,6 @@ class V7P3RIntelligentNudges:
         self._analyze_opening_preferences()
         self._generate_piece_square_adjustments()
         self._compute_move_ordering_bonuses()
-        
-        print(f"🧠 V7P3R Intelligent Nudges initialized:")
-        print(f"   📊 Analyzed {len(self.nudge_data)} positions")
-        print(f"   🏰 Opening preferences: {len(self.opening_preferences)} moves")
-        print(f"   📋 Piece square adjustments: {len(self.piece_square_adjustments)} squares")
-        print(f"   🎯 Move ordering bonuses: {len(self.move_ordering_bonuses)} moves")
     
     def _load_nudge_database(self):
         """Load nudge database with performance limits"""
@@ -71,27 +66,42 @@ class V7P3RIntelligentNudges:
                 
                 # Filter high-quality moves
                 quality_moves = {}
+                bad_moves = {}  # Track moves to avoid
+                
                 for move, move_data in moves.items():
                     frequency = move_data.get('frequency', 0)
                     confidence = move_data.get('confidence', 0.0)
+                    eval_score = move_data.get('eval', 0.0)
                     
                     if frequency >= self.min_frequency and confidence >= self.min_confidence:
                         quality_moves[move] = NudgeStats(
                             frequency=frequency,
                             confidence=confidence,
-                            eval_score=move_data.get('eval', 0.0),
+                            eval_score=eval_score,
                             classification=move_data.get('tactical_info', {}).get('classification', 'unknown'),
                             themes=move_data.get('tactical_info', {}).get('themes', [])
                         )
+                    # Track moves with bad evals or very low confidence as moves to avoid
+                    elif eval_score < -0.5 or confidence < 0.2:
+                        bad_moves[move] = {
+                            'eval': eval_score,
+                            'confidence': confidence,
+                            'frequency': frequency
+                        }
                 
                 if quality_moves:
                     self.nudge_data[fen] = quality_moves
                     positions_processed += 1
+                
+                if bad_moves:
+                    self.bad_moves[fen] = bad_moves
                     
         except FileNotFoundError:
-            print(f"⚠️  Nudge database not found: {self.nudge_db_path}")
+            # Silently fall back to basic nudges
+            pass
         except Exception as e:
-            print(f"⚠️  Error loading nudge database: {e}")
+            # Silently handle errors
+            pass
     
     def _analyze_opening_preferences(self):
         """Extract opening move preferences for better center control"""
@@ -238,7 +248,11 @@ class V7P3RIntelligentNudges:
             for move_uci, stats in moves.items():
                 if stats.frequency >= 3 and stats.confidence >= 0.5:
                     # Calculate bonus based on frequency, confidence, and eval
-                    bonus = min(15.0, stats.frequency * 2 + stats.confidence * 10 + max(0, stats.eval_score))
+                    # Properly handle negative evals - they should penalize moves
+                    eval_component = stats.eval_score  # Use full eval, including negatives
+                    bonus = min(15.0, stats.frequency * 2 + stats.confidence * 10 + eval_component)
+                    # Ensure we don't give negative bonuses (that would be handled separately)
+                    bonus = max(0.0, bonus)
                     
                     # Add theme-based bonuses
                     if 'mate' in stats.themes:
@@ -250,12 +264,31 @@ class V7P3RIntelligentNudges:
                     
                     self.move_ordering_bonuses[move_uci] = bonus
     
-    def get_opening_bonus(self, move_uci: str, move_number: int) -> float:
+    def get_opening_bonus(self, move_uci: str, move_number: int, current_fen: str | None = None) -> float:
         """Get opening move bonus for early game center control"""
         if move_number > 8:
             return 0.0
         
         bonus = self.opening_preferences.get(move_uci, 0.0)
+        
+        # Check for position-specific bonuses/penalties
+        if current_fen:
+            # Check if this move is in our nudge data for this position
+            for fen, moves in self.nudge_data.items():
+                if fen == current_fen and move_uci in moves:
+                    stats = moves[move_uci]
+                    # Apply positive bonus for good moves
+                    position_bonus = min(10.0, stats.eval_score * 5.0 + stats.confidence * 3.0)
+                    bonus += position_bonus
+                    break
+            
+            # Check for moves to avoid
+            bad_moves = self.bad_moves.get(current_fen, {})
+            if move_uci in bad_moves:
+                # Apply severe penalty for bad moves
+                bad_move_data = bad_moves[move_uci]
+                penalty = abs(bad_move_data.get('eval', -1.0)) * 10.0  # Strong penalty
+                bonus -= penalty
         
         # Scale bonus by move number (earlier moves get higher bonus)
         if move_number <= 3:
@@ -331,36 +364,7 @@ class V7P3RIntelligentNudges:
             enhanced_tables[piece_name] = enhanced_table
         
         return enhanced_tables
-
-def analyze_nudge_system_impact():
-    """Test function to analyze the impact of the nudge system"""
-    nudges = V7P3RIntelligentNudges()
     
-    print("\n🔍 NUDGE SYSTEM ANALYSIS")
-    print("=" * 50)
-    
-    # Test opening preferences
-    print("\n📋 Opening Preferences (Top 10):")
-    sorted_openings = sorted(nudges.opening_preferences.items(), key=lambda x: x[1], reverse=True)[:10]
-    for move, bonus in sorted_openings:
-        print(f"  {move}: +{bonus:.1f}")
-    
-    # Test piece square adjustments
-    center_squares = [chess.D4, chess.D5, chess.E4, chess.E5]
-    print(f"\n🎯 Center Square Adjustments:")
-    for square in center_squares:
-        square_name = chess.square_name(square)
-        if square in nudges.piece_square_adjustments:
-            adj = nudges.piece_square_adjustments[square]
-            print(f"  {square_name}: Pawn +{adj.get('pawn', 0):.1f}, Knight +{adj.get('knight', 0):.1f}")
-    
-    # Test move ordering bonuses
-    print(f"\n⚡ Move Ordering Bonuses (Top 10):")
-    sorted_bonuses = sorted(nudges.move_ordering_bonuses.items(), key=lambda x: x[1], reverse=True)[:10]
-    for move, bonus in sorted_bonuses:
-        print(f"  {move}: +{bonus:.1f}")
-    
-    print(f"\n✅ Nudge system ready for integration!")
-
-if __name__ == "__main__":
-    analyze_nudge_system_impact()
+    def get_moves_to_avoid(self, fen: str) -> dict:
+        """Get moves that should be avoided based on bad evaluations or low confidence"""
+        return self.bad_moves.get(fen, {})

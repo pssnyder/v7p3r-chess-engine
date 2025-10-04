@@ -1,19 +1,23 @@
 #!/usr/bin/env python3
 """
-V7P3R Chess Engine v12.0 - Clean Foundation
-Built from v10.8 stable baseline with proven v11 improvements
-Core: Search + Evaluation + Nudge System
+V7P3R Chess Engine v12.5 - Intelligent Nudge System v2.0
+
+Enhanced with iteratively reintroduced intelligent nudge system for improved opening play,
+center control, and strategic positioning while maintaining performance optimization.
 
 ARCHITECTURE:
 - Phase 1: Core search (alpha-beta, TT, iterative deepening)
-- Phase 2: Enhanced nudge system (2160+ positions)  
-- Phase 3A: Advanced evaluation (pawns, king safety)
+- Phase 2: Intelligent Nudge System v2.0 (1176+ analyzed positions)  
+- Phase 3A: Advanced evaluation (pawns, king safety, castling)
 - Clean codebase focused on playing strength and stability
 
 VERSION LINEAGE:
 - v10.8: Recovery baseline (19.5/30 tournament points)
 - v11.x: Experimental variants (lessons learned, features extracted)
 - v12.0: Clean evolution with proven improvements only
+- v12.2: Performance optimized with tactical regression
+- v12.4: Enhanced castling with balanced evaluation
+- v12.5: Intelligent nudge system reintroduction
 
 Author: Pat Snyder
 """
@@ -206,9 +210,9 @@ class ZobristHashing:
 
 
 class V7P3REngine:
-    """V7P3R Chess Engine v12.4 - Enhanced Castling"""
+    """V7P3R Chess Engine v12.5 - Intelligent Nudge System v2.0"""
     
-    # V12.4 FEATURE TOGGLES - Enhanced Castling Configuration
+    # V12.5 FEATURE TOGGLES - Intelligent Nudge System Configuration
     ENABLE_NUDGE_SYSTEM = True       # V12.5: Re-enabled with Intelligent Nudge System v2.0
     ENABLE_PV_FOLLOWING = True       # Keep - high value feature
     ENABLE_ADVANCED_EVALUATION = False  # V12.4: Disabled for performance testing
@@ -1116,17 +1120,13 @@ class V7P3REngine:
                         self.nudge_database = data['positions']
                         tactical_count = sum(1 for pos in data['positions'].values() 
                                            if pos.get('is_tactical', False))
-                        print(f"info string Loaded enhanced nudge database: {len(self.nudge_database)} positions ({tactical_count} tactical)")
                     else:
                         # Old format
                         self.nudge_database = data
-                        print(f"info string Loaded {len(self.nudge_database)} nudge positions (basic format)")
             elif os.path.exists(basic_path):
                 with open(basic_path, 'r', encoding='utf-8') as f:
                     self.nudge_database = json.load(f)
-                print(f"info string Loaded {len(self.nudge_database)} nudge positions (basic database)")
             else:
-                print(f"info string No nudge database found")
                 self.nudge_database = {}
         except Exception as e:
             print(f"info string Error loading nudge database: {e}")
@@ -1158,7 +1158,7 @@ class V7P3REngine:
         if hasattr(self, 'intelligent_nudges') and self.intelligent_nudges is not None:
             # Opening move bonuses for better center control
             if board.fullmove_number <= 8:
-                opening_bonus = self.intelligent_nudges.get_opening_bonus(move_uci, board.fullmove_number)
+                opening_bonus = self.intelligent_nudges.get_opening_bonus(move_uci, board.fullmove_number, board.fen())
                 total_bonus += opening_bonus
             
             # Move ordering bonuses for historically good moves
@@ -1280,7 +1280,6 @@ class V7P3REngine:
         try:
             from .v7p3r_intelligent_nudges import V7P3RIntelligentNudges
             self.intelligent_nudges = V7P3RIntelligentNudges()
-            print("🧠 V7P3R Intelligent Nudge System v2.0 activated")
         except (ImportError, ModuleNotFoundError):
             # Try without relative import
             try:
@@ -1289,10 +1288,7 @@ class V7P3REngine:
                 sys.path.append(os.path.dirname(__file__))
                 from v7p3r_intelligent_nudges import V7P3RIntelligentNudges
                 self.intelligent_nudges = V7P3RIntelligentNudges()
-                print("🧠 V7P3R Intelligent Nudge System v2.0 activated")
             except (ImportError, ModuleNotFoundError):
-                print("⚠️  Intelligent Nudge System not available - using legacy nudges only")
                 self.intelligent_nudges = None
         except Exception as e:
-            print(f"⚠️  Intelligent Nudge System initialization error: {e}")
             self.intelligent_nudges = None
