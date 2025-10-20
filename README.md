@@ -2,6 +2,8 @@
 
 A high-performance UCI chess engine featuring unified search architecture, advanced tactical evaluation, and tournament-proven reliability.
 
+> **NEW**: [VPR - Barebones Maximum Depth Engine](VPR_README.md) - Experimental rebuild searching 10x more nodes!
+
 ## Current Version: v12.2 (Stable Tournament Build)
 
 **Built**: December 2024  
@@ -184,6 +186,26 @@ V12.2 represents the current production-ready state of the V7P3R engine:
 - Endgame tablebase support
 - Neural network evaluation assistance
 - Advanced tournament analytics
+
+---
+
+## 🔬 Experimental: VPR Engine
+
+**NEW**: [VPR (Barebones Maximum Depth Engine)](VPR_README.md)
+
+An experimental rebuild of V7P3R stripped down to minimal heuristics for maximum search depth:
+- **10x more nodes** searched than V7P3R
+- **5x higher NPS** (17,000+ vs 4,000)
+- **+1-2 plies deeper** in same time
+- **6x smaller codebase** (~400 vs 2,600 LOC)
+
+Perfect for:
+- Deep tactical puzzles
+- Endgame positions (34x speedup!)
+- Feature impact testing
+- Learning engine architecture
+
+See [VPR_README.md](VPR_README.md) for details.
 
 ---
 
