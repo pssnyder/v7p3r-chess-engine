@@ -31,6 +31,9 @@ class VPREngine:
     V7P3R Pure Potential Chess Engine
     """
     
+    # Class attributes for type hinting
+    chaos_move_threshold: int
+    
     def __init__(self):
         self.nodes_searched = 0
         self.search_start_time = 0.0
@@ -38,6 +41,9 @@ class VPREngine:
         
         # Attack calculation cache for speed
         self.attack_cache = {}
+        
+        # UCI configurable options
+        self.chaos_move_threshold = 100  # Default chaos threshold for move selection
         
     def search(self, board: chess.Board, time_limit: float = 3.0, 
                depth: Optional[int] = None) -> chess.Move:
