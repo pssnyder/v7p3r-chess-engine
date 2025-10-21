@@ -1,8 +1,8 @@
 @echo off
-REM VPR Lightning Fast Engine v4.0 - Arena Deployment Launcher
+REM VPR Chaos Capitalization Engine v6.0 - Arena Deployment Launcher
 REM Revolutionary Bitboard-Based Piece Potential Engine for Arena Chess GUI
 
-echo Starting VPR Lightning Fast Engine v4.0...
+echo Starting VPR Chaos Capitalization Engine v6.0...
 echo "Bitboard flash-layer comparisons for blazing speed!"
 echo "Piece value = attacks + mobility (NO material assumptions)"
 
@@ -15,7 +15,7 @@ REM Use the working Python 3.13 installation
 REM Pause if there's an error
 if errorlevel 1 (
     echo.
-    echo Error starting VPR Lightning Fast Engine!
+    echo Error starting VPR Chaos Capitalization Engine v6.0!
     echo Make sure Python and python-chess are installed.
     echo Press any key to view troubleshooting info...
     pause > nul
@@ -25,7 +25,7 @@ if errorlevel 1 (
     echo 2. Install python-chess: pip install python-chess
     echo 3. Verify installation: python -c "import chess; print('OK')"
     echo 4. Check if src\vpr_uci.py exists in engine directory
-    echo 5. VPR v4.0 - Lightning Fast Bitboard Engine
+    echo 5. VPR v6.0 - Chaos Capitalization Bitboard Engine
     echo.
     pause
 )

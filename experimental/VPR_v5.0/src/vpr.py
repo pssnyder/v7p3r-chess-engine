@@ -43,16 +43,6 @@ class VPREngine:
         # UCI configurable options
         self.chaos_move_threshold = 100  # Default chaos threshold for move selection
         
-        # SEE (Static Exchange Evaluation) piece values for tactical analysis
-        self.piece_values = {
-            chess.PAWN: 100,
-            chess.KNIGHT: 320,
-            chess.BISHOP: 330,
-            chess.ROOK: 500,
-            chess.QUEEN: 900,
-            chess.KING: 20000
-        }
-        
         # Pre-computed attack patterns (bitboards) - Calculated Outcomes lookups
         self._init_attack_patterns()
     
@@ -94,10 +84,10 @@ class VPREngine:
     
     def _static_exchange_evaluation(self, board: chess.Board, move: chess.Move) -> int:
         """
-        Static Exchange Evaluation (SEE) - VPR v5.0 Revolutionary Feature
+        VPR v5.0 Revolutionary SEE - Using CALCULATED piece potential, not static values!
         
-        Calculates the material outcome of a capture sequence on a square.
-        This gives us CONTROL over chaos by precisely evaluating tactical threats.
+        True to VPR philosophy: "A piece is as valuable as the attacking potential it has"
+        Calculates exchange outcomes using dynamic piece potential rather than material.
         """
         if not board.is_capture(move):
             return 0
@@ -108,8 +98,8 @@ class VPREngine:
         if not captured_piece:
             return 0
         
-        # Initial gain from the capture
-        gain = self.piece_values[captured_piece.piece_type]
+        # VPR Innovation: Use calculated piece potential as "value"
+        captured_potential = self._calculate_piece_potential_bitboard(board, target_square)
         
         # Get all attackers of the target square for both sides
         attackers = self._get_square_attackers(board, target_square)
@@ -121,9 +111,9 @@ class VPREngine:
         # Get the piece that just moved to the target square
         attacking_piece = board_copy.piece_at(target_square)
         if not attacking_piece:
-            return gain
+            return captured_potential
         
-        # Recursively calculate the best response
+        # Recursively calculate the best response using potential-based values
         best_response = 0
         opponent_attackers = []
         
@@ -133,21 +123,24 @@ class VPREngine:
                 opponent_attackers.append(sq)
         
         if opponent_attackers:
-            # Find the least valuable attacker for the opponent
-            def get_piece_value(sq):
-                piece = board_copy.piece_at(sq)
-                return self.piece_values[piece.piece_type] if piece else 999999
+            # Find the least valuable attacker using VPR potential calculation
+            def get_piece_potential_value(sq):
+                return self._calculate_piece_potential_bitboard(board_copy, sq)
             
-            least_valuable_attacker = min(opponent_attackers, key=get_piece_value)
+            # Use LOWEST potential piece for counter-attack (most expendable)
+            least_valuable_attacker = min(opponent_attackers, key=get_piece_potential_value)
             
             # Create the counter-capture move
             counter_move = chess.Move(least_valuable_attacker, target_square)
             if counter_move in board_copy.legal_moves:
-                # Recursively evaluate the counter-capture
-                best_response = self.piece_values[attacking_piece.piece_type] - \
+                # Calculate attacking piece potential in new position
+                attacking_piece_potential = self._calculate_piece_potential_bitboard(board_copy, target_square)
+                
+                # Recursively evaluate the counter-capture using potential values
+                best_response = attacking_piece_potential - \
                                self._static_exchange_evaluation(board_copy, counter_move)
         
-        return gain - max(0, best_response)
+        return captured_potential - max(0, best_response)
     
     def _get_square_attackers(self, board: chess.Board, square: chess.Square) -> List[chess.Square]:
         """Get all pieces attacking a specific square using bitboard magic"""
@@ -572,13 +565,14 @@ class VPREngine:
         # Potential difference is the score
         score = our_potential - their_potential
         
-        # VPR v5.0 Tactical Enhancement: SEE-based tactical bonus
+        # VPR v5.0 Tactical Enhancement: Potential-based tactical bonus
         tactical_bonus = 0
         for move in board.legal_moves:
             if board.is_capture(move):
                 see_value = self._static_exchange_evaluation(board, move)
                 if see_value > 0:
-                    tactical_bonus += min(see_value // 50, 10)  # Cap bonus per winning capture
+                    # Bonus based on potential gained, not static material
+                    tactical_bonus += min(see_value // 10, 15)  # Scale potential bonus appropriately
         
         score += tactical_bonus
         
