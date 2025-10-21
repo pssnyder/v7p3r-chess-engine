@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
-VPR Pure Potential Engine v3.0 - UCI Interface
+VPR Lightning Fast Engine v4.0 - UCI Interface
 
-UCI communication for VPR Pure Potential Engine.
-Revolutionary piece potential based chess AI for Arena Chess GUI.
+UCI communication for VPR Lightning Fast Bitboard Engine.
+Revolutionary bitboard-based piece potential chess AI for Arena Chess GUI.
 
 Philosophy: Piece value = attacks + mobility (NO material assumptions)
+Technology: Lightning-fast bitboard flash-layer comparisons
 """
 
 import sys
@@ -20,7 +21,7 @@ def uci_print(message):
 
 
 def main():
-    """UCI interface for VPR Pure Potential Engine v3.0"""
+    """UCI interface for VPR Lightning Fast Engine v4.0"""
     engine = VPREngine()
     board = chess.Board()
     
@@ -40,7 +41,7 @@ def main():
                 break
             
             elif command == "uci":
-                uci_print("id name VPR Pure Potential v3.0")
+                uci_print("id name VPR Lightning Fast v4.0")
                 uci_print("id author V7P3R Project")
                 uci_print("option name Chaos_Threshold type spin default 100 min 50 max 200")
                 uci_print("uciok")
@@ -52,7 +53,7 @@ def main():
                 board = chess.Board()
                 # Reset engine state
                 engine = VPREngine()
-                uci_print("info string VPR v3.0: Pure potential evaluation ready")
+                uci_print("info string VPR v4.0: Lightning-fast bitboard evaluation ready")
             
             elif command == "position":
                 if len(parts) < 2:
