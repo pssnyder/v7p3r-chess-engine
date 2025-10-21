@@ -1,0 +1,56 @@
+{
+  "heuristic_performance": {
+    "move_ordering": {
+      "call_count": 19,
+      "total_time_ms": 4.132799891522154,
+      "avg_time_ms": 0.21751578376432393,
+      "time_percentage": 0.03209118607821868,
+      "calls_per_second": 4597.367522917278
+    },
+    "evaluation": {
+      "call_count": 27510,
+      "total_time_ms": 7276.860601006774,
+      "avg_time_ms": 0.26451692479123134,
+      "time_percentage": 56.50481362313372,
+      "calls_per_second": 3780.476431854956
+    },
+    "chaos_factor": {
+      "call_count": 27510,
+      "total_time_ms": 5597.30870189378,
+      "avg_time_ms": 0.2034645111557172,
+      "time_percentage": 43.46309519078806,
+      "calls_per_second": 4914.8620283695145
+    }
+  },
+  "piece_value_analysis": {},
+  "move_ordering_analysis": {
+    "total_orderings": 19,
+    "order_changes": 7,
+    "order_change_percentage": 36.84210526315789,
+    "heuristic_usage": {
+      "captures": 30,
+      "checks": 8,
+      "piece_values": 420,
+      "positional": 0
+    },
+    "avg_ordering_time_ms": 0.21122105413508652
+  },
+  "evaluation_analysis": {
+    "total_evaluations": 27510,
+    "avg_component_values": {
+      "material": 139.08724100327154,
+      "position": 55.64827335514359,
+      "complexity": 1.772424572882622
+    },
+    "avg_evaluation_time_ms": 0.26346219549350297,
+    "component_variance": {
+      "material": 59442.20940100298,
+      "position": 439.96440178060226,
+      "complexity": 0.6898510098505537
+    }
+  },
+  "recommendations": [
+    "WARNING: Chaos factor calculation is expensive - consider simplification",
+    "INFO: Complexity factor has minimal impact - consider increasing weight or removing"
+  ]
+}
