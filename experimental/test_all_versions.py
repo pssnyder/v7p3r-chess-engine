@@ -57,7 +57,10 @@ def main():
     versions = [
         ("VPR_v1.0", "VPR v1.0 (TAL-BOT Legacy)"),
         ("VPR_v2.0", "VPR v2.0 (TAL-BOT Enhanced)"), 
-        ("VPR_v3.0", "VPR v3.0 (Pure Potential)")
+        ("VPR_v3.0", "VPR v3.0 (Pure Potential)"),
+        ("VPR_v4.0", "VPR v4.0 (Bitboard Breakthrough)"),
+        ("VPR_v5.0", "VPR v5.0 (Calculated Outcomes)"),
+        ("VPR_v6.0", "VPR v6.0 (Chaos Capitalization)")
     ]
     
     results = []

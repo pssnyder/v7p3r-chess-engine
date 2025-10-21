@@ -2,11 +2,12 @@
 """
 VPR Chaos Capitalization Engine v6.0 - UCI Interface
 
-UCI communication for VPR Chaos Capitalization Bitboard Engine.
-Revolutionary bitboard-based piece potential chess AI for Arena Chess GUI.
+UCI communication for VPR v6.0 Revolutionary Dual-Brain Chess Engine.
+Features asymmetric thinking: "We create chaos, they respond traditionally, we capitalize."
 
-Philosophy: Piece value = attacks + mobility (NO material assumptions)
-Technology: Lightning-fast bitboard flash-layer comparisons
+Architecture: Dual-Brain Search System (Chaos Brain + Opponent Model)
+Technology: Position-aware algorithm selection with MCTS for ultra-chaotic positions
+Philosophy: Traditional engines assume the opponent thinks like them. We assume they don't.
 """
 
 import sys
@@ -43,7 +44,9 @@ def main():
             elif command == "uci":
                 uci_print("id name VPR Chaos Capitalization v6.0")
                 uci_print("id author V7P3R Project")
-                uci_print("option name Chaos_Threshold type spin default 100 min 50 max 200")
+                uci_print("option name Chaos_Threshold type spin default 80 min 50 max 200")
+                uci_print("option name MCTS_Time_Threshold type spin default 1000 min 100 max 5000")
+                uci_print("option name Complexity_Bonus type spin default 25 min 0 max 100")
                 uci_print("uciok")
             
             elif command == "isready":
@@ -53,7 +56,7 @@ def main():
                 board = chess.Board()
                 # Reset engine state
                 engine = VPREngine()
-                uci_print("info string VPR v6.0: Lightning-fast bitboard evaluation ready")
+                uci_print("info string VPR v6.0: Revolutionary dual-brain chaos capitalization ready")
             
             elif command == "position":
                 if len(parts) < 2:
@@ -191,8 +194,22 @@ def main():
                         if option_name == "Chaos_Threshold":
                             try:
                                 threshold = int(option_value)
-                                engine.chaos_move_threshold = max(50, min(200, threshold))
-                                uci_print(f"info string Chaos threshold set to {engine.chaos_move_threshold}")
+                                engine.chaos_threshold = max(50, min(200, threshold))
+                                uci_print(f"info string Chaos threshold set to {engine.chaos_threshold}")
+                            except:
+                                pass
+                        elif option_name == "MCTS_Time_Threshold":
+                            try:
+                                mcts_time = int(option_value) / 1000.0  # Convert ms to seconds
+                                engine.mcts_time_threshold = max(0.1, min(5.0, mcts_time))
+                                uci_print(f"info string MCTS time threshold set to {engine.mcts_time_threshold:.1f}s")
+                            except:
+                                pass
+                        elif option_name == "Complexity_Bonus":
+                            try:
+                                bonus = int(option_value)
+                                engine.complexity_bonus = max(0, min(100, bonus))
+                                uci_print(f"info string Complexity bonus set to {engine.complexity_bonus}")
                             except:
                                 pass
             
