@@ -1,14 +1,14 @@
 @echo off
-REM TAL-BOT Chess Engine - Arena Deployment Launcher
-REM The Revolutionary Entropy Engine for Arena Chess GUI
+REM VPR Pure Potential Engine - Arena Deployment Launcher
+REM The Revolutionary Piece Potential Engine for Arena Chess GUI
 
-echo Starting TAL-BOT (The Entropy Engine) v1.0...
-echo "Into the dark forest where only we know the way out"
+echo Starting VPR Pure Potential Engine v2.0...
+echo "Piece value = attacks + mobility (NO material assumptions)"
 
 REM Change to the engine directory
 cd /d "%~dp0"
 
-REM Run the TAL-BOT UCI interface (in src subdirectory)
+REM Use the working Python 3.13 installation
 "C:\Users\patss\AppData\Local\Programs\Python\Python313\python.exe" src/vpr_uci.py
 
 REM Pause if there's an error

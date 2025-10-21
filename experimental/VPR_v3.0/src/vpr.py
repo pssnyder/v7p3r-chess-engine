@@ -277,6 +277,21 @@ class VPREngine:
         
         best_move = self.search(self.board, time_limit, depth)
         print(f"bestmove {best_move}")
+    
+    def new_game(self):
+        """Reset engine state for a new game"""
+        self.nodes_searched = 0
+        self.attack_cache.clear()
+    
+    def get_engine_info(self) -> dict:
+        """Return engine information"""
+        return {
+            'name': 'VPR Pure Potential',
+            'version': '3.0', 
+            'author': 'V7P3R Project',
+            'description': 'Revolutionary piece potential based chess AI',
+            'nodes_searched': self.nodes_searched
+        }
 
 def main():
     """
