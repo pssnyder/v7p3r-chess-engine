@@ -1,23 +1,19 @@
 #!/usr/bin/env python3
 """
-V7P3R Chess Engine v12.5 - Intelligent Nudge System v2.0
+V7P3R Chess Engine v13.0 - TAL Evolution: Tactical Pattern Recognition
 
-Enhanced with iteratively reintroduced intelligent nudge system for improved opening play,
-center control, and strategic positioning while maintaining performance optimization.
+Enhanced with Mikhail Tal-inspired tactical awareness system for dynamic chess play.
+"Chess is 99% tactics" - emphasis on pattern recognition and forcing variations.
 
 ARCHITECTURE:
-- Phase 1: Core search (alpha-beta, TT, iterative deepening)
-- Phase 2: Intelligent Nudge System v2.0 (1176+ analyzed positions)  
-- Phase 3A: Advanced evaluation (pawns, king safety, castling)
-- Clean codebase focused on playing strength and stability
+- Phase 1: Tactical Foundation (pin/fork/skewer detection)
+- Phase 2: Dynamic Piece Evaluation (context-dependent values)
+- Phase 3: Tal-Inspired Decision Making (complexity and initiative)
 
 VERSION LINEAGE:
-- v10.8: Recovery baseline (19.5/30 tournament points)
-- v11.x: Experimental variants (lessons learned, features extracted)
-- v12.0: Clean evolution with proven improvements only
-- v12.2: Performance optimized with tactical regression
-- v12.4: Enhanced castling with balanced evaluation
-- v12.5: Intelligent nudge system reintroduction
+- v12.6: Clean Performance Build (production baseline)
+- v13.0: Tal Evolution - Tactical Pattern Recognition
+- v13.1: Tactical Foundation (pin/fork/skewer detection)
 
 Author: Pat Snyder
 """
@@ -213,9 +209,15 @@ class V7P3REngine:
     """V7P3R Chess Engine v12.5 - Intelligent Nudge System v2.0"""
     
     # V12.5 FEATURE TOGGLES - Intelligent Nudge System Configuration
-    ENABLE_NUDGE_SYSTEM = True       # V12.5: Re-enabled with Intelligent Nudge System v2.0
-    ENABLE_PV_FOLLOWING = True       # Keep - high value feature
-    ENABLE_ADVANCED_EVALUATION = False  # V12.4: Disabled for performance testing
+    # V13.0 FEATURE FLAGS - Tal Evolution System
+    ENABLE_TACTICAL_DETECTION = True    # V13.0: Pin/Fork/Skewer detection
+    ENABLE_DYNAMIC_EVALUATION = True    # V13.0: Context-dependent piece values
+    ENABLE_TAL_COMPLEXITY_BONUS = True  # V13.0: Position complexity assessment
+    
+    # V12.x LEGACY FLAGS (maintained for compatibility)
+    ENABLE_NUDGE_SYSTEM = False         # V12.5: Disabled for V13 tactical refactor
+    ENABLE_PV_FOLLOWING = True          # Keep - high value feature
+    ENABLE_ADVANCED_EVALUATION = True   # V12.4: Re-enabled for V13
     
     def __init__(self):
         # Basic configuration
@@ -232,10 +234,33 @@ class V7P3REngine:
         self.default_depth = 6
         self.nodes_searched = 0
         
-        # Evaluation components - V12.0: Proven stable (bitboard + advanced)
+        # Evaluation components - V13.0: Tal Evolution System
         self.bitboard_evaluator = V7P3RScoringCalculationBitboard(self.piece_values)
         self.advanced_pawn_evaluator = V7P3RAdvancedPawnEvaluator()
         self.king_safety_evaluator = V7P3RKingSafetyEvaluator()
+        
+        # V13.0 NEW: Tactical detection and dynamic evaluation
+        if self.ENABLE_TACTICAL_DETECTION:
+            try:
+                from v7p3r_tactical_detector import V7P3RTacticalDetector
+                self.tactical_detector = V7P3RTacticalDetector()
+            except ImportError:
+                print("⚠️  Tactical detector not available - using base evaluation")
+                self.tactical_detector = None
+                self.ENABLE_TACTICAL_DETECTION = False
+        else:
+            self.tactical_detector = None
+            
+        if self.ENABLE_DYNAMIC_EVALUATION and self.tactical_detector:
+            try:
+                from v7p3r_dynamic_evaluator import V7P3RDynamicEvaluator
+                self.dynamic_evaluator = V7P3RDynamicEvaluator(self.tactical_detector)
+            except ImportError:
+                print("⚠️  Dynamic evaluator not available - using base evaluation")
+                self.dynamic_evaluator = None
+                self.ENABLE_DYNAMIC_EVALUATION = False
+        else:
+            self.dynamic_evaluator = None
         
         # Simple evaluation cache for speed
         self.evaluation_cache = {}  # position_hash -> evaluation
@@ -600,8 +625,8 @@ class V7P3REngine:
         return ordered
     
     def _evaluate_position(self, board: chess.Board) -> float:
-        """V12.2 OPTIMIZED: Position evaluation with Zobrist-based caching"""
-        # V12.2 OPTIMIZATION: Use Zobrist hash instead of expensive FEN for cache key
+        """V13.0 TAL EVOLUTION: Position evaluation with tactical pattern detection"""
+        # V12.2 OPTIMIZATION: Use Zobrist hash for cache key
         cache_key = self.zobrist.hash_position(board)
         
         if cache_key in self.evaluation_cache:
@@ -610,12 +635,18 @@ class V7P3REngine:
         
         self.search_stats['cache_misses'] += 1
         
-        # V10 Base bitboard evaluation for material and basic positioning
-        white_base = self.bitboard_evaluator.calculate_score_optimized(board, True)
-        black_base = self.bitboard_evaluator.calculate_score_optimized(board, False)
-        
-        # V12.2 CONDITIONAL: Advanced evaluation components 
+        # V13.0 NEW EVALUATION PIPELINE: Tactical → Dynamic → Traditional → King Safety
         try:
+            if self.ENABLE_DYNAMIC_EVALUATION and self.dynamic_evaluator and self._should_run_dynamic_evaluation(board):
+                # V13.0: Use new dynamic evaluation system (selective)
+                white_base = self.dynamic_evaluator.evaluate_dynamic_position_value(board, True)
+                black_base = self.dynamic_evaluator.evaluate_dynamic_position_value(board, False)
+            else:
+                # V12.6: Fallback to traditional bitboard evaluation
+                white_base = self.bitboard_evaluator.calculate_score_optimized(board, True)
+                black_base = self.bitboard_evaluator.calculate_score_optimized(board, False)
+            
+            # Advanced evaluation components
             if self.ENABLE_ADVANCED_EVALUATION:
                 # V11 PHASE 3A: Advanced pawn structure evaluation
                 white_pawn_score = self.advanced_pawn_evaluator.evaluate_pawn_structure(board, True)
@@ -625,24 +656,45 @@ class V7P3REngine:
                 white_king_score = self.king_safety_evaluator.evaluate_king_safety(board, True)
                 black_king_score = self.king_safety_evaluator.evaluate_king_safety(board, False)
             else:
-                # V12.2: Simplified evaluation for performance
-                white_pawn_score = 0  # Skip advanced pawn evaluation
+                white_pawn_score = 0
                 black_pawn_score = 0
-                
-                # V12.2: Simple king safety - just check if king is castled
                 white_king_score = self._simple_king_safety(board, True)
                 black_king_score = self._simple_king_safety(board, False)
             
-            # V10.6 ROLLBACK: Tactical pattern evaluation disabled for performance
-            # Phase 3B showed 70% performance degradation in tournament play
-            white_tactical_score = 0  # V10.6: Disabled Phase 3B
-            black_tactical_score = 0  # V10.6: Disabled Phase 3B
+            # V13.0 NEW: Tactical pattern scoring (OPTIMIZED - only when beneficial)
+            if self.ENABLE_TACTICAL_DETECTION and self.tactical_detector:
+                # OPTIMIZATION: Only run expensive tactical detection when beneficial
+                if self._should_run_tactical_detection(board):
+                    white_tactical_score = self.tactical_detector.get_tactical_score(board, True)
+                    black_tactical_score = self.tactical_detector.get_tactical_score(board, False)
+                else:
+                    white_tactical_score = 0
+                    black_tactical_score = 0
+            else:
+                white_tactical_score = 0
+                black_tactical_score = 0
             
-            # Combine all evaluation components
+            # V13.0 NEW: Tal complexity bonus
+            tal_complexity_bonus = 0
+            if self.ENABLE_TAL_COMPLEXITY_BONUS and self.dynamic_evaluator:
+                tal_complexity_bonus = self.dynamic_evaluator._calculate_position_complexity_bonus(board, True)
+                tal_complexity_bonus -= self.dynamic_evaluator._calculate_position_complexity_bonus(board, False)
+            
+            # Combine all evaluation components with V13.0 weighting
+            # Tal Framework: Tactical (35%) + Dynamic (25%) + King Safety (25%) + Material Context (15%)
             white_total = white_base + white_pawn_score + white_king_score + white_tactical_score
             black_total = black_base + black_pawn_score + black_king_score + black_tactical_score
             
+            # Add complexity bonus
+            if board.turn:  # White to move
+                white_total += tal_complexity_bonus
+            else:  # Black to move
+                black_total -= tal_complexity_bonus
+            
         except Exception as e:
+            # Fallback to base evaluation if advanced evaluation fails
+            white_total = self.bitboard_evaluator.calculate_score_optimized(board, True)
+            black_total = self.bitboard_evaluator.calculate_score_optimized(board, False)
             # Fallback to base evaluation if advanced evaluation fails
             white_total = white_base
             black_total = black_base
@@ -656,6 +708,70 @@ class V7P3REngine:
         # Cache the result
         self.evaluation_cache[cache_key] = final_score
         return final_score
+    
+    def _should_run_tactical_detection(self, board: chess.Board) -> bool:
+        """
+        V13.0 OPTIMIZATION: Determine if position warrants expensive tactical detection
+        Only run on positions likely to have tactical patterns
+        """
+        # Always run in opening (pieces developed, tactics possible)
+        if board.fullmove_number <= 15:
+            return True
+        
+        # Run if there are pieces in contact (attacking/defending each other)
+        piece_contact = 0
+        for square in chess.SQUARES:
+            piece = board.piece_at(square)
+            if piece:
+                attackers = board.attackers(not piece.color, square)
+                if len(attackers) > 0:
+                    piece_contact += 1
+                    
+        # If many pieces are in contact, likely tactical position
+        if piece_contact >= 6:
+            return True
+            
+        # Run if there are checks or captures available
+        legal_moves = list(board.legal_moves)
+        for move in legal_moves[:10]:  # Check first 10 moves for performance
+            if board.is_capture(move) or board.gives_check(move):
+                return True
+                
+        # Skip tactical detection in quiet positions
+        return False
+    
+    def _should_run_dynamic_evaluation(self, board: chess.Board) -> bool:
+        """
+        V13.0 OPTIMIZATION: Determine if position warrants expensive dynamic evaluation
+        Use dynamic evaluation in complex positions, fall back to fast bitboard in simple ones
+        """
+        # Always use dynamic evaluation in opening and early middlegame
+        if board.fullmove_number <= 20:
+            return True
+            
+        # Use dynamic evaluation if material is unbalanced
+        white_material = self._count_material_fast(board, True)
+        black_material = self._count_material_fast(board, False)
+        material_imbalance = abs(white_material - black_material)
+        
+        if material_imbalance > 200:  # Significant material imbalance
+            return True
+            
+        # Use in endgame where piece activity matters more
+        total_material = white_material + black_material
+        if total_material < 2000:  # Endgame
+            return True
+            
+        # Skip in simple middlegame positions
+        return False
+    
+    def _count_material_fast(self, board: chess.Board, for_white: bool) -> int:
+        """Count material value for one side"""
+        total = 0
+        for piece_type, value in [(chess.PAWN, 100), (chess.KNIGHT, 300), 
+                                 (chess.BISHOP, 300), (chess.ROOK, 500), (chess.QUEEN, 900)]:
+            total += len(board.pieces(piece_type, for_white)) * value
+        return total
     
     def _simple_king_safety(self, board: chess.Board, color: bool) -> float:
         """V12.2: Simplified king safety evaluation for performance"""

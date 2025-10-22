@@ -8,7 +8,43 @@
 
 V7P3R v12.6 is actively playing on Lichess with solid technical performance but strategic weaknesses that provide clear direction for V13.0 development. The engine shows strong fundamental chess understanding but lacks the tactical aggression and dynamic evaluation needed for higher-level play.
 
-## 📊 Current Performance Profile (V12.6)
+## Performance Analysis - UPDATED WITH COMPLETE DATASET
+
+### 📊 **Complete Production Analysis (736 Games)**
+```
+COMPREHENSIVE LICHESS PERFORMANCE (V12.6 Production):
+Total Games: 736 (717 completed, 19 ongoing)
+Score Rate: 273.0/717 (38.1%) ⚠️ BELOW COMPETITIVE THRESHOLD
+├── Wins: 236 (32.9%)
+├── Losses: 407 (56.8%) ❌ HIGH LOSS RATE
+└── Draws: 74 (10.3%) ⚠️ LOW DRAW RATE
+
+Rating Analysis:
+├── Range: 1116-2053
+├── Average: 1440 (lower than expected)
+└── Critical Finding: Performance decline in recent games
+```
+
+**Key Performance Issues Identified:**
+- **38.1% score rate** significantly below competitive 50%+ threshold
+- **56.8% loss rate** indicates serious tactical/strategic deficiencies
+- **39% Van't Kruijs Opening usage** reveals excessive passive play
+- **Low draw rate** suggests inability to hold difficult positions
+
+### 🎯 **Top Opponent Analysis (Complete Data)**
+```
+1. joshsbot:              94 games  (heavy testing partner)
+2. NexaStrat:             71 games  (primary competitor)
+3. mechasoleil:           57 games  (major cloud activity)
+4. plynder_r6:            52 games  (regular competition)
+5. THANATOS_ENGINE_V7:    33 games  (engine vs engine)
+```
+
+**Critical Insights:**
+- **Engine-heavy competition** shows real competitive environment
+- **Consistent losses** to stronger engines reveal tactical gaps
+- **Time control distribution** heavily skewed to bullet/blitz (tactical pressure)
+- **Opening exploitation** by opponents targeting Van't Kruijs passivity
 
 ### **Live Deployment Status**
 - **Platform**: Lichess (`v7p3r_bot`) - currently live and active
