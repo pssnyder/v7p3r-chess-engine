@@ -1,0 +1,47 @@
+{
+  "depth_1": {
+    "elapsed_time": 0.3205909729003906,
+    "best_move": "f2f3"
+  },
+  "depth_2": {
+    "elapsed_time": 1.2842276096343994,
+    "best_move": "e2e3"
+  },
+  "depth_3": {
+    "elapsed_time": 7.244986295700073,
+    "best_move": "d2d3"
+  },
+  "position_opening": {
+    "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
+    "elapsed_time": 7.460944175720215,
+    "best_move": "e7e6"
+  },
+  "position_middlegame": {
+    "fen": "r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/3P1N2/PPP2PPP/RNBQK2R w KQkq - 4 4",
+    "elapsed_time": 2.7464070320129395,
+    "best_move": "c4f7"
+  },
+  "position_endgame": {
+    "fen": "8/2k5/3p4/p2P1p2/P2P1P2/8/2K5/8 w - - 0 1",
+    "elapsed_time": 0.1564774513244629,
+    "best_move": "c2d3"
+  },
+  "position_tactical": {
+    "fen": "r1bqkb1r/pppp1Qpp/2n2n2/4p3/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 0 4",
+    "elapsed_time": 0.00022649765014648438,
+    "best_move": "0000"
+  },
+  "move_generation": {
+    "iterations": 1000,
+    "elapsed_time": 0.23567962646484375,
+    "moves_per_position": 38
+  },
+  "tactical_detection": {
+    "iterations": 100,
+    "elapsed_time": 0.18703722953796387
+  },
+  "dynamic_evaluation": {
+    "iterations": 100,
+    "elapsed_time": 0.31966114044189453
+  }
+}

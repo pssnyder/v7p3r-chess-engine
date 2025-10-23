@@ -245,7 +245,7 @@ class V7P3REngine:
                 from v7p3r_tactical_detector import V7P3RTacticalDetector
                 self.tactical_detector = V7P3RTacticalDetector()
             except ImportError:
-                print("⚠️  Tactical detector not available - using base evaluation")
+                # Silent fallback for UCI compatibility
                 self.tactical_detector = None
                 self.ENABLE_TACTICAL_DETECTION = False
         else:
@@ -256,7 +256,7 @@ class V7P3REngine:
                 from v7p3r_dynamic_evaluator import V7P3RDynamicEvaluator
                 self.dynamic_evaluator = V7P3RDynamicEvaluator(self.tactical_detector)
             except ImportError:
-                print("⚠️  Dynamic evaluator not available - using base evaluation")
+                # Silent fallback for UCI compatibility
                 self.dynamic_evaluator = None
                 self.ENABLE_DYNAMIC_EVALUATION = False
         else:
@@ -338,6 +338,10 @@ class V7P3REngine:
             self.nodes_searched = 0
             self.search_start_time = time.time()
             
+            # V13.1 CRITICAL: Reset performance counters for optimization
+            self.evaluation_count = 0
+            self.dynamic_eval_count = 0
+            self._current_depth = depth or self.default_depth
             
             legal_moves = list(board.legal_moves)
             if not legal_moves:
@@ -711,56 +715,84 @@ class V7P3REngine:
     
     def _should_run_tactical_detection(self, board: chess.Board) -> bool:
         """
-        V13.0 OPTIMIZATION: Determine if position warrants expensive tactical detection
-        Only run on positions likely to have tactical patterns
+        V13.1 CRITICAL OPTIMIZATION: More aggressive filtering of tactical detection
+        Only run on positions with high tactical potential to improve NPS
         """
-        # Always run in opening (pieces developed, tactics possible)
-        if board.fullmove_number <= 15:
-            return True
+        # OPTIMIZATION: Reduce tactical detection frequency
+        piece_count = len(board.piece_map())
         
-        # Run if there are pieces in contact (attacking/defending each other)
-        piece_contact = 0
-        for square in chess.SQUARES:
-            piece = board.piece_at(square)
-            if piece:
-                attackers = board.attackers(not piece.color, square)
-                if len(attackers) > 0:
-                    piece_contact += 1
-                    
-        # If many pieces are in contact, likely tactical position
-        if piece_contact >= 6:
+        # Skip in endgame (< 10 pieces) unless very shallow search
+        if piece_count < 10 and getattr(self, '_current_depth', 5) > 2:
+            return False
+            
+        # Skip after too many moves (diminishing returns)
+        if board.fullmove_number > 40:
+            return False
+        
+        # Skip if evaluation count is high (performance protection)
+        if hasattr(self, 'evaluation_count'):
+            self.evaluation_count += 1
+            if self.evaluation_count > 200:  # Limit expensive evaluations
+                return False
+        else:
+            self.evaluation_count = 1
+        
+        # Only run if there are immediate tactical threats
+        in_check = board.is_check()
+        if in_check:
             return True
             
-        # Run if there are checks or captures available
-        legal_moves = list(board.legal_moves)
-        for move in legal_moves[:10]:  # Check first 10 moves for performance
-            if board.is_capture(move) or board.gives_check(move):
-                return True
+        # Quick scan for captures or checks (limited to reduce overhead)
+        capture_found = False
+        check_found = False
+        move_count = 0
+        
+        for move in board.legal_moves:
+            move_count += 1
+            if move_count > 8:  # Limit scan for performance
+                break
                 
-        # Skip tactical detection in quiet positions
-        return False
+            if board.is_capture(move):
+                capture_found = True
+                break
+            elif board.gives_check(move):
+                check_found = True
+                break
+                
+        return capture_found or check_found
     
     def _should_run_dynamic_evaluation(self, board: chess.Board) -> bool:
         """
-        V13.0 OPTIMIZATION: Determine if position warrants expensive dynamic evaluation
-        Use dynamic evaluation in complex positions, fall back to fast bitboard in simple ones
+        V13.1 CRITICAL OPTIMIZATION: Much more selective dynamic evaluation
+        Use sparingly to improve NPS dramatically
         """
-        # Always use dynamic evaluation in opening and early middlegame
-        if board.fullmove_number <= 20:
-            return True
+        # OPTIMIZATION: Dynamic evaluation is expensive, use very selectively
+        if not hasattr(self, 'dynamic_eval_count'):
+            self.dynamic_eval_count = 0
             
-        # Use dynamic evaluation if material is unbalanced
+        self.dynamic_eval_count += 1
+        
+        # Only use dynamic evaluation every Nth evaluation (performance boost)
+        if self.dynamic_eval_count % 5 != 0:
+            return False
+            
+        # Skip in simple endgames (< 8 pieces)
+        piece_count = len(board.piece_map())
+        if piece_count < 8:
+            return False
+            
+        # Skip if we've already done many evaluations
+        if hasattr(self, 'evaluation_count') and self.evaluation_count > 100:
+            return False
+            
+        # Only use for positions with significant material or in complex middlegame
         white_material = self._count_material_fast(board, True)
         black_material = self._count_material_fast(board, False)
-        material_imbalance = abs(white_material - black_material)
-        
-        if material_imbalance > 200:  # Significant material imbalance
-            return True
-            
-        # Use in endgame where piece activity matters more
         total_material = white_material + black_material
-        if total_material < 2000:  # Endgame
-            return True
+        
+        # Use in complex middlegame positions only
+        return (total_material > 4000 and total_material < 7000 and 
+                board.fullmove_number > 8 and board.fullmove_number < 30)
             
         # Skip in simple middlegame positions
         return False

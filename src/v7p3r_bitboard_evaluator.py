@@ -42,10 +42,10 @@ class V7P3RBitboardEvaluator:
                 from v7p3r_intelligent_nudges import V7P3RIntelligentNudges
                 self.nudges = V7P3RIntelligentNudges()
             except (ImportError, ModuleNotFoundError):
-                print("⚠️  Nudge system not available - using base evaluation")
+                # Silently fall back to base evaluation for clean UCI
                 self.nudges = None
-        except Exception as e:
-            print(f"⚠️  Nudge system initialization error: {e}")
+        except Exception:
+            # Silently ignore nudge initialization errors for clean UCI
             self.nudges = None
     
     def _init_bitboard_constants(self):
