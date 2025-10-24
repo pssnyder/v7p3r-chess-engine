@@ -1,0 +1,150 @@
+{
+  "analysis_metadata": {
+    "input_file": "v7p3r_parallel_analysis_20251023_171438.json",
+    "total_weaknesses": 213,
+    "analysis_type": "pattern_analysis"
+  },
+  "weakness_analysis": {
+    "summary": {
+      "total_weaknesses": 213,
+      "severe_blunders": 2,
+      "tactical_misses": 149,
+      "hanging_piece_misses": 59,
+      "material_errors": 42
+    },
+    "patterns": {
+      "position_themes": {
+        "tactics_available": 149,
+        "middlegame": 118,
+        "opening": 89,
+        "hanging_piece": 59,
+        "material_imbalance": 42,
+        "endgame": 6,
+        "check": 6
+      },
+      "centipawn_ranges": {
+        "200-499 (Significant)": 162,
+        "<200 (Minor)": 49,
+        "1000+ (Critical)": 2
+      },
+      "game_phases": {
+        "middlegame": 118,
+        "endgame": 6,
+        "opening": 89
+      },
+      "move_ranks": {
+        "Not in top 5": 160,
+        "Rank 5": 24,
+        "Rank 4": 29
+      },
+      "move_types": {
+        "Normal move": 212
+      }
+    },
+    "severe_blunders": [
+      {
+        "game_id": "https://lichess.org/YC2W9MBT_2025.10.04",
+        "move_number": 43,
+        "fen_before_move": "8/p3k2p/5np1/8/P3p3/1r3n2/1R6/K7 b - - 4 43",
+        "opponent_last_move": "game_start",
+        "v7p3r_move": "b3a3",
+        "v7p3r_move_rank": 4,
+        "stockfish_top_moves": [
+          [
+            "b3b2",
+            -10000
+          ],
+          [
+            "f3d4",
+            -891
+          ],
+          [
+            "b3b6",
+            -845
+          ],
+          [
+            "b3a3",
+            -843
+          ],
+          [
+            "b3d3",
+            -844
+          ]
+        ],
+        "stockfish_best_move": "b3b2",
+        "centipawn_loss": 9157,
+        "position_themes": [
+          "middlegame",
+          "hanging_piece",
+          "tactics_available",
+          "material_imbalance"
+        ],
+        "time_pressure": false,
+        "material_balance": -940,
+        "game_phase": "middlegame",
+        "analysis_time": 2.0036497116088867
+      },
+      {
+        "game_id": "https://lichess.org/Rqw1IbIf_2025.10.04",
+        "move_number": 19,
+        "fen_before_move": "rnk2Nnr/p5pp/2p5/8/qp4Q1/3B4/PP1P1PPP/R1B1K2R b KQ - 4 19",
+        "opponent_last_move": "game_start",
+        "v7p3r_move": "b8d7",
+        "v7p3r_move_rank": 4,
+        "stockfish_top_moves": [
+          [
+            "c8c7",
+            893
+          ],
+          [
+            "c8b7",
+            895
+          ],
+          [
+            "c8d8",
+            897
+          ],
+          [
+            "b8d7",
+            10000
+          ]
+        ],
+        "stockfish_best_move": "c8c7",
+        "centipawn_loss": 9107,
+        "position_themes": [
+          "middlegame",
+          "check",
+          "hanging_piece",
+          "material_imbalance"
+        ],
+        "time_pressure": true,
+        "material_balance": 440,
+        "game_phase": "middlegame",
+        "analysis_time": 2.0029685497283936
+      }
+    ]
+  },
+  "move_analysis": {
+    "move_patterns": {
+      "retreating_moves": 116,
+      "advancing_moves": 61,
+      "lateral_moves": 36,
+      "king_moves": 0,
+      "piece_drops": 0,
+      "passive_moves": 0
+    },
+    "positional_errors": {
+      "opening_errors": 89,
+      "middlegame_tactical": 79,
+      "endgame_technique": 6,
+      "time_pressure_errors": 96
+    }
+  },
+  "recommendations": [
+    "\ud83c\udfaf HIGH PRIORITY: Improve tactical pattern recognition - 30%+ of weaknesses involve missed tactics",
+    "\ud83d\udd0d CRITICAL: Add hanging piece detection - frequent blind spot",
+    "\u26a1 Focus on middlegame tactical awareness",
+    "\ud83d\udccb URGENT: Improve move ordering - 50%+ of bad moves not even in top 5",
+    "\u26a1 Increase tactical search depth in complex positions"
+  ]
+}
