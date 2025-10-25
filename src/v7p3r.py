@@ -208,9 +208,13 @@ class ZobristHashing:
 
 
 class V7P3REngine:
-    """V7P3R Chess Engine v12.5 - Intelligent Nudge System v2.0"""
+    """V7P3R Chess Engine v13.2 - Puzzle Solver Evolution"""
     
-    # V12.5 FEATURE TOGGLES - Intelligent Nudge System Configuration
+    # V13.2 PUZZLE SOLVER FLAGS - Anti-Null-Move-Pruning System
+    ENABLE_MULTI_PV = True              # V13.2: Multi-PV foundation for puzzle solving
+    ENABLE_OPPORTUNITY_EVALUATION = True  # V13.2: Evaluate opportunities vs absolute scores
+    ENABLE_PRACTICAL_SEARCH = True     # V13.2: Focus on improvement over perfection
+    
     # V13.0 FEATURE FLAGS - Tal Evolution System
     ENABLE_TACTICAL_DETECTION = True    # V13.0: Pin/Fork/Skewer detection
     ENABLE_DYNAMIC_EVALUATION = True    # V13.0: Context-dependent piece values
@@ -505,17 +509,24 @@ class V7P3REngine:
             # V11 ENHANCEMENT: Enhanced Late Move Reduction
             reduction = self._calculate_lmr_reduction(move, moves_searched, search_depth, board)
             
+            # V13.1 ASYMMETRIC SEARCH DEPTH: Model imperfect opponents algorithmically
+            # Instead of changing evaluation, we search opponent moves with slightly less depth
+            # This maintains evaluation consistency while modeling that opponents don't search as deeply
+            
+            opponent_depth_reduction = self._calculate_opponent_depth_reduction(search_depth, moves_searched)
+            actual_search_depth = search_depth - 1 - opponent_depth_reduction
+            
             # Search with possible reduction
             if reduction > 0:
-                score, _ = self._recursive_search(board, search_depth - 1 - reduction, -beta, -alpha, time_limit, move_number + 1)
+                score, _ = self._recursive_search(board, actual_search_depth - reduction, -beta, -alpha, time_limit, move_number + 1)
                 score = -score
                 
                 # Re-search at full depth if reduced search failed high
                 if score > alpha:
-                    score, _ = self._recursive_search(board, search_depth - 1, -beta, -alpha, time_limit, move_number + 1)
+                    score, _ = self._recursive_search(board, actual_search_depth, -beta, -alpha, time_limit, move_number + 1)
                     score = -score
             else:
-                score, _ = self._recursive_search(board, search_depth - 1, -beta, -alpha, time_limit, move_number + 1)
+                score, _ = self._recursive_search(board, actual_search_depth, -beta, -alpha, time_limit, move_number + 1)
                 score = -score
             
             board.pop()
@@ -1075,10 +1086,64 @@ class V7P3REngine:
         
         return selected[:max_waiting]
 
+    def _determine_evaluation_level(self, board: chess.Board, depth: int) -> int:
+        """
+        V13.1 SIMPLIFIED EVALUATION SCALING: Performance-based evaluation complexity
+        
+        ALGORITHM-SAFE APPROACH:
+        - Consistent evaluation function (no asymmetry)
+        - Depth-based performance scaling only
+        - Time pressure optimization
+        
+        Returns evaluation tier (1-4):
+        1 = Fast only (basic material/position)
+        2 = Medium (+ advanced pawns/king safety)  
+        3 = Slow (+ tactical detection)
+        4 = Very Slow (+ complexity bonuses)
+        """
+        # Get time context if available (use approximate method)
+        time_remaining_pct = 100.0  # Default to full time
+        if hasattr(self, 'search_start_time'):
+            elapsed = time.time() - self.search_start_time
+            # Estimate based on typical move time (assume 30 seconds max per move)
+            estimated_move_time = 30.0
+            time_remaining_pct = max(0, (estimated_move_time - elapsed) / estimated_move_time * 100)
+        
+        # Base evaluation level from depth (CONSISTENT FOR ALL MOVES)
+        if depth >= 6:
+            base_level = 1  # Only fast evaluation at deep depths
+        elif depth >= 4:
+            base_level = 2  # Medium evaluation
+        elif depth >= 2:
+            base_level = 3  # Slow evaluation
+        else:
+            base_level = 4  # All evaluation components
+        
+        # Time pressure adjustments - reduce complexity as time runs out
+        if time_remaining_pct < 25:
+            base_level = min(base_level, 1)  # Only fast evaluation
+        elif time_remaining_pct < 50:
+            base_level = min(base_level, 2)  # No slow components
+        elif time_remaining_pct < 75:
+            base_level = min(base_level, 3)  # No very slow components
+        
+        # Game phase adjustments
+        piece_count = len(board.piece_map())
+        if piece_count <= 12:  # Endgame - tactical evaluation less important
+            base_level = min(base_level, 2)
+        
+        return base_level
+
     def _evaluate_position(self, board: chess.Board, depth: int = 0) -> float:
         """
-        V13.1 SIMPLIFIED: Clean position evaluation with proven enhancements
-        Keeps beneficial king safety and pawn evaluation improvements
+        V13.1 DIMINISHING EVALUATION: Intelligent selective evaluation system
+        Uses performance-graded evaluation components with time/depth awareness
+        
+        PERFORMANCE TIERS:
+        - Fast (always): Bitboard material, simple king safety
+        - Medium (depth < 5): Advanced pawns, king safety 
+        - Slow (depth < 3, time > 50%): Tactical detection, dynamic pieces
+        - Very Slow (depth < 2, time > 75%): Complexity bonuses
         """
         # V12.2 OPTIMIZATION: Use Zobrist hash for cache key
         cache_key = self.zobrist.hash_position(board)
@@ -1089,19 +1154,22 @@ class V7P3REngine:
         
         self.search_stats['cache_misses'] += 1
         
-        # V13.1: Use proven evaluation pipeline (keeping beneficial enhancements)
+        # V13.1: Determine evaluation complexity level based on context
+        eval_level = self._determine_evaluation_level(board, depth)
+        
+        # V13.1: Selective evaluation pipeline
         try:
-            if self.ENABLE_DYNAMIC_EVALUATION and self.dynamic_evaluator and self._should_run_dynamic_evaluation(board):
-                # V13.0: Use new dynamic evaluation system (selective)
+            # TIER 1: FAST - Always enabled (core material and position)
+            if self.ENABLE_DYNAMIC_EVALUATION and self.dynamic_evaluator and eval_level >= 1:
                 white_base = self.dynamic_evaluator.evaluate_dynamic_position_value(board, True)
                 black_base = self.dynamic_evaluator.evaluate_dynamic_position_value(board, False)
             else:
-                # V12.6: Fallback to traditional bitboard evaluation
+                # Fallback to fast bitboard evaluation
                 white_base = self.bitboard_evaluator.calculate_score_optimized(board, True)
                 black_base = self.bitboard_evaluator.calculate_score_optimized(board, False)
             
-            # Advanced evaluation components
-            if self.ENABLE_ADVANCED_EVALUATION:
+            # TIER 2: MEDIUM - Advanced components (depth < 5)
+            if self.ENABLE_ADVANCED_EVALUATION and eval_level >= 2:
                 # V11 PHASE 3A: Advanced pawn structure evaluation
                 white_pawn_score = self.advanced_pawn_evaluator.evaluate_pawn_structure(board, True)
                 black_pawn_score = self.advanced_pawn_evaluator.evaluate_pawn_structure(board, False)
@@ -1115,8 +1183,8 @@ class V7P3REngine:
                 white_king_score = self._simple_king_safety(board, True)
                 black_king_score = self._simple_king_safety(board, False)
             
-            # V13.0 NEW: Tactical pattern scoring (OPTIMIZED - only when beneficial)
-            if self.ENABLE_TACTICAL_DETECTION and self.tactical_detector:
+            # TIER 3: SLOW - Tactical detection (depth < 3, time > 50%)
+            if self.ENABLE_TACTICAL_DETECTION and self.tactical_detector and eval_level >= 3:
                 # OPTIMIZATION: Only run expensive tactical detection when beneficial
                 if self._should_run_tactical_detection(board):
                     white_tactical_score = self.tactical_detector.get_tactical_score(board, True)
@@ -1128,9 +1196,9 @@ class V7P3REngine:
                 white_tactical_score = 0
                 black_tactical_score = 0
             
-            # V13.0 NEW: Tal complexity bonus
+            # TIER 4: VERY SLOW - Complexity bonuses (depth < 2, time > 75%)
             tal_complexity_bonus = 0
-            if self.ENABLE_TAL_COMPLEXITY_BONUS and self.dynamic_evaluator:
+            if self.ENABLE_TAL_COMPLEXITY_BONUS and self.dynamic_evaluator and eval_level >= 4:
                 tal_complexity_bonus = self.dynamic_evaluator._calculate_position_complexity_bonus(board, True)
                 tal_complexity_bonus -= self.dynamic_evaluator._calculate_position_complexity_bonus(board, False)
             
@@ -1689,6 +1757,37 @@ class V7P3REngine:
         
         return reduction
 
+    def _calculate_opponent_depth_reduction(self, search_depth: int, moves_searched: int) -> int:
+        """
+        V13.1 ASYMMETRIC SEARCH DEPTH: Calculate depth reduction for opponent moves
+        
+        ALGORITHM-SAFE OPPONENT MODELING:
+        - Maintains evaluation consistency (no asymmetric evaluation)
+        - Models that opponents search less deeply than we do
+        - Reduces search depth for opponent responses based on rating assumptions
+        
+        This is algorithmically sound because:
+        1. We still use the same evaluation function for all positions
+        2. We just assume the opponent doesn't search as deeply as we do
+        3. This models realistic human/engine behavior at intermediate ratings
+        """
+        # No reduction for our own moves at shallow depths
+        if search_depth <= 3:
+            return 0
+        
+        # Subtle depth reduction for opponent moves in deeper search
+        # Assumption: Opponents at our rating level search 0.5-1 ply less deeply
+        
+        # More aggressive reduction later in move ordering (less likely moves)
+        if moves_searched >= 8:
+            return 1  # Assume opponent searches 1 ply less for unlikely moves
+        elif moves_searched >= 4:
+            return 1 if search_depth >= 5 else 0  # Moderate reduction
+        else:
+            return 1 if search_depth >= 6 else 0  # Conservative reduction for top moves
+        
+        return 0
+
     # V12.2 CONDITIONAL: NUDGE SYSTEM METHODS (disabled for performance)
     
     def _load_nudge_database(self):
@@ -1890,3 +1989,195 @@ class V7P3REngine:
                 self.intelligent_nudges = None
         except Exception as e:
             self.intelligent_nudges = None
+
+    # =====================================================================
+    # V13.2 PUZZLE SOLVER METHODS - Anti-Null-Move-Pruning System
+    # =====================================================================
+    
+    def search_multi_pv(self, board: chess.Board, time_limit: float = 3.0, num_lines: int = 3) -> List[Dict]:
+        """
+        V13.2 MULTI-PV SEARCH: Return multiple good moves with opportunity analysis
+        This is the foundation of the puzzle solver approach.
+        
+        Returns list of move candidates with opportunity scores:
+        [{'move': chess.Move, 'score': float, 'improvement': float, 'opportunities': list}, ...]
+        """
+        if not self.ENABLE_MULTI_PV:
+            # Fallback to traditional single-move search
+            best_move = self.search(board, time_limit)
+            return [{'move': best_move, 'score': 0.0, 'improvement': 0.0, 'opportunities': []}]
+        
+        # Get current position value for improvement calculation
+        current_score = self._evaluate_position(board)
+        
+        # Generate and order all legal moves
+        legal_moves = list(board.legal_moves)
+        if not legal_moves:
+            return []
+        
+        move_candidates = []
+        search_time_per_move = time_limit / min(len(legal_moves), num_lines * 2)
+        
+        for move in legal_moves:
+            board.push(move)
+            
+            # Evaluate the position after our move using anti-null-move-pruning
+            puzzle_score = self._evaluate_opportunity_position(board, depth=3, time_limit=search_time_per_move)
+            improvement = puzzle_score - current_score
+            opportunities = self._detect_opportunities(board)
+            
+            move_candidates.append({
+                'move': move,
+                'score': puzzle_score,
+                'improvement': improvement,
+                'opportunities': opportunities,
+                'opportunity_count': len(opportunities)
+            })
+            
+            board.pop()
+        
+        # Sort by improvement potential (key insight of puzzle solver)
+        move_candidates.sort(key=lambda x: (x['improvement'], x['opportunity_count']), reverse=True)
+        
+        return move_candidates[:num_lines]
+    
+    def _evaluate_opportunity_position(self, board: chess.Board, depth: int, time_limit: float) -> float:
+        """
+        V13.2 ANTI-NULL-MOVE-PRUNING: Evaluate opportunities regardless of opponent response
+        
+        Key insight: Instead of "what if we skip a move" (null move pruning),
+        we ask "what opportunities do we have regardless of opponent moves"
+        """
+        if depth <= 0:
+            return self._evaluate_position(board)
+        
+        if not self.ENABLE_PRACTICAL_SEARCH:
+            # Fallback to traditional minimax
+            score, _ = self._recursive_search(board, depth, -99999, 99999, time_limit)
+            return score
+        
+        # Generate opponent moves but don't assume they play optimally
+        opponent_moves = list(board.legal_moves)
+        if not opponent_moves:
+            return self._evaluate_position(board)
+        
+        # Sample opponent responses to understand our opportunities
+        # This is the "anti-null-move-pruning" concept
+        opportunity_scores = []
+        sample_size = min(8, len(opponent_moves))  # Sample up to 8 moves
+        
+        for i, opp_move in enumerate(opponent_moves[:sample_size]):
+            board.push(opp_move)
+            
+            # After opponent moves, what opportunities do we have?
+            our_response_value = self._evaluate_opportunity_position(board, depth - 1, time_limit)
+            opportunity_scores.append(our_response_value)
+            
+            board.pop()
+            
+            # Early exit if time is running out
+            if time_limit > 0 and hasattr(self, 'search_start_time'):
+                elapsed = time.time() - self.search_start_time
+                if elapsed > time_limit * 0.8:  # Use 80% of time budget
+                    break
+        
+        if not opportunity_scores:
+            return self._evaluate_position(board)
+        
+        # Return average opportunity (not worst case like minimax)
+        # This represents "how good are our chances in this position"
+        return sum(opportunity_scores) / len(opportunity_scores)
+    
+    def _detect_opportunities(self, board: chess.Board) -> List[str]:
+        """
+        V13.2 OPPORTUNITY DETECTION: Identify what we can achieve in this position
+        Focus on practical improvements rather than absolute evaluation
+        """
+        opportunities = []
+        
+        # Material opportunities
+        if any(board.is_capture(move) for move in board.legal_moves):
+            opportunities.append("material_gain")
+        
+        # Tactical opportunities (if tactical detection enabled)
+        if self.ENABLE_TACTICAL_DETECTION and hasattr(self, 'tactical_detector') and self.tactical_detector:
+            if self._should_run_tactical_detection(board):
+                try:
+                    tactical_info = self.tactical_detector.detect_tactics(board)
+                    if tactical_info.get('pins') or tactical_info.get('forks') or tactical_info.get('skewers'):
+                        opportunities.append("tactical_threat")
+                except:
+                    pass
+        
+        # Development opportunities
+        our_pieces = 0
+        for square in chess.SQUARES:
+            piece = board.piece_at(square)
+            if piece and piece.color == board.turn and piece.piece_type != chess.PAWN:
+                our_pieces += 1
+        
+        if our_pieces < 6:  # Still developing
+            opportunities.append("development")
+        
+        # Center control opportunities
+        center_squares = [chess.E4, chess.E5, chess.D4, chess.D5]
+        our_center_control = sum(1 for sq in center_squares 
+                                if board.piece_at(sq) and board.piece_at(sq).color == board.turn)
+        
+        if our_center_control < 2:
+            opportunities.append("center_control")
+        
+        # King safety opportunities
+        if board.has_castling_rights(board.turn):
+            opportunities.append("king_safety")
+        
+        # Pawn structure opportunities
+        pawn_moves = []
+        for move in board.legal_moves:
+            piece = board.piece_at(move.from_square)
+            if piece and piece.piece_type == chess.PAWN:
+                pawn_moves.append(move)
+        
+        if pawn_moves:
+            opportunities.append("pawn_advance")
+        
+        return opportunities
+    
+    def puzzle_search(self, board: chess.Board, time_limit: float = 3.0) -> chess.Move:
+        """
+        V13.2 PUZZLE SOLVER SEARCH: Choose move based on opportunity improvement
+        
+        This implements the user's insight: "turn chess into a one-sided massive puzzle"
+        Instead of assuming opponent plays perfectly, we focus on maximizing our opportunities.
+        """
+        if not self.ENABLE_MULTI_PV:
+            # Fallback to traditional search
+            return self.search(board, time_limit)
+        
+        # Get multiple move candidates with opportunity analysis
+        candidates = self.search_multi_pv(board, time_limit, num_lines=5)
+        
+        if not candidates:
+            return chess.Move.null()
+        
+        # Choose best move based on improvement potential
+        best_candidate = candidates[0]
+        
+        # V13.2 SMART SELECTION: Consider position type and game phase
+        moves_played = len(board.move_stack)
+        
+        if moves_played < 10:  # Opening: prioritize development and center control
+            for candidate in candidates:
+                if 'development' in candidate['opportunities'] or 'center_control' in candidate['opportunities']:
+                    best_candidate = candidate
+                    break
+        
+        elif moves_played < 30:  # Middlegame: prioritize tactical opportunities
+            for candidate in candidates:
+                if 'tactical_threat' in candidate['opportunities'] or 'material_gain' in candidate['opportunities']:
+                    best_candidate = candidate
+                    break
+        
+        # Endgame: use default (highest improvement)
+        
+        return best_candidate['move']
