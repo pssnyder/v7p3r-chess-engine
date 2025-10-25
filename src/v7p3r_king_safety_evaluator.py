@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-V7P3R v11 Phase 3A - Enhanced King Safety Evaluator
+V7P3R Enhanced King Safety Evaluator
 Advanced king safety evaluation with pawn shelter, escape squares, and attack assessment
 Author: Pat Snyder
 """

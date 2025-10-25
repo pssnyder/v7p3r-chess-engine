@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-V7P3R v11 Phase 3A - Advanced Pawn Structure Evaluator
+V7P3R Advanced Pawn Structure Evaluator
 Enhanced pawn evaluation with structural patterns and strategic assessment
 Author: Pat Snyder
 """

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-V7P3R Tactical Pattern Detection System v13.0
+V7P3R Tactical Pattern Detection System
 Ultra-fast bitboard-based tactical pattern recognition for pins, forks, skewers, and more
 
 Inspired by Mikhail Tal's tactical genius: "Chess is 99% tactics"
