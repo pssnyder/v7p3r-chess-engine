@@ -1,19 +1,21 @@
 #!/usr/bin/env python3
 """
-V7P3R Chess Engine v13.0 - TAL Evolution: Tactical Pattern Recognition
+V7P3R Chess Engine v13.1 - Simplified Performance Build
 
-Enhanced with Mikhail Tal-inspired tactical awareness system for dynamic chess play.
-"Chess is 99% tactics" - emphasis on pattern recognition and forcing variations.
+Combining the best of V12.6 stability with V13.x move ordering improvements.
+Focused on clean performance without complexity overhead.
 
-ARCHITECTURE:
-- Phase 1: Tactical Foundation (pin/fork/skewer detection)
-- Phase 2: Dynamic Piece Evaluation (context-dependent values)
-- Phase 3: Tal-Inspired Decision Making (complexity and initiative)
+DESIGN PHILOSOPHY:
+- V12.6 evaluation baseline (proven stable)
+- V13.x move ordering enhancements (84% pruning, 6.3x speedup)
+- Simplified tactical detection (selective usage)
+- Clean, maintainable codebase
 
 VERSION LINEAGE:
 - v12.6: Clean Performance Build (production baseline)
-- v13.0: Tal Evolution - Tactical Pattern Recognition
-- v13.1: Tactical Foundation (pin/fork/skewer detection)
+- v13.0: Tal Evolution - Tactical Pattern Recognition (experimental)
+- v13.x: Capablanca Evolution - Positional Simplification (complex)
+- v13.1: Simplified Performance Build (current)
 
 Author: Pat Snyder
 """
@@ -438,9 +440,10 @@ class V7P3REngine:
             score, move = self._recursive_search(board, depth or 1, alpha, beta, time_limit)
             return move if move else chess.Move.null()
     
-    def _recursive_search(self, board: chess.Board, search_depth: int, alpha: float, beta: float, time_limit: float) -> Tuple[float, Optional[chess.Move]]:
+    def _recursive_search(self, board: chess.Board, search_depth: int, alpha: float, beta: float, time_limit: float, 
+                        move_number: int = 0) -> Tuple[float, Optional[chess.Move]]:
         """
-        Recursive alpha-beta search with all advanced features
+        V13.x CAPABLANCA EVOLUTION: Recursive search with dual-brain evaluation and early exit
         Returns (score, best_move) tuple
         """
         self.nodes_searched += 1
@@ -475,47 +478,20 @@ class V7P3REngine:
             self._has_non_pawn_pieces(board) and beta - alpha > 1):
             
             board.turn = not board.turn
-            null_score, _ = self._recursive_search(board, search_depth - 2, -beta, -beta + 1, time_limit)
+            null_score, _ = self._recursive_search(board, search_depth - 2, -beta, -beta + 1, time_limit, move_number + 1)
             null_score = -null_score
             board.turn = not board.turn
             
             if null_score >= beta:
                 return null_score, None
         
-        # 4. MOVE GENERATION AND ORDERING - V13.x WITH WAITING MOVES
+        # 4. MOVE GENERATION AND ORDERING - V13.x WITH CAPABLANCA SYSTEM
         legal_moves = list(board.legal_moves)
         if not legal_moves:
             return 0.0, None
         
+        # V13.1: Simplified move ordering (V12.6 approach with V13.x enhancements)
         ordered_moves = self._order_moves_advanced(board, legal_moves, search_depth, tt_move)
-        waiting_moves = self.get_waiting_moves()
-        
-        # V13.x PHASE 2: Check if we should use waiting moves
-        current_position_score = self._evaluate_position(board)
-        time_remaining = time_limit - (time.time() - self.search_start_time)
-        
-        use_waiting_moves = self.should_use_waiting_moves(current_position_score, time_remaining)
-        
-        # V13.x: If no critical moves found OR special conditions, consider waiting moves
-        if len(ordered_moves) < 3 or use_waiting_moves:
-            # Add selected waiting moves for special situations
-            selected_waiting = self._select_waiting_moves(board, waiting_moves, search_depth)
-            ordered_moves.extend(selected_waiting)
-            
-            # Track waiting move usage
-            if not hasattr(self, 'waiting_move_stats'):
-                self.waiting_move_stats = {
-                    'zugzwang_usage': 0,
-                    'time_pressure_usage': 0,
-                    'few_critical_moves': 0
-                }
-            
-            if len(legal_moves) >= 10 and len(ordered_moves) < 3:
-                self.waiting_move_stats['few_critical_moves'] += 1
-            elif time_remaining < 5.0:
-                self.waiting_move_stats['time_pressure_usage'] += 1
-            elif current_position_score < -50:
-                self.waiting_move_stats['zugzwang_usage'] += 1
         
         # 5. MAIN SEARCH LOOP (NEGAMAX WITH ALPHA-BETA)
         best_score = -99999.0
@@ -531,15 +507,15 @@ class V7P3REngine:
             
             # Search with possible reduction
             if reduction > 0:
-                score, _ = self._recursive_search(board, search_depth - 1 - reduction, -beta, -alpha, time_limit)
+                score, _ = self._recursive_search(board, search_depth - 1 - reduction, -beta, -alpha, time_limit, move_number + 1)
                 score = -score
                 
                 # Re-search at full depth if reduced search failed high
                 if score > alpha:
-                    score, _ = self._recursive_search(board, search_depth - 1, -beta, -alpha, time_limit)
+                    score, _ = self._recursive_search(board, search_depth - 1, -beta, -alpha, time_limit, move_number + 1)
                     score = -score
             else:
-                score, _ = self._recursive_search(board, search_depth - 1, -beta, -alpha, time_limit)
+                score, _ = self._recursive_search(board, search_depth - 1, -beta, -alpha, time_limit, move_number + 1)
                 score = -score
             
             board.pop()
@@ -1099,8 +1075,11 @@ class V7P3REngine:
         
         return selected[:max_waiting]
 
-    def _evaluate_position(self, board: chess.Board) -> float:
-        """V13.0 TAL EVOLUTION: Position evaluation with tactical pattern detection"""
+    def _evaluate_position(self, board: chess.Board, depth: int = 0) -> float:
+        """
+        V13.1 SIMPLIFIED: Clean position evaluation with proven enhancements
+        Keeps beneficial king safety and pawn evaluation improvements
+        """
         # V12.2 OPTIMIZATION: Use Zobrist hash for cache key
         cache_key = self.zobrist.hash_position(board)
         
@@ -1110,7 +1089,7 @@ class V7P3REngine:
         
         self.search_stats['cache_misses'] += 1
         
-        # V13.0 NEW EVALUATION PIPELINE: Tactical → Dynamic → Traditional → King Safety
+        # V13.1: Use proven evaluation pipeline (keeping beneficial enhancements)
         try:
             if self.ENABLE_DYNAMIC_EVALUATION and self.dynamic_evaluator and self._should_run_dynamic_evaluation(board):
                 # V13.0: Use new dynamic evaluation system (selective)
