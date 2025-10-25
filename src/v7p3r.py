@@ -2026,20 +2026,79 @@ class V7P3REngine:
             improvement = puzzle_score - current_score
             opportunities = self._detect_opportunities(board)
             
+            # V13.2 TACTICAL WEIGHTING: Apply priority weights to opportunities
+            weighted_score = self._calculate_weighted_opportunity_score(puzzle_score, improvement, opportunities)
+            
             move_candidates.append({
                 'move': move,
                 'score': puzzle_score,
                 'improvement': improvement,
+                'weighted_score': weighted_score,
                 'opportunities': opportunities,
                 'opportunity_count': len(opportunities)
             })
             
             board.pop()
         
-        # Sort by improvement potential (key insight of puzzle solver)
-        move_candidates.sort(key=lambda x: (x['improvement'], x['opportunity_count']), reverse=True)
+        # Sort by weighted score (incorporates tactical priority)
+        move_candidates.sort(key=lambda x: x['weighted_score'], reverse=True)
         
         return move_candidates[:num_lines]
+    
+    def _calculate_weighted_opportunity_score(self, base_score: float, improvement: float, opportunities: List[str]) -> float:
+        """
+        V13.2 TACTICAL WEIGHTING: Apply priority weights to opportunity types
+        Immediate threats get highest priority to prevent blunders
+        """
+        weighted_score = base_score + improvement
+        
+        # PRIORITY 1: IMMEDIATE THREATS (critical weight)
+        threat_multipliers = {
+            'escape_check': 1000.0,           # Must handle check immediately
+            'defend_mate_in_1': 2000.0,       # Must defend mate threats
+            'defend_mate_in_2': 500.0,        # Important but less urgent
+            'save_material': 300.0,           # Prevent material loss
+            'defend_check_threat': 200.0,     # Prevent checks against us
+            'defend_material_loss': 250.0,    # Prevent material hanging
+        }
+        
+        for opportunity in opportunities:
+            if opportunity in threat_multipliers:
+                weighted_score += threat_multipliers[opportunity]
+        
+        # PRIORITY 2: OFFENSIVE TACTICAL OPPORTUNITIES
+        tactical_bonuses = {
+            'material_gain': 150.0,           # Winning material is good
+            'tactical_threat': 100.0,         # Creating tactics
+        }
+        
+        for opportunity in opportunities:
+            if opportunity in tactical_bonuses:
+                weighted_score += tactical_bonuses[opportunity]
+        
+        # PRIORITY 3: DEFENSIVE IMPROVEMENTS
+        defensive_bonuses = {
+            'improve_king_safety': 75.0,      # Important for long-term safety
+            'block_attack': 50.0,             # Defensive moves
+        }
+        
+        for opportunity in opportunities:
+            if opportunity in defensive_bonuses:
+                weighted_score += defensive_bonuses[opportunity]
+        
+        # PRIORITY 4: POSITIONAL OPPORTUNITIES (lower weight)
+        positional_bonuses = {
+            'development': 25.0,              # Good but not urgent
+            'center_control': 20.0,           # Nice to have
+            'king_safety': 15.0,              # Castling rights
+            'pawn_advance': 10.0,             # Least priority
+        }
+        
+        for opportunity in opportunities:
+            if opportunity in positional_bonuses:
+                weighted_score += positional_bonuses[opportunity]
+        
+        return weighted_score
     
     def _evaluate_opportunity_position(self, board: chess.Board, depth: int, time_limit: float) -> float:
         """
@@ -2091,15 +2150,19 @@ class V7P3REngine:
     def _detect_opportunities(self, board: chess.Board) -> List[str]:
         """
         V13.2 OPPORTUNITY DETECTION: Identify what we can achieve in this position
-        Focus on practical improvements rather than absolute evaluation
+        Focus on practical improvements with tactical threat awareness
         """
         opportunities = []
         
-        # Material opportunities
+        # PRIORITY 1: IMMEDIATE TACTICAL THREATS (highest weight)
+        immediate_threats = self._detect_immediate_threats(board)
+        opportunities.extend(immediate_threats)
+        
+        # PRIORITY 2: MATERIAL OPPORTUNITIES
         if any(board.is_capture(move) for move in board.legal_moves):
             opportunities.append("material_gain")
         
-        # Tactical opportunities (if tactical detection enabled)
+        # PRIORITY 3: TACTICAL OPPORTUNITIES (if tactical detection enabled)
         if self.ENABLE_TACTICAL_DETECTION and hasattr(self, 'tactical_detector') and self.tactical_detector:
             if self._should_run_tactical_detection(board):
                 try:
@@ -2109,7 +2172,11 @@ class V7P3REngine:
                 except:
                     pass
         
-        # Development opportunities
+        # PRIORITY 4: DEFENSIVE OPPORTUNITIES
+        defensive_needs = self._detect_defensive_needs(board)
+        opportunities.extend(defensive_needs)
+        
+        # PRIORITY 5: DEVELOPMENT OPPORTUNITIES
         our_pieces = 0
         for square in chess.SQUARES:
             piece = board.piece_at(square)
@@ -2119,19 +2186,22 @@ class V7P3REngine:
         if our_pieces < 6:  # Still developing
             opportunities.append("development")
         
-        # Center control opportunities
+        # PRIORITY 6: CENTER CONTROL OPPORTUNITIES
         center_squares = [chess.E4, chess.E5, chess.D4, chess.D5]
-        our_center_control = sum(1 for sq in center_squares 
-                                if board.piece_at(sq) and board.piece_at(sq).color == board.turn)
+        our_center_control = 0
+        for sq in center_squares:
+            piece = board.piece_at(sq)
+            if piece and piece.color == board.turn:
+                our_center_control += 1
         
         if our_center_control < 2:
             opportunities.append("center_control")
         
-        # King safety opportunities
+        # PRIORITY 7: KING SAFETY OPPORTUNITIES
         if board.has_castling_rights(board.turn):
             opportunities.append("king_safety")
         
-        # Pawn structure opportunities
+        # PRIORITY 8: PAWN STRUCTURE OPPORTUNITIES
         pawn_moves = []
         for move in board.legal_moves:
             piece = board.piece_at(move.from_square)
@@ -2143,41 +2213,215 @@ class V7P3REngine:
         
         return opportunities
     
+    def _detect_immediate_threats(self, board: chess.Board) -> List[str]:
+        """
+        V13.2 IMMEDIATE THREAT DETECTION: Find critical threats that need immediate response
+        This addresses the Scholar's mate defense issue
+        """
+        threats = []
+        
+        # Check if we're in check (highest priority)
+        if board.is_check():
+            threats.append("escape_check")
+        
+        # Check for mate threats against us
+        mate_threats = self._detect_mate_threats(board)
+        threats.extend(mate_threats)
+        
+        # Check for material hanging (pieces under attack)
+        hanging_material = self._detect_hanging_material(board)
+        if hanging_material:
+            threats.append("save_material")
+        
+        # Check for opponent's immediate tactical threats
+        opponent_tactics = self._detect_opponent_immediate_tactics(board)
+        threats.extend(opponent_tactics)
+        
+        return threats
+    
+    def _detect_mate_threats(self, board: chess.Board) -> List[str]:
+        """Detect if opponent threatens mate in 1-2 moves"""
+        threats = []
+        
+        # Switch to opponent's perspective to check their threats
+        board.turn = not board.turn
+        
+        for opp_move in list(board.legal_moves)[:10]:  # Check first 10 moves for speed
+            board.push(opp_move)
+            
+            # Check if this move creates checkmate
+            if board.is_checkmate():
+                threats.append("defend_mate_in_1")
+                board.pop()
+                board.turn = not board.turn  # Restore turn
+                return threats  # Immediate mate threat found
+            
+            # Check if this move threatens mate in 1 more move (simplified)
+            board.turn = not board.turn  # Switch back to us
+            our_responses = list(board.legal_moves)[:3]  # Check first 3 responses only
+            
+            can_defend = False
+            for our_response in our_responses:
+                board.push(our_response)
+                
+                # After our response, can opponent still mate us immediately?
+                board.turn = not board.turn  # Back to opponent
+                opponent_follow_ups = list(board.legal_moves)[:3]
+                
+                immediate_mate_exists = False
+                for follow_up in opponent_follow_ups:
+                    board.push(follow_up)
+                    if board.is_checkmate():
+                        immediate_mate_exists = True
+                    board.pop()
+                    if immediate_mate_exists:
+                        break
+                
+                board.turn = not board.turn  # Back to us
+                board.pop()  # Undo our response
+                
+                if not immediate_mate_exists:
+                    can_defend = True
+                    break
+            
+            if not can_defend and our_responses:
+                threats.append("defend_mate_in_2")
+            
+            board.turn = not board.turn  # Back to opponent
+            board.pop()
+        
+        # Restore original turn
+        board.turn = not board.turn
+        
+        return threats
+    
+    def _detect_hanging_material(self, board: chess.Board) -> bool:
+        """Check if we have pieces hanging (undefended and under attack)"""
+        our_pieces = []
+        
+        # Find all our pieces
+        for square in chess.SQUARES:
+            piece = board.piece_at(square)
+            if piece and piece.color == board.turn:
+                our_pieces.append((square, piece))
+        
+        # Check if any of our valuable pieces are hanging
+        for square, piece in our_pieces:
+            if piece.piece_type in [chess.QUEEN, chess.ROOK, chess.BISHOP, chess.KNIGHT]:
+                # Is this piece attacked by opponent?
+                board.turn = not board.turn
+                is_attacked = board.is_attacked_by(not board.turn, square)
+                board.turn = not board.turn
+                
+                if is_attacked:
+                    # Is it defended by us?
+                    is_defended = board.is_attacked_by(board.turn, square)
+                    
+                    if not is_defended:
+                        return True  # We have hanging material
+        
+        return False
+    
+    def _detect_opponent_immediate_tactics(self, board: chess.Board) -> List[str]:
+        """Detect immediate tactical threats from opponent"""
+        threats = []
+        
+        # Switch to opponent perspective
+        board.turn = not board.turn
+        
+        for opp_move in list(board.legal_moves)[:8]:  # Check first 8 opponent moves
+            board.push(opp_move)
+            
+            # Check if opponent creates immediate threats
+            if board.is_check():
+                threats.append("defend_check_threat")
+            
+            # Check if opponent wins material
+            if board.is_capture(opp_move):
+                captured_piece = board.piece_type_at(opp_move.to_square)
+                if captured_piece and captured_piece in [chess.QUEEN, chess.ROOK, chess.BISHOP, chess.KNIGHT]:
+                    threats.append("defend_material_loss")
+            
+            board.pop()
+        
+        # Restore turn
+        board.turn = not board.turn
+        
+        return threats
+    
+    def _detect_defensive_needs(self, board: chess.Board) -> List[str]:
+        """Detect defensive opportunities and needs"""
+        defensive_opportunities = []
+        
+        # Check if our king is exposed
+        our_king_square = board.king(board.turn)
+        if our_king_square:
+            # Count how many pieces attack squares around our king
+            king_danger = 0
+            for delta in [-9, -8, -7, -1, 1, 7, 8, 9]:
+                square = our_king_square + delta
+                if 0 <= square <= 63:  # Valid square on board
+                    board.turn = not board.turn
+                    if board.is_attacked_by(board.turn, square):
+                        king_danger += 1
+                    board.turn = not board.turn
+            
+            if king_danger >= 3:
+                defensive_opportunities.append("improve_king_safety")
+        
+        # Check if we can block dangerous attacking lines
+        if board.is_check():
+            defensive_opportunities.append("block_attack")
+        
+        return defensive_opportunities
+    
     def puzzle_search(self, board: chess.Board, time_limit: float = 3.0) -> chess.Move:
         """
-        V13.2 PUZZLE SOLVER SEARCH: Choose move based on opportunity improvement
+        V13.2 PUZZLE SOLVER SEARCH: Choose move based on weighted opportunity analysis
         
         This implements the user's insight: "turn chess into a one-sided massive puzzle"
-        Instead of assuming opponent plays perfectly, we focus on maximizing our opportunities.
+        With enhanced tactical awareness to prevent blunders.
         """
         if not self.ENABLE_MULTI_PV:
             # Fallback to traditional search
             return self.search(board, time_limit)
         
-        # Get multiple move candidates with opportunity analysis
+        # Get multiple move candidates with weighted opportunity analysis
         candidates = self.search_multi_pv(board, time_limit, num_lines=5)
         
         if not candidates:
             return chess.Move.null()
         
-        # Choose best move based on improvement potential
-        best_candidate = candidates[0]
+        # V13.2 TACTICAL AWARENESS: Always prioritize immediate threats
+        threat_candidates = [c for c in candidates if any(
+            threat in c['opportunities'] for threat in [
+                'escape_check', 'defend_mate_in_1', 'defend_mate_in_2', 
+                'save_material', 'defend_check_threat', 'defend_material_loss'
+            ]
+        )]
         
-        # V13.2 SMART SELECTION: Consider position type and game phase
-        moves_played = len(board.move_stack)
-        
-        if moves_played < 10:  # Opening: prioritize development and center control
-            for candidate in candidates:
-                if 'development' in candidate['opportunities'] or 'center_control' in candidate['opportunities']:
-                    best_candidate = candidate
-                    break
-        
-        elif moves_played < 30:  # Middlegame: prioritize tactical opportunities
-            for candidate in candidates:
-                if 'tactical_threat' in candidate['opportunities'] or 'material_gain' in candidate['opportunities']:
-                    best_candidate = candidate
-                    break
-        
-        # Endgame: use default (highest improvement)
+        if threat_candidates:
+            # If we have immediate threats to handle, choose the best defensive move
+            best_candidate = threat_candidates[0]  # Already sorted by weighted score
+        else:
+            # No immediate threats, use normal puzzle solver logic
+            best_candidate = candidates[0]
+            
+            # V13.2 SMART SELECTION: Consider position type and game phase
+            moves_played = len(board.move_stack)
+            
+            if moves_played < 10:  # Opening: prioritize development and center control
+                for candidate in candidates:
+                    if 'development' in candidate['opportunities'] or 'center_control' in candidate['opportunities']:
+                        best_candidate = candidate
+                        break
+            
+            elif moves_played < 30:  # Middlegame: prioritize tactical opportunities
+                for candidate in candidates:
+                    if 'tactical_threat' in candidate['opportunities'] or 'material_gain' in candidate['opportunities']:
+                        best_candidate = candidate
+                        break
+            
+            # Endgame: use default (highest weighted score)
         
         return best_candidate['move']
