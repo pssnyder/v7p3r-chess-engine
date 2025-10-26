@@ -1,25 +1,29 @@
 #!/usr/bin/env python3
 """
-V7P3R Chess Engine v14.1 - Enhanced Move Ordering & Dynamic Evaluation
+V7P3R Chess Engine v14.2 - Performance Optimizations & Game Phase Detection
 
-Enhanced through code consolidation and refined heuristics for improved playing strength.
-Built on V14.0 stability with enhanced move ordering and dynamic piece valuation.
+Performance-focused build removing V14.1 overhead while adding advanced optimizations.
+Built on V14.0 stability with game phase detection and enhanced quiescence search.
 
 ARCHITECTURE:
 - Phase 1: Core search (alpha-beta, TT, iterative deepening)
-- Phase 2: Consolidated evaluation (unified bitboard system)  
-- Phase 3: Enhanced move ordering with threat detection
+- Phase 2: Performance evaluation (game phase detection, cached values)  
+- Phase 3: Optimized move ordering without expensive threat analysis
 
-V14.1 IMPROVEMENTS:
-- NEW: Threat detection in move ordering (defend valuable pieces)
-- NEW: Dynamic bishop valuation (pair bonus/penalty)
-- Enhanced move priority: Threats, Castling, Checks, Captures, Development, Pawns, Quiet
-- Refined evaluation pipeline for better tactical awareness
+V14.2 OPTIMIZATIONS:
+- REMOVED: Expensive per-move threat detection causing regression
+- NEW: Game phase detection (opening/middlegame/endgame) 
+- NEW: Enhanced quiescence search with simplified heuristics
+- NEW: Advanced time management for consistent 10-ply depth
+- NEW: Search depth monitoring and performance profiling
+- Cached dynamic bishop valuation for efficiency
+- Streamlined move ordering focused on proven heuristics
 
 VERSION LINEAGE:
-- v14.1: Enhanced move ordering with threat detection and dynamic bishop values
+- v14.2: Performance optimizations - removed overhead, added game phase detection
+- v14.1: Enhanced move ordering with threat detection (REGRESSION - too expensive)
 - v14.0: Consolidated performance build with unified evaluators
-- v12.6: Nudge system removed for clean performance build
+- v12.6: Stable tournament baseline (71.6% score)
 - v12.5: Intelligent nudge system experiments
 - v12.4: Enhanced castling with balanced evaluation
 - v12.2: Performance optimized with tactical regression
@@ -216,19 +220,24 @@ class ZobristHashing:
 
 
 class V7P3REngine:
-    """V7P3R Chess Engine v14.1 - Enhanced Move Ordering & Dynamic Evaluation"""
+    """V7P3R Chess Engine v14.2 - Performance Optimizations & Game Phase Detection"""
     
     def __init__(self):
         # Basic configuration
-        # Base piece values (V14.1: Dynamic bishop valuation implemented separately)
+        # Base piece values (V14.2: Cached dynamic bishop valuation)
         self.piece_values = {
             chess.PAWN: 100,
             chess.KNIGHT: 300, 
-            chess.BISHOP: 300,  # Base value - adjusted dynamically
+            chess.BISHOP: 300,  # Base value - cached dynamic calculation
             chess.ROOK: 500,
             chess.QUEEN: 900,
             chess.KING: 0  # King safety handled separately
         }
+        
+        # V14.2: Performance optimizations and caching
+        self.bishop_value_cache = {}  # Cache for dynamic bishop values
+        self.game_phase_cache = {}    # Cache for game phase detection
+        self.search_depth_achieved = {}  # Track actual search depth per move
         
         # Search configuration
         self.default_depth = 6
@@ -257,6 +266,8 @@ class V7P3REngine:
             'tt_hits': 0,
             'tt_stores': 0,
             'killer_hits': 0,
+            'average_depth_achieved': 0.0,
+            'game_phase_switches': 0,
         }
         
         # PV Following System - V10 OPTIMIZATION
@@ -265,51 +276,58 @@ class V7P3REngine:
     def search(self, board: chess.Board, time_limit: float = 3.0, depth: Optional[int] = None, 
                alpha: float = -99999, beta: float = 99999, is_root: bool = True) -> chess.Move:
         """
-        UNIFIED SEARCH - Single function with ALL advanced features:
+        V14.2 ADVANCED SEARCH - Enhanced time management and performance monitoring:
         - Iterative deepening with stable best move handling (root level)
         - Alpha-beta pruning with negamax framework (recursive level)  
         - Transposition table with Zobrist hashing
         - Killer moves and history heuristic
-        - Advanced move ordering with tactical detection
-        - Proper time management with periodic checks
-        - Full PV extraction and following
-        - Quiescence search for tactical stability
+        - Streamlined move ordering for performance
+        - Advanced time management for consistent 10-ply depth
+        - Game phase-aware evaluation and search extension
+        - Search depth monitoring and performance profiling
         """
         
-        # ROOT LEVEL: Iterative deepening with time management
+        # ROOT LEVEL: Enhanced iterative deepening with advanced time management
         if is_root:
             self.nodes_searched = 0
             self.search_start_time = time.time()
-            
             
             legal_moves = list(board.legal_moves)
             if not legal_moves:
                 return chess.Move.null()
 
             # PV FOLLOWING OPTIMIZATION - check if current position triggers instant move
-            # Check for instant PV move continuation
             pv_move = self.pv_tracker.check_position_for_instant_move(board)
             if pv_move:
                 return pv_move
             
-            target_time, max_time = self._calculate_adaptive_time_allocation(board, time_limit)
+            # V14.2: Advanced time allocation based on game phase and position complexity
+            target_time, max_time = self._calculate_advanced_time_allocation(board, time_limit)
             
-            # Iterative deepening
+            # V14.2: Game phase detection for search strategy
+            game_phase = self._detect_game_phase(board)
+            
+            # V14.2: Target depth based on game phase and time available
+            target_depth = self._calculate_target_depth(game_phase, time_limit)
+            
+            # Iterative deepening with advanced management
             best_move = legal_moves[0]
             best_score = -99999
+            depths_completed = []
             
-            for current_depth in range(1, self.default_depth + 1):
+            for current_depth in range(1, target_depth + 1):
                 iteration_start = time.time()
                 
-                # V11 ENHANCEMENT: Improved time checking with adaptive limits
+                # V14.2: Enhanced time checking with phase-aware limits
                 elapsed = time.time() - self.search_start_time
                 if elapsed > target_time:
                     break
                 
-                # Predict if next iteration will exceed max time
-                if current_depth > 1:
-                    last_iteration_time = time.time() - iteration_start
-                    if elapsed + (last_iteration_time * 2) > max_time:
+                # V14.2: Intelligent iteration prediction
+                if current_depth > 2:
+                    avg_iteration_time = sum(depths_completed[-2:]) / len(depths_completed[-2:])
+                    predicted_time = elapsed + (avg_iteration_time * 2.5)  # Conservative estimate
+                    if predicted_time > max_time:
                         break
                 
                 try:
@@ -319,6 +337,10 @@ class V7P3REngine:
                     
                     # Call recursive search for this depth
                     score, move = self._recursive_search(board, current_depth, -99999, 99999, time_limit)
+                    
+                    # Track iteration completion time
+                    iteration_time = time.time() - iteration_start
+                    depths_completed.append(iteration_time)
                     
                     # Update best move if we got a valid result
                     if move and move != chess.Move.null():
@@ -336,26 +358,38 @@ class V7P3REngine:
                         if current_depth >= 4 and len(pv_line) >= 3:
                             self.pv_tracker.store_pv_from_search(board, pv_line)
                         
+                        # V14.2: Track search depth achieved
+                        self.search_depth_achieved[best_move] = current_depth
+                        
                         print(f"info depth {current_depth} score cp {int(score)} nodes {self.nodes_searched} time {elapsed_ms} nps {nps} pv {pv_string}")
+                        print(f"info string Phase: {game_phase}, Target depth: {target_depth}, Iteration time: {iteration_time:.3f}s")
                         sys.stdout.flush()
                     else:
                         # Restore previous best if iteration failed
                         best_move = previous_best
                         best_score = previous_score
                     
-                    # V11 ENHANCEMENT: Better time management for next iteration
-                    elapsed = time.time() - self.search_start_time
-                    iteration_time = time.time() - iteration_start
+                    # V14.2: Dynamic time management based on position stability
+                    if current_depth >= 6:
+                        # If we have a stable best move, can potentially search deeper
+                        if abs(score - previous_score) < 50:  # Score is stable
+                            target_time *= 1.1  # Allow 10% more time for deeper search
+                        elif abs(score - previous_score) > 200:  # Score changed significantly
+                            target_time *= 0.9  # Reduce time to ensure we have a result
                     
+                    elapsed = time.time() - self.search_start_time
                     if elapsed > target_time:
                         break
-                    elif elapsed + (iteration_time * 1.5) > max_time:
-                        break  # Don't start next iteration if likely to exceed max time
                         
                 except Exception as e:
                     print(f"info string Search interrupted at depth {current_depth}: {e}")
                     break
-                    
+            
+            # V14.2: Update search statistics
+            final_depth = len(depths_completed)
+            self.search_stats['average_depth_achieved'] = final_depth
+            print(f"info string Final depth: {final_depth}, Game phase: {game_phase}, Total time: {time.time() - self.search_start_time:.3f}s")
+            
             return best_move
         
         # This should never be called directly with is_root=False from external code
@@ -464,21 +498,19 @@ class V7P3REngine:
     
     def _order_moves_advanced(self, board: chess.Board, moves: List[chess.Move], depth: int, 
                               tt_move: Optional[chess.Move] = None) -> List[chess.Move]:
-        """V14.1 ENHANCED move ordering - TT, Threats, Castling, Checks, Captures, Development, Pawns, Quiet"""
+        """V14.2 STREAMLINED move ordering - Removed expensive threat detection for performance"""
         if len(moves) <= 2:
             return moves
         
-        # Pre-calculate move categories for efficiency
-        threats = []          # NEW: Defend valuable pieces / create counter-threats
-        castling = []         # NEW: Castling moves for king safety
+        # Streamlined categories for efficiency
+        tt_moves = []
         captures = []
         checks = []
         killers = []
-        development = []      # Piece development moves
-        pawn_advances = []    # Safe pawn advances
+        development = []
+        pawn_advances = []
+        tactical_moves = []
         quiet_moves = []
-        tactical_moves = []   # Bitboard tactical moves
-        tt_moves = []
         
         # Performance optimization: Pre-create sets for fast lookups
         killer_set = set(self.killer_moves.get_killers(depth))
@@ -489,15 +521,7 @@ class V7P3REngine:
                 tt_moves.append(move)
                 continue
             
-            # 2. NEW: Threat detection (defend valuable pieces, create counter-threats)
-            threat_score = self._detect_threats(board, move)
-            
-            # 3. Castling moves (king safety priority)
-            if board.is_castling(move):
-                castling.append((threat_score + 100.0, move))  # High base priority for castling
-                continue
-            
-            # 4. Captures (will be sorted by MVV-LVA + dynamic values)
+            # 2. Captures (sorted by MVV-LVA with cached dynamic values)
             if board.is_capture(move):
                 victim = board.piece_at(move.to_square)
                 victim_value = self._get_dynamic_piece_value(board, victim.piece_type, not board.turn) if victim else 0
@@ -508,32 +532,26 @@ class V7P3REngine:
                 
                 # Add tactical bonus using bitboards
                 tactical_bonus = self.bitboard_evaluator.detect_bitboard_tactics(board, move)
-                total_score = mvv_lva_score + tactical_bonus + threat_score
+                total_score = mvv_lva_score + tactical_bonus
                 
                 captures.append((total_score, move))
                 continue
             
-            # 5. Checks (high priority for tactical play)
+            # 3. Checks (high priority for tactical play)
             if board.gives_check(move):
-                # Add tactical bonus for checking moves too
                 tactical_bonus = self.bitboard_evaluator.detect_bitboard_tactics(board, move)
-                checks.append((tactical_bonus + threat_score, move))
+                checks.append((tactical_bonus, move))
                 continue
             
-            # 6. Killer moves
+            # 4. Killer moves
             if move in killer_set:
                 killers.append(move)
                 self.search_stats['killer_hits'] += 1
                 continue
             
-            # 7. Development and tactical patterns
+            # 5. Development and patterns (simplified)
             piece = board.piece_at(move.from_square)
             if piece:
-                # Check for significant threats first
-                if threat_score > 15.0:  # Significant threat-related move
-                    threats.append((threat_score, move))
-                    continue
-                
                 # Development moves (knights, bishops moving from starting squares)
                 if piece.piece_type in [chess.KNIGHT, chess.BISHOP]:
                     starting_squares = {
@@ -541,29 +559,24 @@ class V7P3REngine:
                         chess.BISHOP: [chess.C1, chess.F1, chess.C8, chess.F8]
                     }
                     if move.from_square in starting_squares.get(piece.piece_type, []):
-                        development_score = 50.0 + threat_score
-                        development.append((development_score, move))
+                        development.append((50.0, move))
                         continue
                 
-                # Pawn advances (safe pawn moves)
+                # Pawn advances
                 if piece.piece_type == chess.PAWN:
-                    # Basic pawn advance bonus
-                    pawn_score = 10.0 + threat_score
-                    pawn_advances.append((pawn_score, move))
+                    pawn_advances.append((10.0, move))
                     continue
             
-            # 8. Remaining quiet moves
+            # 6. Remaining moves
             history_score = self.history_heuristic.get_history_score(move)
             tactical_bonus = self.bitboard_evaluator.detect_bitboard_tactics(board, move)
             
             if tactical_bonus > 20.0:  # Significant tactical move
-                tactical_moves.append((tactical_bonus + history_score + threat_score, move))
+                tactical_moves.append((tactical_bonus + history_score, move))
             else:
-                quiet_moves.append((history_score + threat_score, move))
+                quiet_moves.append((history_score, move))
         
         # Sort all move categories by their scores
-        threats.sort(key=lambda x: x[0], reverse=True)
-        castling.sort(key=lambda x: x[0], reverse=True)
         captures.sort(key=lambda x: x[0], reverse=True)
         checks.sort(key=lambda x: x[0], reverse=True)
         development.sort(key=lambda x: x[0], reverse=True)
@@ -571,18 +584,16 @@ class V7P3REngine:
         tactical_moves.sort(key=lambda x: x[0], reverse=True)
         quiet_moves.sort(key=lambda x: x[0], reverse=True)
         
-        # V14.1 ENHANCED ORDER: TT, Threats, Castling, Checks, Captures, Development, Pawns, Tactical, Killers, Quiet
+        # V14.2 STREAMLINED ORDER: TT, Captures, Checks, Killers, Development, Pawns, Tactical, Quiet
         ordered = []
         ordered.extend(tt_moves)  # 1. TT move first
-        ordered.extend([move for _, move in threats])  # 2. NEW: Threat-related moves
-        ordered.extend([move for _, move in castling])  # 3. NEW: Castling moves
-        ordered.extend([move for _, move in checks])  # 4. Checks (with tactical bonus)
-        ordered.extend([move for _, move in captures])  # 5. Captures (with dynamic values)
-        ordered.extend([move for _, move in development])  # 6. NEW: Development moves
-        ordered.extend([move for _, move in pawn_advances])  # 7. NEW: Pawn advances
-        ordered.extend([move for _, move in tactical_moves])  # 8. Tactical patterns
-        ordered.extend(killers)  # 9. Killers
-        ordered.extend([move for _, move in quiet_moves])  # 10. Quiet moves
+        ordered.extend([move for _, move in captures])  # 2. Captures (with cached dynamic values)
+        ordered.extend([move for _, move in checks])  # 3. Checks (with tactical bonus)
+        ordered.extend(killers)  # 4. Killers
+        ordered.extend([move for _, move in development])  # 5. Development moves
+        ordered.extend([move for _, move in pawn_advances])  # 6. Pawn advances
+        ordered.extend([move for _, move in tactical_moves])  # 7. Tactical patterns
+        ordered.extend([move for _, move in quiet_moves])  # 8. Quiet moves
         
         return ordered
     
@@ -729,8 +740,8 @@ class V7P3REngine:
     
     def _quiescence_search(self, board: chess.Board, alpha: float, beta: float, depth: int) -> float:
         """
-        Quiescence search for tactical stability - V10 PHASE 2
-        Only search captures and checks to avoid horizon effects
+        V14.2 ENHANCED Quiescence search with game phase awareness and simplified heuristics
+        Only search captures and checks to avoid horizon effects, but with deeper analysis
         """
         self.nodes_searched += 1
         
@@ -745,8 +756,16 @@ class V7P3REngine:
         if stand_pat > alpha:
             alpha = stand_pat
         
+        # V14.2: Enhanced depth limits based on game phase
+        game_phase = self._detect_game_phase(board)
+        max_quiescence_depth = {
+            'opening': 4,    # Shorter quiescence in opening
+            'middlegame': 6, # Standard depth for middlegame tactics
+            'endgame': 8     # Deeper quiescence for endgame precision
+        }.get(game_phase, 6)
+        
         # Depth limit reached
-        if depth <= 0:
+        if depth <= -max_quiescence_depth:
             return stand_pat
         
         # Generate and search tactical moves only
@@ -754,38 +773,90 @@ class V7P3REngine:
         tactical_moves = []
         
         for move in legal_moves:
-            # Only consider captures and checks for quiescence
-            if board.is_capture(move) or board.gives_check(move):
+            # V14.2: Enhanced tactical move selection
+            is_capture = board.is_capture(move)
+            is_check = board.gives_check(move)
+            
+            # Always include captures and checks
+            if is_capture or is_check:
                 tactical_moves.append(move)
+                continue
+            
+            # V14.2: In endgame, also consider pawn promotions and king moves
+            if game_phase == 'endgame':
+                piece = board.piece_at(move.from_square)
+                if piece:
+                    # Pawn promotions are critical in endgame
+                    if piece.piece_type == chess.PAWN and move.promotion:
+                        tactical_moves.append(move)
+                    # King activity is important in endgame
+                    elif piece.piece_type == chess.KING and depth > -3:  # Only close to leaf nodes
+                        tactical_moves.append(move)
         
         # If no tactical moves, return stand pat
         if not tactical_moves:
             return stand_pat
         
-        # Sort tactical moves by MVV-LVA for better ordering (V14.1: Dynamic values)
+        # V14.2: Simplified but efficient tactical move ordering
         capture_scores = []
         for move in tactical_moves:
+            score = 0
+            
             if board.is_capture(move):
+                # Cached dynamic piece values for MVV-LVA
                 victim = board.piece_at(move.to_square)
                 victim_value = self._get_dynamic_piece_value(board, victim.piece_type, not board.turn) if victim else 0
                 attacker = board.piece_at(move.from_square)
                 attacker_value = self._get_dynamic_piece_value(board, attacker.piece_type, board.turn) if attacker else 0
-                mvv_lva = victim_value * 100 - attacker_value
-                capture_scores.append((mvv_lva, move))
-            else:
-                # Check moves get lower priority
-                capture_scores.append((0, move))
+                score = victim_value * 100 - attacker_value
+                
+                # V14.2: Bonus for captures that improve material balance
+                if victim_value >= attacker_value:
+                    score += 50  # Good trades get priority
+            
+            elif board.gives_check(move):
+                # Check moves get medium priority
+                score = 25
+                
+                # V14.2: Higher priority for checks in endgame
+                if game_phase == 'endgame':
+                    score += 25
+            
+            elif move.promotion:
+                # Promotions are very valuable
+                promoted_piece_value = self.piece_values.get(move.promotion, 0)
+                score = promoted_piece_value + 100
+            
+            capture_scores.append((score, move))
         
-        # Sort by MVV-LVA score
+        # Sort by score (higher is better)
         capture_scores.sort(key=lambda x: x[0], reverse=True)
         ordered_tactical = [move for _, move in capture_scores]
         
-        # Search tactical moves
+        # V14.2: Delta pruning - skip moves unlikely to improve alpha significantly
+        delta_threshold = 200  # Skip moves that can't improve position enough
+        if game_phase == 'endgame':
+            delta_threshold = 100  # More precise in endgame
+        
+        # Search tactical moves with simplified pruning
         best_score = stand_pat
+        moves_searched = 0
+        
         for move in ordered_tactical:
+            # V14.2: Delta pruning for efficiency
+            if board.is_capture(move):
+                victim = board.piece_at(move.to_square)
+                if victim:
+                    victim_value = self._get_dynamic_piece_value(board, victim.piece_type, not board.turn)
+                    # Skip captures that can't improve alpha enough
+                    if stand_pat + victim_value + delta_threshold < alpha:
+                        continue
+            
             board.push(move)
             score = -self._quiescence_search(board, -beta, -alpha, depth - 1)
             board.pop()
+            
+            moves_searched += 1
             
             if score > best_score:
                 best_score = score
@@ -795,6 +866,10 @@ class V7P3REngine:
             
             if alpha >= beta:
                 break  # Beta cutoff
+            
+            # V14.2: Limit search width in deep quiescence for performance
+            if depth < -3 and moves_searched >= 8:
+                break  # Stop after 8 moves in very deep quiescence
         
         return best_score
 
@@ -810,19 +885,27 @@ class V7P3REngine:
         pass
 
     def new_game(self):
-        """Reset for a new game"""
+        """Reset for a new game - V14.2: Enhanced with cache clearing"""
         self.evaluation_cache.clear()
         self.transposition_table.clear()
         self.killer_moves = KillerMoves()
         self.history_heuristic = HistoryHeuristic()
         self.nodes_searched = 0
         
+        # V14.2: Clear performance optimization caches
+        self.bishop_value_cache.clear()
+        self.game_phase_cache.clear()
+        self.search_depth_achieved.clear()
+        
         # Clear PV following data
         self.pv_tracker.clear()
         
         # Reset stats
         for key in self.search_stats:
-            self.search_stats[key] = 0
+            if key in ['nodes_per_second', 'cache_hits', 'cache_misses', 'tt_hits', 'tt_stores', 'killer_hits', 'game_phase_switches']:
+                self.search_stats[key] = 0
+            elif key == 'average_depth_achieved':
+                self.search_stats[key] = 0.0
 
     @property
     def principal_variation(self) -> List[chess.Move]:
@@ -931,6 +1014,86 @@ class V7P3REngine:
         
         return target_time, max_time
     
+    def _calculate_advanced_time_allocation(self, board: chess.Board, base_time_limit: float) -> Tuple[float, float]:
+        """
+        V14.2: Advanced time management for consistent 10-ply depth achievement
+        
+        Returns: (target_time, max_time)
+        """
+        # Start with base adaptive allocation
+        target_time, max_time = self._calculate_adaptive_time_allocation(board, base_time_limit)
+        
+        # Game phase specific adjustments
+        game_phase = self._detect_game_phase(board)
+        phase_factors = {
+            'opening': 0.8,    # Faster in opening, rely on book knowledge
+            'middlegame': 1.3, # More time for complex tactical analysis
+            'endgame': 1.1     # Precise calculation needed but fewer pieces
+        }
+        time_factor = phase_factors.get(game_phase, 1.0)
+        
+        # Position complexity analysis
+        legal_moves = list(board.legal_moves)
+        num_legal_moves = len(legal_moves)
+        
+        # Critical position detection
+        is_critical = (
+            board.is_check() or
+            num_legal_moves <= 8  # Few legal moves (forced positions)
+        )
+        
+        # Check for major piece captures available
+        for move in legal_moves:
+            if board.is_capture(move):
+                victim = board.piece_at(move.to_square)
+                if victim and self._get_dynamic_piece_value(board, victim.piece_type, not board.turn) >= 500:
+                    is_critical = True  # Major piece can be captured
+                    break
+        
+        if is_critical:
+            time_factor *= 1.4  # Take significantly more time in critical positions
+        
+        # Material imbalance consideration
+        our_material = self._count_material(board, board.turn)
+        their_material = self._count_material(board, not board.turn)
+        material_diff = our_material - their_material
+        
+        if abs(material_diff) > 500:  # Significant material imbalance
+            if material_diff < 0:  # We're behind
+                time_factor *= 1.2  # Need more precision when behind
+            else:  # We're ahead
+                time_factor *= 0.85  # Can play faster when ahead
+        
+        # Calculate enhanced times for deeper search
+        enhanced_target = min(target_time * time_factor, base_time_limit * 0.85)
+        enhanced_max = min(max_time * time_factor, base_time_limit * 0.95)
+        
+        return enhanced_target, enhanced_max
+    
+    def _calculate_target_depth(self, game_phase: str, time_limit: float) -> int:
+        """
+        V14.2: Calculate target search depth based on game phase and available time
+        
+        Goal: Achieve consistent 10-ply depth when possible
+        """
+        base_depths = {
+            'opening': 8,     # Standard opening depth
+            'middlegame': 10, # Target 10-ply for complex positions
+            'endgame': 12     # Can search deeper in endgame with fewer pieces
+        }
+        
+        base_depth = base_depths.get(game_phase, 10)
+        
+        # Adjust based on available time
+        if time_limit >= 10.0:  # Plenty of time
+            return min(base_depth + 2, 15)
+        elif time_limit >= 5.0:  # Standard time
+            return base_depth
+        elif time_limit >= 2.0:  # Limited time
+            return max(base_depth - 1, 6)
+        else:  # Very limited time
+            return max(base_depth - 2, 5)
+    
     def _count_material(self, board: chess.Board, color: bool) -> int:
         """Count total material for a color (V14.1: Dynamic piece values)"""
         total = 0
@@ -941,78 +1104,107 @@ class V7P3REngine:
         return total
 
     def _get_dynamic_piece_value(self, board: chess.Board, piece_type: int, color: bool) -> int:
-        """V14.1: Dynamic piece valuation - bishops gain/lose value based on pair presence"""
-        base_value = self.piece_values[piece_type]
+        """V14.2: Cached dynamic piece valuation for performance"""
+        if piece_type != chess.BISHOP:
+            return self.piece_values[piece_type]
         
-        if piece_type == chess.BISHOP:
-            bishops = board.pieces(chess.BISHOP, color)
-            bishop_count = len(bishops)
-            
-            if bishop_count >= 2:
-                # Bishop pair bonus: 325 each (two bishops > two knights)
-                return 325
-            elif bishop_count == 1:
-                # Single bishop penalty: 275 (one bishop < one knight)
-                return 275
-            else:
-                # No bishops remaining
-                return base_value
+        # Use cached value if available
+        board_hash = hash(str(board.pieces(chess.BISHOP, chess.WHITE)) + str(board.pieces(chess.BISHOP, chess.BLACK)))
+        cache_key = (board_hash, color)
         
-        return base_value
+        if cache_key in self.bishop_value_cache:
+            return self.bishop_value_cache[cache_key]
+        
+        # Calculate dynamic bishop value
+        bishops = board.pieces(chess.BISHOP, color)
+        bishop_count = len(bishops)
+        
+        if bishop_count >= 2:
+            # Bishop pair bonus: 325 each (two bishops > two knights)
+            value = 325
+        elif bishop_count == 1:
+            # Single bishop penalty: 275 (one bishop < one knight)
+            value = 275
+        else:
+            # No bishops remaining
+            value = self.piece_values[piece_type]
+        
+        # Cache for future use
+        self.bishop_value_cache[cache_key] = value
+        return value
 
-    def _detect_threats(self, board: chess.Board, move: chess.Move) -> float:
-        """V14.1: NEW - Detect if move defends against threats or creates counter-threats"""
-        threat_score = 0.0
-        our_color = board.turn
+    def _detect_game_phase(self, board: chess.Board) -> str:
+        """V14.2: NEW - Detect game phase for dynamic evaluation
         
-        # Check if this move defends a valuable piece under attack
-        piece_being_moved = board.piece_at(move.from_square)
-        if piece_being_moved:
-            # Test if moving this piece defends something valuable
-            temp_board = board.copy()
-            temp_board.push(move)
-            
-            # Look for our pieces under attack in current position
-            for square in chess.SQUARES:
-                piece = board.piece_at(square)
-                if piece and piece.color == our_color:
-                    # Check if this piece is under attack by lower-value pieces
-                    attackers = board.attackers(not our_color, square)
-                    if attackers:
-                        piece_value = self._get_dynamic_piece_value(board, piece.piece_type, our_color)
-                        
-                        for attacker_square in attackers:
-                            attacker_piece = board.piece_at(attacker_square)
-                            if attacker_piece:
-                                attacker_value = self._get_dynamic_piece_value(board, attacker_piece.piece_type, not our_color)
-                                
-                                # Threat: valuable piece attacked by less valuable piece
-                                if piece_value > attacker_value:
-                                    # Check if our move defends this piece
-                                    temp_attackers = temp_board.attackers(not our_color, square)
-                                    if len(temp_attackers) < len(attackers):
-                                        # Our move reduced threats to this piece
-                                        threat_score += (piece_value - attacker_value) / 10.0
-            
-            # Check if our move creates counter-threats
-            target_square = move.to_square
-            our_new_attackers = temp_board.attackers(our_color, target_square)
-            
-            for target_sq in chess.SQUARES:
-                target_piece = temp_board.piece_at(target_sq)
-                if target_piece and target_piece.color != our_color:
-                    new_attacks = temp_board.attackers(our_color, target_sq)
-                    old_attacks = board.attackers(our_color, target_sq)
-                    
-                    if len(new_attacks) > len(old_attacks):
-                        # We're creating new threats
-                        target_value = self._get_dynamic_piece_value(temp_board, target_piece.piece_type, not our_color)
-                        our_piece_value = self._get_dynamic_piece_value(temp_board, piece_being_moved.piece_type, our_color)
-                        
-                        if target_value > our_piece_value:
-                            threat_score += (target_value - our_piece_value) / 20.0
+        Returns: 'opening', 'middlegame', or 'endgame'
+        """
+        # Use cached value if available
+        material_hash = self._calculate_material_hash(board)
+        if material_hash in self.game_phase_cache:
+            return self.game_phase_cache[material_hash]
         
-        return threat_score
+        # Count total material (excluding pawns and kings)
+        total_material = 0
+        for color in [chess.WHITE, chess.BLACK]:
+            for piece_type in [chess.QUEEN, chess.ROOK, chess.BISHOP, chess.KNIGHT]:
+                piece_count = len(board.pieces(piece_type, color))
+                total_material += piece_count * self.piece_values[piece_type]
+        
+        # Phase detection based on material and move count
+        moves_played = len(board.move_stack)
+        
+        if moves_played < 8 and total_material >= 5000:  # Early opening with most pieces
+            phase = 'opening'
+        elif total_material <= 2500:  # Low material remaining
+            phase = 'endgame'
+        else:
+            phase = 'middlegame'
+        
+        # Cache for future use
+        self.game_phase_cache[material_hash] = phase
+        return phase
+
+    def _calculate_material_hash(self, board: chess.Board) -> int:
+        """Calculate a hash based on material for caching game phases"""
+        material_vector = []
+        for color in [chess.WHITE, chess.BLACK]:
+            for piece_type in [chess.QUEEN, chess.ROOK, chess.BISHOP, chess.KNIGHT, chess.PAWN]:
+                material_vector.append(len(board.pieces(piece_type, color)))
+        return hash(tuple(material_vector))
+
+    def get_performance_report(self) -> str:
+        """V14.2: Generate performance report for analysis"""
+        avg_depth = self.search_stats.get('average_depth_achieved', 0)
+        total_moves = len(self.search_depth_achieved)
+        
+        depth_distribution = {}
+        for depth in self.search_depth_achieved.values():
+            depth_distribution[depth] = depth_distribution.get(depth, 0) + 1
+        
+        cache_hits = self.search_stats.get('cache_hits', 0)
+        cache_misses = self.search_stats.get('cache_misses', 0)
+        cache_hit_rate = cache_hits / max(cache_hits + cache_misses, 1)
+        
+        tt_hits = self.search_stats.get('tt_hits', 0)
+        tt_hit_rate = tt_hits / max(self.nodes_searched, 1)
+        
+        report = f"""
+V14.2 Performance Report:
+========================
+Average Search Depth: {avg_depth:.1f} ply
+Total Moves Analyzed: {total_moves}
+Nodes Per Second: {self.search_stats.get('nodes_per_second', 0)}
+Cache Hit Rate: {cache_hit_rate:.1%}
+TT Hit Rate: {tt_hit_rate:.1%}
+
+Depth Distribution:
+{chr(10).join(f"  {depth} ply: {count} moves" for depth, count in sorted(depth_distribution.items()))}
+
+Game Phase Switches: {self.search_stats.get('game_phase_switches', 0)}
+Bishop Value Cache Size: {len(self.bishop_value_cache)}
+Game Phase Cache Size: {len(self.game_phase_cache)}
+"""
+        return report
 
     def _calculate_lmr_reduction(self, move: chess.Move, moves_searched: int, search_depth: int, board: chess.Board) -> int:
         """
