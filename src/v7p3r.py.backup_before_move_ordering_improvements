@@ -611,20 +611,10 @@ class V7P3REngine:
                 captures.append((total_score, move))
                 continue
             
-            # Get piece for subsequent checks
-            piece = board.piece_at(move.from_square)
-            
-            # 2.5. Opening central pawn moves (NEW - V14.3 improvement)
-            if piece and piece.piece_type == chess.PAWN and self._is_opening_position(board):
-                central_pawn_moves = ['e2e4', 'd2d4', 'e7e5', 'd7d5']
-                if move.uci() in central_pawn_moves:
-                    pawn_advances.append((80.0, move))  # High priority for central pawns
-                    continue
-            
-            # 3. Checks (INCREASED priority for tactical play)
+            # 3. Checks (high priority for tactical play)
             if board.gives_check(move):
                 tactical_bonus = self.bitboard_evaluator.detect_bitboard_tactics(board, move)
-                checks.append((tactical_bonus + 60.0, move))  # Increased check bonus
+                checks.append((tactical_bonus, move))
                 continue
             
             # 4. Killer moves
@@ -634,14 +624,9 @@ class V7P3REngine:
                 continue
             
             # 5. Development and patterns (simplified)
+            piece = board.piece_at(move.from_square)
             if piece:
                 # Development moves (knights, bishops moving from starting squares)
-                # NEW: Penalize knight moves to edge in opening
-                if (piece.piece_type == chess.KNIGHT and self._is_opening_position(board) and 
-                    move.from_square in [chess.B1, chess.G1, chess.B8, chess.G8] and
-                    move.to_square in [chess.A3, chess.H3]):
-                    development.append((10.0, move))  # Low priority for edge knights
-                    continue
                 if piece.piece_type in [chess.KNIGHT, chess.BISHOP]:
                     starting_squares = {
                         chess.KNIGHT: [chess.B1, chess.G1, chess.B8, chess.G8],
@@ -730,12 +715,6 @@ class V7P3REngine:
             final_score = white_total - black_total
         else:  # Black to move
             final_score = black_total - white_total
-        
-        # V14.3: Light simplification bonus - prefer fewer pieces for cleaner positions
-        piece_count = len(board.piece_map())
-        if piece_count < 16:  # Simplified position (normal is 32 at start)
-            simplification_bonus = (32 - piece_count) * 2  # 2cp per missing piece pair
-            final_score += simplification_bonus if final_score > 0 else -simplification_bonus
         
         # Cache the result
         self.evaluation_cache[cache_key] = final_score
@@ -903,14 +882,9 @@ class V7P3REngine:
                     attacker_value = self.piece_values.get(attacker.piece_type, 0)
                     score = victim_value * 100 - attacker_value
                     
-                    # V14.3: Enhanced trade evaluation - prefer equal trades and simplification
-                    value_diff = abs(victim_value - attacker_value)
-                    if value_diff <= 30:  # Equal trades (within 30 cp)
-                        score += 80  # Strong bonus for equal trades
-                    elif victim_value >= attacker_value:
-                        score += 50  # Good trades get medium bonus
-                    else:
-                        score -= 20  # Penalty for bad trades (losing material)
+                    # Simple good trade bonus
+                    if victim_value >= attacker_value:
+                        score += 50
             
             elif board.gives_check(move):
                 # Fixed check priority
@@ -1290,12 +1264,6 @@ class V7P3REngine:
                 material_vector.append(len(board.pieces(piece_type, color)))
         return hash(tuple(material_vector))
 
-    def _is_opening_position(self, board: chess.Board) -> bool:
-        """V14.3: Detect if we're still in the opening phase"""
-        # Simple heuristic: opening if most pieces are still on starting squares
-        piece_count = len(board.piece_map())
-        return piece_count >= 28  # Most pieces still on board
-    
     def get_performance_report(self) -> str:
         """V14.2: Generate performance report for analysis"""
         avg_depth = self.search_stats.get('average_depth_achieved', 0)
