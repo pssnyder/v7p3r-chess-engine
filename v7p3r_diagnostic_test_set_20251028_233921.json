@@ -1,0 +1,951 @@
+{
+  "created": "2025-10-28T23:39:07.377699",
+  "categories": {
+    "pin_1500_1700": {
+      "theme": "pin",
+      "rating_min": 1500,
+      "rating_max": 1700,
+      "puzzles": [
+        {
+          "id": "bW9Gi",
+          "fen": "3r1r2/R2n2k1/3PN2p/7Q/5p1P/6q1/P1P3P1/7K b - - 0 28",
+          "moves": "g7h7 e6f8 h7g8 h5g6 g3g6 f8g6",
+          "rating": 1500,
+          "themes": "advantage long middlegame pin"
+        },
+        {
+          "id": "2USWP",
+          "fen": "r1b1k2r/pppn2pp/2q5/4Np2/3Pn3/1Q1BP3/PP3PPP/R3K2R b KQkq - 8 14",
+          "moves": "d7e5 d3b5 c8d7 b5c6",
+          "rating": 1500,
+          "themes": "advantage middlegame pin short"
+        },
+        {
+          "id": "HA7pz",
+          "fen": "6k1/1p4p1/5r2/p2p1pQ1/3Pq3/2P1P1KP/1P3R2/8 w - - 0 36",
+          "moves": "h3h4 f6g6 g5g6 f5f4 e3f4 e4g6",
+          "rating": 1500,
+          "themes": "crushing discoveredAttack endgame long pin sacrifice"
+        },
+        {
+          "id": "dBOST",
+          "fen": "5rk1/ppp2ppp/8/2r2bb1/2Qn3P/8/PP1R1PP1/2KR4 w - - 1 19",
+          "moves": "c4c5 d4e2",
+          "rating": 1500,
+          "themes": "master mate mateIn1 middlegame oneMove pin"
+        },
+        {
+          "id": "u9BIU",
+          "fen": "4k3/p2r1r2/8/8/2p2N2/5KP1/3Q3P/8 w - - 1 46",
+          "moves": "d2c3 d7d3 c3d3 c4d3",
+          "rating": 1500,
+          "themes": "crushing endgame master pin short"
+        },
+        {
+          "id": "n0xKX",
+          "fen": "Q1b3k1/p1p1p2p/4q1p1/4N1b1/2pP4/BP4PP/P6K/5R2 w - - 1 30",
+          "moves": "b3c4 e6h3 h2g1 g5e3 f1f2 h3g3 a8g2 e3f2",
+          "rating": 1500,
+          "themes": "crushing fork middlegame pin veryLong"
+        },
+        {
+          "id": "j6OJ5",
+          "fen": "8/3Q1pk1/2p3b1/ppNp2p1/3P4/6P1/PP1q2PK/8 b - - 3 33",
+          "moves": "d2d4 c5e6 g7h7 e6d4",
+          "rating": 1500,
+          "themes": "crushing endgame master pin short"
+        },
+        {
+          "id": "4RLzA",
+          "fen": "2r5/4bpkp/1prp1n2/p3p1B1/4P3/P1N4P/1PPR4/5RK1 b - - 3 26",
+          "moves": "h7h6 g5f6 e7f6 d2g2 f6g5 h3h4",
+          "rating": 1500,
+          "themes": "advantage long middlegame pin"
+        }
+      ]
+    },
+    "fork_1500_1700": {
+      "theme": "fork",
+      "rating_min": 1500,
+      "rating_max": 1700,
+      "puzzles": [
+        {
+          "id": "g0Hkj",
+          "fen": "5rk1/4Qpp1/4p1p1/3pN3/3PnP2/1qr4P/6P1/4RRK1 b - - 5 30",
+          "moves": "b3b6 e7f8 g8f8 e5d7 f8g8 d7b6",
+          "rating": 1500,
+          "themes": "advantage attraction fork long master middlegame sacrifice"
+        },
+        {
+          "id": "TpQMN",
+          "fen": "r4r1k/2q1b1p1/7p/p3P1p1/1p1NP3/6Q1/PP4PP/3R1R1K w - - 0 27",
+          "moves": "d4e6 f8f1 d1f1 c7c4 g3f3 c4e6",
+          "rating": 1500,
+          "themes": "advantage fork long middlegame"
+        },
+        {
+          "id": "b25Ju",
+          "fen": "3q1rk1/4ppbp/Q5p1/2B1P3/5P2/8/P1r3PP/R4RK1 w - - 0 20",
+          "moves": "a1c1 c2c5 c1c5 d8d4 g1h1 d4c5",
+          "rating": 1500,
+          "themes": "attraction crushing fork long middlegame sacrifice"
+        },
+        {
+          "id": "wuBFv",
+          "fen": "r5k1/2n1pp1p/3p2p1/2pP3n/P1N1PP2/2P1B2P/4Q1PK/1r6 w - - 0 26",
+          "moves": "a4a5 b1h1 h2h1 h5g3 h1h2 g3e2",
+          "rating": 1500,
+          "themes": "advantage attraction fork long middlegame sacrifice"
+        },
+        {
+          "id": "ndlBa",
+          "fen": "4r3/5p1k/2p2qpp/P2p4/1PnN4/2Q4P/5PP1/3R2K1 w - - 1 36",
+          "moves": "c3d3 c4b2 d3b3 b2d1",
+          "rating": 1500,
+          "themes": "crushing endgame fork master short"
+        },
+        {
+          "id": "3DQSf",
+          "fen": "r3k2r/4qppp/p1p2n2/3p4/1b1P4/8/PPQB1PPP/RN1K3R b kq - 4 14",
+          "moves": "b4d2 c2c6 e7d7 c6a8",
+          "rating": 1500,
+          "themes": "crushing fork middlegame short"
+        },
+        {
+          "id": "sYxq1",
+          "fen": "3qr2k/p6p/1p2p3/3n1p1R/3P1P2/2P5/PP4QP/4R1K1 w - - 2 27",
+          "moves": "h5g5 d5f4 g2g3 d8g5 g3g5 f4h3 g1g2 h3g5",
+          "rating": 1500,
+          "themes": "advantage attraction endgame fork sacrifice veryLong"
+        },
+        {
+          "id": "SKbZ0",
+          "fen": "r1b1kbnr/ppp2pp1/2nq3p/4p3/2BPP3/5N2/PPP3PP/RNBQ1RK1 w kq - 1 8",
+          "moves": "d4e5 d6c5 g1h1 c5c4",
+          "rating": 1500,
+          "themes": "advantage fork opening short"
+        }
+      ]
+    },
+    "mate_1500_1700": {
+      "theme": "mate",
+      "rating_min": 1500,
+      "rating_max": 1700,
+      "puzzles": [
+        {
+          "id": "9VrpG",
+          "fen": "r3k2r/1pq5/p1b1p3/2pp2Qp/2P1P1n1/2N5/PP2BPP1/R4RK1 w kq - 0 21",
+          "moves": "c4d5 c7h2",
+          "rating": 1500,
+          "themes": "mate mateIn1 middlegame oneMove"
+        },
+        {
+          "id": "wIHOO",
+          "fen": "6rk/1R1b1pq1/p2P3p/P1pP4/3b1Q2/3B3P/1P3PP1/4R1K1 w - - 5 44",
+          "moves": "b7d7 g7g2",
+          "rating": 1500,
+          "themes": "kingsideAttack master mate mateIn1 middlegame oneMove"
+        },
+        {
+          "id": "9dwxt",
+          "fen": "r1bqkb1r/1p2pp1p/p2p1p2/2pNn3/P1B5/1P3N2/2PPQPPP/R3K2R b KQkq - 3 10",
+          "moves": "e5c4 d5f6",
+          "rating": 1500,
+          "themes": "mate mateIn1 middlegame oneMove pin"
+        },
+        {
+          "id": "CZ1PF",
+          "fen": "2k3r1/p3b1nr/4p3/1R1pBp2/q2Pn3/P3P2P/2P2PP1/1R1Q2K1 b - - 0 27",
+          "moves": "e4c3 b5b8 c8d7 b1b7 d7c6 b7c7",
+          "rating": 1500,
+          "themes": "exposedKing long mate mateIn3 middlegame queensideAttack"
+        },
+        {
+          "id": "IF2l4",
+          "fen": "r4k1r/p1R2p2/1p2pNp1/5q2/3Q4/8/P4PbP/5RK1 w - - 0 25",
+          "moves": "g1g2 f5h3 g2g1 h3h2",
+          "rating": 1500,
+          "themes": "mate mateIn2 middlegame short"
+        },
+        {
+          "id": "HiTjl",
+          "fen": "4r3/pp1k1ppp/3b4/3p4/3N2n1/2PP4/PP3PPP/R1B2K2 w - - 3 20",
+          "moves": "h2h3 g4h2 f1g1 e8e1",
+          "rating": 1500,
+          "themes": "endgame mate mateIn2 short"
+        },
+        {
+          "id": "ZNLC3",
+          "fen": "Q4bk1/5p2/p3p1pB/7p/8/2KP1P1P/PP4P1/4q3 w - - 6 29",
+          "moves": "c3c4 e1b4",
+          "rating": 1500,
+          "themes": "endgame mate mateIn1 oneMove"
+        },
+        {
+          "id": "b7YDL",
+          "fen": "5rk1/pp1R2p1/4npQP/4p3/8/1q2P1P1/4bK2/8 b - - 2 31",
+          "moves": "e2b5 d7g7 e6g7 g6g7",
+          "rating": 1500,
+          "themes": "endgame mate mateIn2 short"
+        }
+      ]
+    },
+    "sacrifice_1500_1700": {
+      "theme": "sacrifice",
+      "rating_min": 1500,
+      "rating_max": 1700,
+      "puzzles": [
+        {
+          "id": "piz89",
+          "fen": "3q2kr/5pp1/p1r2n2/1pBQ1B1p/1P6/7P/P3RPP1/4R1K1 b - - 0 28",
+          "moves": "d8d5 e2e8 f6e8 e1e8",
+          "rating": 1500,
+          "themes": "kingsideAttack mate mateIn2 middlegame sacrifice short"
+        },
+        {
+          "id": "U676S",
+          "fen": "8/4bk1p/p4r2/1p1P1Pp1/4Q1Pn/1P4K1/P6P/8 w - - 1 40",
+          "moves": "e4d4 f6f5 g4f5 h4f5 g3g4 f5d4",
+          "rating": 1500,
+          "themes": "crushing endgame fork long sacrifice"
+        },
+        {
+          "id": "t1k0v",
+          "fen": "4Q2k/ppp3b1/3p1r2/3P4/2P5/6B1/Pq4BP/7K b - - 0 28",
+          "moves": "h8h7 g2e4 h7h6 g3f4 f6f4 e8g6",
+          "rating": 1500,
+          "themes": "endgame exposedKing long mate mateIn3 sacrifice"
+        },
+        {
+          "id": "C5PUI",
+          "fen": "5r2/p5pk/6rp/1PPQb3/3pp2q/P5P1/7P/3R1RK1 w - - 0 27",
+          "moves": "f1f8 g6g3 h2g3 h4g3 g1f1 g3h3",
+          "rating": 1500,
+          "themes": "crushing endgame long sacrifice"
+        },
+        {
+          "id": "pRcN5",
+          "fen": "3rq2k/p2p2p1/1p4Np/1Pp1PQb1/P1Pn4/7P/6PB/3R2K1 b - - 6 28",
+          "moves": "h8h7 g6f8 h7g8 f5h7 g8f8 d1f1",
+          "rating": 1500,
+          "themes": "advantage doubleCheck long middlegame sacrifice"
+        },
+        {
+          "id": "OhDy8",
+          "fen": "r3k1nr/2b2ppp/p2qb3/3pn3/3N4/P1N1P3/4BPPP/R1BQ1RK1 w kq - 2 15",
+          "moves": "d4e6 e5f3 g2f3 d6h2",
+          "rating": 1500,
+          "themes": "discoveredAttack kingsideAttack mate mateIn2 middlegame sacrifice short"
+        },
+        {
+          "id": "K9FW3",
+          "fen": "6k1/5p2/4p1p1/4P2p/q3nP2/5r2/6PP/3RQ2K w - - 0 33",
+          "moves": "g2f3 a4d1 e1d1 e4f2 h1g2 f2d1",
+          "rating": 1500,
+          "themes": "attraction crushing endgame fork long master masterVsMaster pin sacrifice"
+        },
+        {
+          "id": "V6HOx",
+          "fen": "3bQ3/ppk3r1/1q2P3/4P3/4p3/7P/PP4r1/3R1R1K b - - 0 31",
+          "moves": "c7c8 d1d8 b6d8 f1c1 g2c2 c1c2",
+          "rating": 1500,
+          "themes": "crushing long middlegame sacrifice"
+        }
+      ]
+    },
+    "deflection_1500_1700": {
+      "theme": "deflection",
+      "rating_min": 1500,
+      "rating_max": 1700,
+      "puzzles": [
+        {
+          "id": "HVXyd",
+          "fen": "8/p7/2k5/3R4/1K6/1PPpr3/P7/8 w - - 4 33",
+          "moves": "b4c4 e3e4 c4d3 c6d5 c3c4 d5e5",
+          "rating": 1500,
+          "themes": "crushing defensiveMove deflection endgame long rookEndgame"
+        },
+        {
+          "id": "XQfWW",
+          "fen": "5rk1/5rp1/1R1p4/3Pp2p/P3Pq1P/2R2N2/4QPK1/8 w - - 0 37",
+          "moves": "e2e3 f4g4 g2f1 f7f3 e3f3 f8f3",
+          "rating": 1500,
+          "themes": "crushing deflection discoveredAttack long middlegame"
+        },
+        {
+          "id": "8hSFc",
+          "fen": "8/8/p4p1r/1p1k1K2/1P2R2P/8/P7/8 w - - 7 45",
+          "moves": "a2a3 h6h5 f5g6 d5e4 g6h5 f6f5 h5g6 f5f4 h4h5 f4f3 h5h6 f3f2 h6h7 f2f1q",
+          "rating": 1500,
+          "themes": "advancedPawn crushing deflection endgame promotion quietMove rookEndgame veryLong"
+        },
+        {
+          "id": "UkXbr",
+          "fen": "8/1p6/p7/2p4R/P1Pkp3/1Pr5/1K6/8 b - - 7 44",
+          "moves": "e4e3 h5d5 d4e4 b2c3 e3e2 c3d2",
+          "rating": 1500,
+          "themes": "crushing deflection endgame long rookEndgame"
+        },
+        {
+          "id": "F2uqe",
+          "fen": "8/8/4k3/3r4/2K3R1/8/8/8 b - - 9 53",
+          "moves": "e6d6 g4g6 d6e5 g6g5 e5f4 g5d5",
+          "rating": 1500,
+          "themes": "crushing deflection endgame exposedKing long rookEndgame skewer"
+        },
+        {
+          "id": "2UmYY",
+          "fen": "8/5p2/4p1r1/2kpP3/Pr1N4/4P1Pp/7B/3R3K w - - 0 39",
+          "moves": "d1d2 b4b1 h2g1 g6g3",
+          "rating": 1500,
+          "themes": "crushing deflection endgame short"
+        },
+        {
+          "id": "ecFxk",
+          "fen": "4r1k1/ppb2pp1/7p/8/2NP4/PqPQ1R2/1P1B1PPP/6K1 w - - 5 32",
+          "moves": "h2h3 b3d1 d3f1 c7h2 g1h2 d1f1",
+          "rating": 1500,
+          "themes": "advantage deflection kingsideAttack long middlegame"
+        },
+        {
+          "id": "ApnAI",
+          "fen": "r7/p2pq1kp/bp4p1/3QP1N1/5r2/8/PP4PP/R2R2K1 w - - 0 19",
+          "moves": "d5d7 f4f1 d1f1 e7d7 f1f7 d7f7",
+          "rating": 1500,
+          "themes": "advantage deflection long middlegame"
+        }
+      ]
+    },
+    "pin_1700_1900": {
+      "theme": "pin",
+      "rating_min": 1700,
+      "rating_max": 1900,
+      "puzzles": [
+        {
+          "id": "ELU4i",
+          "fen": "B7/7n/1B4k1/3Pp1p1/1b2Pp2/2R2P2/KP4rp/4R3 w - - 2 58",
+          "moves": "d5d6 b4c3 d6d7 g2b2",
+          "rating": 1700,
+          "themes": "crushing middlegame pin short"
+        },
+        {
+          "id": "SEWxM",
+          "fen": "3r1rk1/5ppp/p6q/1p1Q4/6PP/1P6/1PPR1P2/2K4R w - - 1 22",
+          "moves": "d5d8 f8d8 g4g5 h6b6",
+          "rating": 1700,
+          "themes": "advantage endgame pin short"
+        },
+        {
+          "id": "AbDig",
+          "fen": "2r5/3kbpp1/p2p1p1p/1q1P1P2/1B2P1P1/Q2R4/1PP4P/2K5 w - - 6 28",
+          "moves": "b2b3 b5d3 a3a4 d3b5 a4b5 a6b5",
+          "rating": 1700,
+          "themes": "crushing endgame long pin"
+        },
+        {
+          "id": "Q1Wju",
+          "fen": "1k5r/1ppr4/4R3/2b1p1p1/Q5p1/P2P2Pq/1B2PR1P/6K1 w - - 2 29",
+          "moves": "a4d7 h3h2 g1f1 h2f2",
+          "rating": 1700,
+          "themes": "master mate mateIn2 middlegame pin short"
+        },
+        {
+          "id": "2ORrq",
+          "fen": "r4rk1/ppp2ppp/3b4/8/3nN1q1/3P4/PPPQ1PPP/R1B2RK1 w - - 1 14",
+          "moves": "d2g5 d4f3 g1h1 f3g5",
+          "rating": 1700,
+          "themes": "crushing middlegame pin short"
+        },
+        {
+          "id": "2gcl3",
+          "fen": "8/1p1nQrkp/2b3p1/p1p2qN1/2P5/1P5P/P5P1/4R2K w - - 6 31",
+          "moves": "g5f7 f5h3 h1g1 h3g2",
+          "rating": 1700,
+          "themes": "endgame mate mateIn2 pin short"
+        },
+        {
+          "id": "1GJZH",
+          "fen": "6r1/4Bk2/4pP1p/3pP3/P1p1n2r/4P3/2R4P/1R5K w - - 1 42",
+          "moves": "b1g1 e4g3 g1g3 g8g3",
+          "rating": 1700,
+          "themes": "advantage endgame pin short"
+        },
+        {
+          "id": "ikbLx",
+          "fen": "r3rbk1/2q2pp1/p4n1B/1p3BQ1/2p5/P4P1P/1P3P2/R3R1K1 b - - 1 24",
+          "moves": "e8e5 e1e5 c7e5 f5h7 g8h7 g5e5",
+          "rating": 1700,
+          "themes": "advantage discoveredAttack kingsideAttack long middlegame pin"
+        }
+      ]
+    },
+    "fork_1700_1900": {
+      "theme": "fork",
+      "rating_min": 1700,
+      "rating_max": 1900,
+      "puzzles": [
+        {
+          "id": "zFw5Z",
+          "fen": "R7/pp1k1pp1/8/8/2q1b1PQ/5P2/PP1B4/2K4R w - - 0 36",
+          "moves": "c1d1 e4f3 d1e1 c4e2",
+          "rating": 1700,
+          "themes": "endgame fork mate mateIn2 short"
+        },
+        {
+          "id": "29Kcd",
+          "fen": "br1r4/6kp/pp2ppp1/5n2/P1Pp1qN1/1P5R/1Q2B1PP/5R1K b - - 1 34",
+          "moves": "f4e4 h3h7 g7h7 g4f6 h7g7 f6e4",
+          "rating": 1700,
+          "themes": "advantage attraction deflection fork long middlegame sacrifice"
+        },
+        {
+          "id": "A3DLr",
+          "fen": "q5k1/1bR3b1/1p2p1Qp/1P1pP3/3P1P2/3pn3/3N3P/r5NK b - - 0 33",
+          "moves": "e3f5 g6e6 g8h8 e6f5",
+          "rating": 1700,
+          "themes": "advantage fork middlegame short"
+        },
+        {
+          "id": "xiSHq",
+          "fen": "6k1/5r1p/p5p1/3Q1b2/1bP3Nq/7P/1P4P1/5RK1 b - - 0 33",
+          "moves": "h4e7 g4h6 g8g7 h6f7",
+          "rating": 1700,
+          "themes": "advantage fork middlegame short"
+        },
+        {
+          "id": "8Dk1T",
+          "fen": "rnbqk2r/pp3pb1/2pp3n/7p/2BPPNpP/5P2/PPP5/RNBQK2R w KQkq - 0 11",
+          "moves": "f4h5 d8a5 b1c3 a5h5",
+          "rating": 1700,
+          "themes": "advantage fork opening short"
+        },
+        {
+          "id": "QdKUk",
+          "fen": "r4rk1/ppqn1p1p/3Np1pB/3nP3/3p4/3Q3R/PPP3PP/R5K1 w - - 0 18",
+          "moves": "h6f8 d5f4 d3e4 f4h3",
+          "rating": 1700,
+          "themes": "advantage fork middlegame short"
+        },
+        {
+          "id": "ahLpg",
+          "fen": "r2qk1nr/ppp2ppp/2np4/2b1p3/2B1PPb1/1QP2N2/PP1P2PP/RNB1K2R b KQkq - 2 6",
+          "moves": "d8e7 b3b7 a8b8 b7c6",
+          "rating": 1700,
+          "themes": "crushing fork opening short"
+        },
+        {
+          "id": "IybPj",
+          "fen": "r2qk2r/1b1p1p2/p1n1pP1p/2b1Nn2/1p3P2/1P6/PBP3PP/R2QKB1R b KQkq - 1 13",
+          "moves": "d8f6 d1d7 e8f8 d7b7",
+          "rating": 1700,
+          "themes": "crushing fork middlegame short"
+        }
+      ]
+    },
+    "mate_1700_1900": {
+      "theme": "mate",
+      "rating_min": 1700,
+      "rating_max": 1900,
+      "puzzles": [
+        {
+          "id": "5pImV",
+          "fen": "4R3/1p5p/5pp1/3r3k/6Pq/5P2/5Q2/3rR1K1 b - - 0 48",
+          "moves": "h5g5 f2e3",
+          "rating": 1700,
+          "themes": "endgame master mate mateIn1 oneMove"
+        },
+        {
+          "id": "bJHxE",
+          "fen": "6rk/p2Q1p2/4p2p/3b1p2/1N1p1q2/1P1P2r1/P1P2P1P/R4RK1 w - - 0 29",
+          "moves": "f2g3 g8g3 h2g3 f4g3",
+          "rating": 1700,
+          "themes": "kingsideAttack mate mateIn2 middlegame sacrifice short"
+        },
+        {
+          "id": "3fB7g",
+          "fen": "r2qr1kb/7p/2np1ppB/p2N4/4P1Q1/1P1n2PB/P4P1P/1R2R1K1 b - - 5 25",
+          "moves": "d3e1 g4e6 e8e6 h3e6",
+          "rating": 1700,
+          "themes": "bodenMate kingsideAttack master mate mateIn2 middlegame sacrifice short"
+        },
+        {
+          "id": "SqNfI",
+          "fen": "r3r1k1/pp1b3p/1bp5/3p3P/7P/1P1P1R2/PBP5/5R1K b - - 0 27",
+          "moves": "e8f8 f3g3 d7g4 g3g4",
+          "rating": 1700,
+          "themes": "mate mateIn2 middlegame short"
+        },
+        {
+          "id": "mLt0g",
+          "fen": "4rrk1/1p1N1pp1/p1pb1n1p/3pN3/1P1P4/P2QP2q/5P2/1BR2RK1 b - - 3 21",
+          "moves": "e8e5 d7f6 g7f6 d3h7",
+          "rating": 1700,
+          "themes": "kingsideAttack mate mateIn2 middlegame short"
+        },
+        {
+          "id": "tRnqt",
+          "fen": "r1b2rk1/pppp1ppp/5q1B/3B3Q/1n5N/8/P3R1PP/3R2K1 b - - 5 19",
+          "moves": "f6h6 h5f7 f8f7 e2e8",
+          "rating": 1700,
+          "themes": "kingsideAttack mate mateIn2 middlegame pin sacrifice short"
+        },
+        {
+          "id": "kM0pT",
+          "fen": "2k4r/pp3Np1/1n2pn1p/2b4P/2P2B2/3Q4/PP2Nq2/1K1R4 b - - 1 22",
+          "moves": "h8e8 d3d8 e8d8 d1d8",
+          "rating": 1700,
+          "themes": "mate mateIn2 middlegame queensideAttack sacrifice short"
+        },
+        {
+          "id": "4ZuWC",
+          "fen": "8/p1k2p2/3p3Q/1pp5/2P4P/1KP5/PP2q3/8 w - - 0 32",
+          "moves": "h6f4 e2d1 b3a3 d1a4",
+          "rating": 1700,
+          "themes": "endgame mate mateIn2 queenEndgame short"
+        }
+      ]
+    },
+    "sacrifice_1700_1900": {
+      "theme": "sacrifice",
+      "rating_min": 1700,
+      "rating_max": 1900,
+      "puzzles": [
+        {
+          "id": "AJYZB",
+          "fen": "6rk/2pq1p2/p4Nrp/4P2Q/P3P3/3p2RP/7P/7K b - - 0 23",
+          "moves": "d7d4 h5h6 g6h6 g3g8",
+          "rating": 1700,
+          "themes": "arabianMate deflection endgame master mate mateIn2 sacrifice short"
+        },
+        {
+          "id": "OqYRr",
+          "fen": "2k1r2r/1ppb1N1p/p4p2/5p2/5P2/qP2R2P/P1P1Q1P1/1K1R4 b - - 1 23",
+          "moves": "h8f8 e3e8 f8e8 e2e8 d7e8 d1d8",
+          "rating": 1700,
+          "themes": "long mate mateIn3 middlegame queensideAttack sacrifice"
+        },
+        {
+          "id": "5ICfZ",
+          "fen": "4r3/1p3Rpk/p3p1np/2p5/P3P3/1nBqN2Q/1P4PP/7K b - - 1 30",
+          "moves": "e6e5 f7g7 h7g7 e3f5 g7f6 h3d3",
+          "rating": 1700,
+          "themes": "attraction crushing discoveredAttack long middlegame sacrifice"
+        },
+        {
+          "id": "L6yMu",
+          "fen": "r1kq3r/1p4p1/p1npP3/2p3P1/5B2/2N3p1/PPP3P1/R2Q1RK1 w - - 2 21",
+          "moves": "d1d6 h8h1 g1h1 d8h8 h1g1 h8h2",
+          "rating": 1700,
+          "themes": "attraction kingsideAttack long mate mateIn3 middlegame sacrifice"
+        },
+        {
+          "id": "cphKw",
+          "fen": "rn3rk1/pp3ppp/2pq4/3p1NP1/5P2/1B1QR3/PPP4P/6K1 b - - 0 23",
+          "moves": "d6f4 f5e7 g8h8 d3h7 h8h7 e3h3 f4h4 h3h4",
+          "rating": 1700,
+          "themes": "anastasiaMate attraction discoveredAttack kingsideAttack mate mateIn4 middlegame sacrifice veryLong"
+        },
+        {
+          "id": "aRnTb",
+          "fen": "r5rk/ppqn1p1p/2p1pPpQ/3pP3/5R2/3PP1B1/PP4PP/2R3K1 b - - 5 21",
+          "moves": "c7b6 h6h7 h8h7 f4h4",
+          "rating": 1700,
+          "themes": "attraction kingsideAttack mate mateIn2 middlegame sacrifice short"
+        },
+        {
+          "id": "jqvoo",
+          "fen": "8/p1p3pk/2Qp3p/5r2/8/2N1P3/PP1q2PP/4R1K1 w - - 1 25",
+          "moves": "e1a1 d2f2 g1h1 f2f1 a1f1 f5f1",
+          "rating": 1700,
+          "themes": "backRankMate endgame long mate mateIn3 sacrifice"
+        },
+        {
+          "id": "exHro",
+          "fen": "2k1r3/Qp2q3/2p2r2/8/5Ppp/2R5/5PPP/2R3K1 w - - 1 31",
+          "moves": "g2g3 e7e1 c1e1 e8e1 g1g2 h4h3",
+          "rating": 1700,
+          "themes": "endgame long mate mateIn3 sacrifice"
+        }
+      ]
+    },
+    "deflection_1700_1900": {
+      "theme": "deflection",
+      "rating_min": 1700,
+      "rating_max": 1900,
+      "puzzles": [
+        {
+          "id": "BZx3i",
+          "fen": "2r3k1/p1rb1pp1/Pp1qpn2/6N1/3P3R/3Q3P/1PB2P2/2R3K1 b - - 0 26",
+          "moves": "e6e5 h4h8 g8h8 g5f7 h8g8 f7d6",
+          "rating": 1700,
+          "themes": "attraction crushing deflection fork long middlegame sacrifice"
+        },
+        {
+          "id": "YJWN3",
+          "fen": "8/2p5/2kb1rr1/Qp1q4/3P2p1/1P2B3/1P3P1P/R5K1 b - - 5 36",
+          "moves": "f6f3 a5a8 c6d7 a8d5",
+          "rating": 1700,
+          "themes": "crushing deflection middlegame short skewer"
+        },
+        {
+          "id": "JO9ZU",
+          "fen": "2rqr1k1/4bppp/bp3n2/p2pBNQ1/8/7P/PPP2PP1/R3R1K1 b - - 2 20",
+          "moves": "e7f8 f5h6 g8h8 h6f7",
+          "rating": 1700,
+          "themes": "crushing deflection kingsideAttack middlegame pin short"
+        },
+        {
+          "id": "LeEgd",
+          "fen": "5r1k/p2p2pp/1pnPr1q1/3Q3N/8/2B5/PPP2PPP/5RK1 b - - 4 20",
+          "moves": "e6d6 c3g7 g6g7 d5d6",
+          "rating": 1700,
+          "themes": "advantage deflection fork middlegame short"
+        },
+        {
+          "id": "3TKnc",
+          "fen": "2R5/3p1k1p/p2rpppP/3q4/Pr1P1Q2/6P1/5P2/3R2K1 b - - 5 32",
+          "moves": "b4d4 c8f8 f7f8 f4f6 f8e8 f6h8",
+          "rating": 1700,
+          "themes": "advantage attraction deflection endgame long master sacrifice"
+        },
+        {
+          "id": "BfFwN",
+          "fen": "6k1/1p3pp1/4p2p/1Q1pP3/3P4/2P3KP/1R3PP1/4r1q1 b - - 0 41",
+          "moves": "e1e4 b5e8 g8h7 e8f7",
+          "rating": 1700,
+          "themes": "crushing deflection endgame master short"
+        },
+        {
+          "id": "wOgJw",
+          "fen": "r1q5/1pp2Rbk/p1np2pp/3N4/2PPr1b1/8/PPNQB1PP/3R2K1 b - - 0 22",
+          "moves": "e4e2 d5f6 h7h8 d2h6 g7h6 f7h7",
+          "rating": 1700,
+          "themes": "arabianMate deflection long mate mateIn3 middlegame sacrifice"
+        },
+        {
+          "id": "LPMRK",
+          "fen": "8/7N/4p1p1/3nkp2/7P/6P1/5P2/6K1 b - - 0 42",
+          "moves": "d5f6 f2f4 e5d4 h7f6",
+          "rating": 1700,
+          "themes": "crushing deflection endgame knightEndgame short"
+        }
+      ]
+    },
+    "pin_1900_2200": {
+      "theme": "pin",
+      "rating_min": 1900,
+      "rating_max": 2200,
+      "puzzles": [
+        {
+          "id": "YW9m2",
+          "fen": "r2q1rk1/p3ppbp/2pp2p1/8/4P1n1/2N1B3/PPPQ3P/2KR1B1R w - - 0 13",
+          "moves": "e3d4 g7h6 d2h6 g4h6",
+          "rating": 1900,
+          "themes": "advantage opening pin short"
+        },
+        {
+          "id": "7DAmH",
+          "fen": "6k1/p6p/5p2/3r4/1P2r3/P7/2R1BK1P/8 b - - 2 36",
+          "moves": "e4e7 e2c4 e7e5 c2d2",
+          "rating": 1900,
+          "themes": "crushing endgame pin short"
+        },
+        {
+          "id": "MUgWu",
+          "fen": "r4rk1/ppp2ppp/1bn5/3NP3/8/6qb/PPPPBPN1/R1BQ1RK1 w - - 2 14",
+          "moves": "e2f3 c6e5 f3e4 e5g4",
+          "rating": 1900,
+          "themes": "advantage middlegame pin short"
+        },
+        {
+          "id": "VR00Z",
+          "fen": "5rk1/3r2pp/n1p2b2/p1q1pN2/Pp2P1Q1/1P5P/2P2RP1/5R1K b - - 4 31",
+          "moves": "d7f7 f5h6 g8h8 h6f7 f8f7 g4c8 f7f8 c8a6",
+          "rating": 1900,
+          "themes": "advantage fork middlegame pin veryLong"
+        },
+        {
+          "id": "7u7EL",
+          "fen": "2r1r1k1/pQ3Rpp/8/1p2b3/1q2N3/2P2PP1/1P5P/2KR4 w - - 3 31",
+          "moves": "c1b1 c8c3 f7g7 e5g7 b7d5 g8h8 e4c3 g7c3",
+          "rating": 1900,
+          "themes": "crushing middlegame pin veryLong"
+        },
+        {
+          "id": "oOakw",
+          "fen": "1rbqr1k1/ppp2pb1/3p2N1/7p/2P5/2PQ2PP/P4PB1/R3R1K1 b - - 0 17",
+          "moves": "f7g6 d3g6 c8e6 e1e6",
+          "rating": 1900,
+          "themes": "advantage middlegame pin short"
+        },
+        {
+          "id": "sNMEY",
+          "fen": "3rkbr1/1q3p1p/pP2p2p/8/3Pb3/P1Q2N1P/4BPP1/2RR2K1 w - - 3 22",
+          "moves": "c3c7 e4f3 e2f3 b7f3 c7c6 f3c6",
+          "rating": 1900,
+          "themes": "advantage long middlegame pin"
+        },
+        {
+          "id": "R0oxc",
+          "fen": "2b2rk1/pr4b1/4p1Q1/3p1p1N/3q4/3B3R/P1P2nPP/5RK1 w - - 0 27",
+          "moves": "f1f2 b7b1 d3f1 b1f1 g1f1 d4d1",
+          "rating": 1900,
+          "themes": "attraction kingsideAttack long mate mateIn3 middlegame pin sacrifice"
+        }
+      ]
+    },
+    "fork_1900_2200": {
+      "theme": "fork",
+      "rating_min": 1900,
+      "rating_max": 2200,
+      "puzzles": [
+        {
+          "id": "TVqHa",
+          "fen": "r1bb1r1k/3p1ppp/2q5/1ppN4/p1P5/2BP2RP/PP3PP1/4R1K1 b - - 3 24",
+          "moves": "f8g8 c3g7 g8g7 e1e8 g7g8 g3g8",
+          "rating": 1900,
+          "themes": "fork long mate mateIn3 middlegame sacrifice"
+        },
+        {
+          "id": "OgcWY",
+          "fen": "r1b1kbnr/3p1ppp/p4q2/1p6/2p1P3/2Pp2Q1/PP1P1PPP/RNBB1RK1 b kq - 1 11",
+          "moves": "f8d6 e4e5 f6e5 g3e5 d6e5 f1e1",
+          "rating": 1900,
+          "themes": "advantage fork long opening pin"
+        },
+        {
+          "id": "YimYV",
+          "fen": "r5k1/1p1b3P/1q2p3/1p1pp1Q1/5r2/P2B1P2/3P1bP1/R2K3R b - - 0 24",
+          "moves": "g8h8 g5e5 f4f6 e5f6",
+          "rating": 1900,
+          "themes": "fork mate mateIn2 middlegame short"
+        },
+        {
+          "id": "uc5OW",
+          "fen": "2r3k1/4qppp/2p2n2/p1Ppr3/1P1Q4/P3PRP1/6BP/5RK1 b - - 1 23",
+          "moves": "a5b4 f3f6 g7f6 d4g4 e5g5 g4c8",
+          "rating": 1900,
+          "themes": "crushing fork long middlegame sacrifice"
+        },
+        {
+          "id": "DqkNs",
+          "fen": "6k1/pp3pp1/4q2p/P1pn4/3r4/1P4BP/2PQ1PP1/3R2K1 w - - 0 26",
+          "moves": "d2c1 d5c3 d1d4 c3e2 g1h2 e2c1 d4d8 g8h7",
+          "rating": 1900,
+          "themes": "crushing endgame fork sacrifice veryLong"
+        },
+        {
+          "id": "3v2Np",
+          "fen": "5r1k/pp3q2/2p1B2p/3r4/4Np1N/3P4/PP5K/6Q1 b - - 0 33",
+          "moves": "f7e6 h4g6 h8g8 g6f4 g8f7 f4e6 d5h5 h2g2 f8g8 e4g3",
+          "rating": 1900,
+          "themes": "advantage discoveredAttack endgame exposedKing fork master veryLong"
+        },
+        {
+          "id": "5zbGK",
+          "fen": "8/5p1k/p3p1pp/1q2P3/4Q3/1P5P/r4BP1/2R3K1 w - - 0 40",
+          "moves": "c1c7 a2f2 g1f2 b5b6 f2e2 b6c7",
+          "rating": 1900,
+          "themes": "advantage attraction endgame fork long sacrifice"
+        },
+        {
+          "id": "CBaFB",
+          "fen": "2r2rk1/5b2/6p1/5R1B/1p2p3/1P4R1/2P3P1/7K b - - 0 38",
+          "moves": "g8h7 f5f7 f8f7 h5g6 h7g7 g6f5 g7f6 f5c8",
+          "rating": 1900,
+          "themes": "crushing discoveredAttack endgame fork master masterVsMaster veryLong"
+        }
+      ]
+    },
+    "mate_1900_2200": {
+      "theme": "mate",
+      "rating_min": 1900,
+      "rating_max": 2200,
+      "puzzles": [
+        {
+          "id": "7PP6J",
+          "fen": "r1b1k2r/p4ppp/2p5/q2n4/1b1Q3B/2N5/PPP2PPP/2KR2NR b kq - 2 14",
+          "moves": "d5c3 d4d8 a5d8 d1d8",
+          "rating": 1900,
+          "themes": "mate mateIn2 middlegame short"
+        },
+        {
+          "id": "TVqHa",
+          "fen": "r1bb1r1k/3p1ppp/2q5/1ppN4/p1P5/2BP2RP/PP3PP1/4R1K1 b - - 3 24",
+          "moves": "f8g8 c3g7 g8g7 e1e8 g7g8 g3g8",
+          "rating": 1900,
+          "themes": "fork long mate mateIn3 middlegame sacrifice"
+        },
+        {
+          "id": "QdzH0",
+          "fen": "6k1/6p1/1p1p3p/p2PqN2/P1P2nP1/1P4QP/6K1/8 w - - 3 44",
+          "moves": "g2f3 e5e2 f3f4 g7g5",
+          "rating": 1900,
+          "themes": "endgame master mate mateIn2 sacrifice short"
+        },
+        {
+          "id": "47J4O",
+          "fen": "2Q5/p4kpp/1b1p1q2/8/3p4/1P1N4/PBB1rPPP/R5K1 w - - 3 25",
+          "moves": "a1e1 f6f2 d3f2 e2e1",
+          "rating": 1900,
+          "themes": "backRankMate deflection mate mateIn2 middlegame sacrifice short"
+        },
+        {
+          "id": "22kaG",
+          "fen": "r3r3/3bb2p/2p1n1kP/p2pB3/3Pn3/P6R/1qP1QPP1/3RK3 b - - 3 25",
+          "moves": "e6g5 e2h5 g6f5 h3f3 f5e6 h5g4",
+          "rating": 1900,
+          "themes": "exposedKing long mate mateIn3 middlegame pin"
+        },
+        {
+          "id": "d8L10",
+          "fen": "8/7p/2p1ppq1/2b5/4k3/2B3P1/5PKP/3Q4 b - - 6 39",
+          "moves": "g6f5 f2f3 f5f3 d1f3",
+          "rating": 1900,
+          "themes": "endgame mate mateIn2 short"
+        },
+        {
+          "id": "LEsfs",
+          "fen": "r5k1/2p2pb1/1p1pp1p1/8/1q4P1/1PP4Q/rBP4P/1K1R1R2 w - - 2 24",
+          "moves": "c3b4 a2a1 b2a1 a8a1",
+          "rating": 1900,
+          "themes": "master mate mateIn2 middlegame queensideAttack sacrifice short"
+        },
+        {
+          "id": "1kKIG",
+          "fen": "1R6/2P5/6p1/7p/P4Pb1/4k1P1/6K1/3r4 w - - 6 42",
+          "moves": "c7c8q g4f3 g2h3 d1h1",
+          "rating": 1900,
+          "themes": "endgame mate mateIn2 short"
+        }
+      ]
+    },
+    "sacrifice_1900_2200": {
+      "theme": "sacrifice",
+      "rating_min": 1900,
+      "rating_max": 2200,
+      "puzzles": [
+        {
+          "id": "Bs3iP",
+          "fen": "r4rk1/p1q2pp1/1p2p1b1/2p3P1/5PN1/2P5/P1P4Q/2B2RK1 b - - 0 26",
+          "moves": "a8d8 g4f6 g7f6 g5f6",
+          "rating": 1900,
+          "themes": "crushing kingsideAttack middlegame sacrifice short"
+        },
+        {
+          "id": "zLOU5",
+          "fen": "2r1k2r/pR1bnppp/4p3/4P3/q7/6P1/P2Q1PBP/1R4K1 b k - 2 18",
+          "moves": "d7c6 b7e7 e8e7 d2d6",
+          "rating": 1900,
+          "themes": "advantage attraction middlegame sacrifice short"
+        },
+        {
+          "id": "9SkQ1",
+          "fen": "r1r3k1/2q5/2p2pp1/3p4/3P2P1/pP3P2/K2Q4/7R b - - 1 33",
+          "moves": "c7b6 h1h8 g8h8 d2h6 h8g8 h6g6 g8f8 g6f6",
+          "rating": 1900,
+          "themes": "attraction endgame equality exposedKing sacrifice veryLong"
+        },
+        {
+          "id": "HYN1y",
+          "fen": "r3r1k1/pp1q2p1/3bnnQ1/2pp4/3P3B/2P1RN1P/PP3PP1/4R1K1 b - - 0 20",
+          "moves": "d7f7 g6f7 g8f7 e3e6 e8e6 f3g5",
+          "rating": 1900,
+          "themes": "advantage kingsideAttack long middlegame sacrifice"
+        },
+        {
+          "id": "47J4O",
+          "fen": "2Q5/p4kpp/1b1p1q2/8/3p4/1P1N4/PBB1rPPP/R5K1 w - - 3 25",
+          "moves": "a1e1 f6f2 d3f2 e2e1",
+          "rating": 1900,
+          "themes": "backRankMate deflection mate mateIn2 middlegame sacrifice short"
+        },
+        {
+          "id": "7CcoW",
+          "fen": "8/5pk1/Qp2pNp1/3pP3/1P1P3n/P3P1RP/2r2qPK/8 w - - 1 35",
+          "moves": "a6a8 h4f3 g3f3 f2g2",
+          "rating": 1900,
+          "themes": "deflection endgame mate mateIn2 pin sacrifice short"
+        },
+        {
+          "id": "HObU2",
+          "fen": "5k1r/1p2p3/1n2Np2/rB1p1p1p/3P4/q1N5/P5QP/KR6 b - - 7 31",
+          "moves": "f8f7 g2g7 f7e6 b1e1 e6d6 g7e7",
+          "rating": 1900,
+          "themes": "fork long master mate mateIn3 middlegame sacrifice superGM"
+        },
+        {
+          "id": "xkwxZ",
+          "fen": "2r1rBk1/p5p1/1p2p3/3pPp1Q/P4q2/7P/2P3R1/R6K b - - 1 28",
+          "moves": "e8f8 g2g7 g8g7 a1g1 f4g4 h3g4",
+          "rating": 1900,
+          "themes": "attraction crushing endgame long sacrifice"
+        }
+      ]
+    },
+    "deflection_1900_2200": {
+      "theme": "deflection",
+      "rating_min": 1900,
+      "rating_max": 2200,
+      "puzzles": [
+        {
+          "id": "Xr5aR",
+          "fen": "r1b1r3/ppq4k/1n3Q2/3pPp2/3P1B2/2P5/P4PPP/R4RK1 b - - 2 22",
+          "moves": "c7e7 f6h6 h7g8 h6g6 e7g7 g6e8",
+          "rating": 1900,
+          "themes": "crushing deflection exposedKing long middlegame"
+        },
+        {
+          "id": "ai0LE",
+          "fen": "r1bqr3/pppn1kb1/3p2pp/3np3/1P1PNP2/2PB4/PBQ3PP/4RRK1 b - - 0 16",
+          "moves": "e5f4 e4d6 c7d6 d3g6 f7g8 e1e8 d8e8 g6e8",
+          "rating": 1900,
+          "themes": "advantage deflection discoveredAttack fork middlegame veryLong"
+        },
+        {
+          "id": "2qgrj",
+          "fen": "4r1rk/pp3p1p/2pp1P2/5Q2/2P1NP2/1P1qP2P/P3RKP1/8 w - - 3 28",
+          "moves": "f2f3 e8e4 f5e4 g8g3 f3g3 d3e4",
+          "rating": 1900,
+          "themes": "advantage deflection endgame long sacrifice"
+        },
+        {
+          "id": "6Z3HZ",
+          "fen": "2r4r/pp2qpk1/2n1p1p1/3p4/3P2QP/2PB2P1/PP6/4RRK1 b - - 3 25",
+          "moves": "h8h5 d3g6 f7g6 e1e6",
+          "rating": 1900,
+          "themes": "crushing deflection master middlegame short"
+        },
+        {
+          "id": "rbk3C",
+          "fen": "3rn2k/8/5q2/pppP4/7r/1P3RQ1/P4PP1/3R2K1 b - - 1 39",
+          "moves": "f6h6 f3f8 h6f8 g3h4 h8g8 h4d8",
+          "rating": 1900,
+          "themes": "crushing deflection exposedKing fork long middlegame"
+        },
+        {
+          "id": "mVLOw",
+          "fen": "2q2rk1/p4pp1/1p2pnp1/8/3PnB2/4PN1P/P4PP1/1Q3RK1 w - - 2 19",
+          "moves": "f1c1 e4c3 b1c2 c3e2 c2e2 c8c1",
+          "rating": 1900,
+          "themes": "advantage deflection discoveredAttack long middlegame skewer"
+        },
+        {
+          "id": "bW54w",
+          "fen": "6k1/Qp3p2/2p1r3/P5q1/5np1/2N5/1PP2PPP/5RK1 w - - 1 26",
+          "moves": "a7b7 f4h3 g1h1 h3f2 h1g1 f2h3",
+          "rating": 1900,
+          "themes": "crushing deflection endgame long"
+        },
+        {
+          "id": "FvBUB",
+          "fen": "2rqk2r/1p1b1pbp/p2Qpnp1/P1p5/2B5/1PN5/1BPP1PPP/R3R1K1 b k - 1 15",
+          "moves": "d7c6 e1e6 f7e6 d6e6 d8e7 e6c8",
+          "rating": 1900,
+          "themes": "advantage deflection long middlegame sacrifice"
+        }
+      ]
+    }
+  },
+  "total_puzzles": 120
+}

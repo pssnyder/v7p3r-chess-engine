@@ -572,14 +572,28 @@ class V7P3REngine:
     
     def _order_moves_advanced(self, board: chess.Board, moves: List[chess.Move], depth: int, 
                               tt_move: Optional[chess.Move] = None) -> List[chess.Move]:
-        """V14.2 STREAMLINED move ordering - Removed expensive threat detection for performance"""
+        """
+        V14.4 ENHANCED TACTICAL move ordering - Phase 1 improvements for 1500+ puzzle performance
+        
+        Improvements based on diagnostic analysis:
+        - Enhanced check prioritization (+200 bonus)
+        - Valuable piece capture prioritization (+150 bonus) 
+        - Multi-piece attack detection (+120 bonus)
+        - Threat creation prioritization (+100 bonus)
+        
+        Target: +3-5% accuracy improvement on tactical puzzles
+        """
         if len(moves) <= 2:
             return moves
         
-        # Streamlined categories for efficiency
+        # Enhanced categories for tactical play
         tt_moves = []
-        captures = []
+        mate_threats = []      # NEW: Mate threat moves
         checks = []
+        high_value_captures = [] # NEW: Separate high-value captures
+        captures = []
+        multi_attacks = []     # NEW: Moves attacking multiple pieces
+        threats = []           # NEW: Moves creating threats
         killers = []
         development = []
         pawn_advances = []
@@ -589,54 +603,102 @@ class V7P3REngine:
         # Performance optimization: Pre-create sets for fast lookups
         killer_set = set(self.killer_moves.get_killers(depth))
         
+        # V14.4: Pre-calculate tactical analysis for better move ordering
+        tactical_analysis = self._analyze_position_for_tactics(board)
+        
+        # V14.4 Phase 2: Cache pin detection to avoid expensive recalculation
+        cached_original_pins = self._detect_pins(board)
+        
         for move in moves:
             # 1. Transposition table move (highest priority)
             if tt_move and move == tt_move:
                 tt_moves.append(move)
                 continue
             
-            # 2. Captures (sorted by MVV-LVA with cached dynamic values)
+            # V14.4: Enhanced tactical move analysis
+            tactical_score = self._calculate_tactical_move_score(board, move, tactical_analysis, cached_original_pins)
+            
+            # 2. Mate threats (NEW - highest tactical priority)
+            if tactical_score.get('mate_threat', False):
+                mate_threats.append((1000 + tactical_score['base_score'], move))
+                continue
+            
+            # 3. Checks (ENHANCED - V14.4 prioritization)
+            if board.gives_check(move):
+                check_bonus = 200.0  # Increased from 60.0 based on diagnostic analysis
+                discovered_check_bonus = 50.0 if tactical_score.get('discovered_check', False) else 0
+                double_check_bonus = 100.0 if tactical_score.get('double_check', False) else 0
+                
+                total_check_score = check_bonus + discovered_check_bonus + double_check_bonus + tactical_score['base_score']
+                checks.append((total_check_score, move))
+                continue
+            
+            # 4. Multi-piece attacks (PRIORITY - before captures)
+            if tactical_score.get('attacks_multiple', False):
+                multi_attack_bonus = 350.0  # Much higher bonus for fork-like moves
+                pin_bonus = 150.0 if tactical_score.get('creates_pin', False) else 0
+                total_multi_score = multi_attack_bonus + pin_bonus + tactical_score['base_score']
+                multi_attacks.append((total_multi_score, move))
+                continue
+
+            # 5. High-value captures (after multi-attacks to avoid double-categorization)
             if board.is_capture(move):
                 victim = board.piece_at(move.to_square)
                 victim_value = self._get_dynamic_piece_value(board, victim.piece_type, not board.turn) if victim else 0
                 attacker = board.piece_at(move.from_square)
                 attacker_value = self._get_dynamic_piece_value(board, attacker.piece_type, board.turn) if attacker else 0
+                
                 # MVV-LVA: Most Valuable Victim - Least Valuable Attacker
                 mvv_lva_score = victim_value * 100 - attacker_value
                 
-                # Add tactical bonus using bitboards
-                tactical_bonus = self.bitboard_evaluator.detect_bitboard_tactics(board, move)
-                total_score = mvv_lva_score + tactical_bonus
+                # V14.4: Enhanced capture bonuses
+                high_value_bonus = 300.0 if victim_value >= 500 else 150.0 if victim_value >= 300 else 0  # Higher bonuses
+                safe_capture_bonus = 50.0 if tactical_score.get('safe_capture', False) else 0
                 
-                captures.append((total_score, move))
+                total_capture_score = mvv_lva_score + high_value_bonus + safe_capture_bonus + tactical_score['base_score']
+                
+                # Separate high-value captures for better ordering
+                if victim_value >= 500:  # Queen (900) or Rook (500)
+                    high_value_captures.append((total_capture_score, move))
+                else:
+                    captures.append((total_capture_score, move))
+                continue
+            
+            # 6. Threat creation (NEW - moves that threaten valuable pieces)
+            if tactical_score.get('creates_threat', False):
+                threat_value = tactical_score.get('threat_value', 0)
+                # Much higher bonuses, especially for queen threats
+                if threat_value >= 900:  # Queen threat
+                    threat_bonus = 500.0
+                elif threat_value >= 500:  # Rook threat
+                    threat_bonus = 400.0
+                elif threat_value >= 300:  # Minor piece threat
+                    threat_bonus = 300.0
+                else:
+                    threat_bonus = 200.0
+                threats.append((threat_bonus + tactical_score['base_score'], move))
                 continue
             
             # Get piece for subsequent checks
             piece = board.piece_at(move.from_square)
             
-            # 2.5. Opening central pawn moves (NEW - V14.3 improvement)
+            # 7. Killer moves (after tactical categories)
+            if move in killer_set:
+                killers.append(move)
+                self.search_stats['killer_hits'] += 1
+                continue
+            
+            # 8. Opening central pawn moves (V14.3 improvement - maintained)
             if piece and piece.piece_type == chess.PAWN and self._is_opening_position(board):
                 central_pawn_moves = ['e2e4', 'd2d4', 'e7e5', 'd7d5']
                 if move.uci() in central_pawn_moves:
                     pawn_advances.append((80.0, move))  # High priority for central pawns
                     continue
             
-            # 3. Checks (INCREASED priority for tactical play)
-            if board.gives_check(move):
-                tactical_bonus = self.bitboard_evaluator.detect_bitboard_tactics(board, move)
-                checks.append((tactical_bonus + 60.0, move))  # Increased check bonus
-                continue
-            
-            # 4. Killer moves
-            if move in killer_set:
-                killers.append(move)
-                self.search_stats['killer_hits'] += 1
-                continue
-            
-            # 5. Development and patterns (simplified)
+            # 9. Development and patterns
             if piece:
                 # Development moves (knights, bishops moving from starting squares)
-                # NEW: Penalize knight moves to edge in opening
+                # V14.3: Penalize knight moves to edge in opening
                 if (piece.piece_type == chess.KNIGHT and self._is_opening_position(board) and 
                     move.from_square in [chess.B1, chess.G1, chess.B8, chess.G8] and
                     move.to_square in [chess.A3, chess.H3]):
@@ -656,36 +718,382 @@ class V7P3REngine:
                     pawn_advances.append((10.0, move))
                     continue
             
-            # 6. Remaining moves
+            # 10. Remaining moves (with enhanced tactical scoring)
             history_score = self.history_heuristic.get_history_score(move)
-            tactical_bonus = self.bitboard_evaluator.detect_bitboard_tactics(board, move)
             
-            if tactical_bonus > 20.0:  # Significant tactical move
-                tactical_moves.append((tactical_bonus + history_score, move))
+            if tactical_score['base_score'] > 20.0:  # Significant tactical move
+                tactical_moves.append((tactical_score['base_score'] + history_score, move))
             else:
                 quiet_moves.append((history_score, move))
         
-        # Sort all move categories by their scores
-        captures.sort(key=lambda x: x[0], reverse=True)
+        # Sort all move categories by their scores (V14.4: Enhanced categories)
+        mate_threats.sort(key=lambda x: x[0], reverse=True)
         checks.sort(key=lambda x: x[0], reverse=True)
+        high_value_captures.sort(key=lambda x: x[0], reverse=True)
+        captures.sort(key=lambda x: x[0], reverse=True)
+        multi_attacks.sort(key=lambda x: x[0], reverse=True)
+        threats.sort(key=lambda x: x[0], reverse=True)
         development.sort(key=lambda x: x[0], reverse=True)
         pawn_advances.sort(key=lambda x: x[0], reverse=True)
         tactical_moves.sort(key=lambda x: x[0], reverse=True)
         quiet_moves.sort(key=lambda x: x[0], reverse=True)
         
-        # V14.2 STREAMLINED ORDER: TT, Captures, Checks, Killers, Development, Pawns, Tactical, Quiet
+        # V14.4 ENHANCED TACTICAL ORDER: Multi-attacks prioritized before captures
         ordered = []
-        ordered.extend(tt_moves)  # 1. TT move first
-        ordered.extend([move for _, move in captures])  # 2. Captures (with cached dynamic values)
-        ordered.extend([move for _, move in checks])  # 3. Checks (with tactical bonus)
-        ordered.extend(killers)  # 4. Killers
-        ordered.extend([move for _, move in development])  # 5. Development moves
-        ordered.extend([move for _, move in pawn_advances])  # 6. Pawn advances
-        ordered.extend([move for _, move in tactical_moves])  # 7. Tactical patterns
-        ordered.extend([move for _, move in quiet_moves])  # 8. Quiet moves
+        ordered.extend(tt_moves)                                    # 1. TT move (highest priority)
+        ordered.extend([move for _, move in mate_threats])         # 2. Mate threats
+        ordered.extend([move for _, move in checks])               # 3. Checks (enhanced scoring)
+        
+        # 4. HIGH-VALUE THREATS (Queen threats treated like checks)
+        high_value_threats = [move for score, move in threats if score >= 650]  # Queen threats (500 bonus + 165 base)
+        ordered.extend(high_value_threats)
+        
+        ordered.extend([move for _, move in multi_attacks])        # 5. Multi-piece attacks (now BEFORE captures)
+        ordered.extend([move for _, move in high_value_captures])  # 6. High-value captures (Q/R)
+        ordered.extend([move for _, move in captures])             # 7. Other captures
+        
+        # 8. Other threats (after captures)
+        other_threats = [move for score, move in threats if score < 650]
+        ordered.extend(other_threats)
+        
+        ordered.extend(killers)                                    # 9. Killer moves
+        ordered.extend([move for _, move in development])          # 10. Development
+        ordered.extend([move for _, move in pawn_advances])        # 11. Pawn advances
+        ordered.extend([move for _, move in tactical_moves])       # 12. Other tactical moves
+        ordered.extend([move for _, move in quiet_moves])          # 12. Quiet moves
         
         return ordered
     
+    def _analyze_position_for_tactics(self, board: chess.Board) -> Dict:
+        """
+        V14.4: Analyze current position for tactical patterns
+        Pre-calculates tactical information to improve move ordering efficiency
+        """
+        analysis = {
+            'attacked_squares': set(),
+            'defending_squares': set(),
+            'valuable_pieces': [],  # Pieces worth >= 300cp
+            'loose_pieces': [],     # Undefended pieces
+            'pinned_pieces': [],
+            'material_imbalance': 0,
+            'piece_activity': 0
+        }
+        
+        current_color = board.turn
+        opponent_color = not current_color
+        
+        # Find valuable pieces for both sides
+        for square in chess.SQUARES:
+            piece = board.piece_at(square)
+            if piece:
+                piece_value = self._get_dynamic_piece_value(board, piece.piece_type, piece.color)
+                if piece_value >= 300:  # Minor pieces and above
+                    analysis['valuable_pieces'].append({
+                        'square': square,
+                        'piece': piece,
+                        'value': piece_value,
+                        'color': piece.color
+                    })
+        
+        # Calculate attacked and defended squares
+        for square in chess.SQUARES:
+            if board.is_attacked_by(current_color, square):
+                analysis['attacked_squares'].add(square)
+            if board.is_attacked_by(opponent_color, square):
+                analysis['defending_squares'].add(square)
+        
+        # Find loose pieces (not defended)
+        for piece_info in analysis['valuable_pieces']:
+            square = piece_info['square']
+            if not board.is_attacked_by(piece_info['color'], square):
+                analysis['loose_pieces'].append(piece_info)
+        
+        # Calculate material imbalance
+        white_material = sum(self._get_dynamic_piece_value(board, p.piece_type, True) 
+                           for p in board.piece_map().values() if p.color == chess.WHITE)
+        black_material = sum(self._get_dynamic_piece_value(board, p.piece_type, False) 
+                           for p in board.piece_map().values() if p.color == chess.BLACK)
+        
+        if current_color == chess.WHITE:
+            analysis['material_imbalance'] = white_material - black_material
+        else:
+            analysis['material_imbalance'] = black_material - white_material
+        
+        return analysis
+    
+    def _calculate_tactical_move_score(self, board: chess.Board, move: chess.Move, analysis: Dict, cached_original_pins: Optional[Dict] = None) -> Dict:
+        """
+        V14.4: Calculate tactical score for a specific move
+        Returns dictionary with tactical flags and base score
+        """
+        score_info = {
+            'base_score': 0.0,
+            'mate_threat': False,
+            'discovered_check': False,
+            'double_check': False,
+            'safe_capture': False,
+            'attacks_multiple': False,
+            'creates_pin': False,
+            'creates_threat': False,
+            'threat_value': 0
+        }
+        
+        # Create a copy to test the move
+        test_board = board.copy()
+        
+        try:
+            # Check if move is legal
+            if move not in test_board.legal_moves:
+                return score_info
+            
+            test_board.push(move)
+            
+            # 1. Mate threat detection
+            if test_board.is_checkmate():
+                score_info['mate_threat'] = True
+                score_info['base_score'] += 1000
+                test_board.pop()
+                return score_info
+            
+            # 2. Check types
+            if test_board.is_check():
+                # Count attacking pieces to detect double check
+                king_square = test_board.king(not board.turn)
+                if king_square is not None:
+                    attackers = list(test_board.attackers(board.turn, king_square))
+                    
+                    if len(attackers) > 1:
+                        score_info['double_check'] = True
+                        score_info['base_score'] += 100
+                    
+                    # Check for discovered check
+                    piece = board.piece_at(move.from_square)
+                    if piece and move.from_square not in attackers:
+                        score_info['discovered_check'] = True
+                        score_info['base_score'] += 50
+            
+            # 3. Safe capture analysis
+            if board.is_capture(move):
+                captured_square = move.to_square
+                if not test_board.is_attacked_by(not board.turn, captured_square):
+                    score_info['safe_capture'] = True
+                    score_info['base_score'] += 25
+            
+            # 4. Multiple piece attacks (fork potential) - V14.4 Phase 2 ENHANCED
+            piece = board.piece_at(move.from_square)
+            if piece:
+                # Count valuable enemy pieces attacked by THIS SPECIFIC PIECE after the move
+                attacked_valuable = 0
+                total_threat_value = 0
+                
+                # Get squares attacked by the moved piece in its new position
+                piece_attacks = test_board.attacks(move.to_square)
+                
+                for piece_info in analysis['valuable_pieces']:
+                    if piece_info['color'] != board.turn:  # Enemy piece
+                        # Check if THIS moved piece attacks this valuable enemy piece
+                        if piece_info['square'] in piece_attacks:
+                            attacked_valuable += 1
+                            total_threat_value += piece_info['value']
+                
+                if attacked_valuable >= 2:
+                    score_info['attacks_multiple'] = True
+                    # Higher bonus for forking multiple pieces with a single move
+                    score_info['base_score'] += min(attacked_valuable * 60, 200)  # Increased bonus
+                elif attacked_valuable == 1 and total_threat_value >= 300:
+                    score_info['creates_threat'] = True
+                    score_info['threat_value'] = total_threat_value
+                    # Enhanced bonus for threatening high-value pieces (V14.4 Phase 2)
+                    # Queen threat should be prioritized over multi-piece attacks
+                    if total_threat_value >= 900:  # Queen threat
+                        score_info['base_score'] += 150  # Higher than multi-attack bonus
+                    elif total_threat_value >= 500:  # Rook threat
+                        score_info['base_score'] += 80
+                    else:  # Other high-value pieces
+                        score_info['base_score'] += min(total_threat_value / 10, 50)
+            
+            # 5. Enhanced pin creation detection (V14.4 Phase 2)
+            # Check if the move creates new pins using cached detection for performance
+            try:
+                # Use cached original pins to avoid expensive recalculation
+                if cached_original_pins is not None:
+                    original_pins = cached_original_pins
+                else:
+                    original_pins = self._detect_pins(board)
+                
+                new_pins = self._detect_pins(test_board)
+                
+                # Check if we created new pins for our color
+                if board.turn == chess.WHITE:
+                    original_pin_count = len(original_pins.get('white_pins', []))
+                    new_pin_count = len(new_pins.get('white_pins', []))
+                else:
+                    original_pin_count = len(original_pins.get('black_pins', []))
+                    new_pin_count = len(new_pins.get('black_pins', []))
+                
+                if new_pin_count > original_pin_count:
+                    score_info['creates_pin'] = True
+                    # Higher bonus for creating pins
+                    pins_created = new_pin_count - original_pin_count
+                    score_info['base_score'] += pins_created * 50  # Increased from 40
+            except:
+                # Fallback to simplified pin detection if enhanced fails
+                for piece_info in analysis['valuable_pieces']:
+                    if piece_info['color'] != board.turn:  # Enemy piece
+                        enemy_square = piece_info['square']
+                        enemy_king = test_board.king(not board.turn)
+                        
+                        if enemy_king and enemy_square != enemy_king:
+                            if (abs(chess.square_file(enemy_square) - chess.square_file(enemy_king)) <= 1 or
+                                abs(chess.square_rank(enemy_square) - chess.square_rank(enemy_king)) <= 1):
+                                score_info['creates_pin'] = True
+                                score_info['base_score'] += 40
+                                break
+            
+            test_board.pop()
+            
+        except:
+            # If any error occurs, return default score
+            pass
+        
+        # Add baseline tactical bonus from bitboard evaluator
+        try:
+            bitboard_bonus = self.bitboard_evaluator.detect_bitboard_tactics(board, move)
+            score_info['base_score'] += bitboard_bonus
+        except:
+            pass
+        
+        return score_info
+    
+    def _detect_pins(self, board: chess.Board) -> Dict:
+        """
+        V14.4 Phase 2: Enhanced pin detection using BITBOARD operations
+        Much faster than square-by-square traversal - leverages chess library's efficient methods
+        """
+        pin_data = {
+            'white_pins': [],
+            'black_pins': [],
+            'white_pinned': [],
+            'black_pinned': [],
+            'pin_score_white': 0.0,
+            'pin_score_black': 0.0
+        }
+        
+        try:
+            # Use efficient pin detection for both colors
+            for color in [chess.WHITE, chess.BLACK]:
+                opponent_color = not color
+                enemy_king_square = board.king(opponent_color)
+                
+                if enemy_king_square is None:
+                    continue
+                
+                pin_score = 0.0
+                
+                # Get our sliding pieces (potential pinning pieces)
+                our_queens = board.pieces(chess.QUEEN, color)
+                our_rooks = board.pieces(chess.ROOK, color) 
+                our_bishops = board.pieces(chess.BISHOP, color)
+                sliding_pieces = our_queens | our_rooks | our_bishops
+                
+                for piece_square in sliding_pieces:
+                    piece = board.piece_at(piece_square)
+                    if not piece:
+                        continue
+                    
+                    # Get squares between our piece and enemy king using bitboard
+                    between_mask = chess.between(piece_square, enemy_king_square)
+                    between_squares = list(chess.scan_forward(between_mask))
+                    
+                    # Skip if no squares between (adjacent) or not on same line
+                    if not between_squares:
+                        continue
+                    
+                    # Check if piece can potentially attack king (line type matching)
+                    can_attack_king = self._can_piece_attack_line(piece.piece_type, piece_square, enemy_king_square)
+                    if not can_attack_king:
+                        continue
+                    
+                    # Count enemy pieces in between
+                    enemy_pieces_between = []
+                    for sq in between_squares:
+                        piece_at_sq = board.piece_at(sq)
+                        if piece_at_sq and piece_at_sq.color == opponent_color:
+                            enemy_pieces_between.append((sq, piece_at_sq))
+                    
+                    # Pin exists if exactly one enemy piece between
+                    if len(enemy_pieces_between) == 1:
+                        pinned_square, pinned_piece = enemy_pieces_between[0]
+                        
+                        pin_value = self._calculate_pin_value(pinned_piece.piece_type)
+                        pin_score += pin_value
+                        
+                        pin_info = {
+                            'pinning_square': piece_square,
+                            'pinning_piece': piece.piece_type,
+                            'pinned_square': pinned_square,
+                            'pinned_piece': pinned_piece.piece_type,
+                            'king_square': enemy_king_square,
+                            'value': pin_value
+                        }
+                        
+                        if color == chess.WHITE:
+                            pin_data['white_pins'].append(pin_info)
+                            pin_data['black_pinned'].append(pinned_square)
+                        else:
+                            pin_data['black_pins'].append(pin_info)
+                            pin_data['white_pinned'].append(pinned_square)
+                
+                # Store totals
+                if color == chess.WHITE:
+                    pin_data['pin_score_white'] = pin_score
+                else:
+                    pin_data['pin_score_black'] = pin_score
+        
+        except Exception:
+            # Fallback to empty pin data if detection fails
+            pass
+        
+        return pin_data
+    
+    def _can_piece_attack_line(self, piece_type: chess.PieceType, from_square: chess.Square, to_square: chess.Square) -> bool:
+        """Check if piece type can potentially attack along the line between squares"""
+        try:
+            # Use chess library's efficient square calculations
+            from_file, from_rank = chess.square_file(from_square), chess.square_rank(from_square)
+            to_file, to_rank = chess.square_file(to_square), chess.square_rank(to_square)
+            
+            file_diff = to_file - from_file
+            rank_diff = to_rank - from_rank
+            
+            # Check if it's a valid line for the piece type
+            if piece_type == chess.QUEEN:
+                # Queen moves in any straight line
+                return file_diff == 0 or rank_diff == 0 or abs(file_diff) == abs(rank_diff)
+            elif piece_type == chess.ROOK:
+                # Rook moves horizontally or vertically
+                return file_diff == 0 or rank_diff == 0
+            elif piece_type == chess.BISHOP:
+                # Bishop moves diagonally
+                return abs(file_diff) == abs(rank_diff) and file_diff != 0
+            
+        except:
+            pass
+        
+        return False
+    
+    def _calculate_pin_value(self, piece_type: chess.PieceType) -> float:
+        """Calculate the tactical value of pinning a piece"""
+        pin_values = {
+            chess.PAWN: 15.0,
+            chess.KNIGHT: 40.0,
+            chess.BISHOP: 40.0,
+            chess.ROOK: 60.0,
+            chess.QUEEN: 80.0,
+            chess.KING: 0.0  # King can't really be pinned effectively
+        }
+        return pin_values.get(piece_type, 0.0)
+
     def _evaluate_position(self, board: chess.Board) -> float:
         """V12.5 OPTIMIZED: Position evaluation with fast built-in hashing"""
         # V12.5 PERFORMANCE FIX: Use chess library's fast _transposition_key() instead of slow Zobrist hash
@@ -716,9 +1124,14 @@ class V7P3REngine:
             white_tactical_score = 0  # V10.6: Disabled Phase 3B
             black_tactical_score = 0  # V10.6: Disabled Phase 3B
             
-            # Combine all evaluation components
-            white_total = white_base + white_pawn_score + white_king_score + white_tactical_score
-            black_total = black_base + black_pawn_score + black_king_score + black_tactical_score
+            # V14.4 Phase 2: Add enhanced pin detection
+            pin_data = self._detect_pins(board)
+            white_pin_score = pin_data['pin_score_white']
+            black_pin_score = pin_data['pin_score_black']
+            
+            # Combine all evaluation components (including pin scores)
+            white_total = white_base + white_pawn_score + white_king_score + white_tactical_score + white_pin_score
+            black_total = black_base + black_pawn_score + black_king_score + black_tactical_score + black_pin_score
             
         except Exception as e:
             # Fallback to base evaluation if advanced evaluation fails
