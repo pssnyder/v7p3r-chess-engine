@@ -42,8 +42,20 @@ import os
 from typing import Optional, Tuple, List, Dict
 from collections import defaultdict
 from v7p3r_bitboard_evaluator import V7P3RScoringCalculationBitboard
-from blunder_firewall import BlunderProofFirewall
-from uci_logger import UCILogger
+
+# Simple UCI Logger mock for clean architecture
+class UCILogger:
+    def __init__(self, debug_enabled=False):
+        self.debug_enabled = debug_enabled
+    def start_search(self): pass
+    def debug_search_start(self, *args): pass
+    def debug_time_allocation(self, *args): pass  
+    def debug_game_phase(self, *args): pass
+    def debug_emergency_stop(self, *args): pass
+    def info_string(self, *args, **kwargs): pass
+    def report_search_progress(self, *args): pass
+    def debug_iteration_complete(self, *args): pass
+    def final_search_summary(self, *args): pass
 
 
 class PVTracker:
@@ -255,9 +267,6 @@ class V7P3REngine:
         self.killer_moves = KillerMoves()
         self.history_heuristic = HistoryHeuristic()
         self.zobrist = ZobristHashing()
-        
-        # V14.3: Blunder-Proof Firewall for time pressure situations
-        self.blunder_firewall = BlunderProofFirewall(self.piece_values)
         
         # V14.3: UCI Logging System for proper protocol compliance
         self.uci_logger = UCILogger(debug_enabled=False)  # Can be enabled via UCI option
@@ -760,9 +769,53 @@ class V7P3REngine:
         ordered.extend([move for _, move in development])          # 10. Development
         ordered.extend([move for _, move in pawn_advances])        # 11. Pawn advances
         ordered.extend([move for _, move in tactical_moves])       # 12. Other tactical moves
-        ordered.extend([move for _, move in quiet_moves])          # 12. Quiet moves
+        ordered.extend([move for _, move in quiet_moves])          # 13. Quiet moves
+        
+        # V14.4: FINAL SAFETY PRIORITIZATION - Apply blunder prevention
+        # Reorder moves to prioritize safe moves (integrated blunder firewall concepts)
+        ordered = self._apply_safety_prioritization(board, ordered)
         
         return ordered
+
+    def _apply_safety_prioritization(self, board: chess.Board, moves: List[chess.Move]) -> List[chess.Move]:
+        """
+        V14.4: Apply integrated blunder prevention to move ordering
+        Converts BlunderProofFirewall concepts to bitboard-based safety analysis
+        
+        Prioritizes moves based on:
+        1. Safety (no king/queen blunders)
+        2. Control improvement
+        3. Threat handling
+        """
+        if not moves:
+            return moves
+        
+        # Evaluate safety for each move using bitboard operations
+        move_safety_scores = []
+        
+        for move in moves:
+            try:
+                # Use bitboard-based safety evaluation
+                safety_analysis = self.bitboard_evaluator.evaluate_move_safety_bitboard(board, move)
+                
+                safety_score = safety_analysis.get('safety_score', 0.0)
+                is_safe = safety_analysis.get('is_safe', True)
+                
+                # Major penalty for unsafe moves (blunder prevention)
+                if not is_safe:
+                    safety_score -= 500.0  # Strong penalty for dangerous moves
+                
+                move_safety_scores.append((safety_score, move))
+                
+            except Exception as e:
+                # Default to neutral safety score on error
+                move_safety_scores.append((0.0, move))
+        
+        # Sort by safety score (descending - higher scores first)
+        move_safety_scores.sort(key=lambda x: x[0], reverse=True)
+        
+        # Return moves in safety-prioritized order
+        return [move for _, move in move_safety_scores]
     
     def _analyze_position_for_tactics(self, board: chess.Board) -> Dict:
         """

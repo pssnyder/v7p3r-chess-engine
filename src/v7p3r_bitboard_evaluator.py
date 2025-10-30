@@ -1151,9 +1151,16 @@ class V7P3RBitboardEvaluator:
             white_tactical_score = tactical_data.get('white_tactical_bonus', 0)
             black_tactical_score = tactical_data.get('black_tactical_bonus', 0)
             
+            # 6. V14.4: Integrated Blunder Prevention (Safety Analysis)
+            safety_data = self.analyze_safety_bitboard(board)
+            white_safety_score = safety_data.get('white_safety_bonus', 0)
+            black_safety_score = safety_data.get('black_safety_bonus', 0)
+            
             # Combine all evaluation components
-            white_total = white_base + white_pawn_score + white_king_score + white_pin_score + white_tactical_score
-            black_total = black_base + black_pawn_score + black_king_score + black_pin_score + black_tactical_score
+            white_total = (white_base + white_pawn_score + white_king_score + 
+                          white_pin_score + white_tactical_score + white_safety_score)
+            black_total = (black_base + black_pawn_score + black_king_score + 
+                          black_pin_score + black_tactical_score + black_safety_score)
             
             # Calculate final evaluation from white's perspective
             evaluation = white_total - black_total
@@ -1385,6 +1392,323 @@ class V7P3RBitboardEvaluator:
         else:
             analysis['black_tactical_bonus'] += fork_bonus
 
+    def analyze_safety_bitboard(self, board: chess.Board) -> Dict:
+        """
+        V14.4: Integrated Blunder Prevention using Bitboard Operations
+        Converted from BlunderProofFirewall concepts to pure bitboard implementation
+        
+        Three-part safety analysis:
+        1. King and Queen Protection (high-value piece safety)
+        2. Mobility and Control Analysis (positional safety)  
+        3. Immediate Threat Detection (tactical safety)
+        """
+        analysis = {
+            'white_safety_bonus': 0.0,
+            'black_safety_bonus': 0.0,
+            'safety_threats': [],
+            'mobility_scores': {},
+            'piece_safety': {}
+        }
+        
+        try:
+            # Analyze safety for both colors
+            for color in [chess.WHITE, chess.BLACK]:
+                safety_bonus = 0.0
+                
+                # 1. KING AND QUEEN PROTECTION (Priority 1)
+                king_safety_bonus = self._analyze_king_protection_bitboard(board, color)
+                queen_safety_bonus = self._analyze_queen_protection_bitboard(board, color)
+                
+                # 2. MOBILITY AND CONTROL ANALYSIS (Priority 2)
+                mobility_bonus = self._analyze_mobility_safety_bitboard(board, color)
+                
+                # 3. IMMEDIATE THREAT DETECTION (Priority 3)
+                threat_penalty = self._analyze_immediate_threats_bitboard(board, color)
+                
+                # Combine safety factors
+                total_safety = king_safety_bonus + queen_safety_bonus + mobility_bonus - threat_penalty
+                
+                if color == chess.WHITE:
+                    analysis['white_safety_bonus'] = total_safety
+                else:
+                    analysis['black_safety_bonus'] = total_safety
+                    
+        except Exception as e:
+            # Fallback to neutral safety scores on error
+            pass
+        
+        return analysis
+    
+    def _analyze_king_protection_bitboard(self, board: chess.Board, color: chess.Color) -> float:
+        """Bitboard-based king protection analysis"""
+        safety_bonus = 0.0
+        
+        king_square = board.king(color)
+        if king_square is None:
+            return -1000.0  # King missing = critical
+        
+        # Use bitboard operations for efficiency
+        enemy_attacks = board.attacks_mask(not color)
+        king_zone = self.KING_ATTACKS[king_square]
+        
+        # Check if king is under direct attack
+        if enemy_attacks & chess.BB_SQUARES[king_square]:
+            # King is attacked - check if adequately defended
+            our_attacks = board.attacks_mask(color)
+            if not (our_attacks & chess.BB_SQUARES[king_square]):
+                safety_bonus -= 200.0  # Undefended king attack = major penalty
+            else:
+                safety_bonus -= 50.0   # Defended king attack = minor penalty
+        
+        # Check king zone safety (squares around king)
+        attacked_zone_squares = bin(enemy_attacks & king_zone).count('1')
+        safety_bonus -= attacked_zone_squares * 15.0  # Penalty for each attacked square near king
+        
+        # Bonus for king behind pawn shelter
+        pawn_shelter_bonus = self._evaluate_pawn_shelter_safety_bitboard(board, king_square, color)
+        safety_bonus += pawn_shelter_bonus
+        
+        return safety_bonus
+    
+    def _analyze_queen_protection_bitboard(self, board: chess.Board, color: chess.Color) -> float:
+        """Bitboard-based queen protection analysis"""
+        safety_bonus = 0.0
+        
+        our_queens = board.pieces(chess.QUEEN, color)
+        enemy_attacks = board.attacks_mask(not color)
+        our_attacks = board.attacks_mask(color)
+        
+        for queen_square in our_queens:
+            # Check if queen is under attack
+            if enemy_attacks & chess.BB_SQUARES[queen_square]:
+                # Queen is attacked - check if adequately defended
+                if not (our_attacks & chess.BB_SQUARES[queen_square]):
+                    safety_bonus -= 150.0  # Undefended queen attack = major penalty
+                else:
+                    # Count attackers vs defenders for queen
+                    attackers = len(list(board.attackers(not color, queen_square)))
+                    defenders = len(list(board.attackers(color, queen_square)))
+                    if attackers > defenders:
+                        safety_bonus -= 75.0  # Inadequately defended queen
+                    else:
+                        safety_bonus -= 25.0  # Queen attacked but well defended
+        
+        return safety_bonus
+    
+    def _analyze_mobility_safety_bitboard(self, board: chess.Board, color: chess.Color) -> float:
+        """Bitboard-based mobility and control analysis"""
+        mobility_bonus = 0.0
+        
+        # Calculate total mobility for our pieces using bitboards
+        our_pieces = board.occupied_co[color]
+        total_mobility = 0
+        
+        # Count mobility for each piece type efficiently
+        for piece_type in [chess.KNIGHT, chess.BISHOP, chess.ROOK, chess.QUEEN]:
+            our_pieces_of_type = board.pieces(piece_type, color)
+            for piece_square in our_pieces_of_type:
+                # Use chess library's efficient attack calculation
+                piece_attacks = board.attacks_mask(color) & chess.BB_SQUARES[piece_square]
+                piece_mobility = bin(piece_attacks).count('1')
+                total_mobility += piece_mobility
+                
+                # Bonus for pieces with good mobility
+                if piece_mobility >= 4:  # Good mobility threshold
+                    mobility_bonus += piece_mobility * 2.0
+                elif piece_mobility <= 1:  # Poor mobility penalty
+                    mobility_bonus -= 10.0
+        
+        # Central control bonus using bitboards
+        our_attacks = board.attacks_mask(color)
+        central_control = bin(our_attacks & self.CENTER).count('1')
+        mobility_bonus += central_control * 8.0
+        
+        return mobility_bonus
+    
+    def _analyze_immediate_threats_bitboard(self, board: chess.Board, color: chess.Color) -> float:
+        """Bitboard-based immediate threat detection"""
+        threat_penalty = 0.0
+        
+        enemy_attacks = board.attacks_mask(not color)
+        our_attacks = board.attacks_mask(color)
+        
+        # Find undefended valuable pieces using bitboard operations
+        valuable_pieces = (board.pieces(chess.QUEEN, color) | 
+                          board.pieces(chess.ROOK, color) | 
+                          board.pieces(chess.BISHOP, color) | 
+                          board.pieces(chess.KNIGHT, color))
+        
+        for piece_square in valuable_pieces:
+            piece = board.piece_at(piece_square)
+            if piece:
+                # Check if piece is attacked by enemy
+                if enemy_attacks & chess.BB_SQUARES[piece_square]:
+                    # Check if piece is defended by us
+                    if not (our_attacks & chess.BB_SQUARES[piece_square]):
+                        # Undefended valuable piece under attack = major threat
+                        piece_value = self._get_dynamic_piece_value_bitboard(piece.piece_type, color)
+                        threat_penalty += piece_value * 0.3  # 30% of piece value as threat penalty
+                    else:
+                        # Count attackers vs defenders
+                        attackers = len(list(board.attackers(not color, piece_square)))
+                        defenders = len(list(board.attackers(color, piece_square)))
+                        if attackers > defenders:
+                            piece_value = self._get_dynamic_piece_value_bitboard(piece.piece_type, color)
+                            threat_penalty += piece_value * 0.1  # 10% penalty for inadequate defense
+        
+        return threat_penalty
+    
+    def _evaluate_pawn_shelter_safety_bitboard(self, board: chess.Board, king_square: int, color: chess.Color) -> float:
+        """Evaluate pawn shelter around king using bitboards"""
+        shelter_bonus = 0.0
+        
+        # Get pawns of our color
+        our_pawns = board.pieces(chess.PAWN, color)
+        
+        # Check for pawns in front of king (pawn shelter)
+        king_file = chess.square_file(king_square)
+        king_rank = chess.square_rank(king_square)
+        
+        # Check three files around king (king file and adjacent files)
+        for file_offset in [-1, 0, 1]:
+            check_file = king_file + file_offset
+            if 0 <= check_file <= 7:
+                # Look for pawns in front of king on this file
+                if color == chess.WHITE:
+                    # White king - look for pawns above
+                    for rank in range(king_rank + 1, 8):
+                        square = rank * 8 + check_file
+                        if square in our_pawns:
+                            shelter_bonus += 15.0  # Pawn shelter bonus
+                            break
+                else:
+                    # Black king - look for pawns below  
+                    for rank in range(king_rank - 1, -1, -1):
+                        square = rank * 8 + check_file
+                        if square in our_pawns:
+                            shelter_bonus += 15.0  # Pawn shelter bonus
+                            break
+        
+        return shelter_bonus
+
+    def evaluate_move_safety_bitboard(self, board: chess.Board, move: chess.Move) -> Dict:
+        """
+        V14.4: Bitboard-based move safety evaluation
+        Replaces the BlunderProofFirewall's is_move_safe() with pure bitboard operations
+        
+        Returns safety analysis for a specific move
+        """
+        safety_analysis = {
+            'is_safe': True,
+            'safety_score': 0.0,
+            'safety_issues': [],
+            'safety_bonuses': []
+        }
+        
+        try:
+            # Make the move temporarily
+            board.push(move)
+            
+            # 1. Check king safety after move
+            king_safety = self._check_king_safety_after_move_bitboard(board, move)
+            safety_analysis['safety_score'] += king_safety['score']
+            if king_safety['issues']:
+                safety_analysis['safety_issues'].extend(king_safety['issues'])
+            
+            # 2. Check queen safety after move
+            queen_safety = self._check_queen_safety_after_move_bitboard(board, move)
+            safety_analysis['safety_score'] += queen_safety['score']
+            if queen_safety['issues']:
+                safety_analysis['safety_issues'].extend(queen_safety['issues'])
+            
+            # 3. Check if move improves or maintains control
+            control_analysis = self._check_control_improvement_bitboard(board, move)
+            safety_analysis['safety_score'] += control_analysis['score']
+            if control_analysis['bonuses']:
+                safety_analysis['safety_bonuses'].extend(control_analysis['bonuses'])
+            
+            # 4. Overall safety determination
+            if safety_analysis['safety_score'] < -100:  # Major safety issue
+                safety_analysis['is_safe'] = False
+            
+        except Exception as e:
+            safety_analysis['is_safe'] = False
+            safety_analysis['safety_issues'].append(f"Move analysis error: {e}")
+        finally:
+            board.pop()  # Always restore board state
+        
+        return safety_analysis
+    
+    def _check_king_safety_after_move_bitboard(self, board: chess.Board, move: chess.Move) -> Dict:
+        """Check king safety after move using bitboards"""
+        analysis = {'score': 0.0, 'issues': []}
+        
+        our_color = not board.turn  # We just moved, so it's opponent's turn
+        our_king = board.king(our_color)
+        
+        if our_king is None:
+            analysis['score'] = -1000.0
+            analysis['issues'].append("King missing after move")
+            return analysis
+        
+        # Check if king is under attack using bitboards
+        enemy_attacks = board.attacks_mask(board.turn)
+        if enemy_attacks & chess.BB_SQUARES[our_king]:
+            our_attacks = board.attacks_mask(our_color)
+            if not (our_attacks & chess.BB_SQUARES[our_king]):
+                analysis['score'] -= 200.0
+                analysis['issues'].append("King under undefended attack")
+            else:
+                analysis['score'] -= 50.0
+                analysis['issues'].append("King under attack but defended")
+        
+        return analysis
+    
+    def _check_queen_safety_after_move_bitboard(self, board: chess.Board, move: chess.Move) -> Dict:
+        """Check queen safety after move using bitboards"""
+        analysis = {'score': 0.0, 'issues': []}
+        
+        our_color = not board.turn  # We just moved
+        our_queens = board.pieces(chess.QUEEN, our_color)
+        enemy_attacks = board.attacks_mask(board.turn)
+        our_attacks = board.attacks_mask(our_color)
+        
+        for queen_square in our_queens:
+            if enemy_attacks & chess.BB_SQUARES[queen_square]:
+                if not (our_attacks & chess.BB_SQUARES[queen_square]):
+                    analysis['score'] -= 150.0
+                    analysis['issues'].append("Queen under undefended attack")
+                else:
+                    analysis['score'] -= 25.0
+                    analysis['issues'].append("Queen under attack but defended")
+        
+        return analysis
+    
+    def _check_control_improvement_bitboard(self, board: chess.Board, move: chess.Move) -> Dict:
+        """Check if move improves positional control using bitboards"""
+        analysis = {'score': 0.0, 'bonuses': []}
+        
+        # Check if move improves central control
+        our_color = not board.turn  # We just moved
+        our_attacks = board.attacks_mask(our_color)
+        central_control = bin(our_attacks & self.CENTER).count('1')
+        
+        if central_control >= 2:
+            analysis['score'] += 20.0
+            analysis['bonuses'].append("Improves central control")
+        
+        # Check if move is a capture
+        if board.is_capture(move):
+            analysis['score'] += 30.0
+            analysis['bonuses'].append("Captures material")
+        
+        # Check if move gives check
+        if board.is_check():
+            analysis['score'] += 25.0
+            analysis['bonuses'].append("Gives check (tempo)")
+        
+        return analysis
+
     def _is_safe_escape_square_bitboard(self, board: chess.Board, square: int, color: bool) -> bool:
         """Check if square is safe escape square using bitboards"""
         # Check if square is occupied by our piece
@@ -1485,3 +1809,17 @@ class V7P3RScoringCalculationBitboard:
         Delegate to the bitboard evaluator for consistency
         """
         return self.bitboard_evaluator.analyze_position_for_tactics_bitboard(board)
+    
+    def analyze_safety_bitboard(self, board: chess.Board) -> Dict:
+        """
+        V14.4: Safety analysis using bitboard operations
+        Delegate to the bitboard evaluator for consistency
+        """
+        return self.bitboard_evaluator.analyze_safety_bitboard(board)
+    
+    def evaluate_move_safety_bitboard(self, board: chess.Board, move: chess.Move) -> Dict:
+        """
+        V14.4: Move safety evaluation using bitboard operations
+        Delegate to the bitboard evaluator for consistency
+        """
+        return self.bitboard_evaluator.evaluate_move_safety_bitboard(board, move)
