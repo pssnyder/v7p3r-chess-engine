@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-V7P3R v14.5 UCI Interface - Fixed Time Management
-CRITICAL: Proper opening time allocation and increment handling
+V7P3R v14.6 UCI Interface - Phase-Based Evaluation
+Optimized evaluation with game phase awareness for improved NPS and depth
 """
 
 import sys
@@ -28,7 +28,7 @@ def main():
                 break
                 
             elif command == "uci":
-                print("id name V7P3R v14.5")
+                print("id name V7P3R v14.6")
                 print("id author Pat Snyder")
                 print("uciok")
                 

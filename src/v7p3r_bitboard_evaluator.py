@@ -1160,12 +1160,116 @@ class V7P3RBitboardEvaluator:
         
         return attacks
 
+    # ===== V14.6 PHASE-SPECIFIC EVALUATION METHODS =====
+    
+    def _evaluate_opening_strategy(self, board: chess.Board) -> Tuple[float, float]:
+        """
+        V14.6: Opening-specific evaluation (< 12 moves, >= 24 pieces)
+        Focus: Development, Center Control, King Safety
+        Returns: (white_score, black_score)
+        """
+        white_score = 0.0
+        black_score = 0.0
+        
+        # King safety is critical in opening (castling, pawn shelter)
+        white_score += self.evaluate_king_safety(board, True)
+        black_score += self.evaluate_king_safety(board, False)
+        
+        # Light pawn structure (just basics, not full analysis)
+        white_score += self.evaluate_pawn_structure(board, True) * 0.5
+        black_score += self.evaluate_pawn_structure(board, False) * 0.5
+        
+        # Skip: Full tactical analysis (focus on development instead)
+        # Skip: Pin detection (less relevant in opening)
+        
+        return (white_score, black_score)
+    
+    def _evaluate_middlegame_strategy(self, board: chess.Board) -> Tuple[float, float]:
+        """
+        V14.6: Middlegame-specific evaluation (13-23 pieces)
+        Focus: Tactics, Attacks, Pawn Structure, Piece Coordination
+        Returns: (white_score, black_score)
+        """
+        white_score = 0.0
+        black_score = 0.0
+        
+        # Full pawn structure evaluation
+        white_score += self.evaluate_pawn_structure(board, True)
+        black_score += self.evaluate_pawn_structure(board, False)
+        
+        # King safety still important
+        white_score += self.evaluate_king_safety(board, True)
+        black_score += self.evaluate_king_safety(board, False)
+        
+        # Pin detection (important in middlegame)
+        pin_data = self.detect_pins_bitboard(board)
+        white_score += pin_data['pin_score_white']
+        black_score += pin_data['pin_score_black']
+        
+        # Full tactical analysis
+        tactical_data = self.analyze_position_for_tactics_bitboard(board)
+        white_score += tactical_data.get('white_tactical_bonus', 0)
+        black_score += tactical_data.get('black_tactical_bonus', 0)
+        
+        return (white_score, black_score)
+    
+    def _evaluate_early_endgame_strategy(self, board: chess.Board) -> Tuple[float, float]:
+        """
+        V14.6: Early endgame evaluation (5-12 pieces)
+        Focus: King Activation, Passed Pawns, Piece Coordination
+        Returns: (white_score, black_score)
+        """
+        white_score = 0.0
+        black_score = 0.0
+        
+        # Pawn structure critical (passed pawns very important)
+        white_score += self.evaluate_pawn_structure(board, True) * 1.5
+        black_score += self.evaluate_pawn_structure(board, False) * 1.5
+        
+        # King activity (centralization starts to matter)
+        white_score += self.evaluate_king_safety(board, True)
+        black_score += self.evaluate_king_safety(board, False)
+        
+        # Reduced tactical analysis (fewer pieces = simpler tactics)
+        tactical_data = self.analyze_position_for_tactics_bitboard(board)
+        white_score += tactical_data.get('white_tactical_bonus', 0) * 0.6
+        black_score += tactical_data.get('black_tactical_bonus', 0) * 0.6
+        
+        # Reduced pin detection
+        pin_data = self.detect_pins_bitboard(board)
+        white_score += pin_data['pin_score_white'] * 0.6
+        black_score += pin_data['pin_score_black'] * 0.6
+        
+        return (white_score, black_score)
+    
+    def _evaluate_late_endgame_strategy(self, board: chess.Board) -> Tuple[float, float]:
+        """
+        V14.6: Late endgame evaluation (≤ 4 pieces)
+        Focus: King Activity, Opposition, Edge Restriction, Passed Pawns
+        Returns: (white_score, black_score)
+        """
+        white_score = 0.0
+        black_score = 0.0
+        
+        # Pawn structure critical (passed pawns = win condition)
+        white_score += self.evaluate_pawn_structure(board, True) * 2.0
+        black_score += self.evaluate_pawn_structure(board, False) * 2.0
+        
+        # King activity paramount
+        white_score += self.evaluate_king_safety(board, True) * 1.5
+        black_score += self.evaluate_king_safety(board, False) * 1.5
+        
+        # Skip: Tactical analysis (too few pieces for complex tactics)
+        # Skip: Pin detection (rarely relevant with so few pieces)
+        
+        return (white_score, black_score)
+
     # ===== V14.4 UNIFIED EVALUATION SYSTEM =====
     
     def evaluate_position_complete(self, board: chess.Board, evaluation_cache: dict = {}) -> float:
         """
-        V14.4: Unified position evaluation - ALL evaluation logic in bitboard evaluator
-        Replaces scattered evaluation functions from v7p3r.py with pure bitboard approach
+        V14.6: Phase-aware unified position evaluation
+        Uses phase detection to apply appropriate evaluation strategy
         """
         # Use fast transposition key for caching
         if evaluation_cache:
@@ -1174,38 +1278,31 @@ class V7P3RBitboardEvaluator:
                 return evaluation_cache[cache_key]
         
         try:
-            # 1. Base material and positioning (bitboard optimized)
+            # Detect game phase ONCE per position
+            phase = self.detect_game_phase(board)
+            
+            # 1. Base material and positioning (ALWAYS - all phases)
             white_base = self.evaluate_bitboard(board, chess.WHITE)
             black_base = self.evaluate_bitboard(board, chess.BLACK)
             
-            # 2. Advanced pawn structure evaluation 
-            white_pawn_score = self.evaluate_pawn_structure(board, True)
-            black_pawn_score = self.evaluate_pawn_structure(board, False)
-            
-            # 3. Advanced king safety evaluation
-            white_king_score = self.evaluate_king_safety(board, True)
-            black_king_score = self.evaluate_king_safety(board, False)
-            
-            # 4. Pin detection and tactical evaluation
-            pin_data = self.detect_pins_bitboard(board)
-            white_pin_score = pin_data['pin_score_white']
-            black_pin_score = pin_data['pin_score_black']
-            
-            # 5. Tactical analysis
-            tactical_data = self.analyze_position_for_tactics_bitboard(board)
-            white_tactical_score = tactical_data.get('white_tactical_bonus', 0)
-            black_tactical_score = tactical_data.get('black_tactical_bonus', 0)
-            
-            # 6. V14.4: Integrated Blunder Prevention (Safety Analysis)
+            # 2. Blunder firewall safety analysis (ALWAYS - all phases)
             safety_data = self.analyze_safety_bitboard(board)
-            white_safety_score = safety_data.get('white_safety_bonus', 0)
-            black_safety_score = safety_data.get('black_safety_bonus', 0)
+            white_safety = safety_data.get('white_safety_bonus', 0)
+            black_safety = safety_data.get('black_safety_bonus', 0)
             
-            # Combine all evaluation components
-            white_total = (white_base + white_pawn_score + white_king_score + 
-                          white_pin_score + white_tactical_score + white_safety_score)
-            black_total = (black_base + black_pawn_score + black_king_score + 
-                          black_pin_score + black_tactical_score + black_safety_score)
+            # 3. Phase-specific strategic evaluation
+            if phase == self.PHASE_OPENING:
+                white_strategic, black_strategic = self._evaluate_opening_strategy(board)
+            elif phase == self.PHASE_MIDDLEGAME:
+                white_strategic, black_strategic = self._evaluate_middlegame_strategy(board)
+            elif phase == self.PHASE_EARLY_ENDGAME:
+                white_strategic, black_strategic = self._evaluate_early_endgame_strategy(board)
+            else:  # PHASE_LATE_ENDGAME
+                white_strategic, black_strategic = self._evaluate_late_endgame_strategy(board)
+            
+            # Combine: Base + Safety (always) + Strategic (phase-dependent)
+            white_total = white_base + white_safety + white_strategic
+            black_total = black_base + black_safety + black_strategic
             
             # Calculate final evaluation from white's perspective
             evaluation = white_total - black_total
