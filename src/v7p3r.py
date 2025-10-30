@@ -603,11 +603,11 @@ class V7P3REngine:
         # Performance optimization: Pre-create sets for fast lookups
         killer_set = set(self.killer_moves.get_killers(depth))
         
-        # V14.4: Pre-calculate tactical analysis for better move ordering
-        tactical_analysis = self._analyze_position_for_tactics(board)
+        # V14.4: Pre-calculate tactical analysis using bitboard evaluator
+        tactical_analysis = self.bitboard_evaluator.analyze_position_for_tactics_bitboard(board)
         
-        # V14.4 Phase 2: Cache pin detection to avoid expensive recalculation
-        cached_original_pins = self._detect_pins(board)
+        # V14.4 Phase 2: Cache pin detection using bitboard evaluator
+        cached_original_pins = self.bitboard_evaluator.detect_pins_bitboard(board)
         
         for move in moves:
             # 1. Transposition table move (highest priority)
@@ -919,9 +919,9 @@ class V7P3REngine:
                 if cached_original_pins is not None:
                     original_pins = cached_original_pins
                 else:
-                    original_pins = self._detect_pins(board)
+                    original_pins = self.bitboard_evaluator.detect_pins_bitboard(board)
                 
-                new_pins = self._detect_pins(test_board)
+                new_pins = self.bitboard_evaluator.detect_pins_bitboard(test_board)
                 
                 # Check if we created new pins for our color
                 if board.turn == chess.WHITE:
@@ -1095,64 +1095,9 @@ class V7P3REngine:
         return pin_values.get(piece_type, 0.0)
 
     def _evaluate_position(self, board: chess.Board) -> float:
-        """V12.5 OPTIMIZED: Position evaluation with fast built-in hashing"""
-        # V12.5 PERFORMANCE FIX: Use chess library's fast _transposition_key() instead of slow Zobrist hash
-        cache_key = board._transposition_key()
-        
-        if cache_key in self.evaluation_cache:
-            self.search_stats['cache_hits'] += 1
-            return self.evaluation_cache[cache_key]
-        
-        self.search_stats['cache_misses'] += 1
-        
-        # V10 Base bitboard evaluation for material and basic positioning
-        white_base = self.bitboard_evaluator.calculate_score_optimized(board, True)
-        black_base = self.bitboard_evaluator.calculate_score_optimized(board, False)
-        
-        # V14.0: Consolidated evaluation components enabled
-        try:
-            # 2. Advanced pawn structure evaluation 
-            white_pawn_score = self.bitboard_evaluator.evaluate_pawn_structure(board, True)
-            black_pawn_score = self.bitboard_evaluator.evaluate_pawn_structure(board, False)
-            
-            # Advanced king safety evaluation
-            white_king_score = self.bitboard_evaluator.evaluate_king_safety(board, True)
-            black_king_score = self.bitboard_evaluator.evaluate_king_safety(board, False)
-            
-            # V10.6 ROLLBACK: Tactical pattern evaluation disabled for performance
-            # Phase 3B showed 70% performance degradation in tournament play
-            white_tactical_score = 0  # V10.6: Disabled Phase 3B
-            black_tactical_score = 0  # V10.6: Disabled Phase 3B
-            
-            # V14.4 Phase 2: Add enhanced pin detection
-            pin_data = self._detect_pins(board)
-            white_pin_score = pin_data['pin_score_white']
-            black_pin_score = pin_data['pin_score_black']
-            
-            # Combine all evaluation components (including pin scores)
-            white_total = white_base + white_pawn_score + white_king_score + white_tactical_score + white_pin_score
-            black_total = black_base + black_pawn_score + black_king_score + black_tactical_score + black_pin_score
-            
-        except Exception as e:
-            # Fallback to base evaluation if advanced evaluation fails
-            white_total = white_base
-            black_total = black_base
-        
-        # Calculate final score from current player's perspective
-        if board.turn:  # White to move
-            final_score = white_total - black_total
-        else:  # Black to move
-            final_score = black_total - white_total
-        
-        # V14.3: Light simplification bonus - prefer fewer pieces for cleaner positions
-        piece_count = len(board.piece_map())
-        if piece_count < 16:  # Simplified position (normal is 32 at start)
-            simplification_bonus = (32 - piece_count) * 2  # 2cp per missing piece pair
-            final_score += simplification_bonus if final_score > 0 else -simplification_bonus
-        
-        # Cache the result
-        self.evaluation_cache[cache_key] = final_score
-        return final_score
+        """V14.4 UNIFIED: Use bitboard evaluator for ALL evaluation logic"""
+        # V14.4: All evaluation logic moved to bitboard evaluator for consistency and performance
+        return self.bitboard_evaluator.evaluate_position_complete(board, self.evaluation_cache)
     
     def _simple_king_safety(self, board: chess.Board, color: bool) -> float:
         """V12.2: Simplified king safety evaluation for performance"""

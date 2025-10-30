@@ -1103,22 +1103,288 @@ class V7P3RBitboardEvaluator:
     def _count_enemy_attacks_near_king_bitboard(self, board: chess.Board, king_square: int, color: bool) -> int:
         """Count enemy attacks near king using bitboards"""
         attacks = 0
-        king_file = chess.square_file(king_square)
-        king_rank = chess.square_rank(king_square)
+        enemy_color = not color
         
-        # Check 3x3 area around king
-        for rank_offset in [-1, 0, 1]:
-            for file_offset in [-1, 0, 1]:
-                target_file = king_file + file_offset
-                target_rank = king_rank + rank_offset
-                
-                if 0 <= target_file <= 7 and 0 <= target_rank <= 7:
-                    target_square = target_rank * 8 + target_file
-                    if self._is_square_attacked_by_enemy_bitboard(board, target_square, color):
-                        attacks += 1
+        # King zone - 3x3 around king
+        king_zone = self.KING_ATTACKS[king_square]
+        
+        # Count attacks in king zone
+        for square in chess.scan_forward(king_zone):
+            if board.is_attacked_by(enemy_color, square):
+                attacks += 1
         
         return attacks
+
+    # ===== V14.4 UNIFIED EVALUATION SYSTEM =====
     
+    def evaluate_position_complete(self, board: chess.Board, evaluation_cache: dict = {}) -> float:
+        """
+        V14.4: Unified position evaluation - ALL evaluation logic in bitboard evaluator
+        Replaces scattered evaluation functions from v7p3r.py with pure bitboard approach
+        """
+        # Use fast transposition key for caching
+        if evaluation_cache:
+            cache_key = board._transposition_key()
+            if cache_key in evaluation_cache:
+                return evaluation_cache[cache_key]
+        
+        try:
+            # 1. Base material and positioning (bitboard optimized)
+            white_base = self.evaluate_bitboard(board, chess.WHITE)
+            black_base = self.evaluate_bitboard(board, chess.BLACK)
+            
+            # 2. Advanced pawn structure evaluation 
+            white_pawn_score = self.evaluate_pawn_structure(board, True)
+            black_pawn_score = self.evaluate_pawn_structure(board, False)
+            
+            # 3. Advanced king safety evaluation
+            white_king_score = self.evaluate_king_safety(board, True)
+            black_king_score = self.evaluate_king_safety(board, False)
+            
+            # 4. Pin detection and tactical evaluation
+            pin_data = self.detect_pins_bitboard(board)
+            white_pin_score = pin_data['pin_score_white']
+            black_pin_score = pin_data['pin_score_black']
+            
+            # 5. Tactical analysis
+            tactical_data = self.analyze_position_for_tactics_bitboard(board)
+            white_tactical_score = tactical_data.get('white_tactical_bonus', 0)
+            black_tactical_score = tactical_data.get('black_tactical_bonus', 0)
+            
+            # Combine all evaluation components
+            white_total = white_base + white_pawn_score + white_king_score + white_pin_score + white_tactical_score
+            black_total = black_base + black_pawn_score + black_king_score + black_pin_score + black_tactical_score
+            
+            # Calculate final evaluation from white's perspective
+            evaluation = white_total - black_total
+            
+            # Cache the result
+            if evaluation_cache:
+                evaluation_cache[cache_key] = evaluation
+            
+            return evaluation
+            
+        except Exception as e:
+            # Fallback to base evaluation if advanced evaluation fails
+            white_base = self.evaluate_bitboard(board, chess.WHITE)
+            black_base = self.evaluate_bitboard(board, chess.BLACK)
+            evaluation = white_base - black_base
+            
+            if evaluation_cache:
+                evaluation_cache[cache_key] = evaluation
+            
+            return evaluation
+    
+    def detect_pins_bitboard(self, board: chess.Board) -> Dict:
+        """
+        V14.4: Pure bitboard pin detection - moved from v7p3r.py
+        Uses bitboard operations for maximum performance
+        """
+        pin_data = {
+            'white_pins': [],
+            'black_pins': [],
+            'white_pinned': [],
+            'black_pinned': [],
+            'pin_score_white': 0.0,
+            'pin_score_black': 0.0
+        }
+        
+        try:
+            # Pin detection for both colors using bitboard operations
+            for color in [chess.WHITE, chess.BLACK]:
+                opponent_color = not color
+                enemy_king_square = board.king(opponent_color)
+                
+                if enemy_king_square is None:
+                    continue
+                
+                pin_score = 0.0
+                
+                # Get our sliding pieces (potential pinning pieces) using bitboards
+                our_queens = board.pieces(chess.QUEEN, color)
+                our_rooks = board.pieces(chess.ROOK, color) 
+                our_bishops = board.pieces(chess.BISHOP, color)
+                sliding_pieces = our_queens | our_rooks | our_bishops
+                
+                for piece_square in sliding_pieces:
+                    piece = board.piece_at(piece_square)
+                    if not piece:
+                        continue
+                    
+                    # Use bitboard operations to find potential pins
+                    between_mask = chess.between(piece_square, enemy_king_square)
+                    between_squares = list(chess.scan_forward(between_mask))
+                    
+                    # Skip if no squares between or not on same line
+                    if not between_squares:
+                        continue
+                    
+                    # Check if piece can attack king (line type matching)
+                    can_attack_king = self._can_piece_attack_line_bitboard(piece.piece_type, piece_square, enemy_king_square)
+                    if not can_attack_king:
+                        continue
+                    
+                    # Count pieces between (should be exactly 1 for a pin)
+                    pieces_between = []
+                    for sq in between_squares:
+                        piece_between = board.piece_at(sq)
+                        if piece_between:
+                            pieces_between.append((sq, piece_between))
+                    
+                    # Valid pin: exactly one piece between our piece and enemy king
+                    if len(pieces_between) == 1:
+                        pinned_square, pinned_piece = pieces_between[0]
+                        
+                        # Must be enemy piece to be pinned
+                        if pinned_piece.color == opponent_color:
+                            pin_value = self._calculate_pin_value_bitboard(pinned_piece.piece_type)
+                            pin_score += pin_value
+                            
+                            # Store pin information
+                            pin_info = {
+                                'pinning_piece': piece_square,
+                                'pinned_piece': pinned_square,
+                                'king_square': enemy_king_square,
+                                'value': pin_value
+                            }
+                            
+                            if color == chess.WHITE:
+                                pin_data['white_pins'].append(pin_info)
+                                pin_data['white_pinned'].append(pinned_square)
+                            else:
+                                pin_data['black_pins'].append(pin_info)
+                                pin_data['black_pinned'].append(pinned_square)
+                
+                # Store total pin score for this color
+                if color == chess.WHITE:
+                    pin_data['pin_score_white'] = pin_score
+                else:
+                    pin_data['pin_score_black'] = pin_score
+                    
+        except Exception as e:
+            # Return empty pin data on error
+            pass
+        
+        return pin_data
+    
+    def _can_piece_attack_line_bitboard(self, piece_type: int, from_square: int, to_square: int) -> bool:
+        """Check if piece type can attack along the line between squares using bitboard logic"""
+        from_rank, from_file = divmod(from_square, 8)
+        to_rank, to_file = divmod(to_square, 8)
+        
+        rank_diff = abs(to_rank - from_rank)
+        file_diff = abs(to_file - from_file)
+        
+        if piece_type == chess.QUEEN:
+            return True  # Queen can attack any line
+        elif piece_type == chess.ROOK:
+            return rank_diff == 0 or file_diff == 0  # Same rank or file
+        elif piece_type == chess.BISHOP:
+            return rank_diff == file_diff  # Diagonal
+        else:
+            return False
+    
+    def _calculate_pin_value_bitboard(self, piece_type: int) -> float:
+        """Calculate pin value for piece type"""
+        pin_values = {
+            chess.PAWN: 20.0,
+            chess.KNIGHT: 60.0, 
+            chess.BISHOP: 40.0,
+            chess.ROOK: 60.0,
+            chess.QUEEN: 80.0,
+            chess.KING: 0.0
+        }
+        return pin_values.get(piece_type, 0.0)
+    
+    def analyze_position_for_tactics_bitboard(self, board: chess.Board) -> Dict:
+        """
+        V14.4: Pure bitboard tactical analysis - moved from v7p3r.py
+        Analyzes position for tactical patterns using bitboard operations
+        """
+        analysis = {
+            'attacked_squares_white': board.attacks_mask(chess.WHITE),
+            'attacked_squares_black': board.attacks_mask(chess.BLACK),
+            'valuable_pieces': [],
+            'loose_pieces': [],
+            'white_tactical_bonus': 0.0,
+            'black_tactical_bonus': 0.0
+        }
+        
+        try:
+            current_color = board.turn
+            opponent_color = not current_color
+            
+            # Find valuable pieces for both sides using bitboards
+            for color in [chess.WHITE, chess.BLACK]:
+                valuable_pieces = (board.pieces(chess.QUEEN, color) | 
+                                 board.pieces(chess.ROOK, color) | 
+                                 board.pieces(chess.BISHOP, color) | 
+                                 board.pieces(chess.KNIGHT, color))
+                
+                for square in valuable_pieces:
+                    piece = board.piece_at(square)
+                    if piece:
+                        piece_value = self._get_dynamic_piece_value_bitboard(piece.piece_type, color)
+                        analysis['valuable_pieces'].append({
+                            'square': square,
+                            'piece': piece,
+                            'value': piece_value,
+                            'color': piece.color
+                        })
+            
+            # Find loose pieces (not defended) using bitboard attacks
+            for piece_info in analysis['valuable_pieces']:
+                square = piece_info['square']
+                piece_color = piece_info['color']
+                
+                # Check if piece is defended by same color
+                if not board.is_attacked_by(piece_color, square):
+                    analysis['loose_pieces'].append(piece_info)
+                    
+                    # Award tactical bonus for attacking loose enemy pieces
+                    if piece_color != current_color:
+                        if board.is_attacked_by(current_color, square):
+                            if current_color == chess.WHITE:
+                                analysis['white_tactical_bonus'] += piece_info['value'] * 0.1
+                            else:
+                                analysis['black_tactical_bonus'] += piece_info['value'] * 0.1
+            
+            # Check for tactical threats using bitboard operations
+            self._evaluate_tactical_threats_bitboard(board, analysis)
+            
+        except Exception as e:
+            # Return basic analysis on error
+            pass
+        
+        return analysis
+    
+    def _get_dynamic_piece_value_bitboard(self, piece_type: int, color: chess.Color) -> float:
+        """Get piece value using bitboard evaluator's piece values"""
+        return self.piece_values.get(piece_type, 0)
+    
+    def _evaluate_tactical_threats_bitboard(self, board: chess.Board, analysis: Dict):
+        """Evaluate tactical threats using bitboard operations"""
+        current_color = board.turn
+        
+        # Check for forks, skewers, discoveries using bitboard attacks
+        our_attacks = analysis['attacked_squares_white'] if current_color == chess.WHITE else analysis['attacked_squares_black']
+        
+        # Count multiple attacks on same square (potential forks)
+        fork_bonus = 0
+        for square in chess.SQUARES:
+            if (our_attacks & chess.BB_SQUARES[square]) and board.piece_at(square):
+                piece = board.piece_at(square)
+                if piece and piece.color != current_color:
+                    # Award bonus for attacking enemy pieces
+                    piece_value = self._get_dynamic_piece_value_bitboard(piece.piece_type, piece.color)
+                    fork_bonus += piece_value * 0.05
+        
+        # Add tactical bonuses
+        if current_color == chess.WHITE:
+            analysis['white_tactical_bonus'] += fork_bonus
+        else:
+            analysis['black_tactical_bonus'] += fork_bonus
+
     def _is_safe_escape_square_bitboard(self, board: chess.Board, square: int, color: bool) -> bool:
         """Check if square is safe escape square using bitboards"""
         # Check if square is occupied by our piece
@@ -1134,23 +1400,8 @@ class V7P3RBitboardEvaluator:
     
     def _is_square_attacked_by_enemy_bitboard(self, board: chess.Board, square: int, our_color: bool) -> bool:
         """Check if square is attacked by enemy using bitboards"""
-        # This is a simplified version - full implementation would check all enemy piece attacks
-        enemy_pieces = board.occupied_co[not our_color]
-        
-        # Quick check for pawn attacks
-        enemy_pawns = board.pieces(chess.PAWN, not our_color)
-        for pawn_square in enemy_pawns:
-            if self._pawn_attacks_square_bitboard(pawn_square, square, not our_color):
-                return True
-        
-        # Check for knight attacks
-        enemy_knights = board.pieces(chess.KNIGHT, not our_color)
-        for knight_square in enemy_knights:
-            knight_attacks = self.KNIGHT_ATTACKS[knight_square]
-            if knight_attacks & (1 << square):
-                return True
-        
-        return False
+        # Use built-in chess library method for efficiency
+        return board.is_attacked_by(not our_color, square)
     
     def _pawn_attacks_square_bitboard(self, pawn_square: int, target_square: int, pawn_color: bool) -> bool:
         """Check if pawn attacks target square using bitboards"""
@@ -1181,10 +1432,17 @@ class V7P3RScoringCalculationBitboard:
     
     def calculate_score_optimized(self, board: chess.Board, color: chess.Color, endgame_factor: float = 0.0) -> float:
         """
-        Ultra-fast evaluation using bitboards
+        V14.4: Use unified bitboard evaluation system
         Target: 20,000+ NPS
         """
-        return self.bitboard_evaluator.evaluate_bitboard(board, color)
+        # Use the new unified evaluation - but we need to return for single color
+        full_evaluation = self.bitboard_evaluator.evaluate_position_complete(board, {})
+        
+        # Convert to color-specific score
+        if color == chess.WHITE:
+            return full_evaluation
+        else:
+            return -full_evaluation
     
     def detect_bitboard_tactics(self, board: chess.Board, move: chess.Move) -> float:
         """
@@ -1206,3 +1464,24 @@ class V7P3RScoringCalculationBitboard:
         Delegate to the bitboard evaluator for consistency
         """
         return self.bitboard_evaluator.evaluate_king_safety(board, color)
+    
+    def evaluate_position_complete(self, board: chess.Board, evaluation_cache: dict = {}) -> float:
+        """
+        V14.4: Unified position evaluation using bitboard evaluator
+        Single entry point for all evaluation logic
+        """
+        return self.bitboard_evaluator.evaluate_position_complete(board, evaluation_cache)
+    
+    def detect_pins_bitboard(self, board: chess.Board) -> Dict:
+        """
+        V14.4: Pin detection using bitboard operations
+        Delegate to the bitboard evaluator for consistency
+        """
+        return self.bitboard_evaluator.detect_pins_bitboard(board)
+    
+    def analyze_position_for_tactics_bitboard(self, board: chess.Board) -> Dict:
+        """
+        V14.4: Tactical analysis using bitboard operations
+        Delegate to the bitboard evaluator for consistency
+        """
+        return self.bitboard_evaluator.analyze_position_for_tactics_bitboard(board)
