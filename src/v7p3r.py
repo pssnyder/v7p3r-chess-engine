@@ -1,34 +1,31 @@
 #!/usr/bin/env python3
 """
-V7P3R Chess Engine v14.3 - Emergency Time Management & Consistency Fixes
+V7P3R Chess Engine v14.5 - CRITICAL FIXES for UCI and Move Ordering
 
-CRITICAL FIXES for time flagging and depth inconsistency issues discovered in V14.2 testing.
-Built on V14.2 optimizations with emergency time controls and guaranteed minimum depth.
+URGENT REGRESSION FIXES discovered in v14.4 testing showing massive blundering:
+- V14.4 was losing to v10.8 due to constant piece blunders
+- UCI output was completely broken (no depth/eval display)
+- Safety prioritization was destroying tactical move ordering
+- Over-aggressive emergency time limits causing depth-1 searches
+
+V14.5 CRITICAL FIXES:
+- FIXED: UCI output completely broken - replaced no-op logger with proper print statements
+- FIXED: Safety prioritization reordering all moves - disabled destructive _apply_safety_prioritization
+- FIXED: Emergency time limits too aggressive - relaxed from 70% to 85% threshold
+- RESTORED: Tactical move ordering that was working in v14.0
 
 ARCHITECTURE:
 - Phase 1: Core search (alpha-beta, TT, iterative deepening)
-- Phase 2: Emergency time management (no flagging guaranteed)  
-- Phase 3: Consistent depth achievement with time safety
-
-V14.3 EMERGENCY FIXES:
-- FIXED: Time flagging issues with hard time limits and emergency bailouts
-- FIXED: Depth inconsistency with guaranteed minimum depth achievement
-- FIXED: Conservative game phase detection to prevent misclassification
-- NEW: Emergency time controls for online play (Lichess-ready)
-- NEW: Progressive time budgeting for reliable depth progression
-- Simplified time allocation removing complex dynamic adjustments
+- Phase 2: Reliable time management with proper depth achievement
+- Phase 3: Tactical move ordering without safety interference
 
 VERSION LINEAGE:
-- v14.3: Emergency fixes for time management and depth consistency (URGENT)
-- v14.2: Performance optimizations - removed overhead, added game phase detection
-- v14.1: Enhanced move ordering with threat detection (REGRESSION - too expensive)
-- v14.0: Consolidated performance build with unified evaluators
+- v14.5: URGENT regression fixes for UCI output, move ordering, time management
+- v14.4: REGRESSION - broken UCI, broken move ordering, excessive blundering (REVERTED)
+- v14.3: Emergency fixes for time management and depth consistency
+- v14.2: Performance optimizations
+- v14.0: Consolidated performance build
 - v12.6: Stable tournament baseline (71.6% score)
-- v12.5: Intelligent nudge system experiments
-- v12.4: Enhanced castling with balanced evaluation
-- v12.2: Performance optimized with tactical regression
-- v12.0: Clean evolution with proven improvements only
-- v11.x: Experimental variants (lessons learned)
 
 Author: Pat Snyder
 """
@@ -336,6 +333,9 @@ class V7P3REngine:
             moves_played = len(board.move_stack)
             self.uci_logger.debug_game_phase(game_phase, 0, moves_played)  # Material calculation removed for simplicity
             
+            # V14.5 DEBUG: Print actual time allocations
+            print(f"info string V14.5 time allocations: time_limit={time_limit:.2f}s, target={target_time:.2f}s, max={max_time:.2f}s, min_depth={minimum_depth}")
+            
             # Iterative deepening with EMERGENCY TIME CONTROLS
             best_move = legal_moves[0]
             best_score = -99999
@@ -347,8 +347,9 @@ class V7P3REngine:
                 # V14.3 CRITICAL: Emergency time checking with ultra-conservative hard limits
                 elapsed = time.time() - self.search_start_time
                 
-                # ULTRA-EMERGENCY BAILOUT: Never exceed 70% of time limit (even more conservative)
-                if elapsed > time_limit * 0.7:
+                # V14.5 FIX: Relaxed emergency bailout - was too aggressive at 70%
+                # Changed from 0.7 to 0.85 to allow proper depth achievement
+                if elapsed > time_limit * 0.85:
                     self.uci_logger.debug_emergency_stop("Time limit", elapsed, time_limit)
                     self.emergency_stop_flag = True
                     break
@@ -358,25 +359,27 @@ class V7P3REngine:
                     # Don't break on time for minimum depth - this is critical for consistency
                     pass
                 elif elapsed > target_time:
-                    self.uci_logger.info_string("Target time reached", debug_only=True)
+                    print(f"info string Target time ({target_time:.2f}s) reached at {elapsed:.2f}s, stopping before depth {current_depth}")
                     break
                 
-                # V14.3: Conservative iteration prediction (removed complex calculations)
-                if current_depth > minimum_depth and len(depths_completed) > 0:
-                    avg_recent_time = sum(depths_completed[-2:]) / len(depths_completed[-2:])
-                    predicted_time = elapsed + (avg_recent_time * 2.0)  # Conservative estimate
-                    if predicted_time > max_time:
-                        print(f"info string Predicted time overrun, stopping at depth {current_depth}")
-                        break
+                # V14.5 FIX: REMOVED overly conservative iteration prediction
+                # The prediction was preventing depth 4+ even with plenty of time remaining
+                # We have other time checks (85% threshold, max_time checks) that are sufficient
+                # if current_depth > minimum_depth and len(depths_completed) > 0:
+                #     avg_recent_time = sum(depths_completed[-2:]) / len(depths_completed[-2:])
+                #     predicted_time = elapsed + (avg_recent_time * 1.5)
+                #     if predicted_time > max_time:
+                #         print(f"info string Predicted time overrun, stopping at depth {current_depth}")
+                #         break
                 
                 try:
                     # Store previous best in case iteration fails
                     previous_best = best_move
                     previous_score = best_score
                     
-                    # V14.3 CRITICAL: Emergency time checking BEFORE starting iteration
+                    # V14.5 FIX: Relaxed emergency time check from 70% to 85%
                     elapsed = time.time() - self.search_start_time
-                    if elapsed > max_time * 0.7 or self.emergency_stop_flag:  # Emergency stop check
+                    if elapsed > max_time * 0.85 or self.emergency_stop_flag:
                         print(f"info string EMERGENCY STOP before depth {current_depth} at {elapsed:.2f}s")
                         self.emergency_stop_flag = True
                         break
@@ -388,9 +391,9 @@ class V7P3REngine:
                         print(f"info string Search exception at depth {current_depth}: {e}")
                         break
                     
-                    # V14.3: IMMEDIATE time check after recursive search returns
+                    # V14.5 FIX: Relaxed post-search time check from 70% to 85%
                     post_search_time = time.time() - self.search_start_time
-                    if post_search_time > time_limit * 0.7:
+                    if post_search_time > time_limit * 0.85:
                         print(f"info string EMERGENCY: Post-search time {post_search_time:.3f}s exceeds limit")
                         self.emergency_stop_flag = True
                         if move and move != chess.Move.null():
@@ -402,9 +405,9 @@ class V7P3REngine:
                     iteration_time = time.time() - iteration_start
                     depths_completed.append(iteration_time)
                     
-                    # V14.3: Emergency time check after each iteration (ultra-conservative)
+                    # V14.5 FIX: Relaxed emergency time check from 70% to 85%
                     total_elapsed = time.time() - self.search_start_time
-                    if total_elapsed > time_limit * 0.7 or self.emergency_stop_flag:  # 70% hard limit
+                    if total_elapsed > time_limit * 0.85 or self.emergency_stop_flag:
                         print(f"info string Emergency time limit reached after depth {current_depth}")
                         self.emergency_stop_flag = True
                         # Use the result if we got one, otherwise keep previous
@@ -432,11 +435,9 @@ class V7P3REngine:
                         # V14.3: Track search depth achieved
                         self.search_depth_achieved[best_move] = current_depth
                         
-                        # V14.3: Use proper UCI progress reporting
-                        self.uci_logger.report_search_progress(
-                            current_depth, str(best_move), int(score), 
-                            total_elapsed, self.nodes_searched, [str(m) for m in pv_line]
-                        )
+                        # V14.5 FIX: Restore proper UCI output that was broken in v14.4
+                        print(f"info depth {current_depth} score cp {int(score)} nodes {self.nodes_searched} time {elapsed_ms} nps {nps} pv {pv_string}")
+                        sys.stdout.flush()
                         
                         # V14.3: Debug info for iteration completion
                         self.uci_logger.debug_iteration_complete(current_depth, iteration_time, self.nodes_searched)
@@ -771,9 +772,11 @@ class V7P3REngine:
         ordered.extend([move for _, move in tactical_moves])       # 12. Other tactical moves
         ordered.extend([move for _, move in quiet_moves])          # 13. Quiet moves
         
-        # V14.4: FINAL SAFETY PRIORITIZATION - Apply blunder prevention
-        # Reorder moves to prioritize safe moves (integrated blunder firewall concepts)
-        ordered = self._apply_safety_prioritization(board, ordered)
+        # V14.5 FIX: DISABLE safety prioritization that was breaking tactical move ordering
+        # The _apply_safety_prioritization was completely reordering moves, causing the engine
+        # to avoid tactically correct moves because they appeared "unsafe"
+        # TODO: Reimplement safety checks more carefully without destroying tactical order
+        # ordered = self._apply_safety_prioritization(board, ordered)  # DISABLED IN V14.5
         
         return ordered
 
@@ -1524,25 +1527,23 @@ class V7P3REngine:
     
     def _calculate_emergency_time_allocation(self, base_time_limit: float, moves_played: int = 0) -> Tuple[float, float]:
         """
-        V14.3: EMERGENCY time controls to prevent flagging (CRITICAL FIX)
+        V14.5: RELAXED time controls - v14.4 was too aggressive causing shallow searches
         
-        Returns: (target_time, max_time) - ULTRA-CONSERVATIVE allocations with hard limits
+        Returns: (target_time, max_time) - Balanced allocations for proper depth achievement
         """
-        # V14.3 ULTRA-EMERGENCY: Even more aggressive time safety after continued test failures
+        # V14.5: Allow use of most of the time for better play
         if base_time_limit <= 1.0:
-            # Time trouble - be extremely conservative (reduced from 50%/70%)
-            return base_time_limit * 0.4, base_time_limit * 0.6
+            # Time trouble - still be conservative
+            return base_time_limit * 0.6, base_time_limit * 0.85
         elif base_time_limit <= 3.0:
-            # Limited time - be very conservative (reduced from 55%/75%)
-            return base_time_limit * 0.45, base_time_limit * 0.65
+            # Limited time - use most of it
+            return base_time_limit * 0.7, base_time_limit * 0.9
         elif base_time_limit <= 10.0:
-            # Standard time - conservative safety margin (reduced from 60%/80%)
-            return base_time_limit * 0.5, base_time_limit * 0.7
+            # Standard time - allow good depth
+            return base_time_limit * 0.75, base_time_limit * 0.92
         else:
-            # Plenty of time - still be safe (reduced from 65%/85%)
-            return base_time_limit * 0.55, base_time_limit * 0.75
-        
-        # NO COMPLEX DYNAMIC ADJUSTMENTS - they caused the flagging problems
+            # Plenty of time - use it well
+            return base_time_limit * 0.8, base_time_limit * 0.95
     
     def _calculate_minimum_depth(self, time_limit: float) -> int:
         """

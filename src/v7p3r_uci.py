@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-V7P3R v12.6 UCI Interface - Clean Performance Build
+V7P3R v14.5 UCI Interface - Fixed Time Management
+CRITICAL: Proper opening time allocation and increment handling
 """
 
 import sys
@@ -27,7 +28,7 @@ def main():
                 break
                 
             elif command == "uci":
-                print("id name V7P3R v12.6")
+                print("id name V7P3R v14.5")
                 print("id author Pat Snyder")
                 print("uciok")
                 
@@ -76,14 +77,17 @@ def main():
                                 break
                                 
             elif command == "go":
-                # Search parameter parsing
+                # Search parameter parsing - V14.5: Parse ALL parameters first, then calculate time
                 time_limit = 3.0  # Default
                 depth_limit = None
                 perft_depth = None
+                increment = 0.0
+                wtime_ms = None
+                btime_ms = None
                 
+                # FIRST PASS: Parse all parameters
                 for i, part in enumerate(parts):
                     if part == "perft" and i + 1 < len(parts):
-                        # V11 ENHANCEMENT: Perft command support
                         try:
                             perft_depth = int(parts[i + 1])
                         except:
@@ -100,62 +104,91 @@ def main():
                             engine.default_depth = depth_limit
                         except:
                             pass
+                    elif part == "winc" and i + 1 < len(parts):
+                        try:
+                            if board.turn == chess.WHITE:
+                                increment = int(parts[i + 1]) / 1000.0
+                        except:
+                            pass
+                    elif part == "binc" and i + 1 < len(parts):
+                        try:
+                            if board.turn == chess.BLACK:
+                                increment = int(parts[i + 1]) / 1000.0
+                        except:
+                            pass
                     elif part == "wtime" and i + 1 < len(parts):
                         try:
                             if board.turn == chess.WHITE:
-                                # V12.2: Balanced aggressive time management
-                                remaining_time = int(parts[i + 1]) / 1000.0
-                                # Skip tactical detector for simplified version
-                                
-                                # V12.2: Reasonable time usage - aim for using time but not burning it
-                                moves_played = len(board.move_stack)
-                                if moves_played < 10:
-                                    time_factor = 30.0  # Opening: use 1/30th (10min game = 20s/move)
-                                elif moves_played < 20:
-                                    time_factor = 25.0  # Early game: use 1/25th  
-                                elif moves_played < 40:
-                                    time_factor = 20.0  # Mid game: use 1/20th (more time for complex positions)
-                                else:
-                                    time_factor = 15.0  # End game: use 1/15th (precision matters)
-                                
-                                # Apply reasonable time cap to prevent burning too much time
-                                calculated_time = remaining_time / time_factor
-                                if remaining_time > 120:  # More than 2 minutes remaining
-                                    time_limit = min(calculated_time, 30.0)  # Max 30s per move
-                                elif remaining_time > 60:   # 1-2 minutes remaining
-                                    time_limit = min(calculated_time, 15.0)  # Max 15s per move  
-                                else:  # Less than 1 minute - be more careful
-                                    time_limit = min(calculated_time, 8.0)   # Max 8s per move
+                                wtime_ms = int(parts[i + 1])
                         except:
                             pass
                     elif part == "btime" and i + 1 < len(parts):
                         try:
                             if board.turn == chess.BLACK:
-                                # V12.2: Balanced aggressive time management
-                                remaining_time = int(parts[i + 1]) / 1000.0
-                                # Skip tactical detector for simplified version
-                                
-                                # V12.2: Reasonable time usage - aim for using time but not burning it
-                                moves_played = len(board.move_stack)
-                                if moves_played < 10:
-                                    time_factor = 30.0  # Opening: use 1/30th (10min game = 20s/move)
-                                elif moves_played < 20:
-                                    time_factor = 25.0  # Early game: use 1/25th  
-                                elif moves_played < 40:
-                                    time_factor = 20.0  # Mid game: use 1/20th (more time for complex positions)
-                                else:
-                                    time_factor = 15.0  # End game: use 1/15th (precision matters)
-                                
-                                # Apply reasonable time cap to prevent burning too much time
-                                calculated_time = remaining_time / time_factor
-                                if remaining_time > 120:  # More than 2 minutes remaining
-                                    time_limit = min(calculated_time, 30.0)  # Max 30s per move
-                                elif remaining_time > 60:   # 1-2 minutes remaining
-                                    time_limit = min(calculated_time, 15.0)  # Max 15s per move  
-                                else:  # Less than 1 minute - be more careful
-                                    time_limit = min(calculated_time, 8.0)   # Max 8s per move
+                                btime_ms = int(parts[i + 1])
                         except:
                             pass
+                
+                # SECOND PASS: Calculate time allocation with all info available
+                if wtime_ms is not None and board.turn == chess.WHITE:
+                    remaining_time = wtime_ms / 1000.0
+                    moves_played = len(board.move_stack)
+                    
+                    # V14.5: Opening time allocation - use VERY LITTLE time
+                    if moves_played < 8:
+                        time_factor = 80.0
+                        time_limit = (remaining_time / time_factor) + (increment * 0.8)
+                    elif moves_played < 15:
+                        time_factor = 50.0
+                        time_limit = (remaining_time / time_factor) + increment
+                    elif moves_played < 30:
+                        time_factor = 30.0
+                        time_limit = (remaining_time / time_factor) + increment
+                    else:
+                        time_factor = 20.0
+                        time_limit = (remaining_time / time_factor) + increment
+                    
+                    # Apply caps based on remaining time to prevent flagging
+                    if remaining_time > 180:
+                        time_limit = min(time_limit, 25.0)
+                    elif remaining_time > 120:
+                        time_limit = min(time_limit, 15.0)
+                    elif remaining_time > 60:
+                        time_limit = min(time_limit, 10.0)
+                    elif remaining_time > 30:
+                        time_limit = min(time_limit, 5.0)
+                    else:
+                        time_limit = min(time_limit, 2.0)
+                
+                elif btime_ms is not None and board.turn == chess.BLACK:
+                    remaining_time = btime_ms / 1000.0
+                    moves_played = len(board.move_stack)
+                    
+                    # V14.5: Same time management for black
+                    if moves_played < 8:
+                        time_factor = 80.0
+                        time_limit = (remaining_time / time_factor) + (increment * 0.8)
+                    elif moves_played < 15:
+                        time_factor = 50.0
+                        time_limit = (remaining_time / time_factor) + increment
+                    elif moves_played < 30:
+                        time_factor = 30.0
+                        time_limit = (remaining_time / time_factor) + increment
+                    else:
+                        time_factor = 20.0
+                        time_limit = (remaining_time / time_factor) + increment
+                    
+                    # Apply caps
+                    if remaining_time > 180:
+                        time_limit = min(time_limit, 25.0)
+                    elif remaining_time > 120:
+                        time_limit = min(time_limit, 15.0)
+                    elif remaining_time > 60:
+                        time_limit = min(time_limit, 10.0)
+                    elif remaining_time > 30:
+                        time_limit = min(time_limit, 5.0)
+                    else:
+                        time_limit = min(time_limit, 2.0)
                 
                 # V11 ENHANCEMENT: Handle perft command
                 if perft_depth is not None:
