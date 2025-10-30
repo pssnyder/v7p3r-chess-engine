@@ -17,6 +17,12 @@ class V7P3RBitboardEvaluator:
     Optimized for maximum performance without nudge system overhead
     """
     
+    # V14.6: Game phase constants for phase-based evaluation
+    PHASE_OPENING = 'opening'
+    PHASE_MIDDLEGAME = 'middlegame'
+    PHASE_EARLY_ENDGAME = 'early_endgame'
+    PHASE_LATE_ENDGAME = 'late_endgame'
+    
     def __init__(self, piece_values: Dict[int, int], enable_nudges: bool = False):
         self.piece_values = piece_values
         
@@ -903,6 +909,45 @@ class V7P3RBitboardEvaluator:
             piece_value = [100, 320, 330, 500, 900][piece_type - 1]
             material += (len(white_pieces) + len(black_pieces)) * piece_value
         return material
+    
+    def detect_game_phase(self, board: chess.Board) -> str:
+        """
+        V14.6: Deterministic game phase detection
+        
+        Phase detection is symmetrical - both sides see same phase for same position.
+        Uses move count and piece count for clear, value-independent classification.
+        
+        Returns: PHASE_OPENING, PHASE_MIDDLEGAME, PHASE_EARLY_ENDGAME, or PHASE_LATE_ENDGAME
+        """
+        # Use fullmove number from FEN (accounts for positions loaded from FEN)
+        # board.fullmove_number starts at 1, multiply by 2 to get ply count roughly
+        moves_played = max(len(board.move_stack), (board.fullmove_number - 1) * 2)
+        
+        # Count pieces by type (excluding kings) - flattens value curve
+        piece_count = 0
+        for piece_type in [chess.PAWN, chess.KNIGHT, chess.BISHOP, chess.ROOK, chess.QUEEN]:
+            white_pieces = board.pieces(piece_type, chess.WHITE)
+            black_pieces = board.pieces(piece_type, chess.BLACK)
+            piece_count += len(white_pieces) + len(black_pieces)
+        
+        # Count total pieces (including kings) for late endgame detection
+        total_pieces = len(board.piece_map())
+        
+        # Phase classification using piece count
+        # Opening: Early moves (< 12) with most pieces still on board (>= 24 pieces excluding kings)
+        if moves_played < 12 and piece_count >= 24:
+            return self.PHASE_OPENING
+        
+        # Late Endgame: Very few pieces (6 or fewer total, or 4 or fewer excluding kings)
+        if total_pieces <= 6 or piece_count <= 4:
+            return self.PHASE_LATE_ENDGAME
+        
+        # Early Endgame: Few pieces (12 or fewer excluding kings)
+        if piece_count <= 12:
+            return self.PHASE_EARLY_ENDGAME
+        
+        # Middlegame: Everything else (13-23 pieces excluding kings)
+        return self.PHASE_MIDDLEGAME
     
     def _evaluate_pawn_shelter_bitboard(self, board: chess.Board, king_square: int, color: bool) -> float:
         """Evaluate pawn shelter around the king using bitboards"""
