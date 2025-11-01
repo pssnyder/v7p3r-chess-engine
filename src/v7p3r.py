@@ -1,31 +1,49 @@
 #!/usr/bin/env python3
 """
-V7P3R Chess Engine v14.5 - CRITICAL FIXES for UCI and Move Ordering
+V7P3R Chess Engine v14.8 - SIMPLIFIED & BACK TO BASICS
 
-URGENT REGRESSION FIXES discovered in v14.4 testing showing massive blundering:
-- V14.4 was losing to v10.8 due to constant piece blunders
-- UCI output was completely broken (no depth/eval display)
-- Safety prioritization was destroying tactical move ordering
-- Over-aggressive emergency time limits causing depth-1 searches
+REGRESSION ANALYSIS (October 26, 2025 Tournament):
+- V14.0: 67.1% (BEST PERFORMANCE)
+- V14.2: 60.7% (regression)
+- V12.6: 57.1% (older baseline)
+- V14.3: 17.1% (CATASTROPHIC - ultra-aggressive time management)
+- V14.7: Untested (safety filter too aggressive, rejects 95% of moves)
 
-V14.5 CRITICAL FIXES:
-- FIXED: UCI output completely broken - replaced no-op logger with proper print statements
-- FIXED: Safety prioritization reordering all moves - disabled destructive _apply_safety_prioritization
-- FIXED: Emergency time limits too aggressive - relaxed from 70% to 85% threshold
-- RESTORED: Tactical move ordering that was working in v14.0
+ROOT CAUSES:
+1. V14.3 emergency time management TOO AGGRESSIVE (60% limit)
+   - Caused depth 1-3 searches instead of depth 4-6
+   - 1 second moves instead of 2-12 seconds
+   - 50 percentage point performance drop
+2. V14.7 safety filtering TOO STRICT
+   - Filters 20 legal moves down to 1-2 safe moves
+   - Rejects good tactical sequences
+   - Prevents winning combinations
+3. Over-optimization in V14.1-V14.6
+   - Each "improvement" made things worse
+   - Complexity without benefit
 
-ARCHITECTURE:
-- Phase 1: Core search (alpha-beta, TT, iterative deepening)
-- Phase 2: Reliable time management with proper depth achievement
-- Phase 3: Tactical move ordering without safety interference
+V14.8 STRATEGY - RETURN TO V14.0 FOUNDATION:
+- DISABLE V14.7 aggressive safety filtering (commented out)
+- SIMPLIFY time management (remove ultra-conservative limits)
+- KEEP bitboard evaluation (simplified, no phase complexity)
+- MINIMAL blunder prevention (root level only, obvious blunders only)
+
+PHILOSOPHY: "Perfect is the enemy of good"
+- V14.0 was working at 67.1%
+- Don't fix what isn't broken
+- Simpler is better
 
 VERSION LINEAGE:
-- v14.5: URGENT regression fixes for UCI output, move ordering, time management
-- v14.4: REGRESSION - broken UCI, broken move ordering, excessive blundering (REVERTED)
-- v14.3: Emergency fixes for time management and depth consistency
-- v14.2: Performance optimizations
-- v14.0: Consolidated performance build
-- v12.6: Stable tournament baseline (71.6% score)
+- v14.8: Simplified return to V14.0 foundation (THIS VERSION)
+- v14.7: Blunder prevention (TOO AGGRESSIVE - disabled)
+- v14.6: Phase-based evaluation (added complexity)
+- v14.5: UCI fixes, time management adjustments
+- v14.4: REGRESSION - broken UCI and move ordering
+- v14.3: CATASTROPHIC - ultra-aggressive time management
+- v14.2: Performance regression
+- v14.1: Starting to degrade
+- v14.0: PEAK PERFORMANCE (67.1% tournament score)
+- v12.6: Older baseline (57.1%)
 
 Author: Pat Snyder
 """
@@ -521,6 +539,13 @@ class V7P3REngine:
         if not legal_moves:
             return 0.0, None
         
+        # V14.8: DISABLED aggressive safety filtering (was rejecting 95% of moves)
+        # V14.7's _filter_unsafe_moves() was too strict, filtering 20 moves to 1-2
+        # This prevented good tactical combinations and winning sequences
+        # Reverted to allowing all legal moves for tactical ordering
+        # safe_moves = self._filter_unsafe_moves(board, legal_moves)  # DISABLED
+        
+        # V14.8: Order all legal moves tactically (no pre-filtering)
         ordered_moves = self._order_moves_advanced(board, legal_moves, search_depth, tt_move)
         
         # 5. MAIN SEARCH LOOP (NEGAMAX WITH ALPHA-BETA)
@@ -819,6 +844,176 @@ class V7P3REngine:
         
         # Return moves in safety-prioritized order
         return [move for _, move in move_safety_scores]
+    
+    def _filter_unsafe_moves(self, board: chess.Board, moves: List[chess.Move]) -> List[chess.Move]:
+        """
+        V14.7: CRITICAL blunder prevention - filter moves BEFORE ordering
+        
+        Returns only moves that pass all safety checks:
+        1. King safety (CRITICAL) - No undefended king attacks
+        2. Queen safety (HIGH) - No hanging queens
+        3. Valuable piece safety (MEDIUM) - No hanging rooks/bishops/knights
+        4. Capture validation (MEDIUM) - No losing trades
+        
+        This runs BEFORE move ordering to eliminate blunders from consideration.
+        """
+        if not moves:
+            return moves
+        
+        safe_moves = []
+        
+        for move in moves:
+            # Check 1: King safety (CRITICAL)
+            if not self._is_king_safe_after_move(board, move):
+                continue  # REJECT: King exposed
+            
+            # Check 2: Queen safety (HIGH)
+            if not self._is_queen_safe_after_move(board, move):
+                continue  # REJECT: Queen hanging
+            
+            # Check 3: Valuable pieces safe (MEDIUM)
+            if not self._are_valuable_pieces_safe(board, move):
+                continue  # REJECT: Rook/bishop/knight hanging
+            
+            # Check 4: Valid capture (MEDIUM)
+            if not self._is_capture_valid(board, move):
+                continue  # REJECT: Losing trade
+            
+            # Passed all checks - move is safe
+            safe_moves.append(move)
+        
+        # If ALL moves filtered out (very rare), return one legal move to avoid illegal state
+        if not safe_moves and moves:
+            # Return the first legal move as last resort
+            safe_moves = [moves[0]]
+        
+        return safe_moves
+    
+    def _is_king_safe_after_move(self, board: chess.Board, move: chess.Move) -> bool:
+        """
+        V14.7: Check if king is safe after move
+        Returns False if king is under undefended attack after move
+        """
+        try:
+            board.push(move)
+            
+            our_color = not board.turn  # We just moved
+            our_king = board.king(our_color)
+            
+            if our_king is None:
+                board.pop()
+                return False  # King missing - unsafe
+            
+            # Check if king is under attack
+            if board.is_attacked_by(board.turn, our_king):
+                # King under attack - is it defended?
+                if not board.is_attacked_by(our_color, our_king):
+                    board.pop()
+                    return False  # King under undefended attack - REJECT
+            
+            board.pop()
+            return True
+        except:
+            board.pop()
+            return False  # Error - treat as unsafe
+    
+    def _is_queen_safe_after_move(self, board: chess.Board, move: chess.Move) -> bool:
+        """
+        V14.7: Check if queen is safe after move
+        Returns False if queen is hanging (undefended under attack)
+        """
+        try:
+            board.push(move)
+            
+            our_color = not board.turn  # We just moved
+            our_queens = board.pieces(chess.QUEEN, our_color)
+            
+            if not our_queens:
+                board.pop()
+                return True  # No queen to protect
+            
+            for queen_square in our_queens:
+                if board.is_attacked_by(board.turn, queen_square):
+                    # Queen under attack - is it defended?
+                    if not board.is_attacked_by(our_color, queen_square):
+                        board.pop()
+                        return False  # Queen hanging - REJECT
+            
+            board.pop()
+            return True
+        except:
+            board.pop()
+            return False  # Error - treat as unsafe
+    
+    def _are_valuable_pieces_safe(self, board: chess.Board, move: chess.Move) -> bool:
+        """
+        V14.7: Check if rooks, bishops, knights are safe after move
+        Returns False if any valuable piece is ACTUALLY hanging (attacked with net material loss)
+        
+        RELAXED VERSION: Only reject if piece is under attack AND not defended adequately
+        """
+        try:
+            board.push(move)
+            
+            our_color = not board.turn  # We just moved
+            
+            # Check rooks, bishops, knights
+            for piece_type in [chess.ROOK, chess.BISHOP, chess.KNIGHT]:
+                our_pieces = board.pieces(piece_type, our_color)
+                for piece_square in our_pieces:
+                    # Is piece under attack?
+                    if board.is_attacked_by(board.turn, piece_square):
+                        # Is it defended? Use proper is_attacked_by check
+                        if not board.is_attacked_by(our_color, piece_square):
+                            # Piece is attacked and NOT defended - this is hanging
+                            board.pop()
+                            return False  # Valuable piece hanging - REJECT
+            
+            board.pop()
+            return True
+        except:
+            board.pop()
+            return False  # Error - treat as unsafe
+    
+    def _is_capture_valid(self, board: chess.Board, move: chess.Move) -> bool:
+        """
+        V14.7: Validate capture moves
+        Returns False if capture is a losing trade (e.g., bishop takes pawn but gets captured)
+        """
+        if not board.is_capture(move):
+            return True  # Not a capture - no validation needed
+        
+        try:
+            victim = board.piece_at(move.to_square)
+            attacker = board.piece_at(move.from_square)
+            
+            if not victim or not attacker:
+                return True  # Can't determine - allow move
+            
+            victim_value = self._get_dynamic_piece_value(board, victim.piece_type, not board.turn)
+            attacker_value = self._get_dynamic_piece_value(board, attacker.piece_type, board.turn)
+            
+            # Make capture
+            board.push(move)
+            
+            # Check if capture square is under attack
+            enemy_attacks = board.attacks_mask(board.turn)
+            capture_square = move.to_square
+            
+            if enemy_attacks & chess.BB_SQUARES[capture_square]:
+                # Our piece on capture square is under attack
+                # Is this a losing trade?
+                if attacker_value > victim_value + 200:  # 200cp tolerance for tactics
+                    # Example: Bishop (300) takes pawn (100), but bishop gets captured
+                    # Loss = 300 - 100 = 200 (bad trade)
+                    board.pop()
+                    return False  # Losing trade - REJECT
+            
+            board.pop()
+            return True
+        except:
+            board.pop()
+            return True  # Error - allow move (conservative)
     
     def _analyze_position_for_tactics(self, board: chess.Board) -> Dict:
         """

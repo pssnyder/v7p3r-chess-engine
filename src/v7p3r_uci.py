@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-V7P3R v14.6 UCI Interface - Phase-Based Evaluation
-Optimized evaluation with game phase awareness for improved NPS and depth
+V7P3R v14.8 UCI Interface - Simplified & Back to Basics
+Disabled aggressive safety filtering, focusing on search depth and tactical play
+Based on V14.0 foundation (best tournament performance: 67.1%)
 """
 
 import sys
@@ -28,7 +29,7 @@ def main():
                 break
                 
             elif command == "uci":
-                print("id name V7P3R v14.6")
+                print("id name V7P3R v14.8")
                 print("id author Pat Snyder")
                 print("uciok")
                 
