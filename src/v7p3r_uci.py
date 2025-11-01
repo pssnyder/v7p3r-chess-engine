@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-V7P3R v14.8 UCI Interface - Simplified & Back to Basics
-Disabled aggressive safety filtering, focusing on search depth and tactical play
-Based on V14.0 foundation (best tournament performance: 67.1%)
+V7P3R v14.9 UCI Interface - Workflow Restoration
+Restored V12.6's proven decision-making strategy with modern bitboard implementation
+Target: 75-85% puzzle accuracy (V12.6 level) vs V14.8's 38.8%
 """
 
 import sys
@@ -29,7 +29,7 @@ def main():
                 break
                 
             elif command == "uci":
-                print("id name V7P3R v14.8")
+                print("id name V7P3R v14.9")
                 print("id author Pat Snyder")
                 print("uciok")
                 

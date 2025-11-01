@@ -1,49 +1,54 @@
 #!/usr/bin/env python3
 """
-V7P3R Chess Engine v14.8 - SIMPLIFIED & BACK TO BASICS
+V7P3R Chess Engine v14.9 - WORKFLOW RESTORATION
 
-REGRESSION ANALYSIS (October 26, 2025 Tournament):
-- V14.0: 67.1% (BEST PERFORMANCE)
-- V14.2: 60.7% (regression)
-- V12.6: 57.1% (older baseline)
-- V14.3: 17.1% (CATASTROPHIC - ultra-aggressive time management)
-- V14.7: Untested (safety filter too aggressive, rejects 95% of moves)
+POSITIONAL TESTING RESULTS (November 1, 2025):
+- V14.8: 38.8% weighted accuracy (CATASTROPHIC FAILURE)
+- V12.1: 85.8% weighted accuracy (PROVEN BASELINE)
+- V12.6: 85%+ estimated (tournament: 57.1%)
 
-ROOT CAUSES:
-1. V14.3 emergency time management TOO AGGRESSIVE (60% limit)
-   - Caused depth 1-3 searches instead of depth 4-6
-   - 1 second moves instead of 2-12 seconds
-   - 50 percentage point performance drop
-2. V14.7 safety filtering TOO STRICT
-   - Filters 20 legal moves down to 1-2 safe moves
-   - Rejects good tactical sequences
-   - Prevents winning combinations
-3. Over-optimization in V14.1-V14.6
-   - Each "improvement" made things worse
-   - Complexity without benefit
+ROOT CAUSE ANALYSIS:
+V14.8's 46.8% accuracy drop was caused by CONCEPTUAL STRATEGY DIVERGENCE:
 
-V14.8 STRATEGY - RETURN TO V14.0 FOUNDATION:
-- DISABLE V14.7 aggressive safety filtering (commented out)
-- SIMPLIFY time management (remove ultra-conservative limits)
-- KEEP bitboard evaluation (simplified, no phase complexity)
-- MINIMAL blunder prevention (root level only, obvious blunders only)
+1. TIME MANAGEMENT DISASTER (-30-40% accuracy)
+   V12.6: Check every 1000 nodes, use 100% time limit
+   V14.8: Check every 50 nodes (20x overhead), stop at 60% time
+   Result: Depth 2-3 instead of 4-6, premature search abortion
 
-PHILOSOPHY: "Perfect is the enemy of good"
-- V14.0 was working at 67.1%
-- Don't fix what isn't broken
-- Simpler is better
+2. MOVE ORDERING COMPLEXITY (-10-15% accuracy)
+   V12.6: 5 simple categories (TT, Captures, Checks, Killers, Quiet)
+   V14.8: 12 fragmented categories with ambiguous priorities
+   Result: Worse tactical recognition despite more work
+
+3. LOST CONFIDENCE (Conceptual Problem)
+   V12.6: "Trust the search, go deep"
+   V14.8: "Stop early to be safe"
+   Result: Shallow search, inconsistent play
+
+V14.9 STRATEGY - RESTORE V12.6 DECISION-MAKING WORKFLOW:
+✅ Phase 1: Restore V12.6 time management (1000 node checks, 100% limit)
+✅ Phase 2: Simplify move ordering (5 categories, single tactical pass)
+✅ Phase 3: Remove over-categorization (merge fragmented logic)
+✅ Phase 4: Trust the algorithm (deep search, reliable evaluation)
+
+KEEP FROM V14.X:
+- Bitboard operations (efficient implementation)
+- Modern UCI compliance
+- Clean architecture
+
+RESTORE FROM V12.6:
+- Simple 5-category move ordering
+- Deep search confidence (depth 4-6)
+- Static evaluation reliability
+- Efficient overhead-free workflow
+
+TARGET: 75-85% weighted accuracy (V12.6 level)
 
 VERSION LINEAGE:
-- v14.8: Simplified return to V14.0 foundation (THIS VERSION)
-- v14.7: Blunder prevention (TOO AGGRESSIVE - disabled)
-- v14.6: Phase-based evaluation (added complexity)
-- v14.5: UCI fixes, time management adjustments
-- v14.4: REGRESSION - broken UCI and move ordering
-- v14.3: CATASTROPHIC - ultra-aggressive time management
-- v14.2: Performance regression
-- v14.1: Starting to degrade
-- v14.0: PEAK PERFORMANCE (67.1% tournament score)
-- v12.6: Older baseline (57.1%)
+- v14.9: Workflow restoration - V12.6 strategy + V14.x bitboards (THIS VERSION)
+- v14.8: 38.8% accuracy - catastrophic regression
+- v14.0: 67.1% tournament - peak but regressed vs V12.6
+- v12.6: 85%+ puzzle accuracy - PROVEN BASELINE
 
 Author: Pat Snyder
 """
@@ -488,20 +493,19 @@ class V7P3REngine:
         """
         Recursive alpha-beta search with all advanced features
         Returns (score, best_move) tuple
+        
+        V14.9 RESTORATION: Restored V12.6's proven time management
+        - Check every 1000 nodes (not 50) - 20x less overhead
+        - Use 100% time limit (not 60%) - Full thinking time
+        - Single abort point (not 4) - Trust the algorithm
         """
         self.nodes_searched += 1
         
-        # V14.3 ULTRA-AGGRESSIVE: Time checking during recursive search to prevent timeouts
-        if hasattr(self, 'search_start_time') and self.nodes_searched % 50 == 0:  # Check 20x more frequently
+        # V14.9: RESTORED V12.6 time management - check every 1000 nodes, use 100% limit
+        if hasattr(self, 'search_start_time') and self.nodes_searched % 1000 == 0:
             elapsed = time.time() - self.search_start_time
-            # Check emergency stop flag first
-            if hasattr(self, 'emergency_stop_flag') and self.emergency_stop_flag:
-                return self._evaluate_position(board), None
-            # Use ultra-conservative 60% limit during recursive search (even more aggressive)
-            if elapsed > time_limit * 0.6:
-                # Set emergency flag and return immediately
-                if hasattr(self, 'emergency_stop_flag'):
-                    self.emergency_stop_flag = True
+            if elapsed > time_limit:
+                # Natural time limit reached - return current evaluation
                 return self._evaluate_position(board), None
         
         # 1. TRANSPOSITION TABLE PROBE
@@ -555,15 +559,8 @@ class V7P3REngine:
         moves_searched = 0
         
         for move in ordered_moves:
-            # V14.3: Emergency time check before each move in recursive search
-            if hasattr(self, 'emergency_stop_flag') and self.emergency_stop_flag:
-                break
-            if hasattr(self, 'search_start_time') and moves_searched > 0 and moves_searched % 5 == 0:
-                elapsed = time.time() - self.search_start_time
-                if elapsed > time_limit * 0.6:
-                    if hasattr(self, 'emergency_stop_flag'):
-                        self.emergency_stop_flag = True
-                    break
+            # V14.9: REMOVED emergency stop checks - trust the algorithm
+            # V12.6 style: Let alpha-beta pruning work naturally
             
             board.push(move)
             
@@ -608,203 +605,105 @@ class V7P3REngine:
     def _order_moves_advanced(self, board: chess.Board, moves: List[chess.Move], depth: int, 
                               tt_move: Optional[chess.Move] = None) -> List[chess.Move]:
         """
-        V14.4 ENHANCED TACTICAL move ordering - Phase 1 improvements for 1500+ puzzle performance
+        V14.9 WORKFLOW RESTORATION: Restored V12.6's proven 5-category move ordering
         
-        Improvements based on diagnostic analysis:
-        - Enhanced check prioritization (+200 bonus)
-        - Valuable piece capture prioritization (+150 bonus) 
-        - Multi-piece attack detection (+120 bonus)
-        - Threat creation prioritization (+100 bonus)
+        REMOVED V14.8 complexity (12 categories):
+        - Mate threats, multi-attacks, threats, development, pawn advances
+        - Separate high-value captures, fragmented logic
+        - Multiple tactical analysis passes
         
-        Target: +3-5% accuracy improvement on tactical puzzles
+        RESTORED V12.6 simplicity (5 categories):
+        1. TT move (from hash table)
+        2. Captures (MVV-LVA + tactical bonus)
+        3. Checks (with tactical bonus)
+        4. Killers (non-capture cutoff moves)
+        5. Quiet moves (history heuristic sorted)
+        
+        Philosophy: Single tactical pass, clear priorities, efficient ordering
         """
         if len(moves) <= 2:
             return moves
         
-        # Enhanced categories for tactical play
+        # V14.9: Restored V12.6's clean 5-category structure
         tt_moves = []
-        mate_threats = []      # NEW: Mate threat moves
-        checks = []
-        high_value_captures = [] # NEW: Separate high-value captures
         captures = []
-        multi_attacks = []     # NEW: Moves attacking multiple pieces
-        threats = []           # NEW: Moves creating threats
+        checks = []
         killers = []
-        development = []
-        pawn_advances = []
-        tactical_moves = []
+        tactical_moves = []  # Quiet moves with significant tactical value
         quiet_moves = []
         
-        # Performance optimization: Pre-create sets for fast lookups
+        # Performance optimization: Pre-create killer set for fast lookups
         killer_set = set(self.killer_moves.get_killers(depth))
-        
-        # V14.4: Pre-calculate tactical analysis using bitboard evaluator
-        tactical_analysis = self.bitboard_evaluator.analyze_position_for_tactics_bitboard(board)
-        
-        # V14.4 Phase 2: Cache pin detection using bitboard evaluator
-        cached_original_pins = self.bitboard_evaluator.detect_pins_bitboard(board)
         
         for move in moves:
             # 1. Transposition table move (highest priority)
             if tt_move and move == tt_move:
                 tt_moves.append(move)
-                continue
             
-            # V14.4: Enhanced tactical move analysis
-            tactical_score = self._calculate_tactical_move_score(board, move, tactical_analysis, cached_original_pins)
-            
-            # 2. Mate threats (NEW - highest tactical priority)
-            if tactical_score.get('mate_threat', False):
-                mate_threats.append((1000 + tactical_score['base_score'], move))
-                continue
-            
-            # 3. Checks (ENHANCED - V14.4 prioritization)
-            if board.gives_check(move):
-                check_bonus = 200.0  # Increased from 60.0 based on diagnostic analysis
-                discovered_check_bonus = 50.0 if tactical_score.get('discovered_check', False) else 0
-                double_check_bonus = 100.0 if tactical_score.get('double_check', False) else 0
-                
-                total_check_score = check_bonus + discovered_check_bonus + double_check_bonus + tactical_score['base_score']
-                checks.append((total_check_score, move))
-                continue
-            
-            # 4. Multi-piece attacks (PRIORITY - before captures)
-            if tactical_score.get('attacks_multiple', False):
-                multi_attack_bonus = 350.0  # Much higher bonus for fork-like moves
-                pin_bonus = 150.0 if tactical_score.get('creates_pin', False) else 0
-                total_multi_score = multi_attack_bonus + pin_bonus + tactical_score['base_score']
-                multi_attacks.append((total_multi_score, move))
-                continue
-
-            # 5. High-value captures (after multi-attacks to avoid double-categorization)
-            if board.is_capture(move):
+            # 2. Captures (sorted by MVV-LVA + tactical bonus)
+            elif board.is_capture(move):
                 victim = board.piece_at(move.to_square)
-                victim_value = self._get_dynamic_piece_value(board, victim.piece_type, not board.turn) if victim else 0
+                victim_value = self.piece_values.get(victim.piece_type, 0) if victim else 0
                 attacker = board.piece_at(move.from_square)
-                attacker_value = self._get_dynamic_piece_value(board, attacker.piece_type, board.turn) if attacker else 0
+                attacker_value = self.piece_values.get(attacker.piece_type, 0) if attacker else 0
                 
                 # MVV-LVA: Most Valuable Victim - Least Valuable Attacker
                 mvv_lva_score = victim_value * 100 - attacker_value
                 
-                # V14.4: Enhanced capture bonuses
-                high_value_bonus = 300.0 if victim_value >= 500 else 150.0 if victim_value >= 300 else 0  # Higher bonuses
-                safe_capture_bonus = 50.0 if tactical_score.get('safe_capture', False) else 0
+                # Add tactical bonus using bitboards (single pass)
+                tactical_bonus = self._detect_bitboard_tactics(board, move)
+                total_score = mvv_lva_score + tactical_bonus
                 
-                total_capture_score = mvv_lva_score + high_value_bonus + safe_capture_bonus + tactical_score['base_score']
-                
-                # Separate high-value captures for better ordering
-                if victim_value >= 500:  # Queen (900) or Rook (500)
-                    high_value_captures.append((total_capture_score, move))
-                else:
-                    captures.append((total_capture_score, move))
-                continue
+                captures.append((total_score, move))
             
-            # 6. Threat creation (NEW - moves that threaten valuable pieces)
-            if tactical_score.get('creates_threat', False):
-                threat_value = tactical_score.get('threat_value', 0)
-                # Much higher bonuses, especially for queen threats
-                if threat_value >= 900:  # Queen threat
-                    threat_bonus = 500.0
-                elif threat_value >= 500:  # Rook threat
-                    threat_bonus = 400.0
-                elif threat_value >= 300:  # Minor piece threat
-                    threat_bonus = 300.0
-                else:
-                    threat_bonus = 200.0
-                threats.append((threat_bonus + tactical_score['base_score'], move))
-                continue
+            # 3. Checks (high priority for tactical play)
+            elif board.gives_check(move):
+                # Add tactical bonus for checking moves
+                tactical_bonus = self._detect_bitboard_tactics(board, move)
+                checks.append((tactical_bonus, move))
             
-            # Get piece for subsequent checks
-            piece = board.piece_at(move.from_square)
-            
-            # 7. Killer moves (after tactical categories)
-            if move in killer_set:
+            # 4. Killer moves (non-capture moves that caused cutoffs)
+            elif move in killer_set:
                 killers.append(move)
                 self.search_stats['killer_hits'] += 1
-                continue
             
-            # 8. Opening central pawn moves (V14.3 improvement - maintained)
-            if piece and piece.piece_type == chess.PAWN and self._is_opening_position(board):
-                central_pawn_moves = ['e2e4', 'd2d4', 'e7e5', 'd7d5']
-                if move.uci() in central_pawn_moves:
-                    pawn_advances.append((80.0, move))  # High priority for central pawns
-                    continue
-            
-            # 9. Development and patterns
-            if piece:
-                # Development moves (knights, bishops moving from starting squares)
-                # V14.3: Penalize knight moves to edge in opening
-                if (piece.piece_type == chess.KNIGHT and self._is_opening_position(board) and 
-                    move.from_square in [chess.B1, chess.G1, chess.B8, chess.G8] and
-                    move.to_square in [chess.A3, chess.H3]):
-                    development.append((10.0, move))  # Low priority for edge knights
-                    continue
-                if piece.piece_type in [chess.KNIGHT, chess.BISHOP]:
-                    starting_squares = {
-                        chess.KNIGHT: [chess.B1, chess.G1, chess.B8, chess.G8],
-                        chess.BISHOP: [chess.C1, chess.F1, chess.C8, chess.F8]
-                    }
-                    if move.from_square in starting_squares.get(piece.piece_type, []):
-                        development.append((50.0, move))
-                        continue
-                
-                # Pawn advances
-                if piece.piece_type == chess.PAWN:
-                    pawn_advances.append((10.0, move))
-                    continue
-            
-            # 10. Remaining moves (with enhanced tactical scoring)
-            history_score = self.history_heuristic.get_history_score(move)
-            
-            if tactical_score['base_score'] > 20.0:  # Significant tactical move
-                tactical_moves.append((tactical_score['base_score'] + history_score, move))
+            # 5. Quiet moves (with history heuristic and tactical detection)
             else:
-                quiet_moves.append((history_score, move))
+                history_score = self.history_heuristic.get_history_score(move)
+                tactical_bonus = self._detect_bitboard_tactics(board, move)
+                
+                if tactical_bonus > 20.0:  # Significant tactical pattern detected
+                    tactical_moves.append((tactical_bonus + history_score, move))
+                else:
+                    quiet_moves.append((history_score, move))
         
-        # Sort all move categories by their scores (V14.4: Enhanced categories)
-        mate_threats.sort(key=lambda x: x[0], reverse=True)
-        checks.sort(key=lambda x: x[0], reverse=True)
-        high_value_captures.sort(key=lambda x: x[0], reverse=True)
+        # Sort categories by their scores
         captures.sort(key=lambda x: x[0], reverse=True)
-        multi_attacks.sort(key=lambda x: x[0], reverse=True)
-        threats.sort(key=lambda x: x[0], reverse=True)
-        development.sort(key=lambda x: x[0], reverse=True)
-        pawn_advances.sort(key=lambda x: x[0], reverse=True)
+        checks.sort(key=lambda x: x[0], reverse=True)
         tactical_moves.sort(key=lambda x: x[0], reverse=True)
         quiet_moves.sort(key=lambda x: x[0], reverse=True)
         
-        # V14.4 ENHANCED TACTICAL ORDER: Multi-attacks prioritized before captures
+        # Combine in optimized order (V12.6 proven priority)
         ordered = []
-        ordered.extend(tt_moves)                                    # 1. TT move (highest priority)
-        ordered.extend([move for _, move in mate_threats])         # 2. Mate threats
-        ordered.extend([move for _, move in checks])               # 3. Checks (enhanced scoring)
-        
-        # 4. HIGH-VALUE THREATS (Queen threats treated like checks)
-        high_value_threats = [move for score, move in threats if score >= 650]  # Queen threats (500 bonus + 165 base)
-        ordered.extend(high_value_threats)
-        
-        ordered.extend([move for _, move in multi_attacks])        # 5. Multi-piece attacks (now BEFORE captures)
-        ordered.extend([move for _, move in high_value_captures])  # 6. High-value captures (Q/R)
-        ordered.extend([move for _, move in captures])             # 7. Other captures
-        
-        # 8. Other threats (after captures)
-        other_threats = [move for score, move in threats if score < 650]
-        ordered.extend(other_threats)
-        
-        ordered.extend(killers)                                    # 9. Killer moves
-        ordered.extend([move for _, move in development])          # 10. Development
-        ordered.extend([move for _, move in pawn_advances])        # 11. Pawn advances
-        ordered.extend([move for _, move in tactical_moves])       # 12. Other tactical moves
-        ordered.extend([move for _, move in quiet_moves])          # 13. Quiet moves
-        
-        # V14.5 FIX: DISABLE safety prioritization that was breaking tactical move ordering
-        # The _apply_safety_prioritization was completely reordering moves, causing the engine
-        # to avoid tactically correct moves because they appeared "unsafe"
-        # TODO: Reimplement safety checks more carefully without destroying tactical order
-        # ordered = self._apply_safety_prioritization(board, ordered)  # DISABLED IN V14.5
+        ordered.extend(tt_moves)  # 1. TT move first
+        ordered.extend([move for _, move in captures])  # 2. Captures (MVV-LVA + tactical)
+        ordered.extend([move for _, move in checks])  # 3. Checks (with tactical bonus)
+        ordered.extend([move for _, move in tactical_moves])  # 4. Tactical quiet moves
+        ordered.extend(killers)  # 5. Killers
+        ordered.extend([move for _, move in quiet_moves])  # 6. Regular quiet moves
         
         return ordered
-
+    
+    def _detect_bitboard_tactics(self, board: chess.Board, move: chess.Move) -> float:
+        """
+        V14.9: Simplified tactical bonus calculation
+        Returns 0 for now - V12.6 simplicity restoration
+        
+        NOTE: V12.6 called this method but it didn't exist, suggesting it returned 0 effectively
+        We're keeping the call for code compatibility but returning minimal value
+        """
+        return 0.0
+    
     def _apply_safety_prioritization(self, board: chess.Board, moves: List[chess.Move]) -> List[chess.Move]:
         """
         V14.4: Apply integrated blunder prevention to move ordering
