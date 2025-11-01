@@ -29,7 +29,7 @@ def main():
                 break
                 
             elif command == "uci":
-                print("id name V7P3R v14.9")
+                print("id name V7P3R v14.9.1")
                 print("id author Pat Snyder")
                 print("uciok")
                 

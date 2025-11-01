@@ -62,6 +62,8 @@ import os
 from typing import Optional, Tuple, List, Dict
 from collections import defaultdict
 from v7p3r_bitboard_evaluator import V7P3RScoringCalculationBitboard
+from v7p3r_advanced_pawn_evaluator import V7P3RAdvancedPawnEvaluator
+from v7p3r_king_safety_evaluator import V7P3RKingSafetyEvaluator
 
 # Simple UCI Logger mock for clean architecture
 class UCILogger:
@@ -279,6 +281,10 @@ class V7P3REngine:
         # Evaluation components - V14.0: Consolidated bitboard evaluation
         self.bitboard_evaluator = V7P3RScoringCalculationBitboard(self.piece_values, enable_nudges=False)
         
+        # V14.9.1: RESTORED V12.6 advanced evaluators
+        self.advanced_pawn_evaluator = V7P3RAdvancedPawnEvaluator()
+        self.king_safety_evaluator = V7P3RKingSafetyEvaluator()
+        
         # Simple evaluation cache for speed
         self.evaluation_cache = {}  # position_hash -> evaluation
         
@@ -312,23 +318,17 @@ class V7P3REngine:
     def search(self, board: chess.Board, time_limit: float = 3.0, depth: Optional[int] = None, 
                alpha: float = -99999, beta: float = 99999, is_root: bool = True) -> chess.Move:
         """
-        V14.3 EMERGENCY SEARCH - Critical fixes for time management and depth consistency:
-        - Emergency time controls to prevent flagging (CRITICAL)
-        - Guaranteed minimum depth achievement 
-        - Simplified time allocation removing complex calculations
-        - Conservative game phase detection
-        - Hard time limits with emergency bailouts
+        V14.9.1 COMPLETE RESTORATION - Restored V12.6's proven simple workflow:
+        - Simple iterative deepening without emergency controls
+        - Adaptive time allocation (not emergency)
+        - Natural time checking without premature bailouts
+        - Clean move selection without complex depth calculations
         """
         
-        # ROOT LEVEL: Emergency time management with guaranteed minimum depth
+        # ROOT LEVEL: Simple iterative deepening with adaptive time management
         if is_root:
             self.nodes_searched = 0
             self.search_start_time = time.time()
-            self.emergency_stop_flag = False  # V14.3: Ultra-conservative emergency flag
-            self.current_time_limit = time_limit  # V14.3: Store for quiescence access
-            
-            # V14.3: Initialize UCI logging for search
-            self.uci_logger.start_search()
             
             legal_moves = list(board.legal_moves)
             if not legal_moves:
@@ -339,113 +339,56 @@ class V7P3REngine:
             if pv_move:
                 return pv_move
             
-            # V14.3 CRITICAL FIX: Use emergency time allocation
-            target_time, max_time = self._calculate_emergency_time_allocation(time_limit)
+            # V14.9.1: RESTORED V12.6 simple adaptive time allocation
+            target_time, max_time = self._calculate_adaptive_time_allocation(board, time_limit)
             
-            # V14.3: SINGLE game phase detection for entire search (major optimization)
-            game_phase = self._detect_game_phase_conservative(board)
-            self.current_game_phase = game_phase  # Store for use throughout search
-            
-            # V14.3: Guaranteed minimum depth calculation
-            minimum_depth = self._calculate_minimum_depth(time_limit)
-            target_depth = max(minimum_depth, self._calculate_target_depth(game_phase, time_limit))
-            
-            # V14.3: Debug logging for search start
-            self.uci_logger.debug_search_start(time_limit, target_depth)
-            self.uci_logger.debug_time_allocation(target_time, max_time, time_limit)
-            moves_played = len(board.move_stack)
-            self.uci_logger.debug_game_phase(game_phase, 0, moves_played)  # Material calculation removed for simplicity
-            
-            # V14.5 DEBUG: Print actual time allocations
-            print(f"info string V14.5 time allocations: time_limit={time_limit:.2f}s, target={target_time:.2f}s, max={max_time:.2f}s, min_depth={minimum_depth}")
-            
-            # Iterative deepening with EMERGENCY TIME CONTROLS
+            # Iterative deepening - V14.9.1: RESTORED V12.6 simple loop with PV stability
             best_move = legal_moves[0]
             best_score = -99999
-            depths_completed = []
+            pv_stable_count = 0  # Track how many iterations PV has been stable
+            previous_pv_move = None
+            last_iteration_time = 0.0  # Track previous iteration time
             
-            for current_depth in range(1, target_depth + 1):
+            for current_depth in range(1, self.default_depth + 1):
                 iteration_start = time.time()
                 
-                # V14.3 CRITICAL: Emergency time checking with ultra-conservative hard limits
+                # V14.9.1: Check time BEFORE starting iteration
                 elapsed = time.time() - self.search_start_time
-                
-                # V14.5 FIX: Relaxed emergency bailout - was too aggressive at 70%
-                # Changed from 0.7 to 0.85 to allow proper depth achievement
-                if elapsed > time_limit * 0.85:
-                    self.uci_logger.debug_emergency_stop("Time limit", elapsed, time_limit)
-                    self.emergency_stop_flag = True
+                if elapsed > target_time:
                     break
                 
-                # V14.3: FORCE completion of minimum depth before time checks
-                if current_depth <= minimum_depth:
-                    # Don't break on time for minimum depth - this is critical for consistency
-                    pass
-                elif elapsed > target_time:
-                    print(f"info string Target time ({target_time:.2f}s) reached at {elapsed:.2f}s, stopping before depth {current_depth}")
-                    break
-                
-                # V14.5 FIX: REMOVED overly conservative iteration prediction
-                # The prediction was preventing depth 4+ even with plenty of time remaining
-                # We have other time checks (85% threshold, max_time checks) that are sufficient
-                # if current_depth > minimum_depth and len(depths_completed) > 0:
-                #     avg_recent_time = sum(depths_completed[-2:]) / len(depths_completed[-2:])
-                #     predicted_time = elapsed + (avg_recent_time * 1.5)
-                #     if predicted_time > max_time:
-                #         print(f"info string Predicted time overrun, stopping at depth {current_depth}")
-                #         break
+                # V14.9.1: Predict if next iteration will exceed max time
+                # Use previous iteration's time to estimate
+                if current_depth > 1 and last_iteration_time > 0:
+                    predicted_total = elapsed + (last_iteration_time * 2.5)  # Conservative estimate
+                    if predicted_total > max_time:
+                        break
                 
                 try:
                     # Store previous best in case iteration fails
                     previous_best = best_move
                     previous_score = best_score
                     
-                    # V14.5 FIX: Relaxed emergency time check from 70% to 85%
-                    elapsed = time.time() - self.search_start_time
-                    if elapsed > max_time * 0.85 or self.emergency_stop_flag:
-                        print(f"info string EMERGENCY STOP before depth {current_depth} at {elapsed:.2f}s")
-                        self.emergency_stop_flag = True
-                        break
+                    # Call recursive search for this depth
+                    score, move = self._recursive_search(board, current_depth, -99999, 99999, max_time)
                     
-                    # Call recursive search for this depth with EMERGENCY TIME LIMIT
-                    try:
-                        score, move = self._recursive_search(board, current_depth, -99999, 99999, max_time)
-                    except Exception as e:
-                        print(f"info string Search exception at depth {current_depth}: {e}")
-                        break
-                    
-                    # V14.5 FIX: Relaxed post-search time check from 70% to 85%
-                    post_search_time = time.time() - self.search_start_time
-                    if post_search_time > time_limit * 0.85:
-                        print(f"info string EMERGENCY: Post-search time {post_search_time:.3f}s exceeds limit")
-                        self.emergency_stop_flag = True
-                        if move and move != chess.Move.null():
-                            best_move = move
-                            best_score = score
-                        break
-                    
-                    # Track iteration completion time
-                    iteration_time = time.time() - iteration_start
-                    depths_completed.append(iteration_time)
-                    
-                    # V14.5 FIX: Relaxed emergency time check from 70% to 85%
-                    total_elapsed = time.time() - self.search_start_time
-                    if total_elapsed > time_limit * 0.85 or self.emergency_stop_flag:
-                        print(f"info string Emergency time limit reached after depth {current_depth}")
-                        self.emergency_stop_flag = True
-                        # Use the result if we got one, otherwise keep previous
-                        if move and move != chess.Move.null():
-                            best_move = move
-                            best_score = score
-                        break
+                    # Track this iteration's time
+                    last_iteration_time = time.time() - iteration_start
                     
                     # Update best move if we got a valid result
                     if move and move != chess.Move.null():
                         best_move = move
                         best_score = score
                         
-                        elapsed_ms = int(total_elapsed * 1000)
-                        nps = int(self.nodes_searched / max(total_elapsed, 0.001))
+                        # V14.9.1: Track PV stability for early exit
+                        if move == previous_pv_move:
+                            pv_stable_count += 1
+                        else:
+                            pv_stable_count = 1
+                            previous_pv_move = move
+                        
+                        elapsed_ms = int((time.time() - self.search_start_time) * 1000)
+                        nps = int(self.nodes_searched / max(elapsed_ms / 1000, 0.001))
                         
                         # Extract and display PV
                         pv_line = self._extract_pv(board, current_depth)
@@ -455,32 +398,30 @@ class V7P3REngine:
                         if current_depth >= 4 and len(pv_line) >= 3:
                             self.pv_tracker.store_pv_from_search(board, pv_line)
                         
-                        # V14.3: Track search depth achieved
-                        self.search_depth_achieved[best_move] = current_depth
-                        
-                        # V14.5 FIX: Restore proper UCI output that was broken in v14.4
                         print(f"info depth {current_depth} score cp {int(score)} nodes {self.nodes_searched} time {elapsed_ms} nps {nps} pv {pv_string}")
                         sys.stdout.flush()
                         
-                        # V14.3: Debug info for iteration completion
-                        self.uci_logger.debug_iteration_complete(current_depth, iteration_time, self.nodes_searched)
+                        # V14.9.1: EARLY EXIT on decisive/stable PV
+                        # Exit early if: PV stable for 2+ iterations, depth >=4, and position not noisy
+                        if (current_depth >= 4 and pv_stable_count >= 2 and 
+                            elapsed > 0.5):  # Ensure minimum 0.5s search
+                            
+                            # Check if position is quiet (not many captures/checks)
+                            captures = sum(1 for m in legal_moves if board.is_capture(m))
+                            checks = sum(1 for m in legal_moves if board.gives_check(m))
+                            
+                            if captures < 5 and checks < 3 and not board.is_check():
+                                # Quiet position with stable PV - can exit early
+                                print(f"info string Early exit: PV stable for {pv_stable_count} iterations")
+                                break
                     else:
                         # Restore previous best if iteration failed
                         best_move = previous_best
                         best_score = previous_score
-                        
+                    
                 except Exception as e:
-                    self.uci_logger.info_string(f"Search interrupted at depth {current_depth}: {e}", debug_only=True)
                     # Keep previous best result
                     break
-            
-            # V14.3: Final search summary using UCI logger
-            final_elapsed = time.time() - self.search_start_time
-            final_depth = len(depths_completed)
-            self.search_stats['average_depth_achieved'] = final_depth
-            
-            self.uci_logger.final_search_summary(str(best_move), final_depth, final_elapsed, 
-                                               self.nodes_searched, time_limit)
             
             return best_move
         
@@ -1245,9 +1186,35 @@ class V7P3REngine:
         return pin_values.get(piece_type, 0.0)
 
     def _evaluate_position(self, board: chess.Board) -> float:
-        """V14.4 UNIFIED: Use bitboard evaluator for ALL evaluation logic"""
-        # V14.4: All evaluation logic moved to bitboard evaluator for consistency and performance
-        return self.bitboard_evaluator.evaluate_position_complete(board, self.evaluation_cache)
+        """
+        V14.9.1: Simplified to basic bitboard evaluation only
+        Advanced evaluators causing negative baseline - disabled for now
+        """
+        # Use fast transposition key for caching
+        cache_key = board._transposition_key()
+        
+        if cache_key in self.evaluation_cache:
+            self.search_stats['cache_hits'] += 1
+            return self.evaluation_cache[cache_key]
+        
+        self.search_stats['cache_misses'] += 1
+        
+        # Base bitboard evaluation for material and basic positioning
+        white_base = self.bitboard_evaluator.calculate_score_optimized(board, True)
+        black_base = self.bitboard_evaluator.calculate_score_optimized(board, False)
+        
+        # Calculate final score from current player's perspective
+        if board.turn:  # White to move
+            score = white_base - black_base
+        else:  # Black to move
+            score = black_base - white_base
+        
+        # Cache and return
+        self.evaluation_cache[cache_key] = score
+        if len(self.evaluation_cache) > 10000:
+            self.evaluation_cache.clear()
+        
+        return score
     
     def _simple_king_safety(self, board: chess.Board, color: bool) -> float:
         """V12.2: Simplified king safety evaluation for performance"""
@@ -1575,7 +1542,11 @@ class V7P3REngine:
 
     def _calculate_adaptive_time_allocation(self, board: chess.Board, base_time_limit: float) -> Tuple[float, float]:
         """
-        V11 ENHANCEMENT: Adaptive time management based on position complexity
+        V14.9.1 TUNED: Aggressive time management for practical play
+        - Fast opening moves (<1s)
+        - Moderate quiet middlegame (2-3s)
+        - Extended tactical positions (use full time)
+        - Early exit on stable PV
         
         Returns: (target_time, max_time)
         """
@@ -1583,25 +1554,39 @@ class V7P3REngine:
         legal_moves = list(board.legal_moves)
         num_legal_moves = len(legal_moves)
         
-        # Base time factor
+        # Count tactical complexity
+        captures = sum(1 for move in legal_moves if board.is_capture(move))
+        checks = sum(1 for move in legal_moves if board.gives_check(move))
+        is_noisy = board.is_check() or captures >= 5 or checks >= 3
+        
+        # Base time factor - MUCH more aggressive
         time_factor = 1.0
         
-        # Game phase adjustment
-        if moves_played < 15:  # Opening
-            time_factor *= 0.8  # Faster in opening
-        elif moves_played < 40:  # Middle game
-            time_factor *= 1.2  # More time in complex middle game
+        # Game phase adjustment - AGGRESSIVE opening time
+        if moves_played < 10:  # Opening
+            time_factor *= 0.3  # VERY fast in opening (30% of base)
+        elif moves_played < 15:  # Early middlegame
+            time_factor *= 0.5  # Still quick (50% of base)
+        elif moves_played < 40:  # Middlegame
+            if is_noisy:
+                time_factor *= 1.0  # Full time for tactics
+            else:
+                time_factor *= 0.6  # Moderate for quiet positions
         else:  # Endgame
-            time_factor *= 0.9  # Moderate time in endgame
+            time_factor *= 0.7  # Calculated endgame time
+        
+        # Tactical complexity override
+        if is_noisy:
+            time_factor = max(time_factor, 0.8)  # Ensure at least 80% time for tactics
         
         # Position complexity factors
         if board.is_check():
-            time_factor *= 1.3  # More time when in check
+            time_factor *= 1.2  # More time when in check
         
         if num_legal_moves <= 5:
-            time_factor *= 0.7  # Less time with few options
-        elif num_legal_moves >= 35:
-            time_factor *= 1.4  # More time with many options
+            time_factor *= 0.6  # Less time with few options
+        elif num_legal_moves >= 40:
+            time_factor *= 1.3  # More time with many options
         
         # Material balance consideration
         our_material = self._count_material(board, board.turn)
@@ -1609,13 +1594,21 @@ class V7P3REngine:
         material_diff = our_material - their_material
         
         if material_diff < -300:  # We're behind
-            time_factor *= 1.2  # Take more time when behind
+            time_factor *= 1.1  # Slightly more time when behind
         elif material_diff > 300:  # We're ahead
-            time_factor *= 0.9  # Play faster when ahead
+            time_factor *= 0.8  # Play faster when ahead
         
-        # Calculate final times
-        target_time = min(base_time_limit * time_factor * 0.8, base_time_limit * 0.9)
+        # Calculate final times with aggressive caps
+        target_time = min(base_time_limit * time_factor * 0.7, base_time_limit * 0.8)
         max_time = min(base_time_limit * time_factor, base_time_limit)
+        
+        # Absolute caps for practical play
+        if moves_played < 10:
+            target_time = min(target_time, 0.5)  # Max 0.5s target in opening
+            max_time = min(max_time, 1.0)  # Max 1.0s total in opening
+        elif moves_played < 15:
+            target_time = min(target_time, 1.0)  # Max 1.0s target in early middlegame
+            max_time = min(max_time, 2.0)  # Max 2.0s total
         
         return target_time, max_time
     
