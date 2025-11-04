@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 """
-V7P3R v14.9 UCI Interface - Workflow Restoration
-Restored V12.6's proven decision-making strategy with modern bitboard implementation
-Target: 75-85% puzzle accuracy (V12.6 level) vs V14.8's 38.8%
+V7P3R UCI Interface - v15.0 Clean Rebuild
 """
 
 import sys
 import time
 import chess
-from v7p3r import V7P3REngine
+from v7p3r_engine import V7P3REngine
 
 
 def main():
@@ -29,7 +27,7 @@ def main():
                 break
                 
             elif command == "uci":
-                print("id name V7P3R v14.9.1")
+                print("id name V7P3R v15.0")
                 print("id author Pat Snyder")
                 print("uciok")
                 
@@ -46,7 +44,6 @@ def main():
             elif command == "ucinewgame":
                 board = chess.Board()
                 engine.new_game()
-                # V12.2: Skip tactical cache clearing (not used in simplified version)
                 
             elif command == "position":
                 if len(parts) > 1:
@@ -63,14 +60,12 @@ def main():
                         if len(parts) > 8 and parts[8] == "moves":
                             move_start = 9
                     
-                    # Apply moves and notify engine for PV following
+                    # Apply moves
                     if len(parts) > move_start:
                         for i, move_uci in enumerate(parts[move_start:]):
                             try:
                                 move = chess.Move.from_uci(move_uci)
                                 if board.is_legal(move):
-                                    # Notify engine before making the move (for PV following)
-                                    engine.notify_move_played(move, board)
                                     board.push(move)
                                 else:
                                     break
@@ -78,23 +73,16 @@ def main():
                                 break
                                 
             elif command == "go":
-                # Search parameter parsing - V14.5: Parse ALL parameters first, then calculate time
+                # Search parameter parsing
                 time_limit = 3.0  # Default
                 depth_limit = None
-                perft_depth = None
                 increment = 0.0
                 wtime_ms = None
                 btime_ms = None
                 
-                # FIRST PASS: Parse all parameters
+                # Parse all parameters
                 for i, part in enumerate(parts):
-                    if part == "perft" and i + 1 < len(parts):
-                        try:
-                            perft_depth = int(parts[i + 1])
-                        except:
-                            print("info string Invalid perft depth")
-                            continue
-                    elif part == "movetime" and i + 1 < len(parts):
+                    if part == "movetime" and i + 1 < len(parts):
                         try:
                             time_limit = int(parts[i + 1]) / 1000.0
                         except:
@@ -191,24 +179,10 @@ def main():
                     else:
                         time_limit = min(time_limit, 2.0)
                 
-                # V11 ENHANCEMENT: Handle perft command
-                if perft_depth is not None:
-                    print(f"info string Starting perft {perft_depth}")
-                    try:
-                        start_time = time.time()
-                        nodes = engine.perft(board, perft_depth, divide=False)
-                        elapsed = time.time() - start_time
-                        nps = int(nodes / max(elapsed, 0.001))
-                        print(f"info string Perft {perft_depth}: {nodes} nodes in {elapsed:.3f}s ({nps} nps)")
-                        print(f"perft {perft_depth}: {nodes}")
-                    except Exception as e:
-                        print(f"info string Perft error: {e}")
-                    sys.stdout.flush()
-                else:
-                    # Normal search
-                    best_move = engine.search(board, time_limit)
-                    print(f"bestmove {best_move}")
-                    sys.stdout.flush()  # Ensure output is sent immediately
+                # Normal search
+                best_move = engine.search(board, time_limit, depth_limit)
+                print(f"bestmove {best_move}")
+                sys.stdout.flush()  # Ensure output is sent immediately
                 
         except (EOFError, KeyboardInterrupt):
             break
