@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """
-V7P3R v14.2 UCI Interface - Think Harder Build
-Evaluation simplifications: Removed castling eval (41.7%), activity penalties (5.7%), knight outposts (3.9%)
-Target: 51.3% faster evaluation, depth 8-9 in middlegame (up from 5-6)
+V7P3R v14.1 UCI Interface - Smart Time Management Build
 """
 
 import sys
@@ -29,7 +27,7 @@ def main():
                 break
                 
             elif command == "uci":
-                print("id name V7P3R v14.2")
+                print("id name V7P3R v14.1")
                 print("id author Pat Snyder")
                 print("uciok")
                 

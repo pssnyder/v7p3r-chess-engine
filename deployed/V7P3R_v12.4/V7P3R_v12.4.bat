@@ -1,6 +1,6 @@
 @echo off
 
-REM V7P3R v14.0
+REM V7P3R v12.4
 REM Updated: October 2025
 
 cd /d "%~dp0"

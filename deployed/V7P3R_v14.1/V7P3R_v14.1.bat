@@ -1,6 +1,6 @@
 @echo off
 
-REM V7P3R v14.0
+REM V7P3R v14.1
 REM Updated: October 2025
 
 cd /d "%~dp0"
@@ -10,7 +10,7 @@ REM Launch engine with Python 3.13
 
 REM Error handling for Arena
 if errorlevel 1 (
-    echo Error: Could not start V7P3R Engine
+    echo Error: Could not start V7P3R v14.1 Engine
     echo Check that Python 3.13 is installed at the specified path
     echo Required packages: python-chess (install via: pip install python-chess)
     pause
