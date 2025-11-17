@@ -1,32 +1,37 @@
 #!/usr/bin/env python3
 """
-V7P3R Chess Engine v14.1 - Smart Time Management Build
+V7P3R Chess Engine v14.4 - Tournament-Proven Time Management
 
-Enhanced time management to fix inconsistent tournament performance across time controls.
+Restores v14.0's successful time management after tournament analysis revealed v14.1 regression.
 
-KEY IMPROVEMENTS (v14.1):
-- Hard 60-second cap on all moves (never exceed)
-- Smarter opening play (faster, less wasteful thinking)
-- Early return from incomplete depth iterations (save time for later)
-- Better time distribution across game phases
-- Increment-aware time management
+KEY IMPROVEMENTS (v14.4):
+- RESTORED v14.0 time management (balanced, not rushed)
+- KEPT v14.3 gives_check() optimization (0.00 calls/node in move ordering)
+- REMOVED 60-second hard cap (artificial limit)
+- REMOVED aggressive opening time reduction (0.5x → 0.8x)
+- Tournament-validated approach: quality over speed
+
+TOURNAMENT EVIDENCE (Ultimate Engine Battle 20251108):
+- V14.0: 70.7% win rate (best V7P3R)
+- V14.1: 53.8% win rate (-17% regression from "smart" time mgmt)
+- V14.3: 54.8% win rate (gives_check() optimization alone didn't fix regression)
+- PositionalOpponent: 81.4% win rate (simple PST eval, consistent depth 6)
 
 ARCHITECTURE:
 - Phase 1: Core search (alpha-beta, TT, iterative deepening)
 - Phase 2: Consolidated evaluation (unified bitboard system)
 - Phase 3: Performance optimized through code consolidation
-- Phase 4: Smart time management (v14.1)
+- Phase 4: Tournament-proven time management (v14.4)
 
 VERSION LINEAGE:
-- v14.1: Smart time management fixes for tournament consistency
-- v14.0: Consolidated performance build with unified evaluators
+- v14.4: Restored v14.0 time mgmt + kept v14.3 optimizations (CURRENT)
+- v14.3: gives_check() optimization (captures-only quiescence)
+- v14.2: Additional move ordering improvements
+- v14.1: "Smart" time management (REGRESSION: -17% win rate)
+- v14.0: Consolidated performance build (BEST: 70.7% win rate)
 - v12.6: Nudge system removed for clean performance build
 - v12.5: Intelligent nudge system experiments
 - v12.4: Enhanced castling with balanced evaluation
-- v12.2: Performance optimized with tactical regression
-- v12.0: Clean evolution with proven improvements only
-- v11.x: Experimental variants (lessons learned)
-- v10.8: Recovery baseline (19.5/30 tournament points)
 
 Author: Pat Snyder
 """
@@ -489,11 +494,10 @@ class V7P3REngine:
         
         # Pre-calculate move categories for efficiency
         captures = []
-        checks = []
         killers = []
         quiet_moves = []
-        tactical_moves = []  # Bitboard tactical moves
         tt_moves = []
+        promotions = []  # V14.3: Explicit promotion priority
         
         # Performance optimization: Pre-create sets for fast lookups
         killer_set = set(self.killer_moves.get_killers(depth))
@@ -503,7 +507,12 @@ class V7P3REngine:
             if tt_move and move == tt_move:
                 tt_moves.append(move)
             
-            # 2. Captures (will be sorted by MVV-LVA)
+            # 2. Promotions (V14.3: High priority, before captures)
+            elif move.promotion:
+                promotion_value = self.piece_values.get(move.promotion, 0)
+                promotions.append((promotion_value, move))
+            
+            # 3. Captures (will be sorted by MVV-LVA)
             elif board.is_capture(move):
                 victim = board.piece_at(move.to_square)
                 victim_value = self.piece_values.get(victim.piece_type, 0) if victim else 0
@@ -511,48 +520,44 @@ class V7P3REngine:
                 attacker_value = self.piece_values.get(attacker.piece_type, 0) if attacker else 0
                 # MVV-LVA: Most Valuable Victim - Least Valuable Attacker
                 mvv_lva_score = victim_value * 100 - attacker_value
-                
-                # Add tactical bonus using bitboards
-                tactical_bonus = self.bitboard_evaluator.detect_bitboard_tactics(board, move)
-                total_score = mvv_lva_score + tactical_bonus
-                
-                captures.append((total_score, move))
+                captures.append((mvv_lva_score, move))
             
-            # 4. Checks (high priority for tactical play)
-            elif board.gives_check(move):
-                # Add tactical bonus for checking moves too
-                tactical_bonus = self.bitboard_evaluator.detect_bitboard_tactics(board, move)
-                checks.append((tactical_bonus, move))
-            
-            # 5. Killer moves
+            # 4. Killer moves (V14.3: Removed gives_check() check - was bottleneck!)
             elif move in killer_set:
                 killers.append(move)
                 self.search_stats['killer_hits'] += 1
             
-            # 6. Check for tactical patterns in quiet moves
+            # 5. Quiet moves
             else:
                 history_score = self.history_heuristic.get_history_score(move)
-                tactical_bonus = self.bitboard_evaluator.detect_bitboard_tactics(board, move)
                 
-                if tactical_bonus > 20.0:  # Significant tactical move
-                    tactical_moves.append((tactical_bonus + history_score, move))
-                else:
-                    quiet_moves.append((history_score, move))
+                # V14.3: Add pawn advancement bonus (MaterialOpponent optimization)
+                pawn_bonus = 0
+                piece = board.piece_at(move.from_square)
+                if piece and piece.piece_type == chess.PAWN:
+                    to_rank = chess.square_rank(move.to_square)
+                    if board.turn == chess.WHITE and to_rank >= 5:
+                        pawn_bonus = (to_rank - 4) * 10  # 10, 20, 30 for ranks 5, 6, 7
+                    elif board.turn == chess.BLACK and to_rank <= 2:
+                        pawn_bonus = (2 - to_rank) * 10  # 10, 20, 30 for ranks 2, 1, 0
+                
+                quiet_moves.append((history_score + pawn_bonus, move))
         
-        # Sort all move categories by their scores
-        captures.sort(key=lambda x: x[0], reverse=True)
-        checks.sort(key=lambda x: x[0], reverse=True)
-        tactical_moves.sort(key=lambda x: x[0], reverse=True)
+        # V14.3: CRITICAL OPTIMIZATION - Removed gives_check() entirely (MaterialOpponent approach)
+        # Checkmate threats will be found naturally during search, not during move ordering
+        
+        # Sort remaining move categories
+        captures.sort(key=lambda x: x[0], reverse=True)  # V14.3: Sort captures by MVV-LVA
+        promotions.sort(key=lambda x: x[0], reverse=True)  # V14.3: Sort promotions by value
         quiet_moves.sort(key=lambda x: x[0], reverse=True)
         
-        # Combine in optimized order
+        # Combine in optimized order (V14.3: MaterialOpponent-inspired, NO gives_check()!)
         ordered = []
         ordered.extend(tt_moves)  # TT move first
-        ordered.extend([move for _, move in captures])  # Then captures (with tactical bonus)
-        ordered.extend([move for _, move in checks])  # Then checks (with tactical bonus)
-        ordered.extend([move for _, move in tactical_moves])  # Then tactical patterns
+        ordered.extend([move for _, move in promotions])  # V14.3: Then promotions
+        ordered.extend([move for _, move in captures])  # Then captures (MVV-LVA)
         ordered.extend(killers)  # Then killers
-        ordered.extend([move for _, move in quiet_moves])  # Then quiet moves
+        ordered.extend([move for _, move in quiet_moves])  # Then quiet moves (with pawn bonus)
         
         return ordered
     
@@ -699,8 +704,8 @@ class V7P3REngine:
     
     def _quiescence_search(self, board: chess.Board, alpha: float, beta: float, depth: int) -> float:
         """
-        Quiescence search for tactical stability - V10 PHASE 2
-        Only search captures and checks to avoid horizon effects
+        V14.3 Quiescence search - CAPTURES ONLY (MaterialOpponent approach)
+        Removed gives_check() to eliminate 42.6% search overhead bottleneck
         """
         self.nodes_searched += 1
         
@@ -719,54 +724,37 @@ class V7P3REngine:
         if depth <= 0:
             return stand_pat
         
-        # Generate and search tactical moves only
-        legal_moves = list(board.legal_moves)
-        tactical_moves = []
-        
-        for move in legal_moves:
-            # Only consider captures and checks for quiescence
-            if board.is_capture(move) or board.gives_check(move):
-                tactical_moves.append(move)
-        
-        # If no tactical moves, return stand pat
-        if not tactical_moves:
-            return stand_pat
-        
-        # Sort tactical moves by MVV-LVA for better ordering
-        capture_scores = []
-        for move in tactical_moves:
+        # V14.3: Generate CAPTURES ONLY (like MaterialOpponent - no gives_check()!)
+        captures = []
+        for move in board.legal_moves:
             if board.is_capture(move):
                 victim = board.piece_at(move.to_square)
                 victim_value = self.piece_values.get(victim.piece_type, 0) if victim else 0
                 attacker = board.piece_at(move.from_square)
                 attacker_value = self.piece_values.get(attacker.piece_type, 0) if attacker else 0
                 mvv_lva = victim_value * 100 - attacker_value
-                capture_scores.append((mvv_lva, move))
-            else:
-                # Check moves get lower priority
-                capture_scores.append((0, move))
+                captures.append((mvv_lva, move))
         
-        # Sort by MVV-LVA score
-        capture_scores.sort(key=lambda x: x[0], reverse=True)
-        ordered_tactical = [move for _, move in capture_scores]
+        # If no captures, return stand pat
+        if not captures:
+            return stand_pat
         
-        # Search tactical moves
-        best_score = stand_pat
-        for move in ordered_tactical:
+        # Sort by MVV-LVA score (best captures first)
+        captures.sort(key=lambda x: x[0], reverse=True)
+        
+        # Search captures in order
+        for _, move in captures:
             board.push(move)
             score = -self._quiescence_search(board, -beta, -alpha, depth - 1)
             board.pop()
             
-            if score > best_score:
-                best_score = score
+            if score >= beta:
+                return beta  # Beta cutoff
             
             if score > alpha:
                 alpha = score
-            
-            if alpha >= beta:
-                break  # Beta cutoff
         
-        return best_score
+        return alpha
 
     def notify_move_played(self, move: chess.Move, board_before_move: chess.Board):
         """Notify engine that a move was played (for PV following)
@@ -857,71 +845,58 @@ class V7P3REngine:
 
     def _calculate_adaptive_time_allocation(self, board: chess.Board, base_time_limit: float) -> Tuple[float, float]:
         """
-        V14.1: IMPROVED adaptive time management - prevents wasteful thinking
+        V14.4: RESTORED v14.0 adaptive time management - tournament-proven approach
         
         Returns: (target_time, max_time)
         
-        PHILOSOPHY:
-        - Opening: Play fast (book knowledge, simple positions)
-        - Middlegame: Use more time (complex tactics)
-        - Endgame: Moderate time (technique matters, but positions simpler)
-        - NEVER exceed 60 seconds per move
+        PHILOSOPHY (backed by 890-game tournament data):
+        - Opening: Balanced thinking (0.8x) - NOT wasteful, finds good moves
+        - Middlegame: More time (1.2x) - complex tactics require thought
+        - Endgame: Moderate time (0.9x) - technique matters
+        - NO artificial caps - let engine use time when needed
+        
+        TOURNAMENT PROOF:
+        - v14.0 with this approach: 70.7% win rate
+        - v14.1 with rushed opening (0.5x): 53.8% win rate (-17%)
+        - Conclusion: Opening thinking is PRODUCTIVE, not wasteful
         """
         moves_played = len(board.move_stack)
         legal_moves = list(board.legal_moves)
         num_legal_moves = len(legal_moves)
         
-        # V14.1: HARD CAP - never exceed 60 seconds
-        absolute_max = min(base_time_limit, 60.0)
-        
-        # Base time factor - more conservative than v14.0
+        # Base time factor
         time_factor = 1.0
         
-        # V14.1: MORE AGGRESSIVE OPENING TIME REDUCTION
-        if moves_played < 8:  # Very early opening
-            time_factor *= 0.5  # Use HALF time (wasteful to think long here)
-        elif moves_played < 15:  # Opening
-            time_factor *= 0.6  # Still fast
-        elif moves_played < 25:  # Early middlegame
-            time_factor *= 0.9  # Starting to matter more
-        elif moves_played < 40:  # Complex middlegame
-            time_factor *= 1.1  # Peak thinking time
-        elif moves_played < 60:  # Late middlegame/early endgame
-            time_factor *= 0.9  # Simplifying
-        else:  # Deep endgame
-            time_factor *= 0.7  # Technique matters but simpler
+        # V14.4: RESTORED v14.0 game phase adjustment (BALANCED, not rushed)
+        if moves_played < 15:  # Opening
+            time_factor *= 0.8  # Balanced - allow thinking (v14.1 was 0.5-0.6, too fast!)
+        elif moves_played < 40:  # Middle game
+            time_factor *= 1.2  # More time in complex middle game
+        else:  # Endgame
+            time_factor *= 0.9  # Moderate time in endgame
         
         # Position complexity factors
         if board.is_check():
-            time_factor *= 1.2  # More time when in check (not 1.3)
+            time_factor *= 1.3  # More time when in check
         
-        # V14.1: Simplified move count logic
-        if num_legal_moves <= 3:
-            time_factor *= 0.5  # Very few options - decide quickly
-        elif num_legal_moves <= 8:
-            time_factor *= 0.8  # Few options
+        if num_legal_moves <= 5:
+            time_factor *= 0.7  # Less time with few options
         elif num_legal_moves >= 35:
-            time_factor *= 1.2  # Many options (not 1.4 - too aggressive)
+            time_factor *= 1.4  # More time with many options
         
-        # Material balance consideration - simplified
+        # Material balance consideration
         our_material = self._count_material(board, board.turn)
         their_material = self._count_material(board, not board.turn)
         material_diff = our_material - their_material
         
         if material_diff < -300:  # We're behind
-            time_factor *= 1.1  # Slightly more time (not 1.2)
-        elif material_diff > 500:  # We're significantly ahead
-            time_factor *= 0.8  # Play faster when winning
+            time_factor *= 1.2  # Take more time when behind
+        elif material_diff > 300:  # We're ahead
+            time_factor *= 0.9  # Play faster when ahead
         
-        # V14.1: Calculate final times with CONSERVATIVE approach
-        # Target time: aim to use this much (usually hit this and return)
-        # Max time: absolute limit (rarely hit, only complex positions)
-        target_time = min(absolute_max * time_factor * 0.7, absolute_max * 0.75)
-        max_time = min(absolute_max * time_factor * 0.9, absolute_max * 0.95)
-        
-        # V14.1: SAFETY - ensure target < max < absolute_max
-        target_time = min(target_time, max_time * 0.85)
-        max_time = min(max_time, absolute_max)
+        # Calculate final times (NO artificial 60-second cap!)
+        target_time = min(base_time_limit * time_factor * 0.8, base_time_limit * 0.9)
+        max_time = min(base_time_limit * time_factor, base_time_limit)
         
         return target_time, max_time
     
