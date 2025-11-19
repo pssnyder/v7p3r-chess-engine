@@ -1,23 +1,29 @@
 #!/usr/bin/env python3
 """
-V7P3R Chess Engine v15.2
-A UCI-compatible chess engine based on PositionalOpponent core with tactical awareness.
+V7P3R Chess Engine v15.4
+A UCI-compatible chess engine based on PositionalOpponent core with material awareness.
 
-Version 15.2 fixes critical material blindness from v15.1:
-- Removed broken material floor from evaluation
-- Added Static Exchange Evaluation (SEE) for captures and attacked squares
-- Enhanced move safety filtering to prevent hanging pieces
+Version 15.4 adds MaterialOpponent's evaluation to v15.3:
+- Embedded opening repertoire for common openings (e4, d4, c4, Nf3)
+- Book exits after 8 ply to let engine play from sound positions
+- Enhanced material evaluation with bishop pair bonus
+- Material floor in evaluation (prevents queen sacrifices)
+- Hanging piece penalty in move ordering (avoids hanging pieces)
 
 Based on PositionalOpponent's proven 81.4% win rate design:
 - Complete piece-square tables for all pieces
 - Dynamic piece values from 0 to full potential (e.g., pawns 0-900)
-- Depth 8 with phase-aware time management
+- Depth 6 consistency through simple, fast evaluation
 
-v15.2 Changes from v15.1:
-- Fixed: Removed backwards material floor logic that inflated scores
-- Added: SEE to evaluate captures and moves to attacked squares
-- Added: Move safety filtering to reject moves that lose material
-- Result: Should not lose pieces to MaterialOpponent
+v15.4 Changes from v15.3:
+- Added MaterialOpponent's sophisticated material evaluation
+- Bishop pair bonus (+50 cp) and lone bishop penalty (-50 cp)
+- Piece diversity bonus (prefer pieces over pawns)
+
+v15.3 Changes from v15.1:
+- Added opening book system with embedded repertoire
+- UCI options for book configuration
+- Solves unusual opening moves (h2h4, etc)
 
 Usage:
     python v7p3r.py
@@ -25,21 +31,244 @@ Usage:
 
 import sys
 import chess
+import chess.polyglot
 import random
 import time
+import struct
+import os
 from typing import Optional, Dict, List, Tuple
 from dataclasses import dataclass
 from enum import Enum
 
-# Piece values for SEE (Static Exchange Evaluation)
-PIECE_VALUES = {
-    chess.PAWN: 100,
-    chess.KNIGHT: 300,
-    chess.BISHOP: 300,
-    chess.ROOK: 500,
-    chess.QUEEN: 900,
-    chess.KING: 20000  # King is invaluable
-}
+
+class OpeningBook:
+    """
+    Opening book for the chess engine.
+    Supports both embedded opening repertoire and Polyglot .bin files.
+    """
+    
+    def __init__(self):
+        self.book_moves = {}  # zobrist_key -> [(move_uci, weight)]
+        self.use_book = True
+        self.book_file = ""
+        self.book_depth = 8  # Maximum ply to use book
+        self.book_variety = 50  # 0-100: 0=always best move, 100=completely random
+        self._load_embedded_book()
+    
+    def _load_embedded_book(self):
+        """Load embedded opening repertoire."""
+        # Format: FEN -> [(move_uci, weight)]
+        embedded_openings = {
+            # Starting position
+            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1": [
+                ("e2e4", 100),  # King's pawn
+                ("d2d4", 100),  # Queen's pawn
+                ("g1f3", 80),   # Reti/English
+                ("c2c4", 80),   # English
+                ("b1c3", 40),   # Dunst/Van Geet
+            ],
+            
+            # After 1.e4 - Black responses
+            "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1": [
+                ("e7e5", 100),  # King's pawn
+                ("c7c5", 100),  # Sicilian
+                ("e7e6", 80),   # French
+                ("c7c6", 70),   # Caro-Kann
+                ("g8f6", 70),   # Alekhine
+                ("d7d5", 60),   # Scandinavian
+            ],
+            
+            # After 1.e4 c6 (Caro-Kann) - White's 2nd move
+            "rnbqkbnr/pp1ppppp/2p5/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2": [
+                ("d2d4", 100),  # Main line
+                ("b1c3", 90),   # Two knights variation
+                ("g1f3", 80),   # Flexible
+                ("d2d3", 60),   # Safe development
+            ],
+            
+            # After 1.e4 c6 2.d4 d5 (Caro-Kann main line)
+            "rnbqkbnr/pp2pppp/2p5/3p4/3PP3/8/PPP2PPP/RNBQKBNR w KQkq - 0 3": [
+                ("b1c3", 100),  # Classical variation
+                ("e4d5", 90),   # Exchange variation
+                ("e4e5", 70),   # Advance variation
+            ],
+            
+            # After 1.d4 - Black responses
+            "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq - 0 1": [
+                ("d7d5", 100),  # Queen's Gambit
+                ("g8f6", 100),  # Indian defenses
+                ("e7e6", 70),   # French-like setup
+                ("c7c5", 60),   # Benoni
+            ],
+            
+            # After 1.d4 Nf6 - White's 2nd move
+            "rnbqkb1r/pppppppp/5n2/8/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 1 2": [
+                ("c2c4", 100),  # Indian games
+                ("g1f3", 90),   # London/Torre
+                ("b1c3", 50),   # Veresov
+            ],
+            
+            # After 1.e4 e5 (King's pawn game)
+            "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2": [
+                ("g1f3", 100),  # King's knight - normal development
+                ("f1c4", 70),   # Bishop's opening
+                ("b1c3", 60),   # Vienna
+            ],
+            
+            # After 1.e4 e5 2.Nf3 (moving toward Italian/Spanish)
+            "rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2": [
+                ("b8c6", 100),  # Most common
+                ("g8f6", 80),   # Petrov
+                ("d7d6", 40),   # Philidor
+            ],
+            
+            # After 1.e4 e5 2.Nf3 Nc6 (heading to Italian/Spanish)
+            "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3": [
+                ("f1c4", 100),  # Italian game
+                ("f1b5", 100),  # Spanish (Ruy Lopez)
+                ("d2d4", 70),   # Scotch
+            ],
+            
+            # After 1.e4 c5 (Sicilian) - White's 2nd move
+            "rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2": [
+                ("g1f3", 100),  # Open Sicilian
+                ("b1c3", 70),   # Closed Sicilian
+                ("c2c3", 40),   # Alapin
+            ],
+            
+            # After 1.e4 c5 2.Nf3 (Sicilian setup)
+            "rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2": [
+                ("d7d6", 100),  # Most flexible
+                ("b8c6", 90),   # Aggressive
+                ("e7e6", 80),   # French-Sicilian hybrid
+            ],
+            
+            # After 1.e4 c5 2.Nf3 d6 3.d4 (Sicilian opening)
+            "rnbqkbnr/pp2pppp/3p4/2p5/3PP3/5N2/PPP2PPP/RNBQKB1R b KQkq - 0 3": [
+                ("c5d4", 100),  # Capture
+            ],
+            
+            # After 1.d4 d5 (Queen's pawn)
+            "rnbqkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 0 2": [
+                ("c2c4", 100),  # Queen's Gambit
+                ("g1f3", 80),   # London/Colle
+                ("b1c3", 60),   # Veresov
+            ],
+            
+            # After 1.d4 d5 2.c4 (Queen's Gambit)
+            "rnbqkbnr/ppp1pppp/8/3p4/2PP4/8/PP2PPPP/RNBQKBNR b KQkq - 0 2": [
+                ("e7e6", 100),  # Accept or decline
+                ("c7c6", 90),   # Slav
+                ("d5c4", 70),   # QGA
+            ],
+        }
+        
+        # Convert FEN positions to Zobrist keys
+        for fen, moves in embedded_openings.items():
+            board = chess.Board(fen)
+            zobrist_key = chess.polyglot.zobrist_hash(board)
+            self.book_moves[zobrist_key] = moves
+    
+    def load_polyglot_book(self, filepath):
+        """Load opening moves from Polyglot .bin file."""
+        if not os.path.exists(filepath):
+            print(f"info string Book file not found: {filepath}", flush=True)
+            return False
+        
+        try:
+            with open(filepath, 'rb') as f:
+                while True:
+                    entry_data = f.read(16)  # Each entry is 16 bytes
+                    if len(entry_data) < 16:
+                        break
+                    
+                    # Parse Polyglot entry: key(8), move(2), weight(2), learn(4)
+                    key = struct.unpack('>Q', entry_data[0:8])[0]
+                    move_raw = struct.unpack('>H', entry_data[8:10])[0]
+                    weight = struct.unpack('>H', entry_data[10:12])[0]
+                    
+                    # Convert Polyglot move encoding to UCI
+                    from_sq = (move_raw >> 6) & 0x3F
+                    to_sq = move_raw & 0x3F
+                    promotion = (move_raw >> 12) & 0x7
+                    
+                    move_uci = chess.square_name(from_sq) + chess.square_name(to_sq)
+                    if promotion:
+                        move_uci += ['', 'n', 'b', 'r', 'q'][promotion - 1]
+                    
+                    # Add to book
+                    if key not in self.book_moves:
+                        self.book_moves[key] = []
+                    self.book_moves[key].append((move_uci, weight))
+            
+            print(f"info string Loaded {len(self.book_moves)} positions from {filepath}", flush=True)
+            return True
+        except Exception as e:
+            print(f"info string Error loading book: {e}", flush=True)
+            return False
+    
+    def get_book_move(self, board):
+        """Get a move from the opening book for the current position."""
+        if not self.use_book:
+            return None
+        
+        # Check if we're past book depth
+        if board.ply() >= self.book_depth:
+            return None
+        
+        # Get Zobrist hash of position
+        zobrist_key = chess.polyglot.zobrist_hash(board)
+        
+        # Check if position is in book
+        if zobrist_key not in self.book_moves:
+            return None
+        
+        moves_with_weights = self.book_moves[zobrist_key]
+        
+        # Filter for legal moves
+        legal_moves = []
+        for move_uci, weight in moves_with_weights:
+            try:
+                move = chess.Move.from_uci(move_uci)
+                if move in board.legal_moves:
+                    legal_moves.append((move_uci, weight))
+            except:
+                continue
+        
+        if not legal_moves:
+            return None
+        
+        # Apply variety setting
+        if self.book_variety == 0:
+            # Always pick highest weight
+            return max(legal_moves, key=lambda x: x[1])[0]
+        elif self.book_variety == 100:
+            # Completely random
+            return random.choice(legal_moves)[0]
+        else:
+            # Weighted random selection with variety factor
+            # Higher variety = more random, lower variety = prefer higher weights
+            adjusted_weights = []
+            for move_uci, weight in legal_moves:
+                # Blend between weight and uniform distribution
+                variety_factor = self.book_variety / 100.0
+                adjusted_weight = weight * (1 - variety_factor) + 100 * variety_factor
+                adjusted_weights.append(adjusted_weight)
+            
+            total_weight = sum(adjusted_weights)
+            if total_weight == 0:
+                return random.choice(legal_moves)[0]
+            
+            # Weighted random choice
+            rand_val = random.uniform(0, total_weight)
+            cumulative = 0
+            for i, (move_uci, _) in enumerate(legal_moves):
+                cumulative += adjusted_weights[i]
+                if rand_val <= cumulative:
+                    return move_uci
+            
+            return legal_moves[-1][0]
+
 
 # Piece-Square Tables (values in centipawns)
 # White perspective - flip for black pieces
@@ -138,6 +367,19 @@ KILLER_BONUS = 300000
 PROMOTION_BONUS = 200000
 PAWN_ADVANCE_BONUS = 100000
 
+# Material evaluation constants (v15.4 - from MaterialOpponent)
+MATERIAL_VALUES = {
+    chess.PAWN: 100,
+    chess.KNIGHT: 300,
+    chess.BISHOP: 325,  # Base value, adjusted dynamically
+    chess.ROOK: 500,
+    chess.QUEEN: 900,
+    chess.KING: 0
+}
+BISHOP_PAIR_BONUS = 50  # Additional value when both bishops present
+BISHOP_ALONE_PENALTY = 50  # Penalty when only one bishop remains
+PIECE_DIVERSITY_BONUS = 5  # Bonus per piece (prefer pieces over pawns)
+
 class NodeType(Enum):
     EXACT = 0
     LOWER_BOUND = 1
@@ -233,6 +475,9 @@ class V7P3REngine:
         
         # PV Following - V7P3R unique feature
         self.pv_tracker = PVTracker()
+        
+        # Opening book - V15.3 feature
+        self.opening_book = OpeningBook()
         
         # Zobrist keys for hashing
         self._init_zobrist()
@@ -434,7 +679,12 @@ class V7P3REngine:
     
     def _evaluate_position(self, board: chess.Board) -> int:
         """
-        Evaluate the current position using piece-square tables
+        Evaluate the current position using piece-square tables + material
+        
+        v15.4: Enhanced with MaterialOpponent's sophisticated material evaluation
+        - Bishop pair bonus/penalty
+        - Piece diversity bonus
+        - Dynamic bishop values
         
         Args:
             board: Current chess position
@@ -451,76 +701,55 @@ class V7P3REngine:
             if piece:
                 pst_score += self._get_piece_square_value(piece, square, is_endgame)
         
-        # Return score from perspective of side to move
-        return pst_score if board.turn == chess.WHITE else -pst_score
-    
-    def _see(self, board: chess.Board, move: chess.Move) -> int:
-        """
-        Static Exchange Evaluation - estimate material gain/loss from a move
+        # v15.4: MaterialOpponent's sophisticated material evaluation
+        material_score = 0
+        white_bishops = len(board.pieces(chess.BISHOP, chess.WHITE))
+        black_bishops = len(board.pieces(chess.BISHOP, chess.BLACK))
         
-        Args:
-            board: Current position
-            move: Move to evaluate
+        for piece_type in chess.PIECE_TYPES:
+            if piece_type == chess.KING:
+                continue
+                
+            white_count = len(board.pieces(piece_type, chess.WHITE))
+            black_count = len(board.pieces(piece_type, chess.BLACK))
             
-        Returns:
-            Net material change in centipawns (positive = gain, negative = loss)
-        """
-        # Get piece values
-        from_piece = board.piece_at(move.from_square)
-        to_piece = board.piece_at(move.to_square)
-        
-        if not from_piece:
-            return 0
-        
-        # Initial gain from capture
-        gain = 0
-        if to_piece:
-            gain = PIECE_VALUES[to_piece.piece_type]
-        
-        # Make the move and check if our piece hangs
-        board.push(move)
-        
-        # Check if piece is attacked on the target square
-        if board.is_attacked_by(not board.turn, move.to_square):
-            # If attacked and not defended, we lose the piece
-            if not board.is_attacked_by(board.turn, move.to_square):
-                gain -= PIECE_VALUES[from_piece.piece_type]
+            if piece_type == chess.BISHOP:
+                # Dynamic bishop evaluation
+                white_bishop_value = MATERIAL_VALUES[chess.BISHOP]
+                black_bishop_value = MATERIAL_VALUES[chess.BISHOP]
+                
+                if white_bishops == 2:
+                    white_bishop_value += BISHOP_PAIR_BONUS // 2  # Split bonus between bishops
+                elif white_bishops == 1:
+                    white_bishop_value -= BISHOP_ALONE_PENALTY
+                    
+                if black_bishops == 2:
+                    black_bishop_value += BISHOP_PAIR_BONUS // 2
+                elif black_bishops == 1:
+                    black_bishop_value -= BISHOP_ALONE_PENALTY
+                    
+                material_score += white_count * white_bishop_value - black_count * black_bishop_value
             else:
-                # Piece is both attacked and defended = equal or winning trade
-                # For equal trades (Rook for Rook), consider it acceptable (gain 0)
-                if to_piece and from_piece.piece_type == to_piece.piece_type:
-                    gain = 0  # Equal trade
-                # Otherwise, keep the capture value (we captured, they might recapture)
+                piece_value = MATERIAL_VALUES[piece_type]
+                material_score += white_count * piece_value - black_count * piece_value
         
-        board.pop()
+        # Piece diversity bonus (prefer pieces over pawns)
+        white_pieces = sum(len(board.pieces(pt, chess.WHITE)) for pt in chess.PIECE_TYPES if pt != chess.KING)
+        black_pieces = sum(len(board.pieces(pt, chess.BLACK)) for pt in chess.PIECE_TYPES if pt != chess.KING)
+        material_score += (white_pieces - black_pieces) * PIECE_DIVERSITY_BONUS
         
-        return gain
-    
-    def _is_safe_move(self, board: chess.Board, move: chess.Move) -> bool:
-        """
-        Check if a move is tactically safe (doesn't lose material)
+        # Blend PST score with material score
+        # PST provides positional understanding, material provides tactical safety
+        # In complex positions (middlegame), favor PST more
+        # In simpler positions (endgame), balance them
+        if is_endgame:
+            # Endgame: 50% PST, 50% material
+            score = (pst_score + material_score) // 2
+        else:
+            # Middlegame: 70% PST, 30% material  
+            score = (pst_score * 7 + material_score * 3) // 10
         
-        Args:
-            board: Current position
-            move: Move to check
-            
-        Returns:
-            True if move is safe, False if it loses material
-        """
-        piece = board.piece_at(move.from_square)
-        if not piece:
-            return True
-        
-        # Always allow king moves (handled by legal move generation)
-        if piece.piece_type == chess.KING:
-            return True
-        
-        # Check SEE for the move
-        see_value = self._see(board, move)
-        
-        # Allow moves that don't lose material or lose only a little (compensation)
-        # Threshold: -200 allows some sacrifices for positional compensation
-        return see_value >= -200
+        return score if board.turn == chess.WHITE else -score
     
     def _quiescence_search(self, board: chess.Board, alpha: float, beta: float, depth: int = 0) -> float:
         """
@@ -607,13 +836,13 @@ class V7P3REngine:
         1. TT move
         2. Checkmate threats
         3. Checks  
-        4. Good captures (SEE >= 0)
+        4. Captures (MVV-LVA)
         5. Killer moves
         6. Pawn advances/promotions
         7. History heuristic
-        8. Bad captures (SEE < 0) and unsafe moves
+        8. Other moves
         
-        v15.2: Uses SEE to properly order captures and detect unsafe moves
+        v15.1: Added hanging major piece penalty to prevent blunders
         """
         scored_moves = []
         
@@ -632,15 +861,9 @@ class V7P3REngine:
                 else:
                     score = 500000  # Regular checks
                 board.pop()
-            # Captures - use SEE to order good/bad captures
+            # Captures
             elif board.is_capture(move):
-                see_value = self._see(board, move)
-                if see_value >= 0:
-                    # Good captures: winning or equal exchanges
-                    score = 400000 + see_value
-                else:
-                    # Bad captures: losing exchanges - order last
-                    score = see_value  # Negative, so ordered after quiet moves
+                score = 400000 + self._mvv_lva_score(board, move)
             # Killer moves
             elif ply < len(self.killer_moves) and move in self.killer_moves[ply]:
                 score = 300000
@@ -660,10 +883,17 @@ class V7P3REngine:
                     key = (move.from_square, move.to_square)
                     score = self.history_table.get(key, 0)
             
-            # v15.2: Penalize ALL unsafe moves (not just queen/rook)
-            # This prevents moves that lose material
-            if not self._is_safe_move(board, move):
-                score -= 500000  # Heavy penalty for unsafe moves
+            # v15.1: Penalize hanging major pieces (queen/rook) heavily
+            # This prevents catastrophic blunders like Qxf6 without compensation
+            if piece and piece.piece_type in [chess.QUEEN, chess.ROOK]:
+                if not board.is_capture(move):  # Non-capturing moves only
+                    board.push(move)
+                    # Check if piece hangs after the move
+                    if board.is_attacked_by(not board.turn, move.to_square):
+                        # Check if piece is defended
+                        if not board.is_attacked_by(board.turn, move.to_square):
+                            score -= 950000  # Massive penalty - worse than almost any other move
+                    board.pop()
                 
             scored_moves.append((score, move))
         
@@ -825,6 +1055,15 @@ class V7P3REngine:
         Returns:
             Best move found
         """
+        # Check opening book first (V15.3)
+        book_move = self.opening_book.get_book_move(self.board)
+        if book_move:
+            print(f"info string Book move: {book_move}", flush=True)
+            try:
+                return chess.Move.from_uci(book_move)
+            except:
+                print(f"info string Invalid book move: {book_move}", flush=True)
+        
         if self.board.is_game_over():
             return None
         

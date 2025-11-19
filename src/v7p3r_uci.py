@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""V7P3R v15.2 UCI Interface
+"""V7P3R v15.4 UCI Interface
 
-Version 15.2: Fixed material blindness with proper SEE
-- Removed broken material floor from evaluation
-- Added Static Exchange Evaluation for captures and attacked squares
-- Enhanced move safety filtering to prevent hanging pieces
+Version 15.4: Added MaterialOpponent's sophisticated material evaluation to v15.3
+- Bishop pair bonus (+50 cp) and lone bishop penalty (-50 cp)
+- Piece diversity bonus (prefer pieces over pawns)
+- Blended PST + material evaluation (70/30 middlegame, 50/50 endgame)
+- Opening book support (from v15.3)
 """
 
 import sys
@@ -28,10 +29,14 @@ def main():
                 break
                 
             elif command == "uci":
-                print("id name V7P3R v15.2")
+                print("id name V7P3R v15.4")
                 print("id author Pat Snyder")
                 print("option name MaxDepth type spin default 8 min 1 max 20")
                 print("option name TTSize type spin default 128 min 16 max 1024")
+                print("option name OwnBook type check default true")
+                print("option name BookFile type string default <empty>")
+                print("option name BookDepth type spin default 8 min 1 max 20")
+                print("option name BookVariety type spin default 50 min 0 max 100")
                 print("uciok")
                 sys.stdout.flush()
                 
@@ -45,6 +50,16 @@ def main():
                     elif option_name == "TTSize":
                         tt_size = max(16, min(1024, int(option_value)))
                         engine = V7P3REngine(max_depth=engine.max_depth, tt_size_mb=tt_size)
+                    elif option_name == "OwnBook":
+                        engine.opening_book.use_book = option_value.lower() == "true"
+                    elif option_name == "BookFile":
+                        if option_value != "<empty>" and option_value:
+                            engine.opening_book.load_polyglot_book(option_value)
+                            engine.opening_book.book_file = option_value
+                    elif option_name == "BookDepth":
+                        engine.opening_book.book_depth = max(1, min(20, int(option_value)))
+                    elif option_name == "BookVariety":
+                        engine.opening_book.book_variety = max(0, min(100, int(option_value)))
                 sys.stdout.flush()
                 
             elif command == "isready":
