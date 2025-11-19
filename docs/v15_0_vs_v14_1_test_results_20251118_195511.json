@@ -1,0 +1,109 @@
+{
+  "timestamp": "2025-11-18T19:54:50.171968",
+  "tests": {
+    "smoke": {
+      "v15": {
+        "successes": 5,
+        "failures": 0,
+        "illegal_moves": 0
+      },
+      "v14_1": {
+        "successes": 5,
+        "failures": 0,
+        "illegal_moves": 0
+      }
+    },
+    "depth_consistency": {
+      "v15": {
+        "depths": [
+          6,
+          6,
+          6,
+          6,
+          6,
+          6,
+          6,
+          6
+        ],
+        "avg_depth": 6.0,
+        "target_depth": 6
+      },
+      "v14_1": {
+        "depths": [
+          4,
+          3,
+          3,
+          3,
+          2,
+          3,
+          6,
+          6
+        ],
+        "avg_depth": 3.75
+      }
+    },
+    "tactical": {
+      "v15": {
+        "positions_tested": 5,
+        "moves": [
+          {
+            "position": "mate_in_2_scholar",
+            "move": "none",
+            "depth": 6
+          },
+          {
+            "position": "mate_in_2_back_rank",
+            "move": "a1a8",
+            "depth": 6
+          },
+          {
+            "position": "fork_knight",
+            "move": "d1e2",
+            "depth": 6
+          },
+          {
+            "position": "pin_bishop",
+            "move": "d8f6",
+            "depth": 6
+          },
+          {
+            "position": "skewer_rook",
+            "move": "e1g1",
+            "depth": 6
+          }
+        ]
+      },
+      "v14_1": {
+        "positions_tested": 5,
+        "moves": [
+          {
+            "position": "mate_in_2_scholar",
+            "move": "none",
+            "depth": 0
+          },
+          {
+            "position": "mate_in_2_back_rank",
+            "move": "a1a8",
+            "depth": 6
+          },
+          {
+            "position": "fork_knight",
+            "move": "b1c3",
+            "depth": 3
+          },
+          {
+            "position": "pin_bishop",
+            "move": "f7f6",
+            "depth": 4
+          },
+          {
+            "position": "skewer_rook",
+            "move": "f3g5",
+            "depth": 3
+          }
+        ]
+      }
+    }
+  },
+  "summary": {}
+}
