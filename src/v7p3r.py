@@ -1,21 +1,23 @@
 #!/usr/bin/env python3
 """
-V7P3R Chess Engine v15.1
-A UCI-compatible chess engine based on PositionalOpponent core with material awareness.
+V7P3R Chess Engine v15.2
+A UCI-compatible chess engine based on PositionalOpponent core with tactical awareness.
 
-Version 15.1 adds minimal material awareness to prevent catastrophic blunders:
-- Material floor in evaluation (prevents queen sacrifices without compensation)
-- Hanging piece penalty in move ordering (avoids hanging major pieces)
+Version 15.2 fixes critical material blindness from v15.1:
+- Removed broken material floor from evaluation
+- Added Static Exchange Evaluation (SEE) for captures and attacked squares
+- Enhanced move safety filtering to prevent hanging pieces
 
 Based on PositionalOpponent's proven 81.4% win rate design:
 - Complete piece-square tables for all pieces
 - Dynamic piece values from 0 to full potential (e.g., pawns 0-900)
-- Depth 6 consistency through simple, fast evaluation
+- Depth 8 with phase-aware time management
 
-v15.1 Changes from v15.0:
-- Added material floor to prevent material blindness
-- Added hanging major piece detection in move ordering
-- Total overhead: ~15 lines, <1% performance impact
+v15.2 Changes from v15.1:
+- Fixed: Removed backwards material floor logic that inflated scores
+- Added: SEE to evaluate captures and moves to attacked squares
+- Added: Move safety filtering to reject moves that lose material
+- Result: Should not lose pieces to MaterialOpponent
 
 Usage:
     python v7p3r.py
@@ -28,6 +30,16 @@ import time
 from typing import Optional, Dict, List, Tuple
 from dataclasses import dataclass
 from enum import Enum
+
+# Piece values for SEE (Static Exchange Evaluation)
+PIECE_VALUES = {
+    chess.PAWN: 100,
+    chess.KNIGHT: 300,
+    chess.BISHOP: 300,
+    chess.ROOK: 500,
+    chess.QUEEN: 900,
+    chess.KING: 20000  # King is invaluable
+}
 
 # Piece-Square Tables (values in centipawns)
 # White perspective - flip for black pieces
@@ -196,7 +208,7 @@ class V7P3REngine:
     position on the board using comprehensive piece-square tables.
     """
     
-    def __init__(self, max_depth: int = 6, tt_size_mb: int = 128):
+    def __init__(self, max_depth: int = 8, tt_size_mb: int = 128):
         """
         Initialize the V7P3R chess engine
         
@@ -287,7 +299,7 @@ class V7P3REngine:
     
     def _calculate_time_limit(self, time_left: float, increment: float = 0) -> float:
         """
-        Calculate time limit for this move based on remaining time
+        Calculate time limit for this move based on remaining time and game phase
         
         Args:
             time_left: Time remaining in seconds
@@ -298,16 +310,64 @@ class V7P3REngine:
         """
         if time_left <= 0:
             return 0  # No time limit when time_left is 0 or negative
-            
-        # Time management strategy
+        
+        # Determine game phase
+        game_phase = self._get_game_phase(self.board)
+        
+        # Base time allocation
         if time_left > 1800:  # > 30 minutes
-            return min(time_left / 40 + increment * 0.8, 30)
+            base_time = time_left / 40 + increment * 0.8
+            max_time = 30
         elif time_left > 600:  # > 10 minutes  
-            return min(time_left / 30 + increment * 0.8, 20)
+            base_time = time_left / 30 + increment * 0.8
+            max_time = 20
         elif time_left > 60:  # > 1 minute
-            return min(time_left / 20 + increment * 0.8, 10)
+            base_time = time_left / 20 + increment * 0.8
+            max_time = 10
         else:  # < 1 minute
-            return min(time_left / 10 + increment * 0.8, 5)
+            base_time = time_left / 10 + increment * 0.8
+            max_time = 5
+        
+        # Phase-aware time multipliers
+        # Opening: More time for positional setup (1.5x)
+        # Middlegame: More time for complex tactics (1.7x)
+        # Endgame: Even more time for precise calculation (2.0x)
+        if game_phase == "opening":
+            adjusted_time = base_time * 1.5
+        elif game_phase == "middlegame":
+            adjusted_time = base_time * 1.7
+        else:  # endgame
+            adjusted_time = base_time * 2.0
+            
+        return min(adjusted_time, max_time)
+    
+    def _get_game_phase(self, board: chess.Board) -> str:
+        """
+        Determine the current game phase
+        
+        Returns:
+            "opening", "middlegame", or "endgame"
+        """
+        move_count = len(board.move_stack)
+        
+        # Count total pieces (excluding kings and pawns for phase determination)
+        total_pieces = (
+            len(board.pieces(chess.QUEEN, chess.WHITE)) + len(board.pieces(chess.QUEEN, chess.BLACK)) +
+            len(board.pieces(chess.ROOK, chess.WHITE)) + len(board.pieces(chess.ROOK, chess.BLACK)) +
+            len(board.pieces(chess.BISHOP, chess.WHITE)) + len(board.pieces(chess.BISHOP, chess.BLACK)) +
+            len(board.pieces(chess.KNIGHT, chess.WHITE)) + len(board.pieces(chess.KNIGHT, chess.BLACK))
+        )
+        
+        # Endgame criteria (similar to existing _is_endgame but as string return)
+        if self._is_endgame(board):
+            return "endgame"
+        
+        # Opening: First 12 moves and most pieces still on board (12+ pieces)
+        if move_count < 24 and total_pieces >= 12:
+            return "opening"
+        
+        # Middlegame: Everything else
+        return "middlegame"
     
     def _get_piece_square_value(self, piece: chess.Piece, square: chess.Square, is_endgame: bool = False) -> int:
         """
@@ -391,24 +451,76 @@ class V7P3REngine:
             if piece:
                 pst_score += self._get_piece_square_value(piece, square, is_endgame)
         
-        # v15.1: Add material floor to prevent catastrophic blunders
-        # Calculate pure material balance
-        material_balance = 0
-        for color in [chess.WHITE, chess.BLACK]:
-            sign = 1 if color == chess.WHITE else -1
-            material_balance += sign * (
-                len(board.pieces(chess.QUEEN, color)) * 900 +
-                len(board.pieces(chess.ROOK, color)) * 500 +
-                len(board.pieces(chess.BISHOP, color)) * 300 +
-                len(board.pieces(chess.KNIGHT, color)) * 300 +
-                len(board.pieces(chess.PAWN, color)) * 100
-            )
+        # Return score from perspective of side to move
+        return pst_score if board.turn == chess.WHITE else -pst_score
+    
+    def _see(self, board: chess.Board, move: chess.Move) -> int:
+        """
+        Static Exchange Evaluation - estimate material gain/loss from a move
         
-        # Use the better of PST score or material balance
-        # This prevents queen sacrifices without positional compensation
-        score = max(pst_score, material_balance) if board.turn == chess.WHITE else min(pst_score, material_balance)
+        Args:
+            board: Current position
+            move: Move to evaluate
+            
+        Returns:
+            Net material change in centipawns (positive = gain, negative = loss)
+        """
+        # Get piece values
+        from_piece = board.piece_at(move.from_square)
+        to_piece = board.piece_at(move.to_square)
         
-        return score if board.turn == chess.WHITE else -score
+        if not from_piece:
+            return 0
+        
+        # Initial gain from capture
+        gain = 0
+        if to_piece:
+            gain = PIECE_VALUES[to_piece.piece_type]
+        
+        # Make the move and check if our piece hangs
+        board.push(move)
+        
+        # Check if piece is attacked on the target square
+        if board.is_attacked_by(not board.turn, move.to_square):
+            # If attacked and not defended, we lose the piece
+            if not board.is_attacked_by(board.turn, move.to_square):
+                gain -= PIECE_VALUES[from_piece.piece_type]
+            else:
+                # Piece is both attacked and defended = equal or winning trade
+                # For equal trades (Rook for Rook), consider it acceptable (gain 0)
+                if to_piece and from_piece.piece_type == to_piece.piece_type:
+                    gain = 0  # Equal trade
+                # Otherwise, keep the capture value (we captured, they might recapture)
+        
+        board.pop()
+        
+        return gain
+    
+    def _is_safe_move(self, board: chess.Board, move: chess.Move) -> bool:
+        """
+        Check if a move is tactically safe (doesn't lose material)
+        
+        Args:
+            board: Current position
+            move: Move to check
+            
+        Returns:
+            True if move is safe, False if it loses material
+        """
+        piece = board.piece_at(move.from_square)
+        if not piece:
+            return True
+        
+        # Always allow king moves (handled by legal move generation)
+        if piece.piece_type == chess.KING:
+            return True
+        
+        # Check SEE for the move
+        see_value = self._see(board, move)
+        
+        # Allow moves that don't lose material or lose only a little (compensation)
+        # Threshold: -200 allows some sacrifices for positional compensation
+        return see_value >= -200
     
     def _quiescence_search(self, board: chess.Board, alpha: float, beta: float, depth: int = 0) -> float:
         """
@@ -495,13 +607,13 @@ class V7P3REngine:
         1. TT move
         2. Checkmate threats
         3. Checks  
-        4. Captures (MVV-LVA)
+        4. Good captures (SEE >= 0)
         5. Killer moves
         6. Pawn advances/promotions
         7. History heuristic
-        8. Other moves
+        8. Bad captures (SEE < 0) and unsafe moves
         
-        v15.1: Added hanging major piece penalty to prevent blunders
+        v15.2: Uses SEE to properly order captures and detect unsafe moves
         """
         scored_moves = []
         
@@ -520,9 +632,15 @@ class V7P3REngine:
                 else:
                     score = 500000  # Regular checks
                 board.pop()
-            # Captures
+            # Captures - use SEE to order good/bad captures
             elif board.is_capture(move):
-                score = 400000 + self._mvv_lva_score(board, move)
+                see_value = self._see(board, move)
+                if see_value >= 0:
+                    # Good captures: winning or equal exchanges
+                    score = 400000 + see_value
+                else:
+                    # Bad captures: losing exchanges - order last
+                    score = see_value  # Negative, so ordered after quiet moves
             # Killer moves
             elif ply < len(self.killer_moves) and move in self.killer_moves[ply]:
                 score = 300000
@@ -542,17 +660,10 @@ class V7P3REngine:
                     key = (move.from_square, move.to_square)
                     score = self.history_table.get(key, 0)
             
-            # v15.1: Penalize hanging major pieces (queen/rook) heavily
-            # This prevents catastrophic blunders like Qxf6 without compensation
-            if piece and piece.piece_type in [chess.QUEEN, chess.ROOK]:
-                if not board.is_capture(move):  # Non-capturing moves only
-                    board.push(move)
-                    # Check if piece hangs after the move
-                    if board.is_attacked_by(not board.turn, move.to_square):
-                        # Check if piece is defended
-                        if not board.is_attacked_by(board.turn, move.to_square):
-                            score -= 950000  # Massive penalty - worse than almost any other move
-                    board.pop()
+            # v15.2: Penalize ALL unsafe moves (not just queen/rook)
+            # This prevents moves that lose material
+            if not self._is_safe_move(board, move):
+                score -= 500000  # Heavy penalty for unsafe moves
                 
             scored_moves.append((score, move))
         

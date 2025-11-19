@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""V7P3R v15.1 UCI Interface
+"""V7P3R v15.2 UCI Interface
 
-Version 15.1: Added minimal material awareness to prevent catastrophic blunders
-- Material floor in evaluation
-- Hanging major piece detection in move ordering
+Version 15.2: Fixed material blindness with proper SEE
+- Removed broken material floor from evaluation
+- Added Static Exchange Evaluation for captures and attacked squares
+- Enhanced move safety filtering to prevent hanging pieces
 """
 
 import sys
@@ -27,9 +28,9 @@ def main():
                 break
                 
             elif command == "uci":
-                print("id name V7P3R v15.1")
+                print("id name V7P3R v15.2")
                 print("id author Pat Snyder")
-                print("option name MaxDepth type spin default 6 min 1 max 20")
+                print("option name MaxDepth type spin default 8 min 1 max 20")
                 print("option name TTSize type spin default 128 min 16 max 1024")
                 print("uciok")
                 sys.stdout.flush()
