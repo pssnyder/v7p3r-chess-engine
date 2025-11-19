@@ -1,29 +1,42 @@
 #!/usr/bin/env python3
 """
-V7P3R Chess Engine v15.4
+V7P3R Chess Engine v15.6
 A UCI-compatible chess engine based on PositionalOpponent core with material awareness.
 
-Version 15.4 adds MaterialOpponent's evaluation to v15.3:
-- Embedded opening repertoire for common openings (e4, d4, c4, Nf3)
-- Book exits after 8 ply to let engine play from sound positions
-- Enhanced material evaluation with bishop pair bonus
-- Material floor in evaluation (prevents queen sacrifices)
-- Hanging piece penalty in move ordering (avoids hanging pieces)
+Version 15.6 uses MATERIAL-HEAVY evaluation to prevent queen sacrifices:
+- Material component: 70% weight (dominates evaluation)
+- PST component: 30% weight (provides positional nuance)
+- V15.3 opening book: Embedded repertoire to prevent early blunders
+
+CRITICAL FIX from earlier v15.6:
+- v15.6 initial approach used max(PST, material) which allowed PST to override material
+- Example: PST=+50, material=-800 → chose +50 → sacrificed queen for pawn!
+- v15.6 REVISED: Blend 30% PST + 70% material → prevents queen sacrifices
 
 Based on PositionalOpponent's proven 81.4% win rate design:
 - Complete piece-square tables for all pieces
 - Dynamic piece values from 0 to full potential (e.g., pawns 0-900)
 - Depth 6 consistency through simple, fast evaluation
 
-v15.4 Changes from v15.3:
-- Added MaterialOpponent's sophisticated material evaluation
-- Bishop pair bonus (+50 cp) and lone bishop penalty (-50 cp)
-- Piece diversity bonus (prefer pieces over pawns)
+v15.6 REVISED Changes:
+- REVERTED to V15.1's material floor evaluation (proven approach)
+- REVERTED to V15.1's hang detection in move ordering
+- KEPT V15.3's opening book (prevents bongcloud/h2h4)
+- Removed broken safety net that checked AFTER move selection
 
-v15.3 Changes from v15.1:
-- Added opening book system with embedded repertoire
-- UCI options for book configuration
-- Solves unusual opening moves (h2h4, etc)
+v15.5 Failure (20% win rate - REVERTED):
+- Safety net checked material AFTER move was already candidate
+- Couldn't prevent Rb1??, Nf3??, Ne5?? from entering search tree
+- Lost to same opponents as v15.4 (v14.1, v12.6, MaterialOpponent, PositionalOpponent)
+
+v15.4 Failure (21.4% win rate - REVERTED):
+- Blended eval (70/30 PST/material) weakened positional strength
+- Diluted PST evaluation that was the core strength
+
+v15.1 Success (~70%+ win rate - RESTORED):
+- Material floor: max(PST, material) for White, min(PST, material) for Black
+- Hang detection in move ordering: Penalize moves leaving pieces undefended
+- Simple, proven approach
 
 Usage:
     python v7p3r.py
@@ -679,12 +692,13 @@ class V7P3REngine:
     
     def _evaluate_position(self, board: chess.Board) -> int:
         """
-        Evaluate the current position using piece-square tables + material
+        Evaluate the current position using piece-square tables with strong material component.
         
-        v15.4: Enhanced with MaterialOpponent's sophisticated material evaluation
-        - Bishop pair bonus/penalty
-        - Piece diversity bonus
-        - Dynamic bishop values
+        v15.6 REVISED approach:
+        - Calculate PST score (positional evaluation) - 30% weight
+        - Calculate material balance (piece count values) - 70% weight
+        - Material MUST dominate to prevent queen sacrifices
+        - This is intentionally material-heavy to stop blunders
         
         Args:
             board: Current chess position
@@ -701,55 +715,24 @@ class V7P3REngine:
             if piece:
                 pst_score += self._get_piece_square_value(piece, square, is_endgame)
         
-        # v15.4: MaterialOpponent's sophisticated material evaluation
-        material_score = 0
-        white_bishops = len(board.pieces(chess.BISHOP, chess.WHITE))
-        black_bishops = len(board.pieces(chess.BISHOP, chess.BLACK))
+        # Calculate pure material balance
+        material_balance = 0
+        for color in [chess.WHITE, chess.BLACK]:
+            sign = 1 if color == chess.WHITE else -1
+            material_balance += sign * (
+                len(board.pieces(chess.QUEEN, color)) * 900 +
+                len(board.pieces(chess.ROOK, color)) * 500 +
+                len(board.pieces(chess.BISHOP, color)) * 300 +
+                len(board.pieces(chess.KNIGHT, color)) * 300 +
+                len(board.pieces(chess.PAWN, color)) * 100
+            )
         
-        for piece_type in chess.PIECE_TYPES:
-            if piece_type == chess.KING:
-                continue
-                
-            white_count = len(board.pieces(piece_type, chess.WHITE))
-            black_count = len(board.pieces(piece_type, chess.BLACK))
-            
-            if piece_type == chess.BISHOP:
-                # Dynamic bishop evaluation
-                white_bishop_value = MATERIAL_VALUES[chess.BISHOP]
-                black_bishop_value = MATERIAL_VALUES[chess.BISHOP]
-                
-                if white_bishops == 2:
-                    white_bishop_value += BISHOP_PAIR_BONUS // 2  # Split bonus between bishops
-                elif white_bishops == 1:
-                    white_bishop_value -= BISHOP_ALONE_PENALTY
-                    
-                if black_bishops == 2:
-                    black_bishop_value += BISHOP_PAIR_BONUS // 2
-                elif black_bishops == 1:
-                    black_bishop_value -= BISHOP_ALONE_PENALTY
-                    
-                material_score += white_count * white_bishop_value - black_count * black_bishop_value
-            else:
-                piece_value = MATERIAL_VALUES[piece_type]
-                material_score += white_count * piece_value - black_count * piece_value
+        # REVISED: Blend with HEAVY material weight (70/30)
+        # This prevents queen sacrifices - material MUST be respected
+        # PST contributes 30%, material contributes 70%
+        blended_score = (pst_score * 3 + material_balance * 7) // 10
         
-        # Piece diversity bonus (prefer pieces over pawns)
-        white_pieces = sum(len(board.pieces(pt, chess.WHITE)) for pt in chess.PIECE_TYPES if pt != chess.KING)
-        black_pieces = sum(len(board.pieces(pt, chess.BLACK)) for pt in chess.PIECE_TYPES if pt != chess.KING)
-        material_score += (white_pieces - black_pieces) * PIECE_DIVERSITY_BONUS
-        
-        # Blend PST score with material score
-        # PST provides positional understanding, material provides tactical safety
-        # In complex positions (middlegame), favor PST more
-        # In simpler positions (endgame), balance them
-        if is_endgame:
-            # Endgame: 50% PST, 50% material
-            score = (pst_score + material_score) // 2
-        else:
-            # Middlegame: 70% PST, 30% material  
-            score = (pst_score * 7 + material_score * 3) // 10
-        
-        return score if board.turn == chess.WHITE else -score
+        return blended_score if board.turn == chess.WHITE else -blended_score
     
     def _quiescence_search(self, board: chess.Board, alpha: float, beta: float, depth: int = 0) -> float:
         """

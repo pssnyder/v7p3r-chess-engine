@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-"""V7P3R v15.4 UCI Interface
+"""V7P3R v15.6 UCI Interface
 
-Version 15.4: Added MaterialOpponent's sophisticated material evaluation to v15.3
-- Bishop pair bonus (+50 cp) and lone bishop penalty (-50 cp)
-- Piece diversity bonus (prefer pieces over pawns)
-- Blended PST + material evaluation (70/30 middlegame, 50/50 endgame)
-- Opening book support (from v15.3)
+Version 15.6: Restored V15.1's proven material floor + V15.3's opening book
+- V15.1 evaluation: Material floor (max/min of PST or material balance)
+- V15.1 hang detection: Penalizes moves leaving pieces undefended
+- V15.3 opening book: Prevents bongcloud/h2h4 disasters
+
+v15.5 failed (20% win rate): Safety net checked AFTER move selection
+v15.4 failed (21.4% win rate): Blended eval diluted PST strength
+v15.6 restores v15.1's proven approach that worked
 """
 
 import sys
@@ -29,7 +32,7 @@ def main():
                 break
                 
             elif command == "uci":
-                print("id name V7P3R v15.4")
+                print("id name V7P3R v15.6")
                 print("id author Pat Snyder")
                 print("option name MaxDepth type spin default 8 min 1 max 20")
                 print("option name TTSize type spin default 128 min 16 max 1024")
