@@ -1,379 +1,391 @@
-# Positional Opponent v1.0
+# V7P3R Chess Engine
 
-A UCI-compatible chess engine that uses piece-square tables (PSTs) for position-based evaluation.
+**Latest Release: V16.1** - November 19, 2025  
+A UCI-compatible chess engine combining material safety, positional play, deep opening theory, and perfect endgames.
 
-## Overview
+## 🎯 Current Version: V16.1
 
-**Positional Opponent** is a chess engine that evaluates positions based entirely on piece placement rather than static material values. Each piece's value is determined dynamically by its position on the board using comprehensive piece-square tables, creating a distinctly positional playing style.
+**V16.1** represents a major enhancement over V16.0, adding three critical improvements:
 
-### Engine Philosophy
+### V16.1 Key Enhancements
 
-Unlike traditional engines that assign fixed values to pieces (e.g., pawn=100, knight=300), the Positional Opponent evaluates pieces based on **where they are positioned**:
+1. **🔥 Deep Opening Repertoire (15 moves)**
+   - 52+ positions programmed with center-control focus
+   - White: Italian Game (Giuoco Piano), Queen's Gambit Declined, King's Indian Attack
+   - Black: Sicilian Najdorf, King's Indian Defense, French Defense, Caro-Kann
+   - Smooth transition from opening to middlegame
 
-- A knight on the edge (b1) = 220 centipawns
-- A knight in the center (d4) = 350 centipawns
-- **Centralization bonus: 130 centipawns!**
+2. **⚡ Middlegame Transition Nudges**
+   - Rook activity: +20cp (open files), +10cp (semi-open files)
+   - King safety: +10cp per pawn shield
+   - Pawn structure: +30cp (passed pawns), -20cp (doubled pawns)
+   - Intelligent piece placement bonuses
 
-This approach naturally encourages:
-- Central piece placement
-- Pawn advancement toward promotion
-- Optimal square occupation
-- Dynamic positional understanding
+3. **♟️ Syzygy Tablebase Integration**
+   - Perfect 6-piece endgame play (when tablebases available)
+   - WDL (Win/Draw/Loss) probing for guaranteed optimal moves
+   - Graceful fallback to heuristic search if tablebases unavailable
 
-## Key Features
+4. **🐛 Critical Bug Fix**
+   - Fixed "no move found" bug in drawn positions (K vs K, insufficient material)
+   - Changed from `is_game_over()` to specific `is_checkmate()` / `is_stalemate()` checks
+   - **This bug caused Arena's "illegal move" error in V16.0**
 
-### Piece-Square Table Evaluation
+### V16.1 Architecture
 
-Each piece type has its own comprehensive PST with values ranging from minimum to maximum potential:
+**Core Formula:**
+```
+Evaluation = (PST × 60%) + (Material × 40%) + Middlegame Bonuses
+```
 
-| Piece Type | Value Range | Strategy |
-|------------|-------------|----------|
-| **Pawn** | 0 - 900 cp | Values increase dramatically as pawns advance toward the 8th rank (promotion) |
-| **Knight** | 200 - 400 cp | Highest values on central squares (d4, e4, d5, e5) |
-| **Bishop** | 250 - 400 cp | Rewards long diagonals and central control |
-| **Rook** | 400 - 600 cp | Values open files, back rank power, and 7th rank penetration |
-| **Queen** | 700 - 1100 cp | Highly centralized and active positioning |
-| **King** | Variable | Middlegame: prioritizes safety (castled positions)<br>Endgame: rewards centralization |
+**Three-Phase Excellence:**
+- **Opening (Moves 1-15):** Deep book with center control theory
+- **Middlegame:** Positional bonuses for piece activity, king safety, pawn structure
+- **Endgame (≤6 pieces):** Perfect play via Syzygy tablebases (or strong heuristics)
 
-### Advanced Features
+---
 
-1. **Endgame Detection**: Automatically switches king evaluation from safety-focused to centralization-focused
-2. **Dynamic Values**: Same piece can have vastly different values based on position
-3. **Positional Understanding**: Naturally plays positionally strong moves without explicit mobility/king safety evaluation
+## 📊 Version History
 
-### Search Infrastructure
+### V16.1 (November 19, 2025) - Enhanced Opening + Bug Fix ✅
+- Deep 52-position opening book (15 moves deep)
+- Middlegame nudges: rooks, king safety, pawn structure (+70cp potential)
+- Syzygy tablebase support for perfect endgames
+- **Fixed critical "no move found" bug** (caused V16.0 Arena errors)
+- All game phases tested and verified
 
-The Positional Opponent inherits the complete search framework from the Opponent Engine Template:
+### V16.0 (November 2025) - Fresh Start
+- Combined MaterialOpponent + PositionalOpponent strengths
+- 60% PST + 40% Material evaluation
+- Pre-search move filtering (never sacrifices material)
+- Castling preservation (king moves deprioritized)
+- Tournament tested: 0-2 (revealed opening/endgame weaknesses)
 
-- **Minimax with Alpha-Beta Pruning**: Efficient tree search
-- **Iterative Deepening**: Progressive depth increases
-- **Move Ordering**: TT moves, checks, captures (MVV-LVA), killer moves, history heuristic
-- **Quiescence Search**: Avoids horizon effect on captures
-- **Null Move Pruning**: Reduces search space
-- **Principal Variation Search**: Optimizes alpha-beta efficiency
-- **Zobrist Transposition Table**: Position caching for speed
-- **Time Management**: Adaptive time allocation
+### V14.0 (October 25, 2025) - Consolidated Performance
+- Unified bitboard evaluation system
+- Tactical detection integration
+- Pawn structure consolidation
+- Equivalent performance to V12.6 with cleaner architecture
 
-## Installation & Setup
+
+### V12.6 (October 4, 2025) - Tournament Champion ✅
+- **Engine Battle 20251004:** 7.0/10 points (2nd place)
+- **Regression Battle 20251004:** 9.0/12 points (1st place)
+- 30x faster evaluation (152ms → 5ms)
+- Clean codebase without nudge system overhead
+- High-performance bitboard evaluation
+
+---
+
+## 🚀 Installation & Setup
 
 ### Requirements
+- **Python 3.12+** (3.13 recommended)
+- **python-chess** library: `pip install python-chess`
+- **Optional:** Syzygy tablebases (3-4-5 piece) for perfect endgames
 
-- Python 3.13 or higher
-- `python-chess` library
+### Quick Start
 
-### Installation Steps
+```bash
+# 1. Install dependencies
+pip install python-chess
 
-1. **Install Python 3.13**: Download from [python.org](https://www.python.org)
+# 2. Test engine
+cd src
+python v7p3r_uci.py
 
-2. **Install python-chess**:
-   ```bash
-   pip install python-chess
-   ```
-
-3. **Verify Installation**:
-   ```bash
-   python positional_opponent.py
-   ```
-   Type `uci` and press Enter - should respond with engine identification.
+# 3. In UCI interface, type:
+uci
+isready
+position startpos
+go depth 6
+```
 
 ### Arena Chess GUI Setup
 
-1. Open Arena Chess GUI
-2. Go to: **Engines → Install New Engine**
-3. Navigate to this folder and select: `PositionalOpponent.bat`
-4. Engine will appear as: **Positional Opponent v1.0**
+1. **Install Engine:**
+   - Open Arena Chess GUI
+   - Go to: **Engines → Install New Engine**
+   - Navigate to `src/` and select: `v7p3r_uci.py`
+   - Engine appears as: **V7P3R v16.1**
 
-**Important**: Update the Python path in `PositionalOpponent.bat` if your Python installation differs:
-```batch
-"C:\Users\patss\AppData\Local\Programs\Python\Python313\python.exe" positional_opponent.py
-```
+2. **Configure Python Path (if needed):**
+   - Create `V7P3R_v161.bat` with your Python path:
+   ```batch
+   @echo off
+   "C:\Users\YourName\AppData\Local\Programs\Python\Python313\python.exe" v7p3r_uci.py
+   ```
 
-## Usage
+3. **Optional: Configure Syzygy Tablebases:**
+   - Download 3-4-5 piece tablebases from [Syzygy Download](http://tablebase.sesse.net/syzygy/)
+   - In Arena, set UCI option: `setoption name SyzygyPath value C:\path\to\tablebases`
 
-### UCI Commands
+---
 
-The engine supports standard UCI protocol:
-
-```
-uci                    # Engine identification
-isready                # Check readiness
-ucinewgame            # Start new game
-position startpos      # Set starting position
-position startpos moves e2e4 e7e5  # Set position with moves
-go wtime 300000 btime 300000       # Search with time control
-go depth 10           # Search to fixed depth
-quit                  # Exit engine
-```
-
-### Configuration Options
+## ⚙️ UCI Options
 
 | Option | Type | Default | Range | Description |
 |--------|------|---------|-------|-------------|
-| MaxDepth | spin | 6 | 1-20 | Maximum search depth |
-| TTSize | spin | 128 | 16-1024 | Transposition table size (MB) |
+| **MaxDepth** | spin | 6 | 1-20 | Maximum search depth (V16.1: 6-10 recommended) |
+| **TTSize** | spin | 128 | 16-2048 | Transposition table size in MB |
+| **SyzygyPath** | string | (empty) | - | Path to Syzygy tablebase files (V16.1) |
 
-Example configuration:
-```
+### Configuration Examples
+
+```uci
+# Standard tournament settings
 setoption name MaxDepth value 8
 setoption name TTSize value 256
+
+# With tablebases for perfect endgames
+setoption name SyzygyPath value /path/to/syzygy
+setoption name MaxDepth value 10
 ```
 
-## Performance Characteristics
+---
 
-### Typical Performance
+## 🎮 Playing Style
 
-- **Depth**: Reaches depth 6-8 in standard time controls
-- **Nodes per Second**: 15,000 - 100,000 nps (position dependent)
-- **Memory Usage**: ~128 MB (default TT size)
-- **Search Efficiency**: High due to aggressive move ordering
+### V16.1 Strengths
 
-### Benchmark Results
+1. **🔥 Opening Mastery**
+   - 52 positions deep (15 moves)
+   - Center control focus (Italian, QGD, Sicilian Najdorf, KID)
+   - Smooth book exit transitions
 
-Starting position, 2-second search:
-- **Depth Reached**: 6
-- **Nodes Searched**: ~16,000
-- **Time**: 1.1 seconds
-- **NPS**: ~25,000
+2. **⚡ Middlegame Excellence**
+   - Material safety (never sacrifices without compensation)
+   - Active piece placement (PST-guided)
+   - Rook activity detection (+20cp open files)
+   - King safety awareness (+10cp per shield pawn)
+   - Pawn structure intelligence (passed pawns, doubled pawns)
 
-Midgame position, 2-second search:
-- **Depth Reached**: 4
-- **Nodes Searched**: ~2,600
-- **Time**: 0.2 seconds
-- **NPS**: ~98,000
+3. **♟️ Endgame Mastery**
+   - **With Tablebases:** Perfect 6-piece play (forced wins)
+   - **Without Tablebases:** Strong PST + material heuristics
+   - King centralization in endgames
+   - Passed pawn promotion technique
 
-## Playing Style
+4. **🛡️ Tactical Awareness**
+   - Pre-search move filtering (material safety)
+   - Quiescence search (tactical stability)
+   - Mate detection (finds checkmate in 1-2 moves)
+   - King safety preservation (castling prioritized)
 
-### Strengths
+### V16.1 Characteristics
 
-1. **Positional Understanding**: Naturally seeks optimal piece placement
-2. **Central Control**: Strong preference for central squares
-3. **Pawn Structure**: Values pawn advancement and promotion threats
-4. **Piece Activity**: Rewards active, well-placed pieces
-5. **Consistent Strategy**: Position-based evaluation creates coherent plans
-
-### Weaknesses
-
-1. **Material Blindness**: May sacrifice material for positional gains
-2. **Tactical Oversights**: PST-only evaluation misses some tactical nuances
-3. **King Safety**: Basic king safety (only PST-based, no attack evaluation)
-4. **Pawn Structure**: No explicit weak pawn or isolated pawn detection
-5. **Mobility**: Doesn't explicitly evaluate piece mobility
+**Target Depth:** 8-10 (standard time controls)  
+**Nodes/Second:** 3,000-10,000 (position dependent)  
+**Opening Book Usage:** Moves 1-15 (52+ positions)  
+**Evaluation Speed:** ~5-10ms per position  
 
 ### Ideal Opponents
 
-- **Good Practice Against**: Material-focused engines, beginners learning positional play
-- **Challenging Matchups**: Tactically sharp engines, strong material evaluators
-- **Interesting Games**: Mirror matches against other positional engines
+- **Competitive Against:** C0BR4 v3.2 (primary target), material-focused engines
+- **Challenging:** Super-tactical engines, deep search specialists (>12 depth)
+- **Beats:** Engines without opening books, weak endgame play
 
-## Technical Details
+### Known Limitations
 
-### Architecture
+1. **Depth Limitation:** Targets 8-10 depth (not ultra-deep search)
+2. **Tactical Horizon:** May miss deep (5+ move) tactical sequences
+3. **Time Management:** Basic time allocation (can be optimized)
+4. **No Neural Networks:** Classical evaluation only
+
+---
+
+## 🏗️ Technical Architecture
+
+### V16.1 Core Systems
 
 ```
-PositionalOpponent (Main Class)
-├── Evaluation: _evaluate_position() using PSTs
-├── PST Lookup: _get_piece_square_value()
-├── Endgame Detection: _is_endgame()
-├── Search: _search() - minimax with alpha-beta
-├── Move Ordering: _order_moves()
-├── Quiescence: _quiescence_search()
-└── Time Management: _calculate_time_limit()
-
-UCIPositionalEngine (UCI Interface)
-├── Command Parsing: _handle_position(), _handle_go()
-├── Option Management: _handle_setoption()
-└── Main Loop: run()
+V7P3REngine (Main Class)
+├── Initialization
+│   ├── Opening Book (v7p3r_openings_v161.py - 52 positions)
+│   ├── Transposition Table (Zobrist hashing)
+│   └── Syzygy Tablebase (optional)
+│
+├── Search Pipeline
+│   ├── get_best_move() - Entry point
+│   │   ├── Tablebase Probing (≤6 pieces, perfect play)
+│   │   ├── Opening Book Lookup (15 moves deep)
+│   │   ├── Iterative Deepening (1→max_depth)
+│   │   └── Time Management
+│   │
+│   ├── _search() - Alpha-beta with pruning
+│   │   ├── Transposition Table Probe
+│   │   ├── Null Move Pruning (depth ≥3)
+│   │   ├── Move Filtering (material safety)
+│   │   └── Recursive Minimax
+│   │
+│   └── _quiescence_search() - Tactical stability
+│       └── Capture-only search to quiet positions
+│
+└── Evaluation System
+    ├── _evaluate_position() - Main evaluator
+    │   ├── PST Score (60% weight)
+    │   ├── Material Score (40% weight)
+    │   └── Middlegame Bonuses (V16.1)
+    │
+    └── _calculate_middlegame_bonuses() - V16.1 Enhancement
+        ├── Rook Activity (+20cp open, +10cp semi-open)
+        ├── King Safety (+10cp per shield pawn)
+        ├── Pawn Structure (+30cp passed, -20cp doubled)
+        └── Returns total bonus in centipawns
 ```
 
-### Code Statistics
+### File Structure
 
-- **Total Lines**: 675
-- **Search Infrastructure**: 85% shared with template
-- **Unique Evaluation Code**: ~15% (PST tables and lookup)
-- **Comments/Documentation**: Comprehensive
+```
+v7p3r-chess-engine/
+├── src/
+│   ├── v7p3r.py                    # Main engine (V16.1)
+│   ├── v7p3r_uci.py                # UCI protocol interface
+│   └── v7p3r_openings_v161.py      # Opening book (52 positions)
+│
+├── testing/
+│   ├── test_v161_game_phases.py    # Comprehensive phase testing
+│   └── test_no_move_bug.py         # Bug diagnostic tests
+│
+├── docs/                           # Project documentation
+├── build/                          # PyInstaller builds
+└── README.md                       # This file
+```
 
-### Piece-Square Table Design
+### Code Statistics (V16.1)
 
-**Design Principles**:
-1. **Pawns**: Exponential growth toward promotion (50 → 400 → 900)
-2. **Knights**: Peak values on central squares (d4/e4/d5/e5)
-3. **Bishops**: Long diagonal bonuses (a1-h8, h1-a8)
-4. **Rooks**: Back rank (1st) and penetration (7th rank) bonuses
-5. **Queens**: Gradual centralization rewards
-6. **Kings**: Phase-dependent (safety vs centralization)
+- **v7p3r.py:** ~870 lines (core engine)
+- **v7p3r_openings_v161.py:** ~400 lines (opening book)
+- **v7p3r_uci.py:** ~180 lines (UCI interface)
+- **Total:** ~1,450 lines of production code
 
-**Symmetry**: All PSTs are symmetric along the e-file, reflecting chess board symmetry.
+---
 
-## Customization
+## 🔬 Performance Benchmarks
 
-### Modifying Piece-Square Tables
+### V16.1 Test Results (November 19, 2025)
 
-Edit the PST arrays at the top of `positional_opponent.py`:
+| Test Category | Result | Details |
+|--------------|--------|---------|
+| **Opening Book** | ✅ Pass | 52 positions loaded, all book moves valid |
+| **Middlegame Bonuses** | ✅ Pass | +10 to +30cp applied correctly |
+| **Endgame (No TB)** | ✅ Pass | Strong heuristic play (KR vs K, KQ vs K) |
+| **Mate Finding** | ✅ Pass | Mate in 1 found instantly (29999cp) |
+| **Tactical Awareness** | ⚠️ Partial | Finds forks/checks, depth-limited on deep tactics |
+| **Bug Fix** | ✅ Fixed | "No move found" bug eliminated |
 
+### Benchmark Positions
+
+**Starting Position** (depth 6, 1s):
+- Move: d4
+- Eval: 0cp (balanced)
+- Nodes: ~267
+
+**Complex Middlegame** (depth 2, 0.06s):
+- Move: Qd3
+- Eval: +46cp (White advantage)
+- Rook bonus applied: +0cp (no open files yet)
+
+**K vs K Draw** (depth 2, 0.005s):
+- Move: Ke5
+- Eval: +24cp (centeralization)
+- **Previously failed** (V16.0 bug) ✅ Now fixed
+
+---
+
+## 🐛 Known Issues & Fixes
+
+### V16.1 Bug Fix: "No Move Found"
+
+**Issue:** V16.0 returned `None` in drawn-by-insufficient-material positions (K vs K, KN vs K), causing Arena to flag "illegal move."
+
+**Root Cause:** Used `board.is_game_over()` which returns `True` for:
+- ✓ Checkmate/Stalemate (correct)
+- ✗ Insufficient material draws (incorrect - still have moves)
+- ✗ 50-move rule (incorrect - still have moves)
+
+**Fix Applied:**
 ```python
-# Example: Make knights even more centralized
-KNIGHT_PST = [
-    [200,220,240,250,250,240,220,200],
-    [220,240,260,270,270,260,240,220],
-    [240,260,300,320,320,300,260,240],
-    [250,270,320,400,400,320,270,250],  # Increased center values
-    [250,270,320,400,400,320,270,250],  # Increased center values
-    [240,260,300,320,320,300,260,240],
-    [220,240,260,270,270,260,240,220],
-    [200,220,240,250,250,240,220,200],
-]
+# Before (buggy):
+if board.is_game_over():
+    return None
+
+# After (fixed):
+if board.is_checkmate():
+    return -MATE_SCORE + ply, None
+if board.is_stalemate():
+    return 0, None
+# Continue searching in all other cases
 ```
 
-### Adjusting Endgame Threshold
+**Validation:** ✅ All drawn positions now return legal moves
 
-Modify the `_is_endgame()` method:
+---
 
-```python
-def _is_endgame(self, board: chess.Board) -> bool:
-    # Current: < 800 material per side
-    # More aggressive: < 1200
-    return white_material < 1200 and black_material < 1200
-```
+## 📈 Development Roadmap
 
-### Adding New Evaluation Terms
+### V16.2 (Planned)
+- [ ] Enhanced time management (increment handling)
+- [ ] Opening book expansion (100+ positions)
+- [ ] Middlegame bonus tuning (match testing)
+- [ ] Performance profiling and optimization
 
-While keeping the PST core, you can add bonuses:
+### V17.0 (Future)
+- [ ] Neural network evaluation exploration
+- [ ] Deep tactical search extensions
+- [ ] Advanced endgame heuristics (7-piece positions)
+- [ ] Multi-threading support
 
-```python
-def _evaluate_position(self, board: chess.Board) -> int:
-    score = 0
-    is_endgame = self._is_endgame(board)
-    
-    # PST evaluation (core)
-    for square in chess.SQUARES:
-        piece = board.piece_at(square)
-        if piece:
-            score += self._get_piece_square_value(piece, square, is_endgame)
-    
-    # Optional: Add mobility bonus
-    mobility_bonus = len(list(board.legal_moves)) * 5
-    score += mobility_bonus if board.turn == chess.WHITE else -mobility_bonus
-    
-    return score if board.turn == chess.WHITE else -score
-```
+---
 
-## Development History
+## 🏆 Tournament Results
 
-**Version 1.0** (November 2025)
-- Initial release
-- Complete PST implementation for all pieces
-- Full UCI protocol support
-- Endgame king PST switching
-- Based on Opponent Engine Template architecture
+### V16.1 (Testing Phase)
+- **Status:** Ready for tournament testing
+- **Target Opponent:** C0BR4 v3.2
+- **Expected Performance:** >50% win rate vs baseline
 
-## Comparison with Material Opponent
+### V16.0 (November 2025)
+- **Record:** 0-2 (vs V14.1, V12.6)
+- **Issue:** Arena flagged "illegal move" (now fixed in V16.1)
+- **Analysis:** Weak opening book (2 positions), no endgame tablebases
 
-| Feature | Positional Opponent | Material Opponent |
-|---------|-------------------|-------------------|
-| **Evaluation** | Position-based PSTs | Static material values + bishop pairs |
-| **Pawn Value** | 0-900 (position dependent) | 100 (fixed) |
-| **Knight Value** | 200-400 (centralization) | 300 (fixed) |
-| **Strategy** | Positional, piece placement | Material balance |
-| **Playing Style** | Seeks optimal squares | Seeks material advantage |
-| **Code Changes** | Only evaluation (~15%) | Only evaluation (~10%) |
-| **Framework** | Shared template | Shared template |
-
-
-
-# V7P3R Chess Engine - Performance Builds
-
-**V12.6 Released:** October 4, 2025 - Tournament Ready ✅  
-**V14.0 Released:** October 25, 2025 - Consolidated Performance Build ✅
-
-## 🚀 Latest: V14.0 Consolidated Performance Build
-
-Built on V12.6 stability foundation with comprehensive code consolidation for enhanced performance and maintainability.
-
-### 🔧 V14.0 Consolidation Improvements
-- **Unified Bitboard Evaluation** - All evaluation logic consolidated into single high-performance system
-- **Tactical Detection Integration** - Bitboard tactical analysis integrated with move ordering
-- **Pawn Structure Consolidation** - Streamlined pawn evaluation with reduced overhead
-- **King Safety Unification** - Consolidated king safety evaluation for efficiency
-- **Eliminated Redundancies** - Removed duplicate bitboard operations and function calls
-- **Enhanced Maintainability** - Cleaner architecture with unified evaluation pipeline
-
-### 📊 V14.0 Performance Results
-- **Equivalent Performance** to V12.6 baseline (0.5% variance within margin of error)
-- **Preserved Functionality** - All chess heuristics and evaluation logic maintained
-- **Cleaner Codebase** - Reduced complexity through consolidation
-- **Memory Efficiency** - Reduced function call overhead
-
-### 📁 V14.0 Contents
-- `src/v7p3r.py` - Main engine with consolidated evaluation calls
-- `src/v7p3r_bitboard_evaluator.py` - Unified bitboard evaluation system (1200+ lines)
-- `src/v7p3r_uci.py` - Standard UCI protocol interface
-- `test_v14_consolidated.py` - Functionality verification tests
-- `test_v14_performance.py` - Performance comparison vs V12.6
-
-## 🏆 V12.6 Tournament Performance
-- **Engine Battle 20251004:** 7.0/10 points (2nd place vs multiple engines)
+### V12.6 (October 2025) - Champion
+- **Engine Battle 20251004:** 7.0/10 points (2nd place)
 - **Regression Battle 20251004:** 9.0/12 points (1st place vs all V7P3R versions)
-- **vs V12.2 Baseline:** Consistently superior performance
-
-## 🚀 V12.6 Performance Improvements
-- **30x faster evaluation** (152ms → 5ms)
-- **Complete nudge system removal** for clean performance
-- **Optimized search algorithm** with efficient hash caching
-- **Fast bitboard evaluation** without overhead
-
-## 📁 V12.6 Deployment Contents
-- `V7P3R_v12.6.exe` - Tournament-ready executable (8.2MB)
-- `src/` - Clean source code directory
-  - `v7p3r.py` - Main engine with optimized search
-  - `v7p3r_bitboard_evaluator.py` - High-performance evaluation
-  - `v7p3r_uci.py` - Standard UCI protocol interface
-- `V7P3R_v12.6.spec` - PyInstaller build specification
-
-## 🔧 V12.6 Technical Highlights
-- **No nudge system dependencies** - Clean codebase for future development
-- **Efficient transposition table** using chess library's built-in hash
-- **Optimized evaluation caching** with minimal overhead
-- **Standard UCI compliance** for tournament compatibility
-
-## 🎯 V12.6 Deployment Notes
-- Ready for immediate Lichess bot deployment
-- Significantly stronger than V12.2 baseline
-- Clean foundation prepared for V12.7 development
-- Tournament-tested and performance-validated
-
-## 📊 V12.6 Key Metrics
-- **Build Size:** 8,213,300 bytes
-- **Search Speed:** ~3,400 nodes/second
-- **Time Management:** Accurate within milliseconds
-- **Memory Usage:** Optimized for tournament conditions
+- **Performance:** 30x faster than V12.2 baseline
 
 ---
 
-## 🔄 Version Comparison
+## 🤝 Contributing
 
-| Feature | V12.6 | V14.0 |
-|---------|-------|--------|
-| **Architecture** | Separate evaluators | Consolidated bitboard system |
-| **Performance** | Tournament ready | Equivalent performance |
-| **Maintainability** | Good | Enhanced through consolidation |
-| **Codebase** | ~2000+ lines across files | Unified evaluation (~1200 lines) |
-| **Function Calls** | Multiple evaluator instances | Single bitboard evaluator |
-| **Memory Overhead** | Standard | Reduced through consolidation |
-| **Chess Strength** | Proven tournament performance | Preserved V12.6 strength |
+This is a personal development project, but feedback and testing are welcome!
 
-## 🎯 Development Strategy
+**Testing Help:**
+- Run V16.1 in tournaments and report results
+- Compare vs other engines (C0BR4, Stockfish levels)
+- Report any UCI compatibility issues
+- Share interesting game PGNs
 
-- **V12.6**: Stable tournament baseline - maintain for deployment
-- **V14.0**: Performance-optimized foundation for future development
-- **Future**: V14.x builds will use consolidated architecture for enhanced features
-
-## 🧪 Testing & Verification
-
-V14.0 underwent comprehensive testing:
-- ✅ **Functionality Tests**: All chess logic preserved after consolidation
-- ✅ **Performance Comparison**: 0.5% variance (within margin of error)  
-- ✅ **Component Integration**: Tactical, pawn, and king safety evaluation unified
-- ✅ **Move Generation**: Identical move selection and search behavior
+**Contact:** Open issues in the repository or submit pull requests
 
 ---
-*V12.6 represents proven tournament stability. V14.0 provides an optimized foundation with consolidated architecture for future enhancements while preserving all chess functionality.*
+
+## 📜 License
+
+Personal project - educational use encouraged
+
+---
+
+## 🙏 Acknowledgments
+
+- **python-chess** library by Niklas Fiekas
+- **Syzygy Tablebases** by Ronald de Man
+- **Arena Chess GUI** for tournament testing
+- Chess programming community for evaluation techniques
+
+---
+
+**V16.1 Status:** ✅ Production Ready  
+**Primary Target:** Beat C0BR4 v3.2  
+**Development Focus:** Opening mastery + Perfect endgames + Material safety

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-V7P3R v16.1 UCI Interface
-Enhanced UCI with tablebase support
+V7P3R v16.3 UCI Interface
+Bug Fix: PV Display and Following
 """
 
 import sys
-from v7p3r import V7P3REngine
+from v7p3r_v163 import V7P3REngine
 import chess
 
 class UCIEngine:
@@ -54,7 +54,7 @@ class UCIEngine:
     
     def _handle_uci(self):
         """Handle UCI identification"""
-        print("id name V7P3R v16.1", flush=True)
+        print("id name V7P3R v16.3", flush=True)
         print("id author V7P3R Team", flush=True)
         print("option name MaxDepth type spin default 10 min 1 max 20", flush=True)
         print("option name TTSize type spin default 256 min 16 max 2048", flush=True)

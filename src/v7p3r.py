@@ -223,7 +223,7 @@ class OpeningBook:
 class V7P3REngine:
     """V16.1 - Material safety + Positional play + Opening mastery + Perfect endgames"""
     
-    def __init__(self, max_depth: int = 6, tt_size_mb: int = 128, tablebase_path: str = ""):
+    def __init__(self, max_depth: int = 10, tt_size_mb: int = 256, tablebase_path: str = ""):
         self.board = chess.Board()
         self.max_depth = max_depth
         self.start_time = 0
@@ -710,8 +710,9 @@ class V7P3REngine:
         if tt_value is not None:
             return tt_value, tt_move
         
-        # Null move pruning
-        if do_null_move and depth >= 3 and not board.is_check():
+        # Null move pruning (but not at root and not when beta is infinite)
+        if (do_null_move and depth >= 3 and not board.is_check() and 
+            ply > 0 and beta < float('inf')):
             board.push(chess.Move.null())
             null_score, _ = self._search(board, depth - 3, -beta, -beta + 1, ply + 1, False)
             null_score = -null_score
