@@ -691,9 +691,11 @@ class V7P3REngine:
         if self._is_time_up():
             return self._evaluate_position(board), None
         
-        if board.is_game_over():
-            if board.is_checkmate():
-                return -MATE_SCORE + ply, None
+        # Check for actual terminal positions (checkmate/stalemate)
+        # Don't treat insufficient material draws as terminal - still search for best move
+        if board.is_checkmate():
+            return -MATE_SCORE + ply, None
+        if board.is_stalemate():
             return 0, None
         
         if depth <= 0:
@@ -814,7 +816,8 @@ class V7P3REngine:
             except:
                 pass
         
-        if self.board.is_game_over():
+        # Only return None if there are truly no legal moves (checkmate/stalemate)
+        if self.board.is_checkmate() or self.board.is_stalemate():
             return None
         
         self.start_time = time.time()
