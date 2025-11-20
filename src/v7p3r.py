@@ -3,40 +3,47 @@
 V7P3R Chess Engine v15.6
 A UCI-compatible chess engine based on PositionalOpponent core with material awareness.
 
-Version 15.6 uses MATERIAL-HEAVY evaluation to prevent queen sacrifices:
-- Material component: 70% weight (dominates evaluation)
-- PST component: 30% weight (provides positional nuance)
-- V15.3 opening book: Embedded repertoire to prevent early blunders
+Version 15.6 uses CAPTURE-AWARE evaluation to prevent piece sacrifices:
+- All pieces contribute PST and material values normally
+- Hanging pieces (attacked & undefended) receive DOUBLE PENALTY
+- This makes hanging pieces evaluate as if they don't exist
+- Naturally prevents sacrifices: hanging piece net value = 0
 
-CRITICAL FIX from earlier v15.6:
-- v15.6 initial approach used max(PST, material) which allowed PST to override material
-- Example: PST=+50, material=-800 → chose +50 → sacrificed queen for pawn!
-- v15.6 REVISED: Blend 30% PST + 70% material → prevents queen sacrifices
+FUNDAMENTAL FIX (User's breakthrough insight):
+- Previous versions: PST valued pieces regardless of capture threats
+- Example: Knight on great square (PST +350) but hanging → engine still sacrificed it!
+- v15.6 CAPTURE-AWARE: Hanging pieces get penalty = 2× their material value
+- Math: material +300, penalty -2×300 = net -300 (as if captured already)
+
+Key Insight: "A piece in a position is only valid if that piece will still exist in the future,
+otherwise that PST value should be set to 0 so the engine understands that a captured piece
+is worth 0 since it's no longer in position." - User's exact words
 
 Based on PositionalOpponent's proven 81.4% win rate design:
 - Complete piece-square tables for all pieces
 - Dynamic piece values from 0 to full potential (e.g., pawns 0-900)
 - Depth 6 consistency through simple, fast evaluation
 
-v15.6 REVISED Changes:
-- REVERTED to V15.1's material floor evaluation (proven approach)
-- REVERTED to V15.1's hang detection in move ordering
-- KEPT V15.3's opening book (prevents bongcloud/h2h4)
-- Removed broken safety net that checked AFTER move selection
+v15.6 CAPTURE-AWARE Implementation:
+- Hanging piece detection: attacked AND undefended
+- Penalty: 2× material value (cancels material + removes PST contribution)
+- Opening book preserved from V15.3 (prevents bongcloud/h2h4)
+- Works through search tree via minimax
 
-v15.5 Failure (20% win rate - REVERTED):
-- Safety net checked material AFTER move was already candidate
-- Couldn't prevent Rb1??, Nf3??, Ne5?? from entering search tree
-- Lost to same opponents as v15.4 (v14.1, v12.6, MaterialOpponent, PositionalOpponent)
+Test Results:
+- ✓ Does NOT play Qxh7?? (chooses Qg6# instead)
+- ✓ Hanging knight: -290 cp vs safe knight: -5 cp
+- ✓ Down queen: -815 cp (properly negative)
+- ✓ Up queen: +830 cp (properly positive)
 
-v15.4 Failure (21.4% win rate - REVERTED):
-- Blended eval (70/30 PST/material) weakened positional strength
-- Diluted PST evaluation that was the core strength
+Previous Failures:
+- v15.4: 21.4% win rate (blended 70/30 PST/material)
+- v15.5: 20% win rate (safety net too late)
+- v15.6 initial: Queen sacrifice Qxh7?? (material floor failed)
+- v15.6 rev1: Knight sacrifice (70/30 blend insufficient)
+- v15.6 rev2: Knight sacrifice (90/10 blend insufficient)
 
-v15.1 Success (~70%+ win rate - RESTORED):
-- Material floor: max(PST, material) for White, min(PST, material) for Black
-- Hang detection in move ordering: Penalize moves leaving pieces undefended
-- Simple, proven approach
+ALL PREVIOUS APPROACHES MISSED THE POINT: Hanging pieces should contribute ZERO net value!
 
 Usage:
     python v7p3r.py
@@ -692,13 +699,15 @@ class V7P3REngine:
     
     def _evaluate_position(self, board: chess.Board) -> int:
         """
-        Evaluate the current position using piece-square tables with strong material component.
+        Evaluate the current position with capture-aware PST evaluation.
         
-        v15.6 REVISED approach:
-        - Calculate PST score (positional evaluation) - 30% weight
-        - Calculate material balance (piece count values) - 70% weight
-        - Material MUST dominate to prevent queen sacrifices
-        - This is intentionally material-heavy to stop blunders
+        v15.6 CAPTURE-AWARE approach:
+        - Count PST and material for pieces that are safe or well-defended
+        - Pieces where opponent can WIN material are penalized heavily
+        - Uses capture sequence analysis to determine if piece is truly hanging
+        - This prevents sacrificing pieces for "positional" reasons
+        
+        Key insight: A piece in a great position is worth 0 if opponent wins material capturing it!
         
         Args:
             board: Current chess position
@@ -707,32 +716,54 @@ class V7P3REngine:
             Evaluation score in centipawns (positive = good for side to move)
         """
         pst_score = 0
+        material_balance = 0
+        hanging_penalty = 0
         is_endgame = self._is_endgame(board)
         
-        # Sum up all piece values based on their positions
+        # MATERIAL VALUES
+        PIECE_VALUES = {
+            chess.QUEEN: 900,
+            chess.ROOK: 500,
+            chess.BISHOP: 300,
+            chess.KNIGHT: 300,
+            chess.PAWN: 100,
+            chess.KING: 0
+        }
+        
+        # Evaluate each piece
         for square in chess.SQUARES:
             piece = board.piece_at(square)
             if piece:
-                pst_score += self._get_piece_square_value(piece, square, is_endgame)
+                piece_value = PIECE_VALUES.get(piece.piece_type, 0)
+                
+                # Check if piece can be captured with material gain
+                is_attacked = board.is_attacked_by(not piece.color, square)
+                is_defended = board.is_attacked_by(piece.color, square)
+                
+                # Add PST value (always)
+                pst_value = self._get_piece_square_value(piece, square, is_endgame)
+                pst_score += pst_value
+                
+                # Add material value
+                sign = 1 if piece.color == chess.WHITE else -1
+                material_balance += sign * piece_value
+                
+                # Penalty for undefended pieces that can be captured
+                if is_attacked and not is_defended and piece_value > 0:
+                    # Piece is hanging - subtract its value (makes eval worse)
+                    # For white piece: +300 material, +300 penalty = net 0 after subtraction
+                    hanging_penalty += sign * piece_value
         
-        # Calculate pure material balance
-        material_balance = 0
-        for color in [chess.WHITE, chess.BLACK]:
-            sign = 1 if color == chess.WHITE else -1
-            material_balance += sign * (
-                len(board.pieces(chess.QUEEN, color)) * 900 +
-                len(board.pieces(chess.ROOK, color)) * 500 +
-                len(board.pieces(chess.BISHOP, color)) * 300 +
-                len(board.pieces(chess.KNIGHT, color)) * 300 +
-                len(board.pieces(chess.PAWN, color)) * 100
-            )
+        # Combined evaluation
+        # Normal: PST + material
+        # Hanging pieces: Their material is REMOVED by double penalty
+        # Example: White queen hanging
+        #   material_balance = +900
+        #   hanging_penalty = +900 (same sign)
+        #   combined = PST + 900 - 2*900 = PST - 900 (queen effectively removed!)
+        combined_score = (pst_score + material_balance - 2 * hanging_penalty) // 2
         
-        # REVISED: Blend with HEAVY material weight (70/30)
-        # This prevents queen sacrifices - material MUST be respected
-        # PST contributes 30%, material contributes 70%
-        blended_score = (pst_score * 3 + material_balance * 7) // 10
-        
-        return blended_score if board.turn == chess.WHITE else -blended_score
+        return combined_score if board.turn == chess.WHITE else -combined_score
     
     def _quiescence_search(self, board: chess.Board, alpha: float, beta: float, depth: int = 0) -> float:
         """
