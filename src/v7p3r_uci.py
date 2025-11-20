@@ -1,147 +1,176 @@
 #!/usr/bin/env python3
-"""V7P3R v15.6 UCI Interface
-
-Version 15.6: Restored V15.1's proven material floor + V15.3's opening book
-- V15.1 evaluation: Material floor (max/min of PST or material balance)
-- V15.1 hang detection: Penalizes moves leaving pieces undefended
-- V15.3 opening book: Prevents bongcloud/h2h4 disasters
-
-v15.5 failed (20% win rate): Safety net checked AFTER move selection
-v15.4 failed (21.4% win rate): Blended eval diluted PST strength
-v15.6 restores v15.1's proven approach that worked
+"""
+V7P3R v16.1 UCI Interface
+Enhanced UCI with tablebase support
 """
 
 import sys
-import chess
 from v7p3r import V7P3REngine
+import chess
 
-
-def main():
-    engine = V7P3REngine()
-    
-    while True:
-        try:
-            line = input().strip()
-            if not line:
-                continue
+class UCIEngine:
+    def __init__(self):
+        self.tablebase_path = ""
+        self.max_depth = 6
+        self.tt_size = 128
+        self.engine = V7P3REngine(max_depth=self.max_depth, tt_size_mb=self.tt_size, 
+                                   tablebase_path=self.tablebase_path)
+        self.debug = False
+        
+    def run(self):
+        """Main UCI loop"""
+        while True:
+            try:
+                line = input().strip()
+                if not line:
+                    continue
                 
-            parts = line.split()
-            command = parts[0]
-            
-            if command == "quit":
+                parts = line.split()
+                command = parts[0]
+                
+                if command == "uci":
+                    self._handle_uci()
+                elif command == "isready":
+                    print("readyok", flush=True)
+                elif command == "ucinewgame":
+                    self.engine = V7P3REngine(max_depth=self.max_depth, tt_size_mb=self.tt_size, 
+                                               tablebase_path=self.tablebase_path)
+                elif command == "position":
+                    self._handle_position(parts[1:])
+                elif command == "go":
+                    self._handle_go(parts[1:])
+                elif command == "quit":
+                    break
+                elif command == "setoption":
+                    self._handle_setoption(parts[1:])
+                elif command == "debug":
+                    self.debug = parts[1] == "on" if len(parts) > 1 else False
+                    
+            except EOFError:
                 break
-                
-            elif command == "uci":
-                print("id name V7P3R v15.6")
-                print("id author Pat Snyder")
-                print("option name MaxDepth type spin default 8 min 1 max 20")
-                print("option name TTSize type spin default 128 min 16 max 1024")
-                print("option name OwnBook type check default true")
-                print("option name BookFile type string default <empty>")
-                print("option name BookDepth type spin default 8 min 1 max 20")
-                print("option name BookVariety type spin default 50 min 0 max 100")
-                print("uciok")
-                sys.stdout.flush()
-                
-            elif command == "setoption":
-                if len(parts) >= 5 and parts[1] == "name" and parts[3] == "value":
-                    option_name = parts[2]
-                    option_value = parts[4]
-                    
-                    if option_name == "MaxDepth":
-                        engine.max_depth = max(1, min(20, int(option_value)))
-                    elif option_name == "TTSize":
-                        tt_size = max(16, min(1024, int(option_value)))
-                        engine = V7P3REngine(max_depth=engine.max_depth, tt_size_mb=tt_size)
-                    elif option_name == "OwnBook":
-                        engine.opening_book.use_book = option_value.lower() == "true"
-                    elif option_name == "BookFile":
-                        if option_value != "<empty>" and option_value:
-                            engine.opening_book.load_polyglot_book(option_value)
-                            engine.opening_book.book_file = option_value
-                    elif option_name == "BookDepth":
-                        engine.opening_book.book_depth = max(1, min(20, int(option_value)))
-                    elif option_name == "BookVariety":
-                        engine.opening_book.book_variety = max(0, min(100, int(option_value)))
-                sys.stdout.flush()
-                
-            elif command == "isready":
-                print("readyok")
-                sys.stdout.flush()
-                
-            elif command == "ucinewgame":
-                engine = V7P3REngine(max_depth=engine.max_depth, tt_size_mb=128)
-                sys.stdout.flush()
-                
-            elif command == "position":
-                if len(parts) > 1:
-                    if parts[1] == "startpos":
-                        engine.board = chess.Board()
-                        move_start = 3 if len(parts) > 2 and parts[2] == "moves" else 2
-                    elif parts[1] == "fen":
-                        fen_parts = []
-                        i = 2
-                        while i < len(parts) and parts[i] != "moves":
-                            fen_parts.append(parts[i])
-                            i += 1
-                        engine.board = chess.Board(" ".join(fen_parts))
-                        move_start = i + 1 if i < len(parts) and parts[i] == "moves" else len(parts)
-                    else:
-                        move_start = len(parts)
-                    
-                    if move_start < len(parts):
-                        for move_uci in parts[move_start:]:
-                            try:
-                                move = chess.Move.from_uci(move_uci)
-                                if engine.board.is_legal(move):
-                                    engine.board.push(move)
-                                else:
-                                    break
-                            except:
-                                break
-                                
-            elif command == "go":
-                time_left = 0.0
-                increment = 0.0
-                depth_override = None
-                
-                for i, part in enumerate(parts):
-                    if part == "wtime" and i + 1 < len(parts) and engine.board.turn == chess.WHITE:
-                        time_left = float(parts[i + 1]) / 1000.0
-                    elif part == "btime" and i + 1 < len(parts) and engine.board.turn == chess.BLACK:
-                        time_left = float(parts[i + 1]) / 1000.0
-                    elif part == "winc" and i + 1 < len(parts) and engine.board.turn == chess.WHITE:
-                        increment = float(parts[i + 1]) / 1000.0
-                    elif part == "binc" and i + 1 < len(parts) and engine.board.turn == chess.BLACK:
-                        increment = float(parts[i + 1]) / 1000.0
-                    elif part == "depth" and i + 1 < len(parts):
-                        depth_override = int(parts[i + 1])
-                    elif part == "movetime" and i + 1 < len(parts):
-                        time_left = float(parts[i + 1]) / 1000.0
-                        increment = 0.0
-                
-                original_depth = engine.max_depth
-                if depth_override:
-                    engine.max_depth = depth_override
-                    time_left = 0
-                
-                best_move = engine.get_best_move(time_left, increment)
-                
-                if depth_override:
-                    engine.max_depth = original_depth
-                
-                if best_move:
-                    print(f"bestmove {best_move.uci()}")
-                else:
-                    print("bestmove 0000")
-                sys.stdout.flush()
-                
-        except (EOFError, KeyboardInterrupt):
-            break
+            except Exception as e:
+                if self.debug:
+                    print(f"info string Error: {e}", flush=True)
+    
+    def _handle_uci(self):
+        """Handle UCI identification"""
+        print("id name V7P3R v16.1", flush=True)
+        print("id author V7P3R Team", flush=True)
+        print("option name MaxDepth type spin default 6 min 1 max 20", flush=True)
+        print("option name TTSize type spin default 128 min 16 max 1024", flush=True)
+        print("option name SyzygyPath type string default <empty>", flush=True)
+        print("uciok", flush=True)
+    
+    def _handle_position(self, args):
+        """Handle position command"""
+        if not args:
+            return
+        
+        if args[0] == "startpos":
+            self.engine.board = chess.Board()
+            moves_idx = args.index("moves") if "moves" in args else -1
+            if moves_idx != -1:
+                for move_str in args[moves_idx + 1:]:
+                    try:
+                        move = chess.Move.from_uci(move_str)
+                        self.engine.board.push(move)
+                    except:
+                        if self.debug:
+                            print(f"info string Invalid move: {move_str}", flush=True)
+        
+        elif args[0] == "fen":
+            moves_idx = args.index("moves") if "moves" in args else len(args)
+            fen = " ".join(args[1:moves_idx])
+            try:
+                self.engine.board = chess.Board(fen)
+                if moves_idx < len(args):
+                    for move_str in args[moves_idx + 1:]:
+                        try:
+                            move = chess.Move.from_uci(move_str)
+                            self.engine.board.push(move)
+                        except:
+                            if self.debug:
+                                print(f"info string Invalid move: {move_str}", flush=True)
+            except Exception as e:
+                if self.debug:
+                    print(f"info string Invalid FEN: {e}", flush=True)
+    
+    def _handle_go(self, args):
+        """Handle go command"""
+        time_left = 0
+        increment = 0
+        depth = None
+        
+        i = 0
+        while i < len(args):
+            if args[i] == "wtime" and i + 1 < len(args):
+                if self.engine.board.turn == chess.WHITE:
+                    time_left = int(args[i + 1]) / 1000.0
+                i += 2
+            elif args[i] == "btime" and i + 1 < len(args):
+                if self.engine.board.turn == chess.BLACK:
+                    time_left = int(args[i + 1]) / 1000.0
+                i += 2
+            elif args[i] == "winc" and i + 1 < len(args):
+                if self.engine.board.turn == chess.WHITE:
+                    increment = int(args[i + 1]) / 1000.0
+                i += 2
+            elif args[i] == "binc" and i + 1 < len(args):
+                if self.engine.board.turn == chess.BLACK:
+                    increment = int(args[i + 1]) / 1000.0
+                i += 2
+            elif args[i] == "depth" and i + 1 < len(args):
+                depth = int(args[i + 1])
+                i += 2
+            else:
+                i += 1
+        
+        # Override depth if specified
+        original_depth = self.engine.max_depth
+        if depth is not None:
+            self.engine.max_depth = depth
+        
+        best_move = self.engine.get_best_move(time_left, increment)
+        
+        # Restore original depth
+        self.engine.max_depth = original_depth
+        
+        if best_move:
+            print(f"bestmove {best_move.uci()}", flush=True)
+        else:
+            print("bestmove 0000", flush=True)
+    
+    def _handle_setoption(self, args):
+        """Handle setoption command"""
+        if len(args) < 2 or args[0] != "name":
+            return
+        
+        # Find value index
+        try:
+            value_idx = args.index("value")
+            option_name = " ".join(args[1:value_idx])
+            option_value = " ".join(args[value_idx + 1:])
+        except (ValueError, IndexError):
+            return
+        
+        try:
+            if option_name == "MaxDepth":
+                self.max_depth = int(option_value)
+                self.engine.max_depth = self.max_depth
+            elif option_name == "TTSize":
+                self.tt_size = int(option_value)
+                self.engine.tt_size = (self.tt_size * 1024 * 1024) // 64
+                self.engine.transposition_table = {}
+            elif option_name == "SyzygyPath":
+                self.tablebase_path = option_value
+                # Reload engine with new tablebase path
+                self.engine = V7P3REngine(max_depth=self.max_depth, tt_size_mb=self.tt_size, 
+                                           tablebase_path=self.tablebase_path)
         except Exception as e:
-            print(f"info string Error: {e}", file=sys.stderr)
-            sys.stderr.flush()
+            if self.debug:
+                print(f"info string Error setting option: {e}", flush=True)
 
 
 if __name__ == "__main__":
-    main()
+    uci_engine = UCIEngine()
+    uci_engine.run()

@@ -1,0 +1,46 @@
+
+======================================================================
+  V7P3R v16.1 - COMPREHENSIVE GAME PHASE TESTING
+======================================================================
+
+Testing initialization, opening book, middlegame bonuses,
+endgame handling, and tactical awareness across all game phases.
+
+Target: Beat C0BR4 v3.2 with deep opening knowledge,
+smooth middlegame transition, and perfect endgames.
+
+======================================================================
+  TEST 1: Engine Initialization
+======================================================================
+
+[1a] Basic initialization (no tablebases)...
+✓ Engine initialized successfully
+  - Max depth: 6
+  - TT size: 2097152
+  - Opening book depth: 15
+  - Tablebase available: False
+  - Opening positions loaded: 52
+
+[1b] Testing opening book...
+✓ Opening book working - suggests: d4 (d2d4)
+
+[1c] Testing evaluation function...
+✓ Starting position evaluation: 0cp
+
+======================================================================
+  TEST 2: Opening Phase (Moves 1-10)
+======================================================================
+
+[2.1] Starting position
+    FEN: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+    📖 Book move: e4 (e2e4)
+Traceback (most recent call last):
+  File "S:\Maker Stuff\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\testing\test_v161_game_phases.py", line 288, in <module>
+    run_all_tests()
+    ~~~~~~~~~~~~~^^
+  File "S:\Maker Stuff\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\testing\test_v161_game_phases.py", line 272, in run_all_tests
+    test_opening_phase(engine)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^
+  File "S:\Maker Stuff\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\testing\test_v161_game_phases.py", line 92, in test_opening_phase
+    best_move = engine.get_best_move(board, time_left=1.0)
+TypeError: V7P3REngine.get_best_move() got multiple values for argument 'time_left'
