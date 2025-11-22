@@ -1,5 +1,5 @@
 """
-V7P3R v16.3 Enhanced Opening Repertoire
+V7P3R v16.1 Enhanced Opening Repertoire
 Deep center-control focused opening book (10-15 moves deep)
 
 WHITE REPERTOIRE:

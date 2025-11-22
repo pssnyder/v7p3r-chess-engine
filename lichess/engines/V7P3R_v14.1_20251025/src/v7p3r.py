@@ -1,34 +1,23 @@
 #!/usr/bin/env python3
 """
-V7P3R Chess Engine v17.1.1 - Emergency Time Management Hotfix
+V7P3R Chess Engine v14.1 - Smart Time Management Build
 
-Fixes timeout issue discovered in cloud deployment.
+Enhanced time management to fix inconsistent tournament performance across time controls.
 
-KEY IMPROVEMENTS (v17.1.1):
-- EMERGENCY TIME MODE: Strict limits when <30 seconds (prevents timeouts)
-- When <15 seconds: Max 3-5 second absolute cap
-- When <10 seconds: Max 2 second absolute cap
-
-KEY IMPROVEMENTS (v17.1):
-- DISABLED PV instant moves (prevented tactical verification - caused all 3 tournament losses)
-- ADDED opening book (prevents entering known weak positions like 1.e3 trap)
-- Expected improvement: +80-100 ELO, balanced White/Black performance
-
-KEY IMPROVEMENTS (v17.0):
-- Relaxed time management (50% base allocation increase)
-- Higher depth searches in critical positions
-- Better tournament endurance
+KEY IMPROVEMENTS (v14.1):
+- Hard 60-second cap on all moves (never exceed)
+- Smarter opening play (faster, less wasteful thinking)
+- Early return from incomplete depth iterations (save time for later)
+- Better time distribution across game phases
+- Increment-aware time management
 
 ARCHITECTURE:
 - Phase 1: Core search (alpha-beta, TT, iterative deepening)
 - Phase 2: Consolidated evaluation (unified bitboard system)
 - Phase 3: Performance optimized through code consolidation
 - Phase 4: Smart time management (v14.1)
-- Phase 5: Tournament reliability (v17.1)
 
 VERSION LINEAGE:
-- v17.1: PV instant move fix + opening book (tournament reliability)
-- v17.0: Relaxed time management (1st place but Black-side weakness)
 - v14.1: Smart time management fixes for tournament consistency
 - v14.0: Consolidated performance build with unified evaluators
 - v12.6: Nudge system removed for clean performance build
@@ -51,8 +40,6 @@ import os
 from typing import Optional, Tuple, List, Dict
 from collections import defaultdict
 from v7p3r_bitboard_evaluator import V7P3RScoringCalculationBitboard
-from v7p3r_fast_evaluator import V7P3RFastEvaluator
-from v7p3r_openings_v161 import get_enhanced_opening_book
 
 
 class PVTracker:
@@ -154,13 +141,12 @@ class PVTracker:
 class TranspositionEntry:
     """Entry in the transposition table"""
     def __init__(self, depth: int, score: int, best_move: Optional[chess.Move], 
-                 node_type: str, zobrist_hash: int, static_eval: Optional[float] = None):
+                 node_type: str, zobrist_hash: int):
         self.depth = depth
         self.score = score
         self.best_move = best_move
         self.node_type = node_type  # 'exact', 'lowerbound', 'upperbound'
         self.zobrist_hash = zobrist_hash
-        self.static_eval = static_eval  # V17.2: Unified eval cache
 
 
 class KillerMoves:
@@ -231,9 +217,9 @@ class ZobristHashing:
 
 
 class V7P3REngine:
-    """V7P3R Chess Engine v17.2.0 - Performance Optimization (TT + Cache Unification)"""
+    """V7P3R Chess Engine v14.0 - Consolidated Performance Build"""
     
-    def __init__(self, use_fast_evaluator: bool = True):
+    def __init__(self):
         # Basic configuration
         self.piece_values = {
             chess.PAWN: 100,
@@ -248,22 +234,11 @@ class V7P3REngine:
         self.default_depth = 6
         self.nodes_searched = 0
         
-        # V14.2: Evaluator selection (fast vs bitboard)
-        self.use_fast_evaluator = use_fast_evaluator
-        if use_fast_evaluator:
-            # V16.1's fast evaluator - 40x faster, enables depth 6-8
-            self.evaluator = V7P3RFastEvaluator()
-            print("info string Using Fast Evaluator (v16.1 speed)", flush=True)
-        else:
-            # V14.1's bitboard evaluator - more comprehensive but slower
-            self.evaluator = V7P3RScoringCalculationBitboard(self.piece_values, enable_nudges=False)
-            print("info string Using Bitboard Evaluator (v14.1 comprehensive)", flush=True)
+        # Evaluation components - V14.0: Consolidated bitboard evaluation
+        self.bitboard_evaluator = V7P3RScoringCalculationBitboard(self.piece_values, enable_nudges=False)
         
-        # Keep reference to bitboard evaluator for compatibility
-        self.bitboard_evaluator = self.evaluator if not use_fast_evaluator else V7P3RScoringCalculationBitboard(self.piece_values, enable_nudges=False)
-        
-        # V17.2: Unified TT + evaluation cache (static_eval stored in TT entries)
-        # Removed separate evaluation_cache - now using TT.static_eval field
+        # Simple evaluation cache for speed
+        self.evaluation_cache = {}  # position_hash -> evaluation
         
         # Advanced search infrastructure
         self.transposition_table: Dict[int, TranspositionEntry] = {}
@@ -283,20 +258,6 @@ class V7P3REngine:
             'tt_stores': 0,
             'killer_hits': 0,
         }
-        
-        # V17.2: Pre-allocated move ordering buffers (reused across searches)
-        self.move_buffers = {
-            'captures': [],
-            'checks': [],
-            'killers': [],
-            'quiet': [],
-            'tactical': [],
-            'tt': []
-        }
-        
-        # V17.1: Opening book (prevents entering weak positions)
-        self.opening_book = get_enhanced_opening_book()
-        print("info string Opening book loaded (v16.1 repertoire)", flush=True)
         
         # PV Following System - V10 OPTIMIZATION
         self.pv_tracker = PVTracker()
@@ -325,36 +286,13 @@ class V7P3REngine:
             if not legal_moves:
                 return chess.Move.null()
 
-            # V17.1: OPENING BOOK CHECK (prevents entering weak positions)
-            current_fen = board.fen()
-            if current_fen in self.opening_book:
-                book_moves = self.opening_book[current_fen]
-                legal_book_moves = [(uci, weight) for uci, weight in book_moves 
-                                   if chess.Move.from_uci(uci) in legal_moves]
-                if legal_book_moves:
-                    # Weighted random selection
-                    total_weight = sum(w for _, w in legal_book_moves)
-                    r = random.randint(1, total_weight)
-                    cumulative = 0
-                    for move_uci, weight in legal_book_moves:
-                        cumulative += weight
-                        if r <= cumulative:
-                            book_move = chess.Move.from_uci(move_uci)
-                            print(f"info string Opening book move: {book_move.uci()}", flush=True)
-                            return book_move
-
-            # V17.1: PV INSTANT MOVES DISABLED
-            # REASON: Caused all 3 tournament losses - trusts stale PV without re-evaluation
-            # IMPACT: f6 blunder repeated 3 times (depth 1, 0 nodes signature)
-            # See: docs/V17_0_PV_Blunder_Investigation_Findings.md
-            # pv_move = self.pv_tracker.check_position_for_instant_move(board)
-            # if pv_move:
-            #     return pv_move
+            # PV FOLLOWING OPTIMIZATION - check if current position triggers instant move
+            # Check for instant PV move continuation
+            pv_move = self.pv_tracker.check_position_for_instant_move(board)
+            if pv_move:
+                return pv_move
             
             target_time, max_time = self._calculate_adaptive_time_allocation(board, time_limit)
-            
-            # V17.2: UCI enhancements for debugging
-            self.seldepth = 0  # Track selective (quiescence) depth
             
             # Iterative deepening
             best_move = legal_moves[0]
@@ -372,12 +310,12 @@ class V7P3REngine:
                 if elapsed >= target_time:
                     break
                 
-                # V17.0: Predict if next iteration will complete before max_time
-                # Use 2.5x factor (less conservative than v14.1's 3.0x)
+                # V14.1: Predict if next iteration will complete before max_time
+                # Use 3x factor (conservative) instead of 2x
                 if current_depth > 1 and last_iteration_time > 0:
-                    predicted_completion = elapsed + (last_iteration_time * 2.5)
+                    predicted_completion = elapsed + (last_iteration_time * 3.0)
                     if predicted_completion >= max_time:
-                        # V17.0: Don't start iteration we can't complete
+                        # V14.1: Don't start iteration we can't complete
                         break
                 
                 try:
@@ -402,9 +340,6 @@ class V7P3REngine:
                         best_move = move
                         best_score = score
                         
-                        # V17.2: Calculate hashfull (TT usage in per mille 0-1000)
-                        hashfull = int((len(self.transposition_table) / self.max_tt_entries) * 1000)
-                        
                         elapsed_ms = int((time.time() - self.search_start_time) * 1000)
                         nps = int(self.nodes_searched / max(elapsed_ms / 1000, 0.001))
                         
@@ -416,20 +351,18 @@ class V7P3REngine:
                         if current_depth >= 4 and len(pv_line) >= 3:
                             self.pv_tracker.store_pv_from_search(board, pv_line)
                         
-                        # V17.2: Extended UCI info with seldepth and hashfull
-                        print(f"info depth {current_depth} seldepth {self.seldepth} score cp {int(score)} nodes {self.nodes_searched} time {elapsed_ms} nps {nps} hashfull {hashfull} pv {pv_string}")
+                        print(f"info depth {current_depth} score cp {int(score)} nodes {self.nodes_searched} time {elapsed_ms} nps {nps} pv {pv_string}")
                         sys.stdout.flush()
                     else:
                         # Restore previous best if iteration failed
                         best_move = previous_best
                         best_score = previous_score
                     
-                    # V17.0: SMART EARLY EXIT - if best move has been stable for 4+ iterations at depth 5+
+                    # V14.1: SMART EARLY EXIT - if best move has been stable for 3+ iterations at depth 4+
                     # This prevents wasteful thinking when the position is clear
-                    # (was 3 iterations at depth 4 with 0.5x target, now 4 iterations at depth 5 with 0.7x target)
-                    if current_depth >= 5 and stable_best_count >= 4:
+                    if current_depth >= 4 and stable_best_count >= 3:
                         elapsed = time.time() - self.search_start_time
-                        if elapsed >= target_time * 0.7:  # Used at least 70% of target time
+                        if elapsed >= target_time * 0.5:  # Used at least half our target time
                             # Position is stable, return early to save time
                             break
                     
@@ -456,11 +389,6 @@ class V7P3REngine:
         Returns (score, best_move) tuple
         """
         self.nodes_searched += 1
-        
-        # V17.2: Track selective depth (maximum depth reached including extensions)
-        current_ply = self.default_depth - search_depth
-        if hasattr(self, 'seldepth'):
-            self.seldepth = max(self.seldepth, current_ply)
         
         # CRITICAL: Time checking during recursive search to prevent timeouts
         if hasattr(self, 'search_start_time') and self.nodes_searched % 1000 == 0:
@@ -555,20 +483,17 @@ class V7P3REngine:
     
     def _order_moves_advanced(self, board: chess.Board, moves: List[chess.Move], depth: int, 
                               tt_move: Optional[chess.Move] = None) -> List[chess.Move]:
-        """V17.2: Move ordering with pre-allocated buffer reuse"""
+        """V14.0 CONSOLIDATED move ordering - TT, MVV-LVA, Checks, Killers, Quiet moves"""
         if len(moves) <= 2:
             return moves
         
-        # V17.2: Reuse pre-allocated buffers (clear instead of allocate)
-        for buffer in self.move_buffers.values():
-            buffer.clear()
-        
-        captures = self.move_buffers['captures']
-        checks = self.move_buffers['checks']
-        killers = self.move_buffers['killers']
-        quiet_moves = self.move_buffers['quiet']
-        tactical_moves = self.move_buffers['tactical']
-        tt_moves = self.move_buffers['tt']
+        # Pre-calculate move categories for efficiency
+        captures = []
+        checks = []
+        killers = []
+        quiet_moves = []
+        tactical_moves = []  # Bitboard tactical moves
+        tt_moves = []
         
         # Performance optimization: Pre-create sets for fast lookups
         killer_set = set(self.killer_moves.get_killers(depth))
@@ -632,65 +557,52 @@ class V7P3REngine:
         return ordered
     
     def _evaluate_position(self, board: chess.Board) -> float:
-        """V17.2: Position evaluation with unified TT cache"""
-        # V17.2: Use zobrist hash for unified TT lookup
-        zobrist_hash = self.zobrist.hash_position(board)
+        """V12.5 OPTIMIZED: Position evaluation with fast built-in hashing"""
+        # V12.5 PERFORMANCE FIX: Use chess library's fast _transposition_key() instead of slow Zobrist hash
+        cache_key = board._transposition_key()
         
-        # Check TT for cached evaluation
-        if zobrist_hash in self.transposition_table:
-            tt_entry = self.transposition_table[zobrist_hash]
-            if tt_entry.static_eval is not None:
-                self.search_stats['cache_hits'] += 1
-                return tt_entry.static_eval
+        if cache_key in self.evaluation_cache:
+            self.search_stats['cache_hits'] += 1
+            return self.evaluation_cache[cache_key]
         
         self.search_stats['cache_misses'] += 1
         
-        # V14.2: Use selected evaluator (fast or bitboard)
-        if self.use_fast_evaluator:
-            # Fast evaluator - returns complete score directly
-            final_score = float(self.evaluator.evaluate(board))
-        else:
-            # Bitboard evaluator - comprehensive multi-component evaluation
-            white_base = self.bitboard_evaluator.calculate_score_optimized(board, True)
-            black_base = self.bitboard_evaluator.calculate_score_optimized(board, False)
-            
-            # Consolidated evaluation components
-            try:
-                # Advanced pawn structure evaluation 
-                white_pawn_score = self.bitboard_evaluator.evaluate_pawn_structure(board, True)
-                black_pawn_score = self.bitboard_evaluator.evaluate_pawn_structure(board, False)
-                
-                # Advanced king safety evaluation
-                white_king_score = self.bitboard_evaluator.evaluate_king_safety(board, True)
-                black_king_score = self.bitboard_evaluator.evaluate_king_safety(board, False)
-                
-                # Tactical pattern evaluation disabled for performance
-                white_tactical_score = 0
-                black_tactical_score = 0
-                
-                # Combine all evaluation components
-                white_total = white_base + white_pawn_score + white_king_score + white_tactical_score
-                black_total = black_base + black_pawn_score + black_king_score + black_tactical_score
-                
-            except Exception as e:
-                # Fallback to base evaluation if advanced evaluation fails
-                white_total = white_base
-                black_total = black_base
-            
-            # Calculate final score from current player's perspective
-            if board.turn:  # White to move
-                final_score = white_total - black_total
-            else:  # Black to move
-                final_score = black_total - white_total
+        # V10 Base bitboard evaluation for material and basic positioning
+        white_base = self.bitboard_evaluator.calculate_score_optimized(board, True)
+        black_base = self.bitboard_evaluator.calculate_score_optimized(board, False)
         
-        # V17.2: Store evaluation in TT (create entry if doesn't exist)
-        if zobrist_hash in self.transposition_table:
-            self.transposition_table[zobrist_hash].static_eval = final_score
-        else:
-            # Create eval-only entry (depth=0 for eval-only)
-            entry = TranspositionEntry(0, 0, None, 'eval_only', zobrist_hash, static_eval=final_score)
-            self.transposition_table[zobrist_hash] = entry
+        # V14.0: Consolidated evaluation components enabled
+        try:
+            # 2. Advanced pawn structure evaluation 
+            white_pawn_score = self.bitboard_evaluator.evaluate_pawn_structure(board, True)
+            black_pawn_score = self.bitboard_evaluator.evaluate_pawn_structure(board, False)
+            
+            # Advanced king safety evaluation
+            white_king_score = self.bitboard_evaluator.evaluate_king_safety(board, True)
+            black_king_score = self.bitboard_evaluator.evaluate_king_safety(board, False)
+            
+            # V10.6 ROLLBACK: Tactical pattern evaluation disabled for performance
+            # Phase 3B showed 70% performance degradation in tournament play
+            white_tactical_score = 0  # V10.6: Disabled Phase 3B
+            black_tactical_score = 0  # V10.6: Disabled Phase 3B
+            
+            # Combine all evaluation components
+            white_total = white_base + white_pawn_score + white_king_score + white_tactical_score
+            black_total = black_base + black_pawn_score + black_king_score + black_tactical_score
+            
+        except Exception as e:
+            # Fallback to base evaluation if advanced evaluation fails
+            white_total = white_base
+            black_total = black_base
         
+        # Calculate final score from current player's perspective
+        if board.turn:  # White to move
+            final_score = white_total - black_total
+        else:  # Black to move
+            final_score = black_total - white_total
+        
+        # Cache the result
+        self.evaluation_cache[cache_key] = final_score
         return final_score
     
     def _simple_king_safety(self, board: chess.Board, color: bool) -> float:
@@ -733,8 +645,8 @@ class V7P3REngine:
         return False, 0, None
     
     def _store_transposition_table(self, board: chess.Board, depth: int, score: int, 
-                                    best_move: Optional[chess.Move], alpha: int, beta: int):
-        """V17.2: Store position in TT with O(1) two-tier bucket replacement"""
+                                   best_move: Optional[chess.Move], alpha: int, beta: int):
+        """Store result in transposition table - PHASE 1 FEATURE"""
         zobrist_hash = self.zobrist.hash_position(board)
         
         # Determine node type
@@ -745,39 +657,15 @@ class V7P3REngine:
         else:
             node_type = 'exact'
         
-        # V17.2: Two-tier bucket system - O(1) replacement, no sorting
-        # Bucket 1: Always-replace (fast probe)
-        # Bucket 2: Depth-preferred (keeps deep searches)
-        primary_bucket = zobrist_hash % self.max_tt_entries
-        secondary_bucket = (zobrist_hash % self.max_tt_entries) ^ 1  # Adjacent bucket
+        # Simple replacement strategy for performance
+        if len(self.transposition_table) >= self.max_tt_entries:
+            # Clear 25% of entries when full (simple aging)
+            entries = list(self.transposition_table.items())
+            entries.sort(key=lambda x: x[1].depth, reverse=True)
+            self.transposition_table = dict(entries[:int(self.max_tt_entries * 0.75)])
         
-        # Preserve static_eval if updating existing entry
-        existing_eval = None
-        if zobrist_hash in self.transposition_table:
-            existing_entry = self.transposition_table[zobrist_hash]
-            if existing_entry.zobrist_hash == zobrist_hash:
-                existing_eval = existing_entry.static_eval
-        
-        entry = TranspositionEntry(depth, score, best_move, node_type, zobrist_hash, static_eval=existing_eval)
-        
-        # Check primary bucket
-        primary_entry = self.transposition_table.get(primary_bucket)
-        if primary_entry is None or primary_entry.zobrist_hash == zobrist_hash:
-            # Empty or same position - always replace
-            self.transposition_table[primary_bucket] = entry
-            self.search_stats['tt_stores'] += 1
-            return
-        
-        # Check secondary bucket
-        secondary_entry = self.transposition_table.get(secondary_bucket)
-        if secondary_entry is None or secondary_entry.depth < depth:
-            # Empty or shallower depth - replace secondary
-            self.transposition_table[secondary_bucket] = entry
-            self.search_stats['tt_stores'] += 1
-            return
-        
-        # Both buckets occupied by deeper entries - replace primary (always-replace strategy)
-        self.transposition_table[primary_bucket] = entry
+        entry = TranspositionEntry(depth, score, best_move, node_type, zobrist_hash)
+        self.transposition_table[zobrist_hash] = entry
         self.search_stats['tt_stores'] += 1
     
     def _has_non_pawn_pieces(self, board: chess.Board) -> bool:
@@ -844,24 +732,27 @@ class V7P3REngine:
         if not tactical_moves:
             return stand_pat
         
-        # V17.2: Sort tactical moves in-place by MVV-LVA (no list allocations)
-        def mvv_lva_key(move):
-            """Calculate MVV-LVA score for sorting (higher is better)"""
+        # Sort tactical moves by MVV-LVA for better ordering
+        capture_scores = []
+        for move in tactical_moves:
             if board.is_capture(move):
                 victim = board.piece_at(move.to_square)
                 victim_value = self.piece_values.get(victim.piece_type, 0) if victim else 0
                 attacker = board.piece_at(move.from_square)
                 attacker_value = self.piece_values.get(attacker.piece_type, 0) if attacker else 0
-                return victim_value * 100 - attacker_value
+                mvv_lva = victim_value * 100 - attacker_value
+                capture_scores.append((mvv_lva, move))
             else:
-                return 0  # Check moves get lower priority
+                # Check moves get lower priority
+                capture_scores.append((0, move))
         
-        # Sort in-place (no intermediate lists)
-        tactical_moves.sort(key=mvv_lva_key, reverse=True)
+        # Sort by MVV-LVA score
+        capture_scores.sort(key=lambda x: x[0], reverse=True)
+        ordered_tactical = [move for _, move in capture_scores]
         
-        # Search tactical moves directly
+        # Search tactical moves
         best_score = stand_pat
-        for move in tactical_moves:
+        for move in ordered_tactical:
             board.push(move)
             score = -self._quiescence_search(board, -beta, -alpha, depth - 1)
             board.pop()
@@ -890,7 +781,7 @@ class V7P3REngine:
 
     def new_game(self):
         """Reset for a new game"""
-        # V17.2: Only TT to clear (unified cache)
+        self.evaluation_cache.clear()
         self.transposition_table.clear()
         self.killer_moves = KillerMoves()
         self.history_heuristic = HistoryHeuristic()
@@ -966,7 +857,6 @@ class V7P3REngine:
 
     def _calculate_adaptive_time_allocation(self, board: chess.Board, base_time_limit: float) -> Tuple[float, float]:
         """
-        V17.1.1: EMERGENCY TIME MODE added to prevent timeouts
         V14.1: IMPROVED adaptive time management - prevents wasteful thinking
         
         Returns: (target_time, max_time)
@@ -976,22 +866,10 @@ class V7P3REngine:
         - Middlegame: Use more time (complex tactics)
         - Endgame: Moderate time (technique matters, but positions simpler)
         - NEVER exceed 60 seconds per move
-        - V17.1.1: EMERGENCY MODE when time is critically low
         """
         moves_played = len(board.move_stack)
         legal_moves = list(board.legal_moves)
         num_legal_moves = len(legal_moves)
-        
-        # V17.1.1: EMERGENCY LOW-TIME MODE (prevents timeouts)
-        if base_time_limit < 10.0:
-            # Critical: <10 seconds total - use MAX 2 seconds
-            return 1.5, 2.0
-        elif base_time_limit < 15.0:
-            # Very low: <15 seconds - use MAX 3-5 seconds
-            return min(2.5, base_time_limit * 0.25), min(3.5, base_time_limit * 0.30)
-        elif base_time_limit < 30.0:
-            # Low: <30 seconds - use MAX 25% of time
-            return base_time_limit * 0.20, base_time_limit * 0.25
         
         # V14.1: HARD CAP - never exceed 60 seconds
         absolute_max = min(base_time_limit, 60.0)
@@ -999,11 +877,11 @@ class V7P3REngine:
         # Base time factor - more conservative than v14.0
         time_factor = 1.0
         
-        # V17.0: RELAXED OPENING TIME REDUCTION (was 0.5/0.6, now 0.75/0.85)
+        # V14.1: MORE AGGRESSIVE OPENING TIME REDUCTION
         if moves_played < 8:  # Very early opening
-            time_factor *= 0.75  # Use 75% time (allow tactical depth)
+            time_factor *= 0.5  # Use HALF time (wasteful to think long here)
         elif moves_played < 15:  # Opening
-            time_factor *= 0.85  # Use 85% time (piece coordination matters)
+            time_factor *= 0.6  # Still fast
         elif moves_played < 25:  # Early middlegame
             time_factor *= 0.9  # Starting to matter more
         elif moves_played < 40:  # Complex middlegame
@@ -1035,11 +913,11 @@ class V7P3REngine:
         elif material_diff > 500:  # We're significantly ahead
             time_factor *= 0.8  # Play faster when winning
         
-        # V17.0: Calculate final times with RELAXED approach (was 0.7/0.9, now 0.85/0.98)
+        # V14.1: Calculate final times with CONSERVATIVE approach
         # Target time: aim to use this much (usually hit this and return)
         # Max time: absolute limit (rarely hit, only complex positions)
-        target_time = min(absolute_max * time_factor * 0.85, absolute_max * 0.90)
-        max_time = min(absolute_max * time_factor * 0.98, absolute_max * 0.99)
+        target_time = min(absolute_max * time_factor * 0.7, absolute_max * 0.75)
+        max_time = min(absolute_max * time_factor * 0.9, absolute_max * 0.95)
         
         # V14.1: SAFETY - ensure target < max < absolute_max
         target_time = min(target_time, max_time * 0.85)

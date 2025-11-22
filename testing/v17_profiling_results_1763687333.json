@@ -1,0 +1,433 @@
+{
+  "positions": [
+    {
+      "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+      "description": "Starting Position",
+      "best_move": "g1f3",
+      "achieved_depth": 5,
+      "search_time": 1.9660367965698242,
+      "total_nodes": 17958,
+      "nps": 9134,
+      "tt_hit_rate": 0.2423058133854421,
+      "cache_hit_rate": 0.16442483589798773,
+      "depth_breakdown": {
+        "0": {
+          "nodes": 15920,
+          "time": 1.2749371528625488,
+          "entries": 6627
+        },
+        "1": {
+          "nodes": 17734,
+          "time": 1.8738036155700684,
+          "entries": 1814
+        },
+        "2": {
+          "nodes": 17699,
+          "time": 1.9119317531585693,
+          "entries": 159
+        },
+        "3": {
+          "nodes": 16615,
+          "time": 1.7943267822265625,
+          "entries": 43
+        },
+        "4": {
+          "nodes": 16622,
+          "time": 1.8789961338043213,
+          "entries": 21
+        },
+        "5": {
+          "nodes": 13285,
+          "time": 1.4992048740386963,
+          "entries": 1
+        }
+      }
+    },
+    {
+      "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
+      "description": "After 1.e4",
+      "best_move": "g8f6",
+      "achieved_depth": 5,
+      "search_time": 3.1657633781433105,
+      "total_nodes": 30423,
+      "nps": 9610,
+      "tt_hit_rate": 0.1902592852137351,
+      "cache_hit_rate": 0.14493341053850609,
+      "depth_breakdown": {
+        "0": {
+          "nodes": 27643,
+          "time": 2.012282609939575,
+          "entries": 10373
+        },
+        "1": {
+          "nodes": 30083,
+          "time": 2.99482798576355,
+          "entries": 2440
+        },
+        "2": {
+          "nodes": 29911,
+          "time": 3.0689971446990967,
+          "entries": 261
+        },
+        "3": {
+          "nodes": 28500,
+          "time": 2.898569107055664,
+          "entries": 57
+        },
+        "4": {
+          "nodes": 28621,
+          "time": 3.028125762939453,
+          "entries": 21
+        },
+        "5": {
+          "nodes": 21055,
+          "time": 2.1442172527313232,
+          "entries": 1
+        }
+      }
+    },
+    {
+      "fen": "rnbqkb1r/pppp1ppp/5n2/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3",
+      "description": "Open Game (e4 e5)",
+      "best_move": "f3e5",
+      "achieved_depth": 4,
+      "search_time": 3.4322948455810547,
+      "total_nodes": 31789,
+      "nps": 9261,
+      "tt_hit_rate": 0.15457413249211358,
+      "cache_hit_rate": 0.17599145413272801,
+      "depth_breakdown": {
+        "0": {
+          "nodes": 29994,
+          "time": 2.6283273696899414,
+          "entries": 7527
+        },
+        "1": {
+          "nodes": 31653,
+          "time": 3.353363275527954,
+          "entries": 1659
+        },
+        "2": {
+          "nodes": 31332,
+          "time": 3.37018084526062,
+          "entries": 107
+        },
+        "3": {
+          "nodes": 31161,
+          "time": 3.3609697818756104,
+          "entries": 28
+        },
+        "4": {
+          "nodes": 27598,
+          "time": 3.064328670501709,
+          "entries": 1
+        }
+      }
+    },
+    {
+      "fen": "r1bqk2r/pp2bppp/2n1pn2/3p4/3P4/2NBPN2/PP3PPP/R1BQK2R w KQkq - 0 8",
+      "description": "Typical Middlegame",
+      "best_move": "d1e2",
+      "achieved_depth": 3,
+      "search_time": 2.188180923461914,
+      "total_nodes": 20602,
+      "nps": 9415,
+      "tt_hit_rate": 0.0,
+      "cache_hit_rate": 0.1996194936338358,
+      "depth_breakdown": {
+        "0": {
+          "nodes": 20156,
+          "time": 1.791893720626831,
+          "entries": 6490
+        },
+        "1": {
+          "nodes": 20556,
+          "time": 2.1583423614501953,
+          "entries": 400
+        },
+        "2": {
+          "nodes": 20470,
+          "time": 2.173732280731201,
+          "entries": 45
+        },
+        "3": {
+          "nodes": 18375,
+          "time": 1.8296566009521484,
+          "entries": 1
+        }
+      }
+    },
+    {
+      "fen": "r1bq1rk1/pp2bppp/2n1pn2/3p4/3P4/2NBPN2/PP2QPPP/R1B1K2R w KQ - 2 10",
+      "description": "Complex Middlegame",
+      "best_move": "e1g1",
+      "achieved_depth": 3,
+      "search_time": 1.5972635746002197,
+      "total_nodes": 14273,
+      "nps": 8935,
+      "tt_hit_rate": 0.0,
+      "cache_hit_rate": 0.20892250356242464,
+      "depth_breakdown": {
+        "0": {
+          "nodes": 13935,
+          "time": 1.3132357597351074,
+          "entries": 4812
+        },
+        "1": {
+          "nodes": 14230,
+          "time": 1.57206130027771,
+          "entries": 295
+        },
+        "2": {
+          "nodes": 14139,
+          "time": 1.578484058380127,
+          "entries": 42
+        },
+        "3": {
+          "nodes": 12981,
+          "time": 1.3718323707580566,
+          "entries": 1
+        }
+      }
+    },
+    {
+      "fen": "r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4",
+      "description": "Scholar's Mate Threat",
+      "best_move": "h5f7",
+      "achieved_depth": 6,
+      "search_time": 4.641812562942505,
+      "total_nodes": 87165,
+      "nps": 18778,
+      "tt_hit_rate": 0.38491951426150806,
+      "cache_hit_rate": 0.44079697259836775,
+      "depth_breakdown": {
+        "0": {
+          "nodes": 80606,
+          "time": 2.3388895988464355,
+          "entries": 36740
+        },
+        "1": {
+          "nodes": 84969,
+          "time": 4.0235302448272705,
+          "entries": 4363
+        },
+        "2": {
+          "nodes": 80270,
+          "time": 4.212840795516968,
+          "entries": 1945
+        },
+        "3": {
+          "nodes": 81680,
+          "time": 3.952134370803833,
+          "entries": 159
+        },
+        "4": {
+          "nodes": 30142,
+          "time": 2.594940185546875,
+          "entries": 47
+        },
+        "5": {
+          "nodes": 78602,
+          "time": 4.246602535247803,
+          "entries": 44
+        },
+        "6": {
+          "nodes": 68948,
+          "time": 3.226616382598877,
+          "entries": 1
+        }
+      }
+    },
+    {
+      "fen": "r2qkb1r/ppp2ppp/2np1n2/4p1B1/2B1P3/2N2N2/PPPP1PPP/R2QK2R w KQkq - 0 6",
+      "description": "Fried Liver Setup",
+      "best_move": "e1g1",
+      "achieved_depth": 4,
+      "search_time": 14.354887247085571,
+      "total_nodes": 130165,
+      "nps": 9067,
+      "tt_hit_rate": 0.20982318271119843,
+      "cache_hit_rate": 0.1651065322550866,
+      "depth_breakdown": {
+        "0": {
+          "nodes": 125295,
+          "time": 12.187323093414307,
+          "entries": 16980
+        },
+        "1": {
+          "nodes": 129896,
+          "time": 14.12309193611145,
+          "entries": 4601
+        },
+        "2": {
+          "nodes": 128164,
+          "time": 14.114298105239868,
+          "entries": 224
+        },
+        "3": {
+          "nodes": 127615,
+          "time": 14.088438987731934,
+          "entries": 44
+        },
+        "4": {
+          "nodes": 112603,
+          "time": 13.089267492294312,
+          "entries": 1
+        }
+      }
+    },
+    {
+      "fen": "8/8/4k3/8/8/4K3/4P3/8 w - - 0 1",
+      "description": "King and Pawn Endgame",
+      "best_move": "e3e4",
+      "achieved_depth": 6,
+      "search_time": 0.1033012866973877,
+      "total_nodes": 2876,
+      "nps": 27840,
+      "tt_hit_rate": 0.4223300970873786,
+      "cache_hit_rate": 0.4430740037950664,
+      "depth_breakdown": {
+        "0": {
+          "nodes": 2176,
+          "time": 0.0296478271484375,
+          "entries": 1122
+        },
+        "1": {
+          "nodes": 2610,
+          "time": 0.07318949699401855,
+          "entries": 434
+        },
+        "2": {
+          "nodes": 2546,
+          "time": 0.08595061302185059,
+          "entries": 184
+        },
+        "3": {
+          "nodes": 2500,
+          "time": 0.08219361305236816,
+          "entries": 53
+        },
+        "4": {
+          "nodes": 2126,
+          "time": 0.07779145240783691,
+          "entries": 20
+        },
+        "5": {
+          "nodes": 2021,
+          "time": 0.07308650016784668,
+          "entries": 8
+        },
+        "6": {
+          "nodes": 1320,
+          "time": 0.04235196113586426,
+          "entries": 1
+        }
+      }
+    },
+    {
+      "fen": "8/8/pk6/8/8/1K6/8/8 w - - 0 1",
+      "description": "King Opposition",
+      "best_move": "b3c4",
+      "achieved_depth": 6,
+      "search_time": 0.09246397018432617,
+      "total_nodes": 2298,
+      "nps": 24852,
+      "tt_hit_rate": 0.42570281124497994,
+      "cache_hit_rate": 0.3983050847457627,
+      "depth_breakdown": {
+        "0": {
+          "nodes": 1666,
+          "time": 0.029480934143066406,
+          "entries": 840
+        },
+        "1": {
+          "nodes": 2067,
+          "time": 0.06701278686523438,
+          "entries": 401
+        },
+        "2": {
+          "nodes": 1973,
+          "time": 0.07544136047363281,
+          "entries": 123
+        },
+        "3": {
+          "nodes": 1995,
+          "time": 0.07668232917785645,
+          "entries": 75
+        },
+        "4": {
+          "nodes": 1934,
+          "time": 0.07416987419128418,
+          "entries": 23
+        },
+        "5": {
+          "nodes": 1799,
+          "time": 0.07215714454650879,
+          "entries": 9
+        },
+        "6": {
+          "nodes": 1432,
+          "time": 0.05834197998046875,
+          "entries": 1
+        }
+      }
+    },
+    {
+      "fen": "4k3/8/8/8/8/8/4P3/4K3 w - - 0 1",
+      "description": "Simple Pawn Promotion",
+      "best_move": "e2e4",
+      "achieved_depth": 6,
+      "search_time": 0.07929754257202148,
+      "total_nodes": 2024,
+      "nps": 25524,
+      "tt_hit_rate": 0.3684210526315789,
+      "cache_hit_rate": 0.44677871148459386,
+      "depth_breakdown": {
+        "0": {
+          "nodes": 1428,
+          "time": 0.022321462631225586,
+          "entries": 714
+        },
+        "1": {
+          "nodes": 1817,
+          "time": 0.05564451217651367,
+          "entries": 389
+        },
+        "2": {
+          "nodes": 1696,
+          "time": 0.0622410774230957,
+          "entries": 115
+        },
+        "3": {
+          "nodes": 1809,
+          "time": 0.06674385070800781,
+          "entries": 66
+        },
+        "4": {
+          "nodes": 1783,
+          "time": 0.06694865226745605,
+          "entries": 18
+        },
+        "5": {
+          "nodes": 1577,
+          "time": 0.05976748466491699,
+          "entries": 7
+        },
+        "6": {
+          "nodes": 1167,
+          "time": 0.04254865646362305,
+          "entries": 1
+        }
+      }
+    }
+  ],
+  "aggregated": {
+    "total_positions": 10,
+    "avg_search_time": 3.1621302127838136,
+    "avg_nodes": 33957,
+    "avg_nps": 15241,
+    "avg_depth": 4.8,
+    "avg_tt_hit_rate": 0.23983358890279347,
+    "avg_cache_hit_rate": 0.278795300264436
+  }
+}

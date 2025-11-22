@@ -1,0 +1,39 @@
+
+================================================================================
+V17.0 PV BLUNDER ANALYSIS - LOSS #1 RECREATION
+================================================================================
+info string Using Fast Evaluator (v16.1 speed)
+
+Playing through game sequence...
+Note: We're tracking v17.0 (Black's) PV after each of its moves
+
+
+MOVE 1w: White's 1.e3
+Traceback (most recent call last):
+  File "S:\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\testing\test_v17_pv_blunder.py", line 270, in main
+    board, move_with_pv, time_with_pv = test_critical_position_with_pv_following()
+                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "S:\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\testing\test_v17_pv_blunder.py", line 136, in test_critical_position_with_pv_following
+    board, engine = play_game_sequence_with_pv_tracking()
+                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "S:\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\testing\test_v17_pv_blunder.py", line 74, in play_game_sequence_with_pv_tracking
+    print(f"\n{'\u2500' * 80}")
+    ~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\patss\AppData\Local\Programs\Python\Python313\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode characters in position 2-81: character maps to <undefined>
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "S:\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\testing\test_v17_pv_blunder.py", line 287, in <module>
+    exit(main())
+         ~~~~^^
+  File "S:\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\testing\test_v17_pv_blunder.py", line 279, in main
+    print(f"\n\u274c ERROR: {e}")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\patss\AppData\Local\Programs\Python\Python313\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u274c' in position 2: character maps to <undefined>

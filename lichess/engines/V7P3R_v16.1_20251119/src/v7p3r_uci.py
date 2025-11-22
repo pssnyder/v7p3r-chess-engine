@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 """
-V7P3R v16.3 UCI Interface
-Bug Fix: PV Display and Following
+V7P3R v16.1 UCI Interface
+Enhanced UCI with tablebase support
 """
 
 import sys
-from v7p3r_v163 import V7P3REngine
+from v7p3r import V7P3REngine
 import chess
 
 class UCIEngine:
     def __init__(self):
         self.tablebase_path = ""
-        self.max_depth = 10
-        self.tt_size = 256
+        self.max_depth = 6
+        self.tt_size = 128
         self.engine = V7P3REngine(max_depth=self.max_depth, tt_size_mb=self.tt_size, 
                                    tablebase_path=self.tablebase_path)
         self.debug = False
@@ -54,10 +54,10 @@ class UCIEngine:
     
     def _handle_uci(self):
         """Handle UCI identification"""
-        print("id name V7P3R v16.3", flush=True)
+        print("id name V7P3R v16.1", flush=True)
         print("id author V7P3R Team", flush=True)
-        print("option name MaxDepth type spin default 10 min 1 max 20", flush=True)
-        print("option name TTSize type spin default 256 min 16 max 2048", flush=True)
+        print("option name MaxDepth type spin default 6 min 1 max 20", flush=True)
+        print("option name TTSize type spin default 128 min 16 max 1024", flush=True)
         print("option name SyzygyPath type string default <empty>", flush=True)
         print("uciok", flush=True)
     

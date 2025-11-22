@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-V7P3R v17.1.1 UCI Interface - Emergency Time Management Hotfix
+V7P3R v17.0 UCI Interface - Time Management & Profiling Enhancement
 """
 
 import sys
@@ -27,7 +27,7 @@ def main():
                 break
                 
             elif command == "uci":
-                print("id name V7P3R v17.2.0")
+                print("id name V7P3R v17.0")
                 print("id author Pat Snyder")
                 print("uciok")
                 
