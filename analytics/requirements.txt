@@ -1,0 +1,13 @@
+# V7P3R Analytics System - Requirements
+# For weekly automated game analysis using Stockfish
+
+# Core dependencies
+python-chess==1.10.0       # Chess library with PGN parsing and engine communication
+google-cloud-storage==2.14.0  # For GCP bucket operations (optional)
+google-cloud-scheduler==2.16.3  # For GCP Cloud Scheduler integration
+
+# Email reporting (optional)
+sendgrid==6.11.0          # For email delivery of reports
+
+# Utilities
+python-dotenv==1.0.0      # Environment variable management

@@ -1,0 +1,51 @@
+# V7P3R Analytics - Git Ignore
+
+# Environment configuration
+.env
+*.env
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# Working directories
+analytics_workspace/
+test_workspace/
+test_pgns/
+pgn_downloads/
+game_analyses/
+reports/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Credentials
+*.key
+*.pem
+service-account*.json
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
