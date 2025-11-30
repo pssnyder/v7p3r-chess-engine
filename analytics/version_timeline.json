@@ -1,0 +1,77 @@
+{
+  "generated": "2025-11-30T10:36:40.738937",
+  "timeline": [
+    {
+      "version": "v17.1",
+      "start_date": "2025-11-30",
+      "end_date": "CURRENT",
+      "notes": "Rolled back from v17.4 - CURRENT"
+    },
+    {
+      "version": "v17.4",
+      "start_date": "2025-11-26",
+      "end_date": "2025-11-29",
+      "notes": "ROLLED BACK - endgame issues"
+    },
+    {
+      "version": "v17.2.0",
+      "start_date": "2025-11-21",
+      "end_date": "2025-11-26",
+      "notes": "Stable deployment"
+    },
+    {
+      "version": "v17.1.1",
+      "start_date": "2025-11-21",
+      "end_date": "2025-11-21",
+      "notes": "Short-lived patch"
+    },
+    {
+      "version": "v17.1",
+      "start_date": "2025-11-21",
+      "end_date": "2025-11-21",
+      "notes": "Initial v17.1 deployment"
+    },
+    {
+      "version": "v17.0",
+      "start_date": "2025-11-20",
+      "end_date": "2025-11-21",
+      "notes": "Initial v17 series"
+    },
+    {
+      "version": "v16.1",
+      "start_date": "2025-11-19",
+      "end_date": "2025-11-20",
+      "notes": "Last of v16 series"
+    },
+    {
+      "version": "v14.1",
+      "start_date": "2025-10-25",
+      "end_date": "2025-11-19",
+      "notes": "Stable 25-day run"
+    },
+    {
+      "version": "v14.0",
+      "start_date": "2025-10-25",
+      "end_date": "2025-10-25",
+      "notes": "Short-lived"
+    },
+    {
+      "version": "v12.6",
+      "start_date": "2025-10-04",
+      "end_date": "2025-10-25",
+      "notes": "Stable 21-day run"
+    },
+    {
+      "version": "v12.4",
+      "start_date": "2025-10-03",
+      "end_date": "2025-10-04",
+      "notes": "Short-lived"
+    },
+    {
+      "version": "v12.2",
+      "start_date": "2025-10-03",
+      "end_date": "2025-10-03",
+      "notes": "Initial v12 series"
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game hHnq4wnI: 34 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+
+======================================================================
+V7P3R Analytics - Version-Aware Full Game Analysis
+======================================================================
+
+PGN File: current_games/v7p3r_since_nov21.pgn
+File Size: 0.9 MB
+
+Counting games...
+Found 328 games in file
+Will analyze all 328 games
+
+======================================================================
+Starting Stockfish Analysis with Version Tracking...
+======================================================================
+
+
+[1/328] (0.3%) hHnq4wnI | v7p3r_bot vs plynder_r6 | 1-0
+  Version: v17.1 (Rolled back from v17.4 - CURRENT)
+Traceback (most recent call last):
+  File "S:\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\analytics\full_analysis_with_versions.py", line 130, in analyze_all_games_with_versions
+    report.metadata["engine_version"] = version
+    ^^^^^^^^^^^^^^^
+AttributeError: 'GameAnalysisReport' object has no attribute 'metadata'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "S:\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\analytics\full_analysis_with_versions.py", line 334, in <module>
+    analyze_all_games_with_versions(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        args.pgn_file,
+        ^^^^^^^^^^^^^^
+        args.output_dir,
+        ^^^^^^^^^^^^^^^^
+        args.limit
+        ^^^^^^^^^^
+    )
+    ^
+  File "S:\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\analytics\full_analysis_with_versions.py", line 142, in analyze_all_games_with_versions
+    print(f"    \u2717 Analysis failed: {e}")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\patss\AppData\Local\Programs\Python\Python313\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2717' in position 4: character maps to <undefined>

@@ -1,0 +1,113 @@
+{
+  "games": {
+    "total": 10,
+    "wins": 9,
+    "losses": 0,
+    "draws": 1,
+    "win_rate": 90.0
+  },
+  "performance": {
+    "moves_analyzed": 210,
+    "avg_centipawn_loss": 2982.9,
+    "move_quality": {
+      "best": 98,
+      "excellent": 0,
+      "good": 4,
+      "inaccuracies": 19,
+      "mistakes": 4,
+      "blunders": 1,
+      "critical_blunders": 84
+    },
+    "stockfish_alignment": {
+      "top1": 48.3,
+      "top3": 48.3,
+      "top5": 50.2
+    }
+  },
+  "openings": {
+    "Indian Defense": {
+      "games": 1,
+      "win_rate": 100.0,
+      "avg_cpl": 6926.6,
+      "record": "1-0-0"
+    },
+    "French Defense": {
+      "games": 1,
+      "win_rate": 100.0,
+      "avg_cpl": 1446.7,
+      "record": "1-0-0"
+    },
+    "Queen's Gambit Declined: Tarrasch Defense": {
+      "games": 2,
+      "win_rate": 100.0,
+      "avg_cpl": 1919.0,
+      "record": "2-0-0"
+    },
+    "Queen's Pawn Game: Chigorin Variation": {
+      "games": 1,
+      "win_rate": 0.0,
+      "avg_cpl": 214.0,
+      "record": "0-0-1"
+    },
+    "King's Indian Defense": {
+      "games": 1,
+      "win_rate": 100.0,
+      "avg_cpl": 1115.1,
+      "record": "1-0-0"
+    },
+    "Queen's Pawn Game: Symmetrical Variation": {
+      "games": 1,
+      "win_rate": 100.0,
+      "avg_cpl": 2439.4,
+      "record": "1-0-0"
+    },
+    "Horwitz Defense": {
+      "games": 1,
+      "win_rate": 100.0,
+      "avg_cpl": 9816.6,
+      "record": "1-0-0"
+    },
+    "Queen's Gambit Accepted": {
+      "games": 2,
+      "win_rate": 100.0,
+      "avg_cpl": 2016.4,
+      "record": "2-0-0"
+    }
+  },
+  "opponents": {
+    "best_performances": [
+      {
+        "name": "plynder_r6",
+        "games": 10,
+        "win_rate": 90.0,
+        "avg_cpl": 2982.9,
+        "record": "9-0-1"
+      }
+    ],
+    "worst_performances": [
+      {
+        "name": "plynder_r6",
+        "games": 10,
+        "win_rate": 90.0,
+        "avg_cpl": 2982.9,
+        "record": "9-0-1"
+      }
+    ]
+  },
+  "themes": {
+    "castling_kingside": 4,
+    "castling_queenside": 2,
+    "fianchetto": 0,
+    "isolated_pawns": 1142,
+    "passed_pawns": 707,
+    "bishop_pair_games": 10,
+    "knight_outpost": 0,
+    "rook_open_file": 0,
+    "tactical_themes": 0
+  },
+  "metadata": {
+    "generated": "2025-11-30T17:58:35.057914",
+    "period": "Last 10 games",
+    "bot": "v7p3r_bot"
+  }
+}
