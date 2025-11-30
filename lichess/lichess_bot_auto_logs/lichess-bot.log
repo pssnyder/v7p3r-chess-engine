@@ -1,0 +1,324 @@
+2025-11-29 20:52:09,316 lib.lichess_bot (lichess_bot.py:1187) INFO 
+    .   _/|
+    .  // o\
+    .  || ._)  lichess-bot 2025.10.1.2 on Windows 10
+    .  //__\
+    .  )___(   Play on Lichess with a bot
+    
+2025-11-29 20:52:09,340 lib.config (config.py:288) DEBUG Config:
+token: logger
+url: https://lichess.org/
+engine:
+  dir: ./engines/v7p3r/
+  name: v7p3r_uci.py
+  protocol: uci
+  ponder: false
+  uci_options: {}
+  polyglot:
+    enabled: false
+  draw_or_resign:
+    resign_enabled: true
+    resign_score: -1000
+    resign_for_egtb_minus_two: true
+    resign_moves: 6
+    offer_draw_enabled: false
+    offer_draw_score: 20
+    offer_draw_for_egtb_zero: false
+    offer_draw_moves: 8
+    offer_draw_pieces: 8
+  online_moves:
+    max_out_of_book_moves: 0
+    max_retries: 2
+    chessdb_book:
+      enabled: false
+    lichess_cloud_analysis:
+      enabled: false
+    lichess_opening_explorer:
+      enabled: false
+    online_egtb:
+      enabled: false
+  lichess_bot_tbs:
+    syzygy:
+      enabled: true
+      max_pieces: 7
+      instant_play: true
+abort_time: 20
+fake_think_time: false
+rate_limiting_delay: 500
+move_overhead: 1500
+max_takebacks_accepted: 0
+quit_after_all_games_finish: false
+challenge:
+  concurrency: 3
+  sort_by: first
+  accept_bot: true
+  only_bot: false
+  bullet_requires_increment: true
+  opponent_rating_difference: 500
+  max_increment: 180
+  min_increment: 2
+  max_base: 1800
+  min_base: 60
+  variants:
+  - standard
+  - chess960
+  time_controls:
+  - bullet
+  - blitz
+  - rapid
+  - classical
+  modes:
+  - casual
+  - rated
+  recent_bot_challenge_age: 300
+  max_simultaneous_games_per_user: 1
+allow_list: []
+block_list: []
+greeting:
+  hello: Hello! I'm v7p3r_bot powered by V7P3R v17.1.1 running on Google Cloud e2-medium.
+    Good luck!
+  goodbye: Good game! Thanks for playing against V7P3R v17.1.1
+  hello_spectators: Welcome! You're watching v7p3r_bot with V7P3R v17.1.1 in action!
+  goodbye_spectators: Thanks for watching v7p3r_bot!
+pgn_directory: game_records
+pgn_file_grouping: opponent
+matchmaking:
+  allow_matchmaking: false
+  matchmaking_concurrency: 3
+  challenge_variant:
+  - standard
+  - chess960
+  challenge_timeout: 30
+  challenge_initial_time:
+  - 60
+  - 120
+  - 180
+  - 300
+  - 600
+  - 900
+  - 1800
+  challenge_increment:
+  - 2
+  - 3
+  - 5
+  challenge_days: 0
+  opponent_rating_difference: 500
+  opponent_allow_tos_violation: false
+  challenge_mode: rated
+  challenge_filter: none
+  min_wait_time: 60
+  max_wait_time: 180
+  smart_matchmaking_enabled: true
+  reserve_challenge_slot: true
+  use_followed_accounts: true
+  priority_opponents:
+  - c0br4_bot
+  - slowmate_bot
+  min_games_per_opponent: 5
+  improvement_target_weight: 0.3
+  variety_weight: 0.5
+  priority_weight: 0.2
+books:
+  enabled: true
+syzygy:
+  enabled: false
+correspondence:
+  checkin_period: 600
+  disconnect_time: 300
+  ponder: false
+
+2025-11-29 20:52:09,341 lib.config (config.py:289) DEBUG ====================
+2025-11-29 20:52:09,345 lib.config (config.py:288) DEBUG Config:
+token: logger
+url: https://lichess.org/
+engine:
+  dir: ./engines/v7p3r/
+  name: v7p3r_uci.py
+  protocol: uci
+  ponder: false
+  uci_options: {}
+  polyglot:
+    enabled: false
+    max_depth: 8
+    selection: weighted_random
+    min_weight: 1
+    normalization: none
+  draw_or_resign:
+    resign_enabled: true
+    resign_score: -1000
+    resign_for_egtb_minus_two: true
+    resign_moves: 6
+    offer_draw_enabled: false
+    offer_draw_score: 20
+    offer_draw_for_egtb_zero: false
+    offer_draw_moves: 8
+    offer_draw_pieces: 8
+  online_moves:
+    max_out_of_book_moves: 0
+    max_retries: 2
+    chessdb_book:
+      enabled: false
+      min_time: 20
+      max_time: 10800
+      move_quality: good
+      min_depth: 20
+    lichess_cloud_analysis:
+      enabled: false
+      min_time: 20
+      max_time: 10800
+      move_quality: best
+      min_depth: 20
+      min_knodes: 0
+      max_score_difference: 50
+    lichess_opening_explorer:
+      enabled: false
+      min_time: 20
+      max_time: 10800
+      source: masters
+      player_name: ''
+      sort: winrate
+      min_games: 10
+    online_egtb:
+      enabled: false
+      source: lichess
+      min_time: 20
+      max_time: 10800
+      max_pieces: 7
+      move_quality: best
+    max_depth: .inf
+  lichess_bot_tbs:
+    syzygy:
+      enabled: true
+      max_pieces: 7
+      instant_play: true
+      move_quality: best
+    gaviota:
+      enabled: false
+      max_pieces: 5
+      move_quality: best
+      min_dtm_to_consider_as_wdl_1: 120
+  interpreter: null
+  interpreter_options: []
+  working_dir: S:\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\lichess
+  silence_stderr: false
+  uci_ponder: false
+abort_time: 20
+fake_think_time: false
+rate_limiting_delay: 500
+move_overhead: 1500
+max_takebacks_accepted: 0
+quit_after_all_games_finish: false
+challenge:
+  concurrency: 3
+  sort_by: first
+  accept_bot: true
+  only_bot: false
+  bullet_requires_increment: true
+  opponent_rating_difference: 500
+  max_increment: 180
+  min_increment: 2
+  max_base: 1800
+  min_base: 60
+  variants:
+  - standard
+  - chess960
+  time_controls:
+  - bullet
+  - blitz
+  - rapid
+  - classical
+  modes:
+  - casual
+  - rated
+  recent_bot_challenge_age: 300
+  max_simultaneous_games_per_user: 1
+  preference: none
+  max_days: .inf
+  min_days: 1
+  block_list: []
+  online_block_list: []
+  allow_list: []
+allow_list: []
+block_list: []
+greeting:
+  hello: Hello! I'm v7p3r_bot powered by V7P3R v17.1.1 running on Google Cloud e2-medium.
+    Good luck!
+  goodbye: Good game! Thanks for playing against V7P3R v17.1.1
+  hello_spectators: Welcome! You're watching v7p3r_bot with V7P3R v17.1.1 in action!
+  goodbye_spectators: Thanks for watching v7p3r_bot!
+pgn_directory: game_records
+pgn_file_grouping: opponent
+matchmaking:
+  allow_matchmaking: false
+  matchmaking_concurrency: 3
+  challenge_variant:
+  - standard
+  - chess960
+  challenge_timeout: 30
+  challenge_initial_time:
+  - 60
+  - 120
+  - 180
+  - 300
+  - 600
+  - 900
+  - 1800
+  challenge_increment:
+  - 2
+  - 3
+  - 5
+  challenge_days:
+  - 0
+  opponent_rating_difference: 500
+  opponent_allow_tos_violation: false
+  challenge_mode: rated
+  challenge_filter: none
+  min_wait_time: 60
+  max_wait_time: 180
+  smart_matchmaking_enabled: true
+  reserve_challenge_slot: true
+  use_followed_accounts: true
+  priority_opponents:
+  - c0br4_bot
+  - slowmate_bot
+  min_games_per_opponent: 5
+  improvement_target_weight: 0.3
+  variety_weight: 0.5
+  priority_weight: 0.2
+  block_list: []
+  online_block_list: []
+  include_challenge_block_list: false
+  opponent_min_rating: 600
+  opponent_max_rating: 4000
+  rating_preference: none
+  overrides: {}
+books:
+  enabled: true
+syzygy:
+  enabled: false
+correspondence:
+  checkin_period: 600
+  disconnect_time: 300
+  ponder: false
+  move_time: 60
+  uci_ponder: false
+
+2025-11-29 20:52:09,345 lib.config (config.py:289) DEBUG ====================
+2025-11-29 20:52:09,346 lib.lichess_bot (lichess_bot.py:1268) ERROR Quitting lichess-bot due to an error:
+Traceback (most recent call last):
+  File "S:\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\lichess\lib\lichess_bot.py", line 1259, in start_program
+    start_lichess_bot()
+    ~~~~~~~~~~~~~~~~~^^
+  File "S:\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\lichess\lib\lichess_bot.py", line 1189, in start_lichess_bot
+    CONFIG = load_config(args.config or "./config.yml")
+  File "S:\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\lichess\lib\config.py", line 442, in load_config
+    validate_config(CONFIG)
+    ~~~~~~~~~~~~~~~^^^^^^^^
+  File "S:\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\lichess\lib\config.py", line 301, in validate_config
+    config_assert(os.path.isdir(CONFIG["engine"]["dir"]),
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                  f'Your engine directory `{CONFIG["engine"]["dir"]}` is not a directory.')
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "S:\Programming\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine\lichess\lib\config.py", line 70, in config_assert
+    raise Exception(error_message)
+Exception: Your engine directory `./engines/v7p3r/` is not a directory.
