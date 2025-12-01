@@ -1,0 +1,499 @@
+{
+  "games": {
+    "total": 151,
+    "wins": 70,
+    "losses": 61,
+    "draws": 20,
+    "win_rate": 46.4
+  },
+  "performance": {
+    "moves_analyzed": 3313,
+    "avg_centipawn_loss": 2265.9,
+    "move_quality": {
+      "best": 1571,
+      "excellent": 45,
+      "good": 99,
+      "inaccuracies": 238,
+      "mistakes": 136,
+      "blunders": 198,
+      "critical_blunders": 1026
+    },
+    "stockfish_alignment": {
+      "top1": 47.6,
+      "top3": 48.9,
+      "top5": 51.9
+    }
+  },
+  "openings": {
+    "Van't Kruijs Opening": {
+      "games": 13,
+      "win_rate": 69.2,
+      "avg_cpl": 2913.7,
+      "record": "9-2-2"
+    },
+    "Queen's Pawn Game": {
+      "games": 2,
+      "win_rate": 100.0,
+      "avg_cpl": 2156.1,
+      "record": "2-0-0"
+    },
+    "Horwitz Defense": {
+      "games": 5,
+      "win_rate": 60.0,
+      "avg_cpl": 1692.9,
+      "record": "3-1-1"
+    },
+    "French Defense: Tarrasch Variation": {
+      "games": 1,
+      "win_rate": 0.0,
+      "avg_cpl": 3249.2,
+      "record": "0-1-0"
+    },
+    "Queen's Pawn Game: Chigorin Variation": {
+      "games": 5,
+      "win_rate": 80.0,
+      "avg_cpl": 3314.6,
+      "record": "4-1-0"
+    },
+    "French Defense": {
+      "games": 1,
+      "win_rate": 100.0,
+      "avg_cpl": 60.3,
+      "record": "1-0-0"
+    },
+    "Englund Gambit": {
+      "games": 1,
+      "win_rate": 100.0,
+      "avg_cpl": 2475.8,
+      "record": "1-0-0"
+    },
+    "Nimzo-Indian Defense: S\u00c3\u00a4misch Variation": {
+      "games": 4,
+      "win_rate": 50.0,
+      "avg_cpl": 1314.9,
+      "record": "2-2-0"
+    },
+    "Nimzowitsch Defense: Franco-Nimzowitsch Variation": {
+      "games": 2,
+      "win_rate": 0.0,
+      "avg_cpl": 3115.6,
+      "record": "0-2-0"
+    },
+    "Indian Defense: Czech-Indian": {
+      "games": 1,
+      "win_rate": 100.0,
+      "avg_cpl": 461.6,
+      "record": "1-0-0"
+    },
+    "Gr\u00c3\u00bcnfeld Defense: Exchange Variation, Modern Exchange Variation": {
+      "games": 1,
+      "win_rate": 0.0,
+      "avg_cpl": 303.9,
+      "record": "0-0-1"
+    },
+    "Queen's Gambit Declined: Marshall Defense": {
+      "games": 1,
+      "win_rate": 100.0,
+      "avg_cpl": 149.8,
+      "record": "1-0-0"
+    },
+    "Indian Defense: Knights Variation": {
+      "games": 3,
+      "win_rate": 33.3,
+      "avg_cpl": 1191.9,
+      "record": "1-2-0"
+    },
+    "Dutch Defense: Raphael Variation": {
+      "games": 1,
+      "win_rate": 100.0,
+      "avg_cpl": 3261.9,
+      "record": "1-0-0"
+    },
+    "Slav Indian": {
+      "games": 2,
+      "win_rate": 100.0,
+      "avg_cpl": 1855.3,
+      "record": "2-0-0"
+    },
+    "King's Indian Defense: Orthodox Variation": {
+      "games": 1,
+      "win_rate": 0.0,
+      "avg_cpl": 583.4,
+      "record": "0-1-0"
+    },
+    "French Defense: Steiner Variation": {
+      "games": 1,
+      "win_rate": 100.0,
+      "avg_cpl": 1743.4,
+      "record": "1-0-0"
+    },
+    "King's Indian Defense": {
+      "games": 3,
+      "win_rate": 66.7,
+      "avg_cpl": 2246.6,
+      "record": "2-1-0"
+    },
+    "Clemenz Opening": {
+      "games": 1,
+      "win_rate": 100.0,
+      "avg_cpl": 2720.3,
+      "record": "1-0-0"
+    },
+    "Paleface Attack": {
+      "games": 1,
+      "win_rate": 0.0,
+      "avg_cpl": 3024.5,
+      "record": "0-1-0"
+    },
+    "English Opening: Anglo-Scandinavian Defense": {
+      "games": 2,
+      "win_rate": 50.0,
+      "avg_cpl": 1185.9,
+      "record": "1-0-1"
+    },
+    "Indian Defense: West Indian Defense": {
+      "games": 1,
+      "win_rate": 0.0,
+      "avg_cpl": 5652.6,
+      "record": "0-1-0"
+    },
+    "King's Indian Defense: Makogonov Variation": {
+      "games": 2,
+      "win_rate": 0.0,
+      "avg_cpl": 4666.3,
+      "record": "0-2-0"
+    },
+    "French Defense: Tarrasch Variation, Guimard Defense": {
+      "games": 1,
+      "win_rate": 100.0,
+      "avg_cpl": 3837.0,
+      "record": "1-0-0"
+    },
+    "Queen's Gambit Declined: Modern Variation": {
+      "games": 1,
+      "win_rate": 0.0,
+      "avg_cpl": 225.0,
+      "record": "0-1-0"
+    },
+    "Nimzowitsch Defense: French Connection": {
+      "games": 3,
+      "win_rate": 66.7,
+      "avg_cpl": 2563.9,
+      "record": "2-1-0"
+    },
+    "Slav Defense": {
+      "games": 2,
+      "win_rate": 0.0,
+      "avg_cpl": 1857.3,
+      "record": "0-2-0"
+    },
+    "Queen's Gambit Accepted": {
+      "games": 1,
+      "win_rate": 100.0,
+      "avg_cpl": 2452.7,
+      "record": "1-0-0"
+    },
+    "Hungarian Opening": {
+      "games": 2,
+      "win_rate": 100.0,
+      "avg_cpl": 2167.6,
+      "record": "2-0-0"
+    },
+    "Nimzo-Indian Defense: Three Knights Variation": {
+      "games": 2,
+      "win_rate": 0.0,
+      "avg_cpl": 1327.0,
+      "record": "0-2-0"
+    },
+    "Mexican Defense": {
+      "games": 2,
+      "win_rate": 100.0,
+      "avg_cpl": 2727.2,
+      "record": "2-0-0"
+    },
+    "Anderssen's Opening": {
+      "games": 1,
+      "win_rate": 100.0,
+      "avg_cpl": 5096.0,
+      "record": "1-0-0"
+    },
+    "Queen's Pawn Game: Torre Attack": {
+      "games": 1,
+      "win_rate": 0.0,
+      "avg_cpl": 1548.1,
+      "record": "0-0-1"
+    },
+    "Queen's Pawn Game: Chigorin Variation, Shropshire Defense": {
+      "games": 2,
+      "win_rate": 0.0,
+      "avg_cpl": 423.0,
+      "record": "0-1-1"
+    },
+    "French Defense: Bird Invitation": {
+      "games": 3,
+      "win_rate": 66.7,
+      "avg_cpl": 1497.5,
+      "record": "2-0-1"
+    },
+    "French Defense: Schlechter Variation": {
+      "games": 1,
+      "win_rate": 0.0,
+      "avg_cpl": 503.0,
+      "record": "0-1-0"
+    },
+    "Neo-Gr\u00c3\u00bcnfeld Defense: with Nf3": {
+      "games": 1,
+      "win_rate": 100.0,
+      "avg_cpl": 4091.4,
+      "record": "1-0-0"
+    },
+    "Four Knights Game: Spanish Variation, Rubinstein Variation Accepted": {
+      "games": 1,
+      "win_rate": 0.0,
+      "avg_cpl": 2453.0,
+      "record": "0-1-0"
+    },
+    "King's Indian Defense: Normal Variation, Rare Defenses": {
+      "games": 1,
+      "win_rate": 0.0,
+      "avg_cpl": 595.7,
+      "record": "0-1-0"
+    },
+    "French Defense: Queen's Knight": {
+      "games": 2,
+      "win_rate": 50.0,
+      "avg_cpl": 3887.3,
+      "record": "1-1-0"
+    },
+    "French Defense: Exchange Variation": {
+      "games": 1,
+      "win_rate": 0.0,
+      "avg_cpl": 3260.1,
+      "record": "0-1-0"
+    },
+    "Queen's Gambit Declined": {
+      "games": 1,
+      "win_rate": 0.0,
+      "avg_cpl": 1169.0,
+      "record": "0-1-0"
+    },
+    "Queen's Gambit Accepted: Mannheim Variation": {
+      "games": 1,
+      "win_rate": 100.0,
+      "avg_cpl": 2151.1,
+      "record": "1-0-0"
+    },
+    "Zukertort Opening: Queen's Gambit Invitation": {
+      "games": 18,
+      "win_rate": 44.4,
+      "avg_cpl": 2323.9,
+      "record": "8-7-3"
+    },
+    "Indian Defense: Wade-Tartakower Defense": {
+      "games": 1,
+      "win_rate": 0.0,
+      "avg_cpl": 859.4,
+      "record": "0-0-1"
+    },
+    "Zukertort Opening: Black Mustang Defense": {
+      "games": 9,
+      "win_rate": 22.2,
+      "avg_cpl": 2743.8,
+      "record": "2-5-2"
+    },
+    "Indian Defense": {
+      "games": 4,
+      "win_rate": 25.0,
+      "avg_cpl": 2295.1,
+      "record": "1-2-1"
+    },
+    "Queen's Gambit Declined: Charousek Variation": {
+      "games": 1,
+      "win_rate": 0.0,
+      "avg_cpl": 903.3,
+      "record": "0-1-0"
+    },
+    "English Opening: Anglo-Lithuanian Variation": {
+      "games": 1,
+      "win_rate": 100.0,
+      "avg_cpl": 4198.4,
+      "record": "1-0-0"
+    },
+    "Zukertort Opening": {
+      "games": 7,
+      "win_rate": 14.3,
+      "avg_cpl": 758.0,
+      "record": "1-4-2"
+    },
+    "Bird Opening": {
+      "games": 1,
+      "win_rate": 100.0,
+      "avg_cpl": 3411.0,
+      "record": "1-0-0"
+    },
+    "Slav Defense: Exchange Variation": {
+      "games": 1,
+      "win_rate": 0.0,
+      "avg_cpl": 3004.9,
+      "record": "0-0-1"
+    },
+    "Grob Opening": {
+      "games": 1,
+      "win_rate": 0.0,
+      "avg_cpl": 2489.6,
+      "record": "0-1-0"
+    },
+    "Saragossa Opening": {
+      "games": 7,
+      "win_rate": 28.6,
+      "avg_cpl": 2526.9,
+      "record": "2-3-2"
+    },
+    "Zukertort Opening: Quiet System": {
+      "games": 5,
+      "win_rate": 40.0,
+      "avg_cpl": 2909.8,
+      "record": "2-3-0"
+    },
+    "Zukertort Opening: Ross Gambit": {
+      "games": 1,
+      "win_rate": 100.0,
+      "avg_cpl": 3480.8,
+      "record": "1-0-0"
+    },
+    "Scandinavian Defense: Mieses-Kotroc Variation": {
+      "games": 2,
+      "win_rate": 50.0,
+      "avg_cpl": 2583.3,
+      "record": "1-1-0"
+    },
+    "Blackmar-Diemer Gambit: Diemer-Rosenberg Attack": {
+      "games": 1,
+      "win_rate": 100.0,
+      "avg_cpl": 2514.9,
+      "record": "1-0-0"
+    },
+    "Zukertort Opening: Sicilian Invitation": {
+      "games": 1,
+      "win_rate": 0.0,
+      "avg_cpl": 589.3,
+      "record": "0-1-0"
+    },
+    "Mieses Opening": {
+      "games": 1,
+      "win_rate": 100.0,
+      "avg_cpl": 3501.2,
+      "record": "1-0-0"
+    },
+    "Nimzo-Indian Defense: Classical Variation": {
+      "games": 1,
+      "win_rate": 0.0,
+      "avg_cpl": 629.3,
+      "record": "0-1-0"
+    },
+    "Bogo-Indian Defense: Gr\u00c3\u00bcnfeld Variation": {
+      "games": 1,
+      "win_rate": 0.0,
+      "avg_cpl": 3178.7,
+      "record": "0-1-0"
+    },
+    "Scandinavian Defense": {
+      "games": 2,
+      "win_rate": 50.0,
+      "avg_cpl": 1244.3,
+      "record": "1-1-0"
+    }
+  },
+  "opponents": {
+    "best_performances": [
+      {
+        "name": "KangAwy",
+        "games": 1,
+        "win_rate": 100.0,
+        "avg_cpl": 416.7,
+        "record": "1-0-0"
+      },
+      {
+        "name": "slowmate_bot",
+        "games": 1,
+        "win_rate": 100.0,
+        "avg_cpl": 637.0,
+        "record": "1-0-0"
+      },
+      {
+        "name": "Boosted_Maia_1300",
+        "games": 1,
+        "win_rate": 100.0,
+        "avg_cpl": 1393.0,
+        "record": "1-0-0"
+      },
+      {
+        "name": "plynder_r6",
+        "games": 2,
+        "win_rate": 100.0,
+        "avg_cpl": 1427.2,
+        "record": "2-0-0"
+      },
+      {
+        "name": "pawnrobot",
+        "games": 1,
+        "win_rate": 100.0,
+        "avg_cpl": 1558.7,
+        "record": "1-0-0"
+      }
+    ],
+    "worst_performances": [
+      {
+        "name": "melsh_bot",
+        "games": 1,
+        "win_rate": 0.0,
+        "avg_cpl": 3937.2,
+        "record": "0-1-0"
+      },
+      {
+        "name": "OmbleCavalierPP",
+        "games": 1,
+        "win_rate": 0.0,
+        "avg_cpl": 3492.1,
+        "record": "0-1-0"
+      },
+      {
+        "name": "Boosted_Maia_1700",
+        "games": 1,
+        "win_rate": 0.0,
+        "avg_cpl": 3260.1,
+        "record": "0-1-0"
+      },
+      {
+        "name": "simbelmyne-bot",
+        "games": 1,
+        "win_rate": 0.0,
+        "avg_cpl": 3249.2,
+        "record": "0-1-0"
+      },
+      {
+        "name": "grisha9809",
+        "games": 6,
+        "win_rate": 0.0,
+        "avg_cpl": 3078.1,
+        "record": "0-6-0"
+      }
+    ]
+  },
+  "themes": {
+    "castling_kingside": 137,
+    "castling_queenside": 26,
+    "fianchetto": 0,
+    "isolated_pawns": 19513,
+    "passed_pawns": 9857,
+    "bishop_pair_games": 151,
+    "knight_outpost": 0,
+    "rook_open_file": 0,
+    "tactical_themes": 0
+  },
+  "metadata": {
+    "generated": "2025-11-30T21:43:47.628608",
+    "period": "Last 151 games",
+    "bot": "v7p3r_bot"
+  }
+}

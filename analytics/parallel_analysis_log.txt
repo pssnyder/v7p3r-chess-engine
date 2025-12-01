@@ -100,3 +100,1374 @@ INFO:v7p3r_analytics:Analyzed game BuwhF46Q: 31 moves
 INFO:v7p3r_analytics:Stockfish engine closed
 INFO:__mp_main__:[16/328] BuwhF46Q | CPL: 1428.1 | Top1: 9.7% | Version: v17.1
 INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game C9M2FQSj: 17 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[21/328] C9M2FQSj | CPL: 3409.2 | Top1: 0.0% | Version: v17.1
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game jdc7Zsfn: 22 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[13/328] jdc7Zsfn | CPL: 2322.0 | Top1: 54.5% | Version: v17.1
+INFO:__main__:
+Progress: 20/328 (6.1%)
+INFO:__main__:Success: 20 | Failed: 0
+INFO:__main__:Rate: 0.0 games/sec | ETA: 196.9 min
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game GXd7PJ8V: 10 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[28/328] GXd7PJ8V | CPL: 6115.7 | Top1: 20.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game VpVHBbnZ: 18 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[24/328] VpVHBbnZ | CPL: 1858.2 | Top1: 5.6% | Version: v17.1
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 16OxzTKg: 14 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[27/328] 16OxzTKg | CPL: 205.0 | Top1: 78.6% | Version: v17.1
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 0FKF1vRA: 20 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[20/328] 0FKF1vRA | CPL: 1565.5 | Top1: 75.0% | Version: v17.1
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game p9GaES8Y: 21 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[23/328] p9GaES8Y | CPL: 1875.0 | Top1: 100.0% | Version: v17.1
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game u1Sx42hR: 12 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[31/328] u1Sx42hR | CPL: 4180.3 | Top1: 0.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game Iu380lNF: 32 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[25/328] Iu380lNF | CPL: 4296.7 | Top1: 3.1% | Version: v17.1
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 9i883UOF: 17 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[26/328] 9i883UOF | CPL: 2065.2 | Top1: 17.6% | Version: v17.1
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game Rky0KGYk: 17 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[30/328] Rky0KGYk | CPL: 1898.9 | Top1: 0.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game xk0z3gkh: 7 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[40/328] xk0z3gkh | CPL: 131.9 | Top1: 0.0% | Version: v17.4
+INFO:__main__:
+Progress: 30/328 (9.1%)
+INFO:__main__:Success: 30 | Failed: 0
+INFO:__main__:Rate: 0.0 games/sec | ETA: 171.8 min
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game uzJWzPOD: 15 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[32/328] uzJWzPOD | CPL: 3249.2 | Top1: 100.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game agCtm9hf: 14 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[39/328] agCtm9hf | CPL: 3409.6 | Top1: 50.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game vHqCDxX1: 3 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[42/328] vHqCDxX1 | CPL: 60.3 | Top1: 33.3% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game wl48cyqr: 24 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[34/328] wl48cyqr | CPL: 2475.8 | Top1: 0.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game KR4Do2Ue: 15 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[38/328] KR4Do2Ue | CPL: 416.7 | Top1: 53.3% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 9kBRcLCS: 13 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[41/328] 9kBRcLCS | CPL: 4671.3 | Top1: 100.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game Zvh64xbR: 18 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[36/328] Zvh64xbR | CPL: 461.6 | Top1: 22.2% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game m0M46qx4: 22 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[29/328] m0M46qx4 | CPL: 303.9 | Top1: 36.4% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 5hA9oWVd: 9 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[43/328] 5hA9oWVd | CPL: 149.8 | Top1: 22.2% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game Wlc62Obm: 26 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[37/328] Wlc62Obm | CPL: 216.0 | Top1: 46.2% | Version: v17.4
+INFO:__main__:
+Progress: 40/328 (12.2%)
+INFO:__main__:Success: 40 | Failed: 0
+INFO:__main__:Rate: 0.0 games/sec | ETA: 166.6 min
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game eEnEeFEA: 38 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[22/328] eEnEeFEA | CPL: 274.3 | Top1: 50.0% | Version: v17.1
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 3IFIXCEZ: 33 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[35/328] 3IFIXCEZ | CPL: 3261.9 | Top1: 0.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game UNCZXRER: 24 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[46/328] UNCZXRER | CPL: 3073.7 | Top1: 33.3% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game QqoEKmHp: 24 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[45/328] QqoEKmHp | CPL: 1512.7 | Top1: 25.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 8Rmshfd7: 28 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[33/328] 8Rmshfd7 | CPL: 583.4 | Top1: 92.9% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game XE1SCqza: 26 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[44/328] XE1SCqza | CPL: 1743.4 | Top1: 38.5% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game LQbZ11ze: 12 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[47/328] LQbZ11ze | CPL: 3510.9 | Top1: 50.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game vfpPYqzK: 31 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[50/328] vfpPYqzK | CPL: 2720.3 | Top1: 22.6% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game SvYOh2nn: 26 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[49/328] SvYOh2nn | CPL: 3024.5 | Top1: 92.3% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game Fiu3ZyF7: 16 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[48/328] Fiu3ZyF7 | CPL: 414.2 | Top1: 100.0% | Version: v17.4
+INFO:__main__:
+Progress: 50/328 (15.2%)
+INFO:__main__:Success: 50 | Failed: 0
+INFO:__main__:Rate: 0.0 games/sec | ETA: 158.4 min
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game U0QCPgTH: 13 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[59/328] U0QCPgTH | CPL: 5652.6 | Top1: 38.5% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 16xtZi5M: 29 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[51/328] 16xtZi5M | CPL: 1559.9 | Top1: 100.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game VghfJhvh: 21 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[56/328] VghfJhvh | CPL: 1714.9 | Top1: 33.3% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 6ZH8VyZ6: 14 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[55/328] 6ZH8VyZ6 | CPL: 673.1 | Top1: 0.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game lNr4fS6K: 24 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[54/328] lNr4fS6K | CPL: 3505.2 | Top1: 41.7% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game iIgFnHhp: 15 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[60/328] iIgFnHhp | CPL: 5576.4 | Top1: 93.3% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game ohmurC7M: 16 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[62/328] ohmurC7M | CPL: 2150.0 | Top1: 68.8% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 1eSbsjrx: 21 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[57/328] 1eSbsjrx | CPL: 3837.0 | Top1: 9.5% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game HKR824zA: 21 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[64/328] HKR824zA | CPL: 4726.7 | Top1: 4.8% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game VkHtA6xt: 29 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[61/328] VkHtA6xt | CPL: 225.0 | Top1: 27.6% | Version: v17.4
+INFO:__main__:
+Progress: 60/328 (18.3%)
+INFO:__main__:Success: 60 | Failed: 0
+INFO:__main__:Rate: 0.0 games/sec | ETA: 153.5 min
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game qpbruwDf: 11 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[65/328] qpbruwDf | CPL: 2089.5 | Top1: 100.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game UtzYudbq: 11 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[63/328] UtzYudbq | CPL: 1987.9 | Top1: 72.7% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game JKp6qqRG: 30 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[52/328] JKp6qqRG | CPL: 222.5 | Top1: 83.3% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game tOiw7bX1: 22 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[68/328] tOiw7bX1 | CPL: 3622.6 | Top1: 100.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game WYjcVqkI: 21 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[67/328] WYjcVqkI | CPL: 2452.7 | Top1: 0.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game kZiAOU17: 26 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[58/328] kZiAOU17 | CPL: 1180.4 | Top1: 84.6% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game JTRf4LAF: 23 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[66/328] JTRf4LAF | CPL: 2776.5 | Top1: 82.6% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game Lyrqfo5u: 13 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[76/328] Lyrqfo5u | CPL: 307.2 | Top1: 76.9% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game FEU5tpkY: 19 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[74/328] FEU5tpkY | CPL: 3443.6 | Top1: 21.1% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game iOOOrGAJ: 25 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[73/328] iOOOrGAJ | CPL: 5096.0 | Top1: 40.0% | Version: v17.4
+INFO:__main__:
+Progress: 70/328 (21.3%)
+INFO:__main__:Success: 70 | Failed: 0
+INFO:__main__:Rate: 0.0 games/sec | ETA: 154.6 min
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game GsifsAvy: 20 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[72/328] GsifsAvy | CPL: 1548.1 | Top1: 45.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game h9TmykCL: 30 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[75/328] h9TmykCL | CPL: 1139.4 | Top1: 53.3% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game yntk7tMH: 39 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[53/328] yntk7tMH | CPL: 301.7 | Top1: 71.8% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game e2vJuOrn: 25 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[70/328] e2vJuOrn | CPL: 537.9 | Top1: 80.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game keCWIFWZ: 11 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[80/328] keCWIFWZ | CPL: 2079.0 | Top1: 45.5% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 3wMMaPcp: 27 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[79/328] 3wMMaPcp | CPL: 2010.8 | Top1: 18.5% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game vUP3lnDf: 18 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[69/328] vUP3lnDf | CPL: 503.0 | Top1: 94.4% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game wZZUVwN9: 25 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[78/328] wZZUVwN9 | CPL: 4320.4 | Top1: 36.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 0gjge1Nz: 14 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[83/328] 0gjge1Nz | CPL: 3756.3 | Top1: 71.4% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game jjsVQKUj: 11 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[84/328] jjsVQKUj | CPL: 4091.4 | Top1: 18.2% | Version: v17.4
+INFO:__main__:
+Progress: 80/328 (24.4%)
+INFO:__main__:Success: 80 | Failed: 0
+INFO:__main__:Rate: 0.0 games/sec | ETA: 149.8 min
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 5v2R9GqO: 14 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[87/328] 5v2R9GqO | CPL: 3518.3 | Top1: 14.3% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game uHBY9faW: 15 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[86/328] uHBY9faW | CPL: 637.0 | Top1: 0.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game MlpJNmWS: 25 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[81/328] MlpJNmWS | CPL: 2212.1 | Top1: 96.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game sfzjBjB6: 37 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[77/328] sfzjBjB6 | CPL: 1836.1 | Top1: 18.9% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game GOgBn9aF: 16 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[90/328] GOgBn9aF | CPL: 2453.0 | Top1: 100.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game h5gBXe53: 23 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[82/328] h5gBXe53 | CPL: 595.7 | Top1: 78.3% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game rg2EQMag: 22 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[89/328] rg2EQMag | CPL: 2346.8 | Top1: 86.4% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 5FIXDq5e: 38 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[71/328] 5FIXDq5e | CPL: 544.2 | Top1: 68.4% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game pukqDwPH: 23 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[88/328] pukqDwPH | CPL: 3837.3 | Top1: 52.2% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game aBoImX5P: 11 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[93/328] aBoImX5P | CPL: 3260.1 | Top1: 100.0% | Version: v17.4
+INFO:__main__:
+Progress: 90/328 (27.4%)
+INFO:__main__:Success: 90 | Failed: 0
+INFO:__main__:Rate: 0.0 games/sec | ETA: 143.9 min
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game pR5PhWkS: 18 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[97/328] pR5PhWkS | CPL: 1746.2 | Top1: 5.6% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game o8AVHVrS: 28 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[85/328] o8AVHVrS | CPL: 1169.0 | Top1: 78.6% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game b4ray5oU: 23 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[92/328] b4ray5oU | CPL: 3492.1 | Top1: 60.9% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game OAKVaFX5: 22 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[99/328] OAKVaFX5 | CPL: 667.3 | Top1: 4.5% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game P2RIFptd: 19 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[100/328] P2RIFptd | CPL: 1558.7 | Top1: 31.6% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game drdqskWD: 29 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[91/328] drdqskWD | CPL: 2151.1 | Top1: 20.7% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 528qL6wh: 6 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[106/328] 528qL6wh | CPL: 3369.5 | Top1: 66.7% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game luE5UWn1: 17 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[95/328] luE5UWn1 | CPL: 859.4 | Top1: 82.4% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 48o16G9z: 20 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[103/328] 48o16G9z | CPL: 3937.2 | Top1: 100.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game owacjtPd: 30 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[98/328] owacjtPd | CPL: 4090.2 | Top1: 13.3% | Version: v17.4
+INFO:__main__:
+Progress: 100/328 (30.5%)
+INFO:__main__:Success: 100 | Failed: 0
+INFO:__main__:Rate: 0.0 games/sec | ETA: 141.7 min
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game exSG47Z6: 41 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[94/328] exSG47Z6 | CPL: 2639.0 | Top1: 63.4% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game sfgZXAJM: 17 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[111/328] sfgZXAJM | CPL: 3226.0 | Top1: 0.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game Dfj4ioSz: 22 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[108/328] Dfj4ioSz | CPL: 918.0 | Top1: 4.5% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game D28UdrIg: 17 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[113/328] D28UdrIg | CPL: 4283.4 | Top1: 64.7% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game Mf9wo4Ky: 28 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[104/328] Mf9wo4Ky | CPL: 903.3 | Top1: 67.9% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 63gaydrh: 22 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[107/328] 63gaydrh | CPL: 4198.4 | Top1: 18.2% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game oXDyBxIa: 28 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[110/328] oXDyBxIa | CPL: 862.2 | Top1: 85.7% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game cbw7Qjoe: 33 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[102/328] cbw7Qjoe | CPL: 1957.5 | Top1: 24.2% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game VkdGLSXW: 35 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[96/328] VkdGLSXW | CPL: 1424.1 | Top1: 91.4% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game XznUOvJ7: 23 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[112/328] XznUOvJ7 | CPL: 890.6 | Top1: 87.0% | Version: v17.4
+INFO:__main__:
+Progress: 110/328 (33.5%)
+INFO:__main__:Success: 110 | Failed: 0
+INFO:__main__:Rate: 0.0 games/sec | ETA: 139.4 min
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 8GBVjF93: 27 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[109/328] 8GBVjF93 | CPL: 1155.8 | Top1: 63.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game WVYwOr8U: 13 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[119/328] WVYwOr8U | CPL: 3411.0 | Top1: 7.7% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game mMjTTySR: 39 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[101/328] mMjTTySR | CPL: 3004.9 | Top1: 53.8% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game rqvMLwoW: 21 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[117/328] rqvMLwoW | CPL: 2489.6 | Top1: 61.9% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game HysNW5K0: 20 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[105/328] HysNW5K0 | CPL: 1393.0 | Top1: 60.0% | Version: v17.4
+INFO:v7p3r_analytics:Analyzed game rxdTxIeH: 30 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[116/328] rxdTxIeH | CPL: 3128.2 | Top1: 0.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+ERROR:__mp_main__:[127/328] MlDfChAG FAILED: 
+INFO:v7p3r_analytics:Analyzed game sDfN9Tqe: 30 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[114/328] sDfN9Tqe | CPL: 2887.8 | Top1: 0.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game JSLhmZ9D: 29 moves
+ERROR:__mp_main__:[118/328] JSLhmZ9D FAILED: 
+INFO:v7p3r_analytics:Analyzed game 0CUQB9gS: 12 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:v7p3r_analytics:Analyzed game FGlcP4i3: 15 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[124/328] 0CUQB9gS | CPL: 2030.7 | Top1: 8.3% | Version: v17.4
+INFO:__main__:
+Progress: 120/328 (36.6%)
+INFO:__main__:Success: 118 | Failed: 2
+INFO:__main__:Rate: 0.0 games/sec | ETA: 134.6 min
+INFO:__mp_main__:[128/328] FGlcP4i3 | CPL: 1578.0 | Top1: 53.3% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 9CaQeaZo: 17 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:v7p3r_analytics:Analyzed game DiQlQ1xU: 14 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[125/328] DiQlQ1xU | CPL: 3491.6 | Top1: 14.3% | Version: v17.4
+INFO:__mp_main__:[126/328] 9CaQeaZo | CPL: 1909.6 | Top1: 94.1% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game qXhDeTju: 29 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[122/328] qXhDeTju | CPL: 2344.0 | Top1: 48.3% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 7YQcKuY5: 17 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[123/328] 7YQcKuY5 | CPL: 6385.4 | Top1: 17.6% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game PJEzK8zM: 29 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[120/328] PJEzK8zM | CPL: 2355.1 | Top1: 72.4% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game kO6newB3: 32 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:v7p3r_analytics:Analyzed game bcqlUueI: 22 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[121/328] bcqlUueI | CPL: 1855.4 | Top1: 31.8% | Version: v17.4
+INFO:__mp_main__:[115/328] kO6newB3 | CPL: 706.4 | Top1: 40.6% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game m1TgcMwg: 26 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[130/328] m1TgcMwg | CPL: 3452.5 | Top1: 30.8% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 6HBzDghR: 17 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:v7p3r_analytics:Analyzed game gHsDQmoa: 18 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[129/328] gHsDQmoa | CPL: 1815.3 | Top1: 77.8% | Version: v17.4
+INFO:__mp_main__:[131/328] 6HBzDghR | CPL: 3946.3 | Top1: 52.9% | Version: v17.4
+INFO:__main__:
+Progress: 130/328 (39.6%)
+INFO:__main__:Success: 128 | Failed: 2
+INFO:__main__:Rate: 0.0 games/sec | ETA: 128.0 min
+INFO:v7p3r_analytics:Analyzed game ClEaWMBU: 17 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:v7p3r_analytics:Analyzed game r0V5ohdj: 23 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[132/328] r0V5ohdj | CPL: 494.0 | Top1: 73.9% | Version: v17.4
+INFO:__mp_main__:[134/328] ClEaWMBU | CPL: 4928.6 | Top1: 52.9% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game bElkGPDU: 21 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[136/328] bElkGPDU | CPL: 3480.8 | Top1: 0.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game jYAic5TM: 15 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:v7p3r_analytics:Analyzed game Vm2CSIcd: 25 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:v7p3r_analytics:Analyzed game OE3yXybZ: 21 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[141/328] jYAic5TM | CPL: 2136.9 | Top1: 93.3% | Version: v17.4
+INFO:__mp_main__:[138/328] OE3yXybZ | CPL: 1810.5 | Top1: 100.0% | Version: v17.4
+INFO:__mp_main__:[139/328] Vm2CSIcd | CPL: 2514.9 | Top1: 36.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game RYLS2uu1: 26 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[140/328] RYLS2uu1 | CPL: 2225.7 | Top1: 11.5% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game K6VmGSy6: 12 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[142/328] K6VmGSy6 | CPL: 6842.1 | Top1: 58.3% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game woQTidn0: 25 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:v7p3r_analytics:Analyzed game IG0rjCpa: 16 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[147/328] IG0rjCpa | CPL: 3304.2 | Top1: 62.5% | Version: v17.4
+INFO:__main__:
+Progress: 140/328 (42.7%)
+INFO:__main__:Success: 138 | Failed: 2
+INFO:__main__:Rate: 0.0 games/sec | ETA: 120.2 min
+INFO:__mp_main__:[133/328] woQTidn0 | CPL: 660.2 | Top1: 16.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game i7E6fFom: 34 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[137/328] i7E6fFom | CPL: 1908.1 | Top1: 2.9% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game XytKVIwA: 32 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[146/328] XytKVIwA | CPL: 7577.3 | Top1: 3.1% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game TQVgFzK2: 29 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[135/328] TQVgFzK2 | CPL: 388.1 | Top1: 72.4% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game xJXbI9Mt: 18 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[149/328] xJXbI9Mt | CPL: 3049.7 | Top1: 100.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game chln8ZfE: 25 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[148/328] chln8ZfE | CPL: 397.5 | Top1: 92.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game socwKbCf: 12 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[150/328] socwKbCf | CPL: 2030.7 | Top1: 8.3% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game favuWbKq: 17 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[153/328] favuWbKq | CPL: 4283.4 | Top1: 64.7% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game rxB4onGR: 28 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[145/328] rxB4onGR | CPL: 3965.5 | Top1: 25.0% | Version: v17.4
+ERROR:__mp_main__:[161/328] diEfKcGR FAILED: 
+INFO:__main__:
+Progress: 150/328 (45.7%)
+INFO:__main__:Success: 147 | Failed: 3
+INFO:__main__:Rate: 0.0 games/sec | ETA: 113.0 min
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game sfKFJ8na: 12 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[154/328] sfKFJ8na | CPL: 2030.7 | Top1: 8.3% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game KD2BnGMn: 23 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:v7p3r_analytics:Analyzed game U66Bekah: 12 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:v7p3r_analytics:Analyzed game 2SP2kzWd: 33 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[158/328] U66Bekah | CPL: 589.3 | Top1: 83.3% | Version: v17.4
+INFO:__mp_main__:[152/328] KD2BnGMn | CPL: 3501.2 | Top1: 17.4% | Version: v17.4
+INFO:__mp_main__:[143/328] 2SP2kzWd | CPL: 2041.0 | Top1: 21.2% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game JlR5Qj5k: 27 moves
+ERROR:__mp_main__:[151/328] JlR5Qj5k FAILED: 
+INFO:v7p3r_analytics:Analyzed game PgQWLbok: 21 moves
+INFO:v7p3r_analytics:Analyzed game xYok8MIU: 20 moves
+ERROR:__mp_main__:[157/328] PgQWLbok FAILED: 
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:__mp_main__:[155/328] xYok8MIU | CPL: 474.3 | Top1: 95.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 3uhCIGji: 29 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:v7p3r_analytics:Analyzed game nJyYVnbL: 32 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:v7p3r_analytics:Analyzed game RgCyvuOT: 19 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:v7p3r_analytics:Analyzed game BjbFsFJZ: 12 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[144/328] 3uhCIGji | CPL: 1001.7 | Top1: 10.3% | Version: v17.4
+INFO:__mp_main__:[164/328] BjbFsFJZ | CPL: 2030.7 | Top1: 8.3% | Version: v17.4
+INFO:__mp_main__:[163/328] RgCyvuOT | CPL: 929.9 | Top1: 68.4% | Version: v17.4
+INFO:__mp_main__:[156/328] nJyYVnbL | CPL: 638.8 | Top1: 9.4% | Version: v17.4
+INFO:__main__:
+Progress: 160/328 (48.8%)
+INFO:__main__:Success: 155 | Failed: 5
+INFO:__main__:Rate: 0.0 games/sec | ETA: 107.3 min
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game fsM0ESfK: 19 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[168/328] fsM0ESfK | CPL: 2871.6 | Top1: 0.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game jg5qcUic: 19 moves
+ERROR:__mp_main__:[167/328] jg5qcUic FAILED: 
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 3nhabLYY: 30 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[169/328] 3nhabLYY | CPL: 173.8 | Top1: 70.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game YnB8OKGC: 30 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[165/328] YnB8OKGC | CPL: 872.2 | Top1: 93.3% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game dh0A5oJS: 25 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[159/328] dh0A5oJS | CPL: 3029.2 | Top1: 4.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game fmAOmMs0: 33 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[162/328] fmAOmMs0 | CPL: 2124.7 | Top1: 33.3% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game gFA0Vjph: 33 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[166/328] gFA0Vjph | CPL: 655.8 | Top1: 18.2% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game vY5q0rc0: 34 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[160/328] vY5q0rc0 | CPL: 512.6 | Top1: 20.6% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game M7zaeSYv: 21 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[173/328] M7zaeSYv | CPL: 2625.2 | Top1: 66.7% | Version: v17.4
+INFO:__main__:
+Progress: 170/328 (51.8%)
+INFO:__main__:Success: 164 | Failed: 6
+INFO:__main__:Rate: 0.0 games/sec | ETA: 104.0 min
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 6Y0ZyBLV: 13 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[175/328] 6Y0ZyBLV | CPL: 629.3 | Top1: 100.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 3937bk7M: 14 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[181/328] 3937bk7M | CPL: 2828.8 | Top1: 0.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game Bud6gCN6: 22 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[171/328] Bud6gCN6 | CPL: 3896.5 | Top1: 0.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game gewxfEWh: 16 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[176/328] gewxfEWh | CPL: 1549.2 | Top1: 62.5% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 6roarqGa: 16 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[182/328] 6roarqGa | CPL: 4918.1 | Top1: 6.2% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game OzqpTVVT: 28 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[170/328] OzqpTVVT | CPL: 506.5 | Top1: 14.3% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game aXZPZsme: 24 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[177/328] aXZPZsme | CPL: 2920.2 | Top1: 87.5% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game glXE4kHV: 26 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[179/328] glXE4kHV | CPL: 3029.7 | Top1: 100.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game WaR0RaFj: 20 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[185/328] WaR0RaFj | CPL: 4338.0 | Top1: 95.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game jFi1xcMq: 25 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[178/328] jFi1xcMq | CPL: 502.4 | Top1: 84.0% | Version: v17.4
+INFO:__main__:
+Progress: 180/328 (54.9%)
+INFO:__main__:Success: 174 | Failed: 6
+INFO:__main__:Rate: 0.0 games/sec | ETA: 98.1 min
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game k8kJONKc: 12 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[188/328] k8kJONKc | CPL: 3973.2 | Top1: 8.3% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 2eIDIK2B: 31 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[172/328] 2eIDIK2B | CPL: 365.3 | Top1: 22.6% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 1LaTJyb0: 25 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[174/328] 1LaTJyb0 | CPL: 3178.7 | Top1: 100.0% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game Zzhfzpq2: 10 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[190/328] Zzhfzpq2 | CPL: 70.6 | Top1: 30.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game HBpGqMsq: 23 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[183/328] HBpGqMsq | CPL: 2169.4 | Top1: 4.3% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game IAICvjXm: 29 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[184/328] IAICvjXm | CPL: 1632.1 | Top1: 89.7% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game f57seOpw: 20 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[186/328] f57seOpw | CPL: 4059.8 | Top1: 80.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 9TRYRhwA: 17 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[191/328] 9TRYRhwA | CPL: 1985.0 | Top1: 0.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game Z4aqVJmb: 29 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[180/328] Z4aqVJmb | CPL: 319.1 | Top1: 82.8% | Version: v17.4
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game pXgUbdNg: 21 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[189/328] pXgUbdNg | CPL: 2942.8 | Top1: 28.6% | Version: v17.2.0
+INFO:__main__:
+Progress: 190/328 (57.9%)
+INFO:__main__:Success: 184 | Failed: 6
+INFO:__main__:Rate: 0.0 games/sec | ETA: 90.9 min
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game FAfnApQQ: 21 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[187/328] FAfnApQQ | CPL: 1190.1 | Top1: 71.4% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game Bf3fz45I: 23 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[192/328] Bf3fz45I | CPL: 1011.6 | Top1: 73.9% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game LslUsqkA: 15 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[196/328] LslUsqkA | CPL: 1545.3 | Top1: 86.7% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game w7iOe1wZ: 15 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[199/328] w7iOe1wZ | CPL: 1688.3 | Top1: 40.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game r8zwOdUl: 16 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[198/328] r8zwOdUl | CPL: 4046.9 | Top1: 87.5% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game wOuGy6Gx: 25 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[197/328] wOuGy6Gx | CPL: 5360.7 | Top1: 48.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game nOfDZQ8H: 17 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[202/328] nOfDZQ8H | CPL: 2820.1 | Top1: 0.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game o1ndqmOR: 7 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[208/328] o1ndqmOR | CPL: 6356.6 | Top1: 0.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game gikANapW: 19 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[207/328] gikANapW | CPL: 3007.2 | Top1: 0.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 1zMoEeHy: 32 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[193/328] 1zMoEeHy | CPL: 454.3 | Top1: 46.9% | Version: v17.2.0
+INFO:__main__:
+Progress: 200/328 (61.0%)
+INFO:__main__:Success: 194 | Failed: 6
+INFO:__main__:Rate: 0.0 games/sec | ETA: 86.7 min
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 1N8T1nJg: 29 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[195/328] 1N8T1nJg | CPL: 233.3 | Top1: 13.8% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game XEXM5r6P: 19 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[205/328] XEXM5r6P | CPL: 1942.8 | Top1: 78.9% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 9q9KswiN: 19 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[194/328] 9q9KswiN | CPL: 223.0 | Top1: 89.5% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game Ea0Q3pnl: 29 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[204/328] Ea0Q3pnl | CPL: 791.8 | Top1: 3.4% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game Kt6s1YY7: 20 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[200/328] Kt6s1YY7 | CPL: 545.6 | Top1: 85.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game QddqsWZB: 33 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[201/328] QddqsWZB | CPL: 1702.5 | Top1: 57.6% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game y2jejsls: 23 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[212/328] y2jejsls | CPL: 2273.2 | Top1: 8.7% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 1arLrrAu: 28 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[203/328] 1arLrrAu | CPL: 2465.9 | Top1: 67.9% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game CnRVgGi0: 22 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[216/328] CnRVgGi0 | CPL: 681.5 | Top1: 90.9% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game uFipRIYa: 19 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[211/328] uFipRIYa | CPL: 1210.5 | Top1: 26.3% | Version: v17.2.0
+INFO:__main__:
+Progress: 210/328 (64.0%)
+INFO:__main__:Success: 204 | Failed: 6
+INFO:__main__:Rate: 0.0 games/sec | ETA: 82.0 min
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game CTI6gVgS: 20 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[219/328] CTI6gVgS | CPL: 1841.0 | Top1: 0.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game keDwKyxA: 25 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[215/328] keDwKyxA | CPL: 1493.6 | Top1: 12.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game DnwbxlX5: 18 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[220/328] DnwbxlX5 | CPL: 3129.1 | Top1: 55.6% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game Ei9BRqnF: 5 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[224/328] Ei9BRqnF | CPL: 154.0 | Top1: 20.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game dYg8IJwK: 33 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[213/328] dYg8IJwK | CPL: 2177.4 | Top1: 9.1% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game iFsCTp3n: 33 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[206/328] iFsCTp3n | CPL: 926.8 | Top1: 87.9% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game ww2lGhFk: 27 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[218/328] ww2lGhFk | CPL: 3176.6 | Top1: 85.2% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game lNVjIae1: 48 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[214/328] lNVjIae1 | CPL: 1482.9 | Top1: 70.8% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game qIj2pVVC: 19 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[226/328] qIj2pVVC | CPL: 1935.1 | Top1: 89.5% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game cc1vCkcq: 27 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[225/328] cc1vCkcq | CPL: 1115.5 | Top1: 92.6% | Version: v17.2.0
+INFO:__main__:
+Progress: 220/328 (67.1%)
+INFO:__main__:Success: 214 | Failed: 6
+INFO:__main__:Rate: 0.0 games/sec | ETA: 74.7 min
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game irTN9OOO: 29 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[221/328] irTN9OOO | CPL: 931.0 | Top1: 89.7% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 0SrCozph: 26 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[209/328] 0SrCozph | CPL: 990.2 | Top1: 88.5% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game xJCDpQIa: 33 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[217/328] xJCDpQIa | CPL: 4638.7 | Top1: 69.7% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 1zoODIWK: 27 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[210/328] 1zoODIWK | CPL: 1373.3 | Top1: 100.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game FkazefKj: 31 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[222/328] FkazefKj | CPL: 2896.9 | Top1: 64.5% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game YiYiVCys: 35 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[228/328] YiYiVCys | CPL: 2531.4 | Top1: 0.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game CsQvzykD: 29 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[231/328] CsQvzykD | CPL: 1450.3 | Top1: 79.3% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game oPQrwwhd: 13 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[233/328] oPQrwwhd | CPL: 1714.7 | Top1: 84.6% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game Zfst9EPK: 20 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[234/328] Zfst9EPK | CPL: 4154.4 | Top1: 100.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game fFoyrFxe: 28 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[227/328] fFoyrFxe | CPL: 2310.4 | Top1: 0.0% | Version: v17.2.0
+INFO:__main__:
+Progress: 230/328 (70.1%)
+INFO:__main__:Success: 224 | Failed: 6
+INFO:__main__:Rate: 0.0 games/sec | ETA: 68.4 min
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game mBC4We14: 25 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[238/328] mBC4We14 | CPL: 1954.6 | Top1: 4.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game acaNfWnP: 27 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[229/328] acaNfWnP | CPL: 4656.5 | Top1: 14.8% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game tHOU7p8G: 32 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[236/328] tHOU7p8G | CPL: 1502.1 | Top1: 93.8% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game v3QLwymJ: 30 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[230/328] v3QLwymJ | CPL: 2698.7 | Top1: 73.3% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game XZsI32d6: 19 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[241/328] XZsI32d6 | CPL: 4116.2 | Top1: 78.9% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 1QyXYvCt: 20 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[235/328] 1QyXYvCt | CPL: 1443.3 | Top1: 95.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game Zrvbbolv: 11 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[244/328] Zrvbbolv | CPL: 3084.6 | Top1: 100.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game ekFIfDo9: 37 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[232/328] ekFIfDo9 | CPL: 2541.2 | Top1: 0.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game anCFynCe: 33 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[237/328] anCFynCe | CPL: 3752.6 | Top1: 42.4% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game vuSWtn0g: 39 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[223/328] vuSWtn0g | CPL: 1204.3 | Top1: 82.1% | Version: v17.2.0
+INFO:__main__:
+Progress: 240/328 (73.2%)
+INFO:__main__:Success: 234 | Failed: 6
+INFO:__main__:Rate: 0.0 games/sec | ETA: 60.6 min
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game sAMKv91V: 18 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[247/328] sAMKv91V | CPL: 3616.6 | Top1: 16.7% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game Ds8qu0Id: 14 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[245/328] Ds8qu0Id | CPL: 2074.4 | Top1: 85.7% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game CVh3Eimk: 27 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[240/328] CVh3Eimk | CPL: 2879.0 | Top1: 11.1% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game UWZZYv61: 30 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[243/328] UWZZYv61 | CPL: 2646.5 | Top1: 6.7% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game HSeavYnB: 17 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[246/328] HSeavYnB | CPL: 287.4 | Top1: 17.6% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game B97msrhQ: 28 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[239/328] B97msrhQ | CPL: 5204.0 | Top1: 14.3% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game uuPYhcnU: 22 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[242/328] uuPYhcnU | CPL: 2369.5 | Top1: 4.5% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game iNqfaQ6C: 13 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[252/328] iNqfaQ6C | CPL: 330.7 | Top1: 61.5% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game CrBHFeAv: 25 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[249/328] CrBHFeAv | CPL: 2073.3 | Top1: 40.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game sQy6QikZ: 13 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[253/328] sQy6QikZ | CPL: 2307.8 | Top1: 7.7% | Version: v17.2.0
+INFO:__main__:
+Progress: 250/328 (76.2%)
+INFO:__main__:Success: 244 | Failed: 6
+INFO:__main__:Rate: 0.0 games/sec | ETA: 52.9 min
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game fyGrZ8mt: 18 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[250/328] fyGrZ8mt | CPL: 2623.1 | Top1: 88.9% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game L3Df2L68: 20 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[254/328] L3Df2L68 | CPL: 6481.5 | Top1: 90.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game Uplvspbz: 13 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[256/328] Uplvspbz | CPL: 1714.7 | Top1: 84.6% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game uRVK6KLl: 21 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[248/328] uRVK6KLl | CPL: 371.5 | Top1: 71.4% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game WFYN3AkN: 17 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[257/328] WFYN3AkN | CPL: 479.4 | Top1: 88.2% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game IGJrQtbs: 19 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[255/328] IGJrQtbs | CPL: 3222.6 | Top1: 100.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 5eQOW2ER: 16 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[262/328] 5eQOW2ER | CPL: 4504.0 | Top1: 6.2% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 9op0SVLC: 13 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[260/328] 9op0SVLC | CPL: 1825.6 | Top1: 76.9% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game cNjV6u6z: 14 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[264/328] cNjV6u6z | CPL: 84.6 | Top1: 35.7% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game ET6PmGW8: 22 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[258/328] ET6PmGW8 | CPL: 731.5 | Top1: 86.4% | Version: v17.2.0
+INFO:__main__:
+Progress: 260/328 (79.3%)
+INFO:__main__:Success: 254 | Failed: 6
+INFO:__main__:Rate: 0.0 games/sec | ETA: 45.9 min
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game UHnuaiax: 23 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[265/328] UHnuaiax | CPL: 5914.3 | Top1: 4.3% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game P1l969yS: 26 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[261/328] P1l969yS | CPL: 4034.0 | Top1: 0.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game anjKAPKb: 12 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[267/328] anjKAPKb | CPL: 3881.9 | Top1: 25.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game OkYfmjmy: 17 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[266/328] OkYfmjmy | CPL: 108.6 | Top1: 23.5% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game yGtGJWTb: 31 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[263/328] yGtGJWTb | CPL: 2488.6 | Top1: 12.9% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game YPbVpv6E: 31 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[251/328] YPbVpv6E | CPL: 1224.1 | Top1: 61.3% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game GXXwZ0zE: 20 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[259/328] GXXwZ0zE | CPL: 444.6 | Top1: 50.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game hme4cvvz: 25 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[272/328] hme4cvvz | CPL: 3607.2 | Top1: 0.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game r587y3I1: 22 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[269/328] r587y3I1 | CPL: 2094.5 | Top1: 72.7% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 5ZeFJkZW: 14 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[278/328] 5ZeFJkZW | CPL: 1629.9 | Top1: 85.7% | Version: v17.2.0
+INFO:__main__:
+Progress: 270/328 (82.3%)
+INFO:__main__:Success: 264 | Failed: 6
+INFO:__main__:Rate: 0.0 games/sec | ETA: 39.6 min
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game Istr8LKS: 32 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[276/328] Istr8LKS | CPL: 5432.1 | Top1: 0.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game G6mDQN1u: 23 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[274/328] G6mDQN1u | CPL: 304.4 | Top1: 26.1% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 7poBbUzo: 38 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[270/328] 7poBbUzo | CPL: 3287.6 | Top1: 0.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game uVwsqbeg: 22 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[275/328] uVwsqbeg | CPL: 2495.4 | Top1: 86.4% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game RHJLNIUM: 15 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[281/328] RHJLNIUM | CPL: 4046.2 | Top1: 80.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game qltGi4Tm: 32 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[271/328] qltGi4Tm | CPL: 2264.1 | Top1: 25.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game wjM5tarp: 26 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[280/328] wjM5tarp | CPL: 741.7 | Top1: 73.1% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game sQ3DLemh: 15 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[283/328] sQ3DLemh | CPL: 2844.7 | Top1: 0.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 0SIJDI3A: 37 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[268/328] 0SIJDI3A | CPL: 2188.8 | Top1: 59.5% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game PxweJGxT: 31 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[279/328] PxweJGxT | CPL: 1842.0 | Top1: 22.6% | Version: v17.2.0
+INFO:__main__:
+Progress: 280/328 (85.4%)
+INFO:__main__:Success: 274 | Failed: 6
+INFO:__main__:Rate: 0.0 games/sec | ETA: 32.5 min
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game CQ1E7EDm: 17 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[286/328] CQ1E7EDm | CPL: 5606.3 | Top1: 5.9% | Version: v17.2.0
+INFO:v7p3r_analytics:Analyzed game VPFc7p8C: 20 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[285/328] VPFc7p8C | CPL: 2493.9 | Top1: 65.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game QwKXxPES: 12 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[288/328] QwKXxPES | CPL: 108.0 | Top1: 8.3% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game ecUJPyOL: 10 moves
+ERROR:__mp_main__:[287/328] ecUJPyOL FAILED: 
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game ZME7yeIJ: 36 moves
+ERROR:__mp_main__:[277/328] ZME7yeIJ FAILED: 
+INFO:v7p3r_analytics:Analyzed game HyjYNSkO: 20 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[282/328] HyjYNSkO | CPL: 573.9 | Top1: 80.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game Yk8gcO6D: 21 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[289/328] Yk8gcO6D | CPL: 6289.1 | Top1: 0.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game PjXUiTuW: 24 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[284/328] PjXUiTuW | CPL: 1293.7 | Top1: 54.2% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game m1HAz67h: 16 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[291/328] m1HAz67h | CPL: 2005.2 | Top1: 25.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game hkZr354p: 14 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[292/328] hkZr354p | CPL: 854.7 | Top1: 42.9% | Version: v17.2.0
+INFO:__main__:
+Progress: 290/328 (88.4%)
+INFO:__main__:Success: 282 | Failed: 8
+INFO:__main__:Rate: 0.0 games/sec | ETA: 25.5 min
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 7HuPR3Sf: 18 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[294/328] 7HuPR3Sf | CPL: 765.0 | Top1: 0.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game hc15mmZL: 33 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[295/328] hc15mmZL | CPL: 6032.0 | Top1: 6.1% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game Z23umVll: 14 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[299/328] Z23umVll | CPL: 788.6 | Top1: 71.4% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game itsSYh2p: 21 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[301/328] itsSYh2p | CPL: 5547.3 | Top1: 4.8% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game VQWMwiqB: 21 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[293/328] VQWMwiqB | CPL: 593.9 | Top1: 0.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game DXt2RuQb: 26 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[290/328] DXt2RuQb | CPL: 609.0 | Top1: 80.8% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 2DuLAt3r: 18 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[296/328] 2DuLAt3r | CPL: 2307.4 | Top1: 61.1% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game IkUeoEdk: 18 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[303/328] IkUeoEdk | CPL: 1528.9 | Top1: 5.6% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 6HsZMTqS: 19 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[298/328] 6HsZMTqS | CPL: 1426.3 | Top1: 78.9% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 5moATJhB: 33 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[297/328] 5moATJhB | CPL: 1306.4 | Top1: 36.4% | Version: v17.2.0
+INFO:__main__:
+Progress: 300/328 (91.5%)
+INFO:__main__:Success: 292 | Failed: 8
+INFO:__main__:Rate: 0.0 games/sec | ETA: 18.8 min
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game It1dCSpv: 29 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[302/328] It1dCSpv | CPL: 3149.7 | Top1: 17.2% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game CXh2xJWx: 12 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[309/328] CXh2xJWx | CPL: 788.9 | Top1: 58.3% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game dd7Reukm: 26 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[300/328] dd7Reukm | CPL: 1129.0 | Top1: 23.1% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 59sjCFBN: 13 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[312/328] 59sjCFBN | CPL: 1684.2 | Top1: 30.8% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 12xSKNYp: 18 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[306/328] 12xSKNYp | CPL: 565.0 | Top1: 0.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game TIpiusla: 31 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[310/328] TIpiusla | CPL: 3115.5 | Top1: 3.2% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game Ts8SsQOB: 31 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[311/328] Ts8SsQOB | CPL: 5423.3 | Top1: 22.6% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game 8glQAh2T: 20 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[304/328] 8glQAh2T | CPL: 1647.7 | Top1: 100.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game SJtS2d8h: 17 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[307/328] SJtS2d8h | CPL: 1420.3 | Top1: 23.5% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game Ufs4ZHdW: 31 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[305/328] Ufs4ZHdW | CPL: 1455.4 | Top1: 22.6% | Version: v17.2.0
+INFO:__main__:
+Progress: 310/328 (94.5%)
+INFO:__main__:Success: 302 | Failed: 8
+INFO:__main__:Rate: 0.0 games/sec | ETA: 12.1 min
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game FH0pEK0x: 12 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[314/328] FH0pEK0x | CPL: 2868.5 | Top1: 91.7% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game TwFeDpPM: 19 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[313/328] TwFeDpPM | CPL: 2503.8 | Top1: 31.6% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game GTUgVo5J: 8 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[324/328] GTUgVo5J | CPL: 138.1 | Top1: 12.5% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game ZqBv03Mk: 30 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[308/328] ZqBv03Mk | CPL: 960.9 | Top1: 96.7% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game s6UURvqL: 46 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[273/328] s6UURvqL | CPL: 1633.1 | Top1: 39.1% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game IsTFfQQc: 27 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[317/328] IsTFfQQc | CPL: 6726.1 | Top1: 0.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Analyzed game zMdGyMQZ: 16 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[315/328] zMdGyMQZ | CPL: 254.2 | Top1: 43.8% | Version: v17.2.0
+INFO:v7p3r_analytics:Stockfish engine started: {'name': 'Stockfish 17.1', 'author': 'the Stockfish developers (see AUTHORS file)'}
+INFO:v7p3r_analytics:Analyzed game IzfJjGek: 23 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[319/328] IzfJjGek | CPL: 242.8 | Top1: 87.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Analyzed game AEozX5lW: 21 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[323/328] AEozX5lW | CPL: 870.2 | Top1: 33.3% | Version: v17.2.0
+INFO:v7p3r_analytics:Analyzed game LRumGekv: 19 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[320/328] LRumGekv | CPL: 3410.0 | Top1: 26.3% | Version: v17.2.0
+INFO:__main__:
+Progress: 320/328 (97.6%)
+INFO:__main__:Success: 312 | Failed: 8
+INFO:__main__:Rate: 0.0 games/sec | ETA: 5.3 min
+INFO:v7p3r_analytics:Analyzed game O58K4wsv: 7 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[325/328] O58K4wsv | CPL: 270.1 | Top1: 71.4% | Version: v17.2.0
+INFO:v7p3r_analytics:Analyzed game jdroYM0v: 25 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[316/328] jdroYM0v | CPL: 1096.9 | Top1: 44.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Analyzed game 7EeyWHAO: 13 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[328/328] 7EeyWHAO | CPL: 1267.5 | Top1: 0.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Analyzed game uutsiXo9: 20 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[322/328] uutsiXo9 | CPL: 1235.8 | Top1: 20.0% | Version: v17.2.0
+INFO:v7p3r_analytics:Analyzed game OBPkcaIR: 23 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[318/328] OBPkcaIR | CPL: 2390.5 | Top1: 73.9% | Version: v17.2.0
+INFO:v7p3r_analytics:Analyzed game C87Dp0gR: 31 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[327/328] C87Dp0gR | CPL: 6102.9 | Top1: 35.5% | Version: v17.2.0
+INFO:v7p3r_analytics:Analyzed game 8uQWGrTS: 17 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[326/328] 8uQWGrTS | CPL: 1666.8 | Top1: 58.8% | Version: v17.2.0
+INFO:v7p3r_analytics:Analyzed game 6gSk3Ijn: 31 moves
+INFO:v7p3r_analytics:Stockfish engine closed
+INFO:__mp_main__:[321/328] 6gSk3Ijn | CPL: 304.6 | Top1: 51.6% | Version: v17.2.0
+INFO:__main__:
+======================================================================
+INFO:__main__:Analysis Complete in 217.0 minutes!
+INFO:__main__:======================================================================
+INFO:__main__:Total: 328 | Success: 320 | Failed: 8
+INFO:__main__:Average Rate: 0.03 games/sec
+INFO:__main__:
+Generating Reports...
+INFO:__main__:
+1. Overall report (all versions)...
+INFO:report_generator:Report saved to reports_parallel_full\v7p3r_analysis_all_20251130_214347.json
+INFO:report_generator:Markdown summary saved to reports_parallel_full\v7p3r_analysis_all_20251130_214347.md
+INFO:__main__:   Saved: v7p3r_analysis_all_20251130_214347.json
+INFO:__main__:   Saved: v7p3r_analysis_all_20251130_214347.md
+INFO:__main__:
+2. Per-version reports...
+INFO:__main__:   v17.1: 27 games
+INFO:report_generator:Report saved to reports_parallel_full\v7p3r_analysis_v17_1_20251130_214347.json
+INFO:report_generator:Markdown summary saved to reports_parallel_full\v7p3r_analysis_v17_1_20251130_214347.md
+INFO:__main__:   v17.4: 151 games
+INFO:report_generator:Report saved to reports_parallel_full\v7p3r_analysis_v17_4_20251130_214347.json
+INFO:report_generator:Markdown summary saved to reports_parallel_full\v7p3r_analysis_v17_4_20251130_214347.md
+INFO:__main__:   v17.2.0: 142 games
+INFO:report_generator:Report saved to reports_parallel_full\v7p3r_analysis_v17_2_0_20251130_214347.json
+INFO:report_generator:Markdown summary saved to reports_parallel_full\v7p3r_analysis_v17_2_0_20251130_214347.md
+INFO:__main__:
+3. Version comparison...
+INFO:__main__:   Saved: version_comparison_20251130_214347.md
+INFO:__main__:
+All reports saved to: reports_parallel_full
+INFO:__main__:======================================================================

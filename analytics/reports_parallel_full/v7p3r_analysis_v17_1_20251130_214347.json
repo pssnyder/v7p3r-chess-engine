@@ -1,0 +1,217 @@
+{
+  "games": {
+    "total": 27,
+    "wins": 19,
+    "losses": 3,
+    "draws": 5,
+    "win_rate": 70.4
+  },
+  "performance": {
+    "moves_analyzed": 558,
+    "avg_centipawn_loss": 2428.3,
+    "move_quality": {
+      "best": 225,
+      "excellent": 1,
+      "good": 10,
+      "inaccuracies": 59,
+      "mistakes": 28,
+      "blunders": 21,
+      "critical_blunders": 214
+    },
+    "stockfish_alignment": {
+      "top1": 43.1,
+      "top3": 43.2,
+      "top5": 44.8
+    }
+  },
+  "openings": {
+    "Queen's Pawn Game: Symmetrical Variation": {
+      "games": 1,
+      "win_rate": 100.0,
+      "avg_cpl": 2439.4,
+      "record": "1-0-0"
+    },
+    "Indian Defense": {
+      "games": 1,
+      "win_rate": 100.0,
+      "avg_cpl": 6926.6,
+      "record": "1-0-0"
+    },
+    "Horwitz Defense": {
+      "games": 3,
+      "win_rate": 100.0,
+      "avg_cpl": 4944.8,
+      "record": "3-0-0"
+    },
+    "Queen's Gambit Accepted": {
+      "games": 4,
+      "win_rate": 75.0,
+      "avg_cpl": 2392.2,
+      "record": "3-0-1"
+    },
+    "Queen's Pawn Game: Chigorin Variation": {
+      "games": 5,
+      "win_rate": 60.0,
+      "avg_cpl": 1274.8,
+      "record": "3-0-2"
+    },
+    "French Defense": {
+      "games": 1,
+      "win_rate": 100.0,
+      "avg_cpl": 1446.7,
+      "record": "1-0-0"
+    },
+    "Indian Defense: Anti-Nimzo-Indian": {
+      "games": 1,
+      "win_rate": 0.0,
+      "avg_cpl": 200.3,
+      "record": "0-0-1"
+    },
+    "Queen's Gambit Declined: Tarrasch Defense": {
+      "games": 2,
+      "win_rate": 100.0,
+      "avg_cpl": 1919.0,
+      "record": "2-0-0"
+    },
+    "Indian Defense: West Indian Defense": {
+      "games": 1,
+      "win_rate": 100.0,
+      "avg_cpl": 3477.2,
+      "record": "1-0-0"
+    },
+    "King's Indian Defense": {
+      "games": 1,
+      "win_rate": 100.0,
+      "avg_cpl": 1115.1,
+      "record": "1-0-0"
+    },
+    "Slav Indian": {
+      "games": 1,
+      "win_rate": 100.0,
+      "avg_cpl": 3409.2,
+      "record": "1-0-0"
+    },
+    "Queen's Gambit Declined: Queen's Knight Variation": {
+      "games": 1,
+      "win_rate": 100.0,
+      "avg_cpl": 1858.2,
+      "record": "1-0-0"
+    },
+    "Queen's Gambit Declined: Baltic Defense": {
+      "games": 1,
+      "win_rate": 0.0,
+      "avg_cpl": 1565.5,
+      "record": "0-1-0"
+    },
+    "King's Indian Defense: Steiner Attack": {
+      "games": 1,
+      "win_rate": 0.0,
+      "avg_cpl": 1875.0,
+      "record": "0-1-0"
+    },
+    "Slav Defense: Exchange Variation": {
+      "games": 1,
+      "win_rate": 100.0,
+      "avg_cpl": 4296.7,
+      "record": "1-0-0"
+    },
+    "Queen's Gambit Accepted: Mannheim Variation": {
+      "games": 2,
+      "win_rate": 0.0,
+      "avg_cpl": 1169.8,
+      "record": "0-1-1"
+    }
+  },
+  "opponents": {
+    "best_performances": [
+      {
+        "name": "maia1",
+        "games": 1,
+        "win_rate": 100.0,
+        "avg_cpl": 1858.2,
+        "record": "1-0-0"
+      },
+      {
+        "name": "mechasoleil",
+        "games": 1,
+        "win_rate": 100.0,
+        "avg_cpl": 3083.9,
+        "record": "1-0-0"
+      },
+      {
+        "name": "slowmate_bot",
+        "games": 1,
+        "win_rate": 100.0,
+        "avg_cpl": 3409.2,
+        "record": "1-0-0"
+      },
+      {
+        "name": "schnecken_bot",
+        "games": 1,
+        "win_rate": 100.0,
+        "avg_cpl": 4296.7,
+        "record": "1-0-0"
+      },
+      {
+        "name": "plynder_r8",
+        "games": 7,
+        "win_rate": 85.7,
+        "avg_cpl": 2412.7,
+        "record": "6-0-1"
+      }
+    ],
+    "worst_performances": [
+      {
+        "name": "v7p3r",
+        "games": 1,
+        "win_rate": 0.0,
+        "avg_cpl": 2065.2,
+        "record": "0-1-0"
+      },
+      {
+        "name": "maia2200_10n",
+        "games": 1,
+        "win_rate": 0.0,
+        "avg_cpl": 1875.0,
+        "record": "0-1-0"
+      },
+      {
+        "name": "Jibbby",
+        "games": 1,
+        "win_rate": 0.0,
+        "avg_cpl": 1565.5,
+        "record": "0-1-0"
+      },
+      {
+        "name": "c0br4_bot",
+        "games": 1,
+        "win_rate": 0.0,
+        "avg_cpl": 274.3,
+        "record": "0-0-1"
+      },
+      {
+        "name": "maia5",
+        "games": 1,
+        "win_rate": 0.0,
+        "avg_cpl": 205.0,
+        "record": "0-0-1"
+      }
+    ]
+  },
+  "themes": {
+    "castling_kingside": 13,
+    "castling_queenside": 5,
+    "fianchetto": 0,
+    "isolated_pawns": 2807,
+    "passed_pawns": 1413,
+    "bishop_pair_games": 27,
+    "knight_outpost": 0,
+    "rook_open_file": 0,
+    "tactical_themes": 0
+  },
+  "metadata": {
+    "generated": "2025-11-30T21:43:47.625581",
+    "period": "Last 27 games",
+    "bot": "v7p3r_bot"
+  }
+}
