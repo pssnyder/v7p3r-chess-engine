@@ -15,7 +15,8 @@ class VersionTracker:
     # Deployment timeline based on CHANGELOG.md
     VERSION_TIMELINE = [
         # Format: (start_date, end_date, version, notes)
-        ("2025-11-30", None, "v17.1", "Rolled back from v17.4 - CURRENT"),
+        ("2025-12-02", None, "v17.5", "Endgame Optimization Phase 1 - CURRENT"),
+        ("2025-11-30", "2025-12-02", "v17.1", "Rolled back from v17.4"),
         ("2025-11-26", "2025-11-29", "v17.4", "ROLLED BACK - endgame issues"),
         ("2025-11-21", "2025-11-26", "v17.2.0", "Stable deployment"),
         ("2025-11-21", "2025-11-21", "v17.1.1", "Short-lived patch"),
