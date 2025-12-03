@@ -1,7 +1,7 @@
 # gitignore file for v7p3r_chess_engine project
 
 # lichess config (contains api token)
-config.yml
+config.yml*
 
 # General catch-all for do-not-commit files
 *.do-not-commit

@@ -1,0 +1,237 @@
+{
+  "total_positions": 30,
+  "created": "2025-12-02",
+  "purpose": "Validate v17.5 endgame improvements vs v17.1.1",
+  "positions": [
+    {
+      "fen": "6k1/5ppp/8/8/8/8/5PPP/R5KR w - - 0 1",
+      "description": "R+R endgame - back rank coordination test",
+      "expected_plan": "Ra8+ or coordinate rooks on 7th/8th rank"
+    },
+    {
+      "fen": "8/8/2k5/3p4/3P4/2K5/8/8 w - - 0 1",
+      "description": "K+P endgame - opposition test",
+      "expected_plan": "King must maintain opposition"
+    },
+    {
+      "fen": "8/8/8/4k3/8/3K4/3P4/8 w - - 0 1",
+      "description": "K+P vs K - pawn promotion",
+      "expected_plan": "Push pawn while maintaining support"
+    },
+    {
+      "fen": "8/5k2/8/4r3/8/2K5/1P6/8 w - - 0 1",
+      "description": "K+P vs K+R - defense required",
+      "expected_plan": "King must shield pawn"
+    },
+    {
+      "fen": "6k1/8/6K1/6P1/8/8/8/8 w - - 0 1",
+      "description": "K+P vs K - basic pawn endgame",
+      "expected_plan": "Push pawn with king support"
+    },
+    {
+      "fen": "8/8/4k3/8/4K3/4P3/8/8 w - - 0 1",
+      "description": "K+P vs K - central pawn",
+      "expected_plan": "Advance pawn with king"
+    },
+    {
+      "fen": "r6k/5Qpp/8/8/8/8/8/R3K2R w - - 0 1",
+      "description": "Mate in 1 - back rank mate pattern",
+      "expected_plan": "Qf8# or Ra8#"
+    },
+    {
+      "fen": "6k1/5ppp/8/8/8/8/8/1R4KR w - - 0 1",
+      "description": "Mate in 1 - rook coordination",
+      "expected_plan": "Ra8# or Rh8#"
+    },
+    {
+      "fen": "7k/5Q1p/8/8/8/8/8/7K w - - 0 1",
+      "description": "Mate in 1 - queen mate",
+      "expected_plan": "Qg7# or Qg8#"
+    },
+    {
+      "fen": "4r1k1/5ppp/8/8/8/8/5PPP/4R1K1 w - - 0 1",
+      "description": "R vs R endgame - activity test",
+      "expected_plan": "Activate rook on 7th rank"
+    },
+    {
+      "fen": "8/8/1R2kb2/8/4B3/pP2PP2/4K1P1/8 b - - 0 46",
+      "move_number": 92,
+      "game_result": "1-0",
+      "white_material": 800,
+      "black_material": 300,
+      "piece_count": 10,
+      "description": "Move 92 from game (Result: 1-0)"
+    },
+    {
+      "fen": "8/8/1R3b2/4k3/4B3/pP2PP2/4K1P1/8 w - - 1 47",
+      "move_number": 93,
+      "game_result": "1-0",
+      "white_material": 800,
+      "black_material": 300,
+      "piece_count": 10,
+      "description": "Move 93 from game (Result: 1-0)"
+    },
+    {
+      "fen": "8/8/1R3b2/4k3/4B3/pP1KPP2/6P1/8 b - - 2 47",
+      "move_number": 94,
+      "game_result": "1-0",
+      "white_material": 800,
+      "black_material": 300,
+      "piece_count": 10,
+      "description": "Move 94 from game (Result: 1-0)"
+    },
+    {
+      "fen": "8/8/1R6/4k3/4B2b/pP1KPP2/6P1/8 w - - 3 48",
+      "move_number": 95,
+      "game_result": "1-0",
+      "white_material": 800,
+      "black_material": 300,
+      "piece_count": 10,
+      "description": "Move 95 from game (Result: 1-0)"
+    },
+    {
+      "fen": "8/5R2/8/5pkp/7r/3K1P1P/1P4P1/8 b - - 0 33",
+      "move_number": 66,
+      "game_result": "1-0",
+      "white_material": 500,
+      "black_material": 500,
+      "piece_count": 10,
+      "description": "Move 66 from game (Result: 1-0)"
+    },
+    {
+      "fen": "8/5R2/8/5p1p/5k1r/3K1P1P/1P4P1/8 w - - 1 34",
+      "move_number": 67,
+      "game_result": "1-0",
+      "white_material": 500,
+      "black_material": 500,
+      "piece_count": 10,
+      "description": "Move 67 from game (Result: 1-0)"
+    },
+    {
+      "fen": "8/6R1/8/5p1p/5k1r/3K1P1P/1P4P1/8 b - - 2 34",
+      "move_number": 68,
+      "game_result": "1-0",
+      "white_material": 500,
+      "black_material": 500,
+      "piece_count": 10,
+      "description": "Move 68 from game (Result: 1-0)"
+    },
+    {
+      "fen": "8/6R1/8/4kp1p/7r/3K1P1P/1P4P1/8 w - - 3 35",
+      "move_number": 69,
+      "game_result": "1-0",
+      "white_material": 500,
+      "black_material": 500,
+      "piece_count": 10,
+      "description": "Move 69 from game (Result: 1-0)"
+    },
+    {
+      "fen": "8/4R3/8/4kp1p/7r/3K1P1P/1P4P1/8 b - - 4 35",
+      "move_number": 70,
+      "game_result": "1-0",
+      "white_material": 500,
+      "black_material": 500,
+      "piece_count": 10,
+      "description": "Move 70 from game (Result: 1-0)"
+    },
+    {
+      "fen": "8/4R3/5k2/5p1p/7r/3K1P1P/1P4P1/8 w - - 5 36",
+      "move_number": 71,
+      "game_result": "1-0",
+      "white_material": 500,
+      "black_material": 500,
+      "piece_count": 10,
+      "description": "Move 71 from game (Result: 1-0)"
+    },
+    {
+      "fen": "8/R7/5k2/5p1p/7r/3K1P1P/1P4P1/8 b - - 6 36",
+      "move_number": 72,
+      "game_result": "1-0",
+      "white_material": 500,
+      "black_material": 500,
+      "piece_count": 10,
+      "description": "Move 72 from game (Result: 1-0)"
+    },
+    {
+      "fen": "8/R7/5k2/7p/5p1r/3K1P1P/1P4P1/8 w - - 0 37",
+      "move_number": 73,
+      "game_result": "1-0",
+      "white_material": 500,
+      "black_material": 500,
+      "piece_count": 10,
+      "description": "Move 73 from game (Result: 1-0)"
+    },
+    {
+      "fen": "8/R7/5k2/7p/5p1r/1P1K1P1P/6P1/8 b - - 0 37",
+      "move_number": 74,
+      "game_result": "1-0",
+      "white_material": 500,
+      "black_material": 500,
+      "piece_count": 10,
+      "description": "Move 74 from game (Result: 1-0)"
+    },
+    {
+      "fen": "8/R7/8/4k2p/5p1r/1P1K1P1P/6P1/8 w - - 1 38",
+      "move_number": 75,
+      "game_result": "1-0",
+      "white_material": 500,
+      "black_material": 500,
+      "piece_count": 10,
+      "description": "Move 75 from game (Result: 1-0)"
+    },
+    {
+      "fen": "8/R7/8/4k2p/1P3p1r/3K1P1P/6P1/8 b - - 0 38",
+      "move_number": 76,
+      "game_result": "1-0",
+      "white_material": 500,
+      "black_material": 500,
+      "piece_count": 10,
+      "description": "Move 76 from game (Result: 1-0)"
+    },
+    {
+      "fen": "8/R7/8/4k2p/1P3p2/3K1P1r/6P1/8 w - - 0 39",
+      "move_number": 77,
+      "game_result": "1-0",
+      "white_material": 500,
+      "black_material": 500,
+      "piece_count": 9,
+      "description": "Move 77 from game (Result: 1-0)"
+    },
+    {
+      "fen": "8/R7/8/4k2p/1P3p2/3K1P1P/8/8 b - - 0 39",
+      "move_number": 78,
+      "game_result": "1-0",
+      "white_material": 500,
+      "black_material": 0,
+      "piece_count": 8,
+      "description": "Move 78 from game (Result: 1-0)"
+    },
+    {
+      "fen": "8/R7/5k2/7p/1P3p2/3K1P1P/8/8 w - - 1 40",
+      "move_number": 79,
+      "game_result": "1-0",
+      "white_material": 500,
+      "black_material": 0,
+      "piece_count": 8,
+      "description": "Move 79 from game (Result: 1-0)"
+    },
+    {
+      "fen": "8/R7/5k2/1P5p/5p2/3K1P1P/8/8 b - - 0 40",
+      "move_number": 80,
+      "game_result": "1-0",
+      "white_material": 500,
+      "black_material": 0,
+      "piece_count": 8,
+      "description": "Move 80 from game (Result: 1-0)"
+    },
+    {
+      "fen": "8/R7/4k3/1P5p/5p2/3K1P1P/8/8 w - - 1 41",
+      "move_number": 81,
+      "game_result": "1-0",
+      "white_material": 500,
+      "black_material": 0,
+      "piece_count": 8,
+      "description": "Move 81 from game (Result: 1-0)"
+    }
+  ]
+}
