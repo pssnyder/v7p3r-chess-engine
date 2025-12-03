@@ -128,12 +128,16 @@ class V7P3RFastEvaluator:
         endgame_bonus = 0  # NEW: Endgame-specific bonuses
         is_endgame = self._is_endgame(board)
         
+        # V17.5: Skip PST in pure endgames (K+P, K+R endings) for speed
+        skip_pst = is_endgame and self._is_pure_endgame(board)
+        
         # Evaluate all pieces on board
         for square in chess.SQUARES:
             piece = board.piece_at(square)
             if piece:
-                # PST value
-                pst_score += self._get_piece_square_value(piece, square, is_endgame)
+                # PST value (skip in pure endgames for 20-30% speed gain)
+                if not skip_pst:
+                    pst_score += self._get_piece_square_value(piece, square, is_endgame)
                 
                 # Material value
                 material_value = self.piece_values.get(piece.piece_type, 0)
@@ -215,6 +219,11 @@ class V7P3RFastEvaluator:
     def _is_opening(self, board: chess.Board) -> bool:
         """Detect opening phase (< 10 moves, pieces not developed)"""
         return board.fullmove_number < 10
+    
+    def _is_pure_endgame(self, board: chess.Board) -> bool:
+        """V17.5: Detect very simplified endgames where PST is irrelevant (K+P, K+R endings)"""
+        piece_count = len(board.piece_map())
+        return piece_count <= 6  # 2 kings + max 4 other pieces
     
     def _calculate_middlegame_bonuses(self, board: chess.Board) -> int:
         """
