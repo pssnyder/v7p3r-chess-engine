@@ -1,0 +1,124 @@
+{
+  "v17.5": {
+    "schema_version": "1.0",
+    "generated_at": "2025-12-05T22:29:37.016361",
+    "games_analyzed": 52,
+    "results": {
+      "wins": 18,
+      "losses": 25,
+      "draws": 9,
+      "win_rate": 34.61538461538461
+    },
+    "accuracy": {
+      "average_cpl": 2290.829923366643,
+      "median_cpl": 2020.875,
+      "average_top1_alignment": 57.17813804366887
+    },
+    "blunders": {
+      "total": 71,
+      "per_game": 1.3653846153846154,
+      "critical_total": 275,
+      "critical_per_game": 5.288461538461538
+    },
+    "move_quality": {
+      "best_moves": 639,
+      "excellent_moves": 14,
+      "good_moves": 57,
+      "inaccuracies": 49,
+      "mistakes": 54
+    },
+    "themes": {
+      "positive_themes": {
+        "description": "Good chess concepts - we want these HIGH",
+        "castling": {
+          "kingside": 27,
+          "queenside": 9,
+          "total": 36,
+          "percentage": 69.23076923076923,
+          "per_game": 0.6923076923076923
+        },
+        "passed_pawns": {
+          "total": 3624,
+          "per_game": 69.6923076923077,
+          "description": "Created passed pawns (endgame advantage)"
+        },
+        "bishop_pair": {
+          "games_with": 52,
+          "percentage": 100.0,
+          "description": "Retained both bishops (positional strength)"
+        },
+        "knight_outpost": {
+          "total": 0,
+          "per_game": 0.0,
+          "description": "Knights on strong squares"
+        },
+        "rook_activity": {
+          "open_files": 0,
+          "seventh_rank": 0,
+          "total": 0,
+          "per_game": 0.0,
+          "description": "Active rook placement"
+        },
+        "fianchetto": {
+          "total": 0,
+          "per_game": 0.0,
+          "description": "Fianchettoed bishops (g2/b2/g7/b7)"
+        }
+      },
+      "negative_themes": {
+        "description": "Weaknesses - we want these LOW",
+        "isolated_pawns": {
+          "total": 8304,
+          "per_game": 159.69230769230768,
+          "severity": "high",
+          "description": "Isolated pawns (structural weakness)"
+        },
+        "doubled_pawns": {
+          "total": 0,
+          "per_game": 0.0,
+          "severity": "low",
+          "description": "Doubled pawns (often weak)"
+        }
+      },
+      "tactical_themes": {
+        "description": "Situational tactics - context matters",
+        "pins": {
+          "total": 0,
+          "per_game": 0.0,
+          "description": "Pinned opponent pieces"
+        },
+        "skewers": {
+          "total": 0,
+          "per_game": 0.0,
+          "description": "Skewered opponent pieces"
+        },
+        "forks": {
+          "total": 0,
+          "per_game": 0.0,
+          "description": "Forked opponent pieces"
+        },
+        "discovered_attacks": {
+          "total": 0,
+          "per_game": 0.0,
+          "description": "Discovered attacks executed"
+        },
+        "batteries": {
+          "total": 0,
+          "per_game": 0.0,
+          "description": "Queen/Rook batteries formed"
+        },
+        "mate_threats": {
+          "total": 0,
+          "per_game": 0.0,
+          "description": "Positions with mate threats"
+        }
+      },
+      "coverage_summary": {
+        "positive_score": 43.8,
+        "weakness_score": 50.0,
+        "tactical_score": 0.0
+      }
+    },
+    "games_count": 52
+  }
+}

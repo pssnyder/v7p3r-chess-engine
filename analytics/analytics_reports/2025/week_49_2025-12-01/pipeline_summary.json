@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0",
+  "start_time": "2025-12-05T21:54:17.633270",
+  "week_folder": "/workspace/reports/2025/week_49_2025-12-01",
+  "stages": {
+    "fetch": {
+      "success": true,
+      "pgn_file": "/workspace/reports/2025/week_49_2025-12-01/pgn/v7p3r_weekly_2025-12-04.pgn",
+      "file_size_mb": 0.14363384246826172
+    },
+    "parse": {
+      "success": true,
+      "total_games": 52
+    },
+    "analysis": {
+      "success": true,
+      "games_analyzed": 52,
+      "games_failed": 0
+    },
+    "reports": {
+      "success": true,
+      "reports_generated": 3
+    },
+    "historical": {
+      "success": true
+    }
+  },
+  "success": true,
+  "end_time": "2025-12-05T22:29:37.048978",
+  "elapsed_seconds": 2119.415725
+}

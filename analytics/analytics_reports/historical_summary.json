@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0",
+  "weeks": [
+    {
+      "week_id": "week_49_2025-12-01",
+      "week_folder": "/workspace/reports/2025/week_49_2025-12-01",
+      "date": "2025-12-05T03:25:25.824476",
+      "games": 183,
+      "summary": {
+        "success": true,
+        "games_analyzed": 183,
+        "games_failed": 0
+      }
+    },
+    {
+      "week_id": "week_49_2025-12-01",
+      "week_folder": "/workspace/reports/2025/week_49_2025-12-01",
+      "date": "2025-12-05T22:29:37.046430",
+      "games": 52,
+      "summary": {
+        "success": true,
+        "games_analyzed": 52,
+        "games_failed": 0
+      }
+    }
+  ],
+  "by_version": {},
+  "total_weeks": 2,
+  "last_updated": "2025-12-05T22:29:37.046472"
+}

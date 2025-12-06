@@ -2,12 +2,11 @@
 # For weekly automated game analysis using Stockfish
 
 # Core dependencies
-python-chess==1.10.0       # Chess library with PGN parsing and engine communication
-google-cloud-storage==2.14.0  # For GCP bucket operations (optional)
-google-cloud-scheduler==2.16.3  # For GCP Cloud Scheduler integration
-
-# Email reporting (optional)
-sendgrid==6.11.0          # For email delivery of reports
+python-chess==1.2.0       # Chess library with PGN parsing and engine communication
+requests==2.31.0          # For Lichess API calls
 
 # Utilities
 python-dotenv==1.0.0      # Environment variable management
+
+# LLM Integration
+openai==1.50.0            # OpenAI API for AI-powered analysis insights

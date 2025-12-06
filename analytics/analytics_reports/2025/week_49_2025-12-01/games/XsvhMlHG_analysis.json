@@ -1,0 +1,13 @@
+{
+  "success": true,
+  "game_id": "XsvhMlHG",
+  "game_num": 42,
+  "report": "GameAnalysisReport(game_id='XsvhMlHG', date='2025.12.05', result='1-0', opponent='JemBok', color='black', time_control='360+4', opening='Nimzowitsch Defense: El Columpio Defense', moves=[MoveAnalysis(move_number=2, move_san='Nc6', move_uci='b8c6', color='black', evaluation=56.0, best_move='d5', best_eval=-24.0, eval_diff=-80.0, classification='best', themes=[], pv_line=['d5', 'dxd4', 'e6', 'cxc4', 'Nf6'], depth=20), MoveAnalysis(move_number=8, move_san='d5', move_uci='d7d5', color='black', evaluation=174.0, best_move='d6', best_eval=-151.0, eval_diff=-325.0, classification='best', themes=[], pv_line=['d6', 'hxh3', 'Nh6', 'Nxc3', 'e6'], depth=20), MoveAnalysis(move_number=14, move_san='Qf5', move_uci='d7f5', color='black', evaluation=266.0, best_move='e6', best_eval=-199.0, eval_diff=-465.0, classification='best', themes=[], pv_line=['e6', 'axa3', 'Nc6', 'bxb4', 'b6'], depth=20), MoveAnalysis(move_number=16, move_san='Nxc2+', move_uci='b4c2', color='black', evaluation=309.0, best_move='Qxc2', best_eval=-25.0, eval_diff=-334.0, classification='best', themes=[], pv_line=['Qxc2', 'Qdxc2', 'Nxc2+', 'Kxd2', 'Bf5'], depth=20), MoveAnalysis(move_number=22, move_san='Nxa1', move_uci='c2a1', color='black', evaluation=639.0, best_move='Nxa1', best_eval=-629.0, eval_diff=-1268.0, classification='best', themes=[], pv_line=['Nxa1', 'Bxd3+', 'Qg4', 'Rxh4', 'h5'], depth=20), MoveAnalysis(move_number=26, move_san='Ke7', move_uci='e8e7', color='black', evaluation=9999, best_move='Ke7', best_eval=-9999, eval_diff=-19998, classification='best', themes=[], pv_line=['Ke7', 'Qxd6'], depth=20)], themes=ThemeDetection(castling_king_side=0, castling_queen_side=0, fianchetto=0, isolated_pawns=0, doubled_pawns=0, passed_pawns=2, bishop_pair=True, knight_outpost=0, rook_open_file=0, rook_seventh_rank=0, battery=0, pin=0, skewer=0, fork=0, discovered_attack=0, mate_threats=[]), average_centipawn_loss=3745.0, best_moves=6, excellent_moves=0, good_moves=0, inaccuracies=0, mistakes=0, blunders=0, critical_blunders=0, top1_alignment=100.0, top3_alignment=100.0, top5_alignment=100.0)",
+  "version": "v17.5",
+  "version_info": {
+    "version": "v17.5",
+    "notes": "Endgame Optimization Phase 1 - CURRENT",
+    "deployment_date": "2025-12-02",
+    "status": "current"
+  }
+}

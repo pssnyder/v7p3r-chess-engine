@@ -1,0 +1,13 @@
+{
+  "success": true,
+  "game_id": "5dTJaITh",
+  "game_num": 72,
+  "report": "GameAnalysisReport(game_id='5dTJaITh', date='2025.12.03', result='0-1', opponent='PizzaPaw', color='black', time_control='1800+30', opening='Nimzowitsch Defense: Franco-Nimzowitsch Variation', moves=[MoveAnalysis(move_number=2, move_san='e6', move_uci='e7e6', color='black', evaluation=35.0, best_move='e5', best_eval=-28.0, eval_diff=-63.0, classification='best', themes=[], pv_line=['e5', 'Nxf3+', 'Nc6', 'Bxb5', 'a6'], depth=20), MoveAnalysis(move_number=10, move_san='Ba5', move_uci='b4a5', color='black', evaluation=235.0, best_move='Bf8', best_eval=-195.0, eval_diff=-430.0, classification='best', themes=[], pv_line=['Bf8', 'Nxd2', 'Qd8', 'dxd5', 'Nb8'], depth=20), MoveAnalysis(move_number=12, move_san='d6', move_uci='d7d6', color='black', evaluation=478.0, best_move='Bb6', best_eval=-219.0, eval_diff=-697.0, classification='best', themes=[], pv_line=['Bb6', 'axa4', 'Qd8', 'Nxd2', 'd6'], depth=20), MoveAnalysis(move_number=14, move_san='Qg6', move_uci='f6g6', color='black', evaluation=189.0, best_move='Qg6', best_eval=-204.0, eval_diff=-393.0, classification='best', themes=[], pv_line=['Qg6', 'Nxd2', 'h6', 'Bxh4', 'Nf6'], depth=20), MoveAnalysis(move_number=16, move_san='f5', move_uci='f7f5', color='black', evaluation=290.0, best_move='Qh5', best_eval=-187.0, eval_diff=-477.0, classification='best', themes=[], pv_line=['Qh5', 'Bxc1', 'f6', 'bxb4', 'Bb6'], depth=20), MoveAnalysis(move_number=20, move_san='Qxg2', move_uci='g6g2', color='black', evaluation=-253.0, best_move='Qxg2', best_eval=249.0, eval_diff=502.0, classification='??blunder', themes=[], pv_line=['Qxg2', 'Rxg1+', 'gxf3', 'Bxe2', 'Nxd5'], depth=20), MoveAnalysis(move_number=22, move_san='Qxf3', move_uci='g2f3', color='black', evaluation=-247.0, best_move='Qxf3', best_eval=248.0, eval_diff=495.0, classification='??blunder', themes=[], pv_line=['Qxf3', 'Bxe2', 'Nxd5', 'Rxg7', 'Nge7'], depth=20)], themes=ThemeDetection(castling_king_side=0, castling_queen_side=0, fianchetto=0, isolated_pawns=3, doubled_pawns=0, passed_pawns=0, bishop_pair=True, knight_outpost=0, rook_open_file=0, rook_seventh_rank=0, battery=0, pin=0, skewer=0, fork=0, discovered_attack=0, mate_threats=[]), average_centipawn_loss=436.7142857142857, best_moves=5, excellent_moves=0, good_moves=0, inaccuracies=0, mistakes=0, blunders=0, critical_blunders=2, top1_alignment=71.42857142857143, top3_alignment=71.42857142857143, top5_alignment=71.42857142857143)",
+  "version": "v17.5",
+  "version_info": {
+    "version": "v17.5",
+    "notes": "Endgame Optimization Phase 1 - CURRENT",
+    "deployment_date": "2025-12-02",
+    "status": "current"
+  }
+}

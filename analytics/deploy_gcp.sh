@@ -1,6 +1,6 @@
 #!/bin/bash
-# Deploy V7P3R Analytics to GCP
-# This script sets up the analytics system as a Cloud Run job with Cloud Scheduler
+# Deploy V7P3R Analytics to GCP Cloud Run
+# Automated weekly game analysis for v7p3r_bot
 
 set -e
 
@@ -12,6 +12,10 @@ SCHEDULER_JOB="v7p3r-analytics-weekly"
 
 echo "=========================================="
 echo "V7P3R Analytics Deployment to GCP"
+echo "=========================================="
+echo "Project: $PROJECT_ID"
+echo "Region: $REGION"
+echo "Job: $JOB_NAME"
 echo "=========================================="
 
 # Check if gcloud is configured
@@ -70,31 +74,33 @@ gcloud run jobs create $JOB_NAME \
         --image gcr.io/$PROJECT_ID/$JOB_NAME \
         --region $REGION
 
-# Create Cloud Scheduler job (runs every Monday at 9 AM)
+# Create Cloud Scheduler job (runs every Sunday at midnight UTC)
 echo "Setting up Cloud Scheduler..."
 gcloud scheduler jobs create http $SCHEDULER_JOB \
     --location $REGION \
-    --schedule "0 9 * * 1" \
-    --time-zone "America/New_York" \
+    --schedule "0 0 * * 0" \
+    --time-zone "UTC" \
     --uri "https://${REGION}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${PROJECT_ID}/jobs/${JOB_NAME}:run" \
     --http-method POST \
     --oauth-service-account-email $SERVICE_ACCOUNT \
     || gcloud scheduler jobs update http $SCHEDULER_JOB \
         --location $REGION \
-        --schedule "0 9 * * 1"
-
+        --schedule "0 0 * * 0" \
+        --time-zone "UTC"
 echo ""
 echo "=========================================="
 echo "Deployment Complete!"
 echo "=========================================="
 echo ""
-echo "Analytics job will run every Monday at 9 AM EST"
+echo "Analytics job will run every Sunday at midnight UTC"
 echo ""
-echo "Manual run: gcloud run jobs execute $JOB_NAME --region $REGION"
-echo "Check logs: gcloud logging read \"resource.type=cloud_run_job AND resource.labels.job_name=$JOB_NAME\" --limit 50"
+echo "Manual run: gcloud run jobs execute $JOB_NAME --region $REGION --project $PROJECT_ID"
+echo "Check logs: gcloud logging read \"resource.type=cloud_run_job AND resource.labels.job_name=$JOB_NAME\" --limit 50 --project $PROJECT_ID"
 echo ""
 echo "Next steps:"
-echo "1. Configure email settings in Cloud Run job environment"
-echo "2. Test with: gcloud run jobs execute $JOB_NAME --region $REGION"
-echo "3. Monitor first scheduled run on Monday"
+echo "1. Test deployment: gcloud run jobs execute $JOB_NAME --region $REGION --project $PROJECT_ID"
+echo "2. Monitor logs for completion"
+echo "3. Check /workspace/reports/ for output"
+echo "4. Wait for Sunday midnight UTC for first scheduled run"
+echo "". Monitor first scheduled run on Monday"
 echo ""

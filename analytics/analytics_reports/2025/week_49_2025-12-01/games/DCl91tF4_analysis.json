@@ -1,0 +1,14 @@
+{
+  "success": true,
+  "game_id": "DCl91tF4",
+  "game_num": 138,
+  "report": "GameAnalysisReport(game_id='DCl91tF4', date='2025.12.01', result='1/2-1/2', opponent='mechasoleil', color='black', time_control='180+2', opening='French Defense', moves=[MoveAnalysis(move_number=2, move_san='e6', move_uci='e7e6', color='black', evaluation=35.0, best_move='e5', best_eval=-28.0, eval_diff=-63.0, classification='best', themes=[], pv_line=['e5', 'Nxf3+', 'Nc6', 'Bxb5', 'a6'], depth=20), MoveAnalysis(move_number=4, move_san='Nc6', move_uci='b8c6', color='black', evaluation=-55.0, best_move='d5', best_eval=54.0, eval_diff=109.0, classification='mistake', themes=[], pv_line=['d5', 'exd5', 'd5', 'dxd4', 'Nf6'], depth=20), MoveAnalysis(move_number=6, move_san='Qf6', move_uci='d8f6', color='black', evaluation=19.0, best_move='Nf6', best_eval=117.0, eval_diff=98.0, classification='inaccuracy', themes=[], pv_line=['Nf6', 'Qxe2+', 'd5', 'exd5', 'Nd4'], depth=20), MoveAnalysis(move_number=8, move_san='Qxf4', move_uci='f6f4', color='black', evaluation=-166.0, best_move='Qxf4', best_eval=167.0, eval_diff=333.0, classification='blunder', themes=[], pv_line=['Qxf4', 'Nxc3', 'Nf6', 'Qxf3', 'fxf3'], depth=20), MoveAnalysis(move_number=10, move_san='Nd4', move_uci='c6d4', color='black', evaluation=-292.0, best_move='d5', best_eval=293.0, eval_diff=585.0, classification='??blunder', themes=[], pv_line=['d5', 'Bxd3', 'Nd4', 'Qexf1+', 'Qf1+'], depth=20), MoveAnalysis(move_number=12, move_san='Qh4+', move_uci='f4h4', color='black', evaluation=-117.0, best_move='Qg4', best_eval=303.0, eval_diff=420.0, classification='??blunder', themes=[], pv_line=['Qg4', 'gxg3', 'c5', 'Nxa3', 'b5'], depth=20), MoveAnalysis(move_number=14, move_san='Qf4+', move_uci='h4f4', color='black', evaluation=-206.0, best_move='Bc5', best_eval=375.0, eval_diff=581.0, classification='??blunder', themes=[], pv_line=['Bc5', 'Ngxf3', 'Nf3', 'Qxf3+', 'f5'], depth=20), MoveAnalysis(move_number=18, move_san='Qf4+', move_uci='h4f4', color='black', evaluation=-202.0, best_move='Bc5', best_eval=367.0, eval_diff=569.0, classification='??blunder', themes=[], pv_line=['Bc5', 'Ngxf3', 'Nf3', 'Qxf3+', 'f5'], depth=20)], themes=ThemeDetection(castling_king_side=0, castling_queen_side=0, fianchetto=0, isolated_pawns=0, doubled_pawns=0, passed_pawns=0, bishop_pair=True, knight_outpost=0, rook_open_file=0, rook_seventh_rank=0, battery=0, pin=0, skewer=0, fork=0, discovered_attack=0, mate_threats=[]), average_centipawn_loss=344.75, best_moves=1, excellent_moves=0, good_moves=0, inaccuracies=1, mistakes=1, blunders=1, critical_blunders=4, top1_alignment=12.5, top3_alignment=12.5, top5_alignment=12.5)",
+  "version": "v17.1",
+  "version_info": {
+    "version": "v17.1",
+    "notes": "Rolled back from v17.4",
+    "deployment_date": "2025-11-30",
+    "retirement_date": "2025-12-02",
+    "status": "retired"
+  }
+}

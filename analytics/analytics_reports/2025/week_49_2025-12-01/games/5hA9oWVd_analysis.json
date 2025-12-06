@@ -1,0 +1,14 @@
+{
+  "success": true,
+  "game_id": "5hA9oWVd",
+  "game_num": 151,
+  "report": "GameAnalysisReport(game_id='5hA9oWVd', date='2025.11.29', result='1-0', opponent='Kalangomat', color='white', time_control='300+3', opening=\"Queen's Gambit Declined: Marshall Defense\", moves=[MoveAnalysis(move_number=1, move_san='d4', move_uci='d2d4', color='white', evaluation=-22.0, best_move='e4', best_eval=28.0, eval_diff=50.0, classification='good', themes=[], pv_line=['e4', 'exe5', 'Nf3', 'Nxc6', 'Bb5'], depth=20), MoveAnalysis(move_number=3, move_san='c4', move_uci='c2c4', color='white', evaluation=-26.0, best_move='c4', best_eval=26.0, eval_diff=52.0, classification='inaccuracy', themes=[], pv_line=['c4', 'exe6', 'Nc3', 'Nxf6+', 'Nf3'], depth=20), MoveAnalysis(move_number=5, move_san='c5', move_uci='c4c5', color='white', evaluation=76.0, best_move='cxd5', best_eval=63.0, eval_diff=-13.0, classification='best', themes=[], pv_line=['cxd5', 'cxc6', 'dxc6', 'Nxc6', 'Nf3'], depth=20), MoveAnalysis(move_number=7, move_san='Nc3', move_uci='b1c3', color='white', evaluation=17.0, best_move='Bf4', best_eval=-17.0, eval_diff=-34.0, classification='best', themes=[], pv_line=['Bf4', 'bxb6', 'Nc3', 'cxc6', 'b6'], depth=20), MoveAnalysis(move_number=11, move_san='Qb3', move_uci='d1b3', color='white', evaluation=-19.0, best_move='Bf4', best_eval=29.0, eval_diff=48.0, classification='good', themes=[], pv_line=['Bf4', 'Nfxe4', 'h4', 'Bxe7', 'e3'], depth=20), MoveAnalysis(move_number=13, move_san='Qa4+', move_uci='b3a4', color='white', evaluation=-73.0, best_move='Qa4+', best_eval=69.0, eval_diff=142.0, classification='mistake', themes=[], pv_line=['Qa4+', 'cxc6', 'e3', 'Bxe7', 'Bd2'], depth=20), MoveAnalysis(move_number=15, move_san='Bg5', move_uci='c1g5', color='white', evaluation=-31.0, best_move='Ne5', best_eval=80.0, eval_diff=111.0, classification='mistake', themes=[], pv_line=['Ne5', 'Bxe7', 'e3', 'O-O', 'Bd2'], depth=20), MoveAnalysis(move_number=17, move_san='Bxf6', move_uci='g5f6', color='white', evaluation=-80.0, best_move='Bxf6', best_eval=84.0, eval_diff=164.0, classification='mistake', themes=[], pv_line=['Bxf6', 'gxf6', 'e3', 'Bxe7', 'Be2'], depth=20)], themes=ThemeDetection(castling_king_side=0, castling_queen_side=0, fianchetto=0, isolated_pawns=0, doubled_pawns=0, passed_pawns=0, bishop_pair=True, knight_outpost=0, rook_open_file=0, rook_seventh_rank=0, battery=0, pin=0, skewer=0, fork=0, discovered_attack=0, mate_threats=[]), average_centipawn_loss=76.75, best_moves=2, excellent_moves=0, good_moves=2, inaccuracies=1, mistakes=3, blunders=0, critical_blunders=0, top1_alignment=25.0, top3_alignment=25.0, top5_alignment=50.0)",
+  "version": "v17.4",
+  "version_info": {
+    "version": "v17.4",
+    "notes": "ROLLED BACK - endgame issues",
+    "deployment_date": "2025-11-26",
+    "retirement_date": "2025-11-29",
+    "status": "retired"
+  }
+}
