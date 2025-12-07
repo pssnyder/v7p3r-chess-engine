@@ -2,10 +2,28 @@
   "generated": "2025-11-30T10:36:40.738937",
   "timeline": [
     {
+      "version": "v17.7",
+      "start_date": "2025-12-06",
+      "end_date": "CURRENT",
+      "notes": "Anti-Draw Measures & Mate Depth Enhancement"
+    },
+    {
+      "version": "v17.6",
+      "start_date": "2025-12-06",
+      "end_date": "2025-12-06",
+      "notes": "Pawn Structure & Endgame Optimizations - Short lived for v17.7"
+    },
+    {
+      "version": "v17.5",
+      "start_date": "2025-12-03",
+      "end_date": "2025-12-05",
+      "notes": "Pawn Structure & Endgame Optimizations"
+    },
+    {
       "version": "v17.1",
       "start_date": "2025-11-30",
-      "end_date": "CURRENT",
-      "notes": "Rolled back from v17.4 - CURRENT"
+      "end_date": "2025-12-02",
+      "notes": "Rolled back from v17.4"
     },
     {
       "version": "v17.4",
