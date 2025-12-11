@@ -1,0 +1,1559 @@
+{
+  "timestamp": "2025-12-10T19:03:32.750804",
+  "versions_analyzed": 11,
+  "total_games": 307,
+  "version_rankings": [
+    {
+      "version": "v17.3",
+      "score": 42.5,
+      "games": 56,
+      "win_rate": 0.5892857142857143,
+      "loss_rate": 0.07142857142857142,
+      "draw_rate": 0.3392857142857143,
+      "white_win_rate": 0.8823529411764706,
+      "black_win_rate": 0.9,
+      "color_balance": -0.01764705882352946,
+      "avg_game_length": 84.57142857142857
+    },
+    {
+      "version": "v17.1",
+      "score": 42.5,
+      "games": 58,
+      "win_rate": 0.5689655172413793,
+      "loss_rate": 0.08620689655172414,
+      "draw_rate": 0.3275862068965517,
+      "white_win_rate": 0.8421052631578947,
+      "black_win_rate": 0.8947368421052632,
+      "color_balance": -0.052631578947368474,
+      "avg_game_length": 86.22413793103448
+    },
+    {
+      "version": "v17.2",
+      "score": 39.5,
+      "games": 58,
+      "win_rate": 0.5,
+      "loss_rate": 0.1206896551724138,
+      "draw_rate": 0.3620689655172414,
+      "white_win_rate": 0.6875,
+      "black_win_rate": 0.9,
+      "color_balance": -0.21250000000000002,
+      "avg_game_length": 90.06896551724138
+    },
+    {
+      "version": "v17.4",
+      "score": 35.0,
+      "games": 51,
+      "win_rate": 0.5490196078431373,
+      "loss_rate": 0.17647058823529413,
+      "draw_rate": 0.27450980392156865,
+      "white_win_rate": 0.7058823529411765,
+      "black_win_rate": 0.8,
+      "color_balance": -0.09411764705882353,
+      "avg_game_length": 98.29411764705883
+    },
+    {
+      "version": "v17.0",
+      "score": 34.5,
+      "games": 56,
+      "win_rate": 0.48214285714285715,
+      "loss_rate": 0.23214285714285715,
+      "draw_rate": 0.26785714285714285,
+      "white_win_rate": 0.76,
+      "black_win_rate": 0.5333333333333333,
+      "color_balance": 0.22666666666666668,
+      "avg_game_length": 94.48214285714286
+    },
+    {
+      "version": "v17.7",
+      "score": 23.0,
+      "games": 55,
+      "win_rate": 0.2909090909090909,
+      "loss_rate": 0.43636363636363634,
+      "draw_rate": 0.2545454545454545,
+      "white_win_rate": 0.15,
+      "black_win_rate": 0.65,
+      "color_balance": -0.5,
+      "avg_game_length": 90.30909090909091
+    },
+    {
+      "version": "v17.6",
+      "score": 21.5,
+      "games": 56,
+      "win_rate": 0.19642857142857142,
+      "loss_rate": 0.4107142857142857,
+      "draw_rate": 0.375,
+      "white_win_rate": 0.3157894736842105,
+      "black_win_rate": 0.3333333333333333,
+      "color_balance": -0.017543859649122806,
+      "avg_game_length": 94.05357142857143
+    },
+    {
+      "version": "v17.5",
+      "score": 21.5,
+      "games": 51,
+      "win_rate": 0.29411764705882354,
+      "loss_rate": 0.45098039215686275,
+      "draw_rate": 0.2549019607843137,
+      "white_win_rate": 0.3888888888888889,
+      "black_win_rate": 0.4,
+      "color_balance": -0.011111111111111127,
+      "avg_game_length": 90.6470588235294
+    },
+    {
+      "version": "v14.1",
+      "score": 20.5,
+      "games": 59,
+      "win_rate": 0.23728813559322035,
+      "loss_rate": 0.5084745762711864,
+      "draw_rate": 0.22033898305084745,
+      "white_win_rate": 0.2,
+      "black_win_rate": 0.4166666666666667,
+      "color_balance": -0.21666666666666667,
+      "avg_game_length": 86.15254237288136
+    },
+    {
+      "version": "v12.6",
+      "score": 20.0,
+      "games": 58,
+      "win_rate": 0.2413793103448276,
+      "loss_rate": 0.5517241379310345,
+      "draw_rate": 0.20689655172413793,
+      "white_win_rate": 0.16666666666666666,
+      "black_win_rate": 0.45454545454545453,
+      "color_balance": -0.28787878787878785,
+      "avg_game_length": 96.98275862068965
+    },
+    {
+      "version": "v16.1",
+      "score": 2.5,
+      "games": 56,
+      "win_rate": 0.017857142857142856,
+      "loss_rate": 0.9107142857142857,
+      "draw_rate": 0.05357142857142857,
+      "white_win_rate": 0.038461538461538464,
+      "black_win_rate": 0.0,
+      "color_balance": 0.038461538461538464,
+      "avg_game_length": 78.71428571428571
+    }
+  ],
+  "version_details": {
+    "v12.6": {
+      "total_games": 58,
+      "record": "14-32-12",
+      "strongest_against": {
+        "v16.1": 4,
+        "v17.7": 3,
+        "v17.6": 2,
+        "v17.2": 2,
+        "v14.1": 1
+      },
+      "weakest_against": {
+        "v17.3": 6,
+        "v17.1": 6,
+        "v17.4": 5,
+        "v17.2": 4,
+        "v17.0": 3
+      },
+      "favorite_openings": {
+        "Van Kruij's Opening": 26,
+        "Queen's Pawn": 25,
+        "Reti Opening": 2,
+        "QGA": 2,
+        "Dunst (Sleipner-Heinrichsen-Van Geet) Opening": 1
+      },
+      "head_to_head_records": {
+        "v17.6": {
+          "W": 2,
+          "L": 1,
+          "D": 3
+        },
+        "v17.4": {
+          "W": 0,
+          "L": 5,
+          "D": 1
+        },
+        "v17.2": {
+          "W": 2,
+          "L": 4,
+          "D": 1
+        },
+        "v17.0": {
+          "W": 1,
+          "L": 3,
+          "D": 2
+        },
+        "v14.1": {
+          "W": 1,
+          "L": 3,
+          "D": 2
+        },
+        "v17.7": {
+          "W": 3,
+          "L": 2,
+          "D": 1
+        },
+        "v17.5": {
+          "W": 1,
+          "L": 2,
+          "D": 2
+        },
+        "v17.3": {
+          "W": 0,
+          "L": 6,
+          "D": 0
+        },
+        "v17.1": {
+          "W": 0,
+          "L": 6,
+          "D": 0
+        },
+        "v16.1": {
+          "W": 4,
+          "L": 0,
+          "D": 0
+        }
+      }
+    },
+    "v17.6": {
+      "total_games": 56,
+      "record": "11-23-21",
+      "strongest_against": {
+        "v16.1": 4,
+        "v17.5": 2,
+        "v17.7": 2,
+        "v12.6": 1,
+        "v17.4": 1
+      },
+      "weakest_against": {
+        "v17.0": 4,
+        "v17.3": 4,
+        "v17.1": 4,
+        "v17.4": 3,
+        "v17.2": 3
+      },
+      "favorite_openings": {
+        "King's Indian": 37,
+        "Van Kruij's Opening": 5,
+        "Dunst (Sleipner-Heinrichsen-Van Geet) Opening": 3,
+        "Nimzo-Indian": 3,
+        "Indian": 3
+      },
+      "head_to_head_records": {
+        "v12.6": {
+          "W": 1,
+          "L": 2,
+          "D": 3
+        },
+        "v17.4": {
+          "W": 1,
+          "L": 3,
+          "D": 2
+        },
+        "v17.2": {
+          "W": 0,
+          "L": 3,
+          "D": 3
+        },
+        "v17.0": {
+          "W": 0,
+          "L": 4,
+          "D": 2
+        },
+        "v14.1": {
+          "W": 1,
+          "L": 1,
+          "D": 4
+        },
+        "v17.7": {
+          "W": 2,
+          "L": 1,
+          "D": 3
+        },
+        "v17.5": {
+          "W": 2,
+          "L": 1,
+          "D": 2
+        },
+        "v17.3": {
+          "W": 0,
+          "L": 4,
+          "D": 1
+        },
+        "v17.1": {
+          "W": 0,
+          "L": 4,
+          "D": 1
+        },
+        "v16.1": {
+          "W": 4,
+          "L": 0,
+          "D": 0
+        }
+      }
+    },
+    "v17.5": {
+      "total_games": 51,
+      "record": "15-23-13",
+      "strongest_against": {
+        "v14.1": 4,
+        "v16.1": 4,
+        "v17.7": 2,
+        "v12.6": 2,
+        "v17.1": 1
+      },
+      "weakest_against": {
+        "v17.3": 5,
+        "v17.1": 4,
+        "v17.2": 3,
+        "v17.7": 2,
+        "v17.6": 2
+      },
+      "favorite_openings": {
+        "King's Indian": 36,
+        "Van Kruij's Opening": 4,
+        "Nimzo-Indian": 3,
+        "Reti Opening": 3,
+        "Queen's Pawn": 2
+      },
+      "head_to_head_records": {
+        "v14.1": {
+          "W": 4,
+          "L": 2,
+          "D": 0
+        },
+        "v17.7": {
+          "W": 2,
+          "L": 2,
+          "D": 2
+        },
+        "v17.3": {
+          "W": 0,
+          "L": 5,
+          "D": 1
+        },
+        "v17.1": {
+          "W": 1,
+          "L": 4,
+          "D": 1
+        },
+        "v16.1": {
+          "W": 4,
+          "L": 0,
+          "D": 1
+        },
+        "v12.6": {
+          "W": 2,
+          "L": 1,
+          "D": 2
+        },
+        "v17.6": {
+          "W": 1,
+          "L": 2,
+          "D": 2
+        },
+        "v17.4": {
+          "W": 0,
+          "L": 2,
+          "D": 2
+        },
+        "v17.2": {
+          "W": 1,
+          "L": 3,
+          "D": 0
+        },
+        "v17.0": {
+          "W": 0,
+          "L": 2,
+          "D": 2
+        }
+      }
+    },
+    "v14.1": {
+      "total_games": 59,
+      "record": "14-30-13",
+      "strongest_against": {
+        "v16.1": 5,
+        "v12.6": 3,
+        "v17.0": 2,
+        "v17.5": 2,
+        "v17.6": 1
+      },
+      "weakest_against": {
+        "v17.2": 6,
+        "v17.1": 5,
+        "v17.5": 4,
+        "v17.3": 4,
+        "v17.0": 3
+      },
+      "favorite_openings": {
+        "Van Kruij's Opening": 18,
+        "Barnes (Gedult) Opening": 12,
+        "Nimzo-Indian": 11,
+        "Queen's Pawn": 11,
+        "Dunst (Sleipner-Heinrichsen-Van Geet) Opening": 4
+      },
+      "head_to_head_records": {
+        "v17.5": {
+          "W": 2,
+          "L": 4,
+          "D": 0
+        },
+        "v17.3": {
+          "W": 0,
+          "L": 4,
+          "D": 2
+        },
+        "v17.1": {
+          "W": 0,
+          "L": 5,
+          "D": 1
+        },
+        "v16.1": {
+          "W": 5,
+          "L": 0,
+          "D": 1
+        },
+        "v12.6": {
+          "W": 3,
+          "L": 1,
+          "D": 2
+        },
+        "v17.6": {
+          "W": 1,
+          "L": 1,
+          "D": 4
+        },
+        "v17.4": {
+          "W": 0,
+          "L": 3,
+          "D": 2
+        },
+        "v17.2": {
+          "W": 0,
+          "L": 6,
+          "D": 0
+        },
+        "v17.0": {
+          "W": 2,
+          "L": 3,
+          "D": 1
+        },
+        "v17.7": {
+          "W": 1,
+          "L": 3,
+          "D": 0
+        }
+      }
+    },
+    "v16.1": {
+      "total_games": 56,
+      "record": "1-51-3",
+      "strongest_against": {
+        "v17.4": 1
+      },
+      "weakest_against": {
+        "v17.0": 6,
+        "v17.7": 6,
+        "v17.3": 6,
+        "v17.1": 6,
+        "v17.4": 5
+      },
+      "favorite_openings": {
+        "King's Indian": 40,
+        "Queen's Pawn": 6,
+        "Van Kruij's Opening": 3,
+        "Dunst (Sleipner-Heinrichsen-Van Geet) Opening": 3,
+        "Indian": 2
+      },
+      "head_to_head_records": {
+        "v17.4": {
+          "W": 1,
+          "L": 5,
+          "D": 0
+        },
+        "v17.2": {
+          "W": 0,
+          "L": 5,
+          "D": 1
+        },
+        "v17.0": {
+          "W": 0,
+          "L": 6,
+          "D": 0
+        },
+        "v14.1": {
+          "W": 0,
+          "L": 5,
+          "D": 1
+        },
+        "v17.7": {
+          "W": 0,
+          "L": 6,
+          "D": 0
+        },
+        "v17.5": {
+          "W": 0,
+          "L": 4,
+          "D": 1
+        },
+        "v17.3": {
+          "W": 0,
+          "L": 6,
+          "D": 0
+        },
+        "v17.1": {
+          "W": 0,
+          "L": 6,
+          "D": 0
+        },
+        "v12.6": {
+          "W": 0,
+          "L": 4,
+          "D": 0
+        },
+        "v17.6": {
+          "W": 0,
+          "L": 4,
+          "D": 0
+        }
+      }
+    },
+    "v17.4": {
+      "total_games": 51,
+      "record": "28-9-14",
+      "strongest_against": {
+        "v16.1": 5,
+        "v12.6": 5,
+        "v17.6": 3,
+        "v17.7": 3,
+        "v14.1": 3
+      },
+      "weakest_against": {
+        "v17.7": 2,
+        "v17.1": 2,
+        "v17.3": 1,
+        "v17.0": 1,
+        "v16.1": 1
+      },
+      "favorite_openings": {
+        "King's Indian": 35,
+        "Van Kruij's Opening": 4,
+        "Queen's Pawn": 3,
+        "Nimzo-Indian": 3,
+        "Dunst (Sleipner-Heinrichsen-Van Geet) Opening": 2
+      },
+      "head_to_head_records": {
+        "v16.1": {
+          "W": 5,
+          "L": 1,
+          "D": 0
+        },
+        "v12.6": {
+          "W": 5,
+          "L": 0,
+          "D": 1
+        },
+        "v17.6": {
+          "W": 3,
+          "L": 1,
+          "D": 2
+        },
+        "v17.2": {
+          "W": 1,
+          "L": 1,
+          "D": 4
+        },
+        "v17.0": {
+          "W": 2,
+          "L": 1,
+          "D": 2
+        },
+        "v14.1": {
+          "W": 3,
+          "L": 0,
+          "D": 2
+        },
+        "v17.7": {
+          "W": 3,
+          "L": 2,
+          "D": 0
+        },
+        "v17.5": {
+          "W": 2,
+          "L": 0,
+          "D": 2
+        },
+        "v17.3": {
+          "W": 3,
+          "L": 1,
+          "D": 0
+        },
+        "v17.1": {
+          "W": 1,
+          "L": 2,
+          "D": 1
+        }
+      }
+    },
+    "v17.3": {
+      "total_games": 56,
+      "record": "33-4-19",
+      "strongest_against": {
+        "v16.1": 6,
+        "v12.6": 6,
+        "v17.5": 5,
+        "v14.1": 4,
+        "v17.7": 4
+      },
+      "weakest_against": {
+        "v17.4": 3,
+        "v17.0": 1
+      },
+      "favorite_openings": {
+        "King's Indian": 38,
+        "Queen's Pawn": 7,
+        "Van Kruij's Opening": 4,
+        "Indian": 2,
+        "Four Knights": 2
+      },
+      "head_to_head_records": {
+        "v17.0": {
+          "W": 3,
+          "L": 1,
+          "D": 2
+        },
+        "v14.1": {
+          "W": 4,
+          "L": 0,
+          "D": 2
+        },
+        "v17.7": {
+          "W": 4,
+          "L": 0,
+          "D": 2
+        },
+        "v17.5": {
+          "W": 5,
+          "L": 0,
+          "D": 1
+        },
+        "v17.1": {
+          "W": 0,
+          "L": 0,
+          "D": 6
+        },
+        "v16.1": {
+          "W": 6,
+          "L": 0,
+          "D": 0
+        },
+        "v12.6": {
+          "W": 6,
+          "L": 0,
+          "D": 0
+        },
+        "v17.6": {
+          "W": 4,
+          "L": 0,
+          "D": 1
+        },
+        "v17.4": {
+          "W": 1,
+          "L": 3,
+          "D": 0
+        },
+        "v17.2": {
+          "W": 0,
+          "L": 0,
+          "D": 5
+        }
+      }
+    },
+    "v17.0": {
+      "total_games": 56,
+      "record": "27-13-15",
+      "strongest_against": {
+        "v16.1": 6,
+        "v17.6": 4,
+        "v12.6": 3,
+        "v14.1": 3,
+        "v17.2": 3
+      },
+      "weakest_against": {
+        "v17.2": 3,
+        "v17.3": 3,
+        "v14.1": 2,
+        "v17.1": 2,
+        "v17.4": 2
+      },
+      "favorite_openings": {
+        "Dunst (Sleipner-Heinrichsen-Van Geet) Opening": 15,
+        "Indian": 15,
+        "Reti Opening": 9,
+        "QGD": 7,
+        "Four Knights": 4
+      },
+      "head_to_head_records": {
+        "v17.3": {
+          "W": 1,
+          "L": 3,
+          "D": 2
+        },
+        "v17.1": {
+          "W": 2,
+          "L": 2,
+          "D": 2
+        },
+        "v16.1": {
+          "W": 6,
+          "L": 0,
+          "D": 0
+        },
+        "v12.6": {
+          "W": 3,
+          "L": 1,
+          "D": 2
+        },
+        "v17.6": {
+          "W": 4,
+          "L": 0,
+          "D": 2
+        },
+        "v17.4": {
+          "W": 1,
+          "L": 2,
+          "D": 2
+        },
+        "v17.2": {
+          "W": 3,
+          "L": 3,
+          "D": 0
+        },
+        "v14.1": {
+          "W": 3,
+          "L": 2,
+          "D": 1
+        },
+        "v17.7": {
+          "W": 2,
+          "L": 0,
+          "D": 2
+        },
+        "v17.5": {
+          "W": 2,
+          "L": 0,
+          "D": 2
+        }
+      }
+    },
+    "v17.1": {
+      "total_games": 58,
+      "record": "33-5-19",
+      "strongest_against": {
+        "v16.1": 6,
+        "v12.6": 6,
+        "v14.1": 5,
+        "v17.7": 4,
+        "v17.6": 4
+      },
+      "weakest_against": {
+        "v17.0": 2,
+        "v17.2": 1,
+        "v17.5": 1,
+        "v17.4": 1
+      },
+      "favorite_openings": {
+        "King's Indian": 39,
+        "Queen's Pawn": 5,
+        "Van Kruij's Opening": 4,
+        "Indian": 3,
+        "Four Knights": 2
+      },
+      "head_to_head_records": {
+        "v17.2": {
+          "W": 0,
+          "L": 1,
+          "D": 5
+        },
+        "v17.0": {
+          "W": 2,
+          "L": 2,
+          "D": 2
+        },
+        "v14.1": {
+          "W": 5,
+          "L": 0,
+          "D": 1
+        },
+        "v17.7": {
+          "W": 4,
+          "L": 0,
+          "D": 2
+        },
+        "v17.5": {
+          "W": 4,
+          "L": 1,
+          "D": 1
+        },
+        "v17.3": {
+          "W": 0,
+          "L": 0,
+          "D": 6
+        },
+        "v16.1": {
+          "W": 6,
+          "L": 0,
+          "D": 0
+        },
+        "v12.6": {
+          "W": 6,
+          "L": 0,
+          "D": 0
+        },
+        "v17.6": {
+          "W": 4,
+          "L": 0,
+          "D": 1
+        },
+        "v17.4": {
+          "W": 2,
+          "L": 1,
+          "D": 1
+        }
+      }
+    },
+    "v17.2": {
+      "total_games": 58,
+      "record": "29-7-21",
+      "strongest_against": {
+        "v14.1": 6,
+        "v16.1": 5,
+        "v12.6": 4,
+        "v17.6": 3,
+        "v17.0": 3
+      },
+      "weakest_against": {
+        "v17.0": 3,
+        "v12.6": 2,
+        "v17.4": 1,
+        "v17.5": 1
+      },
+      "favorite_openings": {
+        "King's Indian": 38,
+        "Van Kruij's Opening": 6,
+        "Queen's Pawn": 5,
+        "Indian": 3,
+        "QGD": 2
+      },
+      "head_to_head_records": {
+        "v17.1": {
+          "W": 1,
+          "L": 0,
+          "D": 5
+        },
+        "v16.1": {
+          "W": 5,
+          "L": 0,
+          "D": 1
+        },
+        "v12.6": {
+          "W": 4,
+          "L": 2,
+          "D": 1
+        },
+        "v17.6": {
+          "W": 3,
+          "L": 0,
+          "D": 3
+        },
+        "v17.4": {
+          "W": 1,
+          "L": 1,
+          "D": 4
+        },
+        "v17.0": {
+          "W": 3,
+          "L": 3,
+          "D": 0
+        },
+        "v14.1": {
+          "W": 6,
+          "L": 0,
+          "D": 0
+        },
+        "v17.7": {
+          "W": 3,
+          "L": 0,
+          "D": 2
+        },
+        "v17.5": {
+          "W": 3,
+          "L": 1,
+          "D": 0
+        },
+        "v17.3": {
+          "W": 0,
+          "L": 0,
+          "D": 5
+        }
+      }
+    },
+    "v17.7": {
+      "total_games": 55,
+      "record": "16-24-14",
+      "strongest_against": {
+        "v16.1": 6,
+        "v14.1": 3,
+        "v17.5": 2,
+        "v12.6": 2,
+        "v17.4": 2
+      },
+      "weakest_against": {
+        "v17.3": 4,
+        "v17.1": 4,
+        "v12.6": 3,
+        "v17.4": 3,
+        "v17.2": 3
+      },
+      "favorite_openings": {
+        "King's Indian": 41,
+        "Queen's Pawn": 3,
+        "Van Kruij's Opening": 3,
+        "Indian": 2,
+        "Barnes (Gedult) Opening": 2
+      },
+      "head_to_head_records": {
+        "v17.5": {
+          "W": 2,
+          "L": 2,
+          "D": 2
+        },
+        "v17.3": {
+          "W": 0,
+          "L": 4,
+          "D": 2
+        },
+        "v17.1": {
+          "W": 0,
+          "L": 4,
+          "D": 2
+        },
+        "v16.1": {
+          "W": 6,
+          "L": 0,
+          "D": 0
+        },
+        "v12.6": {
+          "W": 2,
+          "L": 3,
+          "D": 1
+        },
+        "v17.6": {
+          "W": 1,
+          "L": 2,
+          "D": 3
+        },
+        "v17.4": {
+          "W": 2,
+          "L": 3,
+          "D": 0
+        },
+        "v17.2": {
+          "W": 0,
+          "L": 3,
+          "D": 2
+        },
+        "v17.0": {
+          "W": 0,
+          "L": 2,
+          "D": 2
+        },
+        "v14.1": {
+          "W": 3,
+          "L": 1,
+          "D": 0
+        }
+      }
+    }
+  },
+  "head_to_head_matrix": {
+    "v12.6": {
+      "v14.1": {
+        "as_white": "1-0-3",
+        "total_games": 4,
+        "win_rate_as_white": 0.25
+      },
+      "v16.1": {
+        "as_white": "1-0-0",
+        "total_games": 1,
+        "win_rate_as_white": 1.0
+      },
+      "v17.0": {
+        "as_white": "0-2-1",
+        "total_games": 3,
+        "win_rate_as_white": 0.0
+      },
+      "v17.1": {
+        "as_white": "0-0-3",
+        "total_games": 3,
+        "win_rate_as_white": 0.0
+      },
+      "v17.2": {
+        "as_white": "0-1-3",
+        "total_games": 4,
+        "win_rate_as_white": 0.0
+      },
+      "v17.3": {
+        "as_white": "0-0-3",
+        "total_games": 3,
+        "win_rate_as_white": 0.0
+      },
+      "v17.4": {
+        "as_white": "0-0-3",
+        "total_games": 3,
+        "win_rate_as_white": 0.0
+      },
+      "v17.5": {
+        "as_white": "1-1-1",
+        "total_games": 3,
+        "win_rate_as_white": 0.3333333333333333
+      },
+      "v17.6": {
+        "as_white": "1-2-1",
+        "total_games": 4,
+        "win_rate_as_white": 0.25
+      },
+      "v17.7": {
+        "as_white": "0-0-2",
+        "total_games": 2,
+        "win_rate_as_white": 0.0
+      }
+    },
+    "v14.1": {
+      "v12.6": {
+        "as_white": "0-2-0",
+        "total_games": 2,
+        "win_rate_as_white": 0.0
+      },
+      "v16.1": {
+        "as_white": "2-1-0",
+        "total_games": 3,
+        "win_rate_as_white": 0.6666666666666666
+      },
+      "v17.0": {
+        "as_white": "1-0-1",
+        "total_games": 2,
+        "win_rate_as_white": 0.5
+      },
+      "v17.1": {
+        "as_white": "0-0-3",
+        "total_games": 3,
+        "win_rate_as_white": 0.0
+      },
+      "v17.2": {
+        "as_white": "0-0-3",
+        "total_games": 3,
+        "win_rate_as_white": 0.0
+      },
+      "v17.3": {
+        "as_white": "0-1-2",
+        "total_games": 3,
+        "win_rate_as_white": 0.0
+      },
+      "v17.4": {
+        "as_white": "0-1-1",
+        "total_games": 2,
+        "win_rate_as_white": 0.0
+      },
+      "v17.5": {
+        "as_white": "1-0-2",
+        "total_games": 3,
+        "win_rate_as_white": 0.3333333333333333
+      },
+      "v17.6": {
+        "as_white": "0-3-1",
+        "total_games": 4,
+        "win_rate_as_white": 0.0
+      },
+      "v17.7": {
+        "as_white": "0-0-3",
+        "total_games": 3,
+        "win_rate_as_white": 0.0
+      }
+    },
+    "v16.1": {
+      "v12.6": {
+        "as_white": "0-0-3",
+        "total_games": 3,
+        "win_rate_as_white": 0.0
+      },
+      "v14.1": {
+        "as_white": "0-0-3",
+        "total_games": 3,
+        "win_rate_as_white": 0.0
+      },
+      "v17.0": {
+        "as_white": "0-0-3",
+        "total_games": 3,
+        "win_rate_as_white": 0.0
+      },
+      "v17.1": {
+        "as_white": "0-0-2",
+        "total_games": 2,
+        "win_rate_as_white": 0.0
+      },
+      "v17.2": {
+        "as_white": "0-0-3",
+        "total_games": 3,
+        "win_rate_as_white": 0.0
+      },
+      "v17.3": {
+        "as_white": "0-0-3",
+        "total_games": 3,
+        "win_rate_as_white": 0.0
+      },
+      "v17.4": {
+        "as_white": "1-0-2",
+        "total_games": 3,
+        "win_rate_as_white": 0.3333333333333333
+      },
+      "v17.5": {
+        "as_white": "0-1-1",
+        "total_games": 2,
+        "win_rate_as_white": 0.0
+      },
+      "v17.6": {
+        "as_white": "0-0-1",
+        "total_games": 1,
+        "win_rate_as_white": 0.0
+      },
+      "v17.7": {
+        "as_white": "0-0-4",
+        "total_games": 4,
+        "win_rate_as_white": 0.0
+      }
+    },
+    "v17.0": {
+      "v12.6": {
+        "as_white": "2-0-1",
+        "total_games": 3,
+        "win_rate_as_white": 0.6666666666666666
+      },
+      "v14.1": {
+        "as_white": "2-1-1",
+        "total_games": 4,
+        "win_rate_as_white": 0.5
+      },
+      "v16.1": {
+        "as_white": "3-0-0",
+        "total_games": 3,
+        "win_rate_as_white": 1.0
+      },
+      "v17.1": {
+        "as_white": "2-0-1",
+        "total_games": 3,
+        "win_rate_as_white": 0.6666666666666666
+      },
+      "v17.2": {
+        "as_white": "2-0-0",
+        "total_games": 2,
+        "win_rate_as_white": 1.0
+      },
+      "v17.3": {
+        "as_white": "1-0-2",
+        "total_games": 3,
+        "win_rate_as_white": 0.3333333333333333
+      },
+      "v17.4": {
+        "as_white": "1-1-1",
+        "total_games": 3,
+        "win_rate_as_white": 0.3333333333333333
+      },
+      "v17.5": {
+        "as_white": "2-1-0",
+        "total_games": 3,
+        "win_rate_as_white": 0.6666666666666666
+      },
+      "v17.6": {
+        "as_white": "3-0-0",
+        "total_games": 3,
+        "win_rate_as_white": 1.0
+      },
+      "v17.7": {
+        "as_white": "1-0-0",
+        "total_games": 1,
+        "win_rate_as_white": 1.0
+      }
+    },
+    "v17.1": {
+      "v12.6": {
+        "as_white": "3-0-0",
+        "total_games": 3,
+        "win_rate_as_white": 1.0
+      },
+      "v14.1": {
+        "as_white": "2-1-0",
+        "total_games": 3,
+        "win_rate_as_white": 0.6666666666666666
+      },
+      "v16.1": {
+        "as_white": "4-0-0",
+        "total_games": 4,
+        "win_rate_as_white": 1.0
+      },
+      "v17.0": {
+        "as_white": "1-2-0",
+        "total_games": 3,
+        "win_rate_as_white": 0.3333333333333333
+      },
+      "v17.2": {
+        "as_white": "0-2-1",
+        "total_games": 3,
+        "win_rate_as_white": 0.0
+      },
+      "v17.3": {
+        "as_white": "0-3-0",
+        "total_games": 3,
+        "win_rate_as_white": 0.0
+      },
+      "v17.4": {
+        "as_white": "0-0-1",
+        "total_games": 1,
+        "win_rate_as_white": 0.0
+      },
+      "v17.5": {
+        "as_white": "1-1-1",
+        "total_games": 3,
+        "win_rate_as_white": 0.3333333333333333
+      },
+      "v17.6": {
+        "as_white": "3-1-0",
+        "total_games": 4,
+        "win_rate_as_white": 0.75
+      },
+      "v17.7": {
+        "as_white": "2-1-0",
+        "total_games": 3,
+        "win_rate_as_white": 0.6666666666666666
+      }
+    },
+    "v17.2": {
+      "v12.6": {
+        "as_white": "1-0-2",
+        "total_games": 3,
+        "win_rate_as_white": 0.3333333333333333
+      },
+      "v14.1": {
+        "as_white": "3-0-0",
+        "total_games": 3,
+        "win_rate_as_white": 1.0
+      },
+      "v16.1": {
+        "as_white": "2-1-0",
+        "total_games": 3,
+        "win_rate_as_white": 0.6666666666666666
+      },
+      "v17.0": {
+        "as_white": "3-0-1",
+        "total_games": 4,
+        "win_rate_as_white": 0.75
+      },
+      "v17.1": {
+        "as_white": "0-3-0",
+        "total_games": 3,
+        "win_rate_as_white": 0.0
+      },
+      "v17.3": {
+        "as_white": "0-3-0",
+        "total_games": 3,
+        "win_rate_as_white": 0.0
+      },
+      "v17.4": {
+        "as_white": "0-2-1",
+        "total_games": 3,
+        "win_rate_as_white": 0.0
+      },
+      "v17.5": {
+        "as_white": "0-0-1",
+        "total_games": 1,
+        "win_rate_as_white": 0.0
+      },
+      "v17.6": {
+        "as_white": "1-2-0",
+        "total_games": 3,
+        "win_rate_as_white": 0.3333333333333333
+      },
+      "v17.7": {
+        "as_white": "1-2-0",
+        "total_games": 3,
+        "win_rate_as_white": 0.3333333333333333
+      }
+    },
+    "v17.3": {
+      "v12.6": {
+        "as_white": "3-0-0",
+        "total_games": 3,
+        "win_rate_as_white": 1.0
+      },
+      "v14.1": {
+        "as_white": "2-1-0",
+        "total_games": 3,
+        "win_rate_as_white": 0.6666666666666666
+      },
+      "v16.1": {
+        "as_white": "3-0-0",
+        "total_games": 3,
+        "win_rate_as_white": 1.0
+      },
+      "v17.0": {
+        "as_white": "1-2-0",
+        "total_games": 3,
+        "win_rate_as_white": 0.3333333333333333
+      },
+      "v17.1": {
+        "as_white": "0-3-0",
+        "total_games": 3,
+        "win_rate_as_white": 0.0
+      },
+      "v17.2": {
+        "as_white": "0-2-0",
+        "total_games": 2,
+        "win_rate_as_white": 0.0
+      },
+      "v17.4": {
+        "as_white": "1-0-2",
+        "total_games": 3,
+        "win_rate_as_white": 0.3333333333333333
+      },
+      "v17.5": {
+        "as_white": "3-0-0",
+        "total_games": 3,
+        "win_rate_as_white": 1.0
+      },
+      "v17.6": {
+        "as_white": "1-1-0",
+        "total_games": 2,
+        "win_rate_as_white": 0.5
+      },
+      "v17.7": {
+        "as_white": "1-2-0",
+        "total_games": 3,
+        "win_rate_as_white": 0.3333333333333333
+      }
+    },
+    "v17.4": {
+      "v12.6": {
+        "as_white": "2-1-0",
+        "total_games": 3,
+        "win_rate_as_white": 0.6666666666666666
+      },
+      "v14.1": {
+        "as_white": "2-1-0",
+        "total_games": 3,
+        "win_rate_as_white": 0.6666666666666666
+      },
+      "v16.1": {
+        "as_white": "3-0-0",
+        "total_games": 3,
+        "win_rate_as_white": 1.0
+      },
+      "v17.0": {
+        "as_white": "1-1-0",
+        "total_games": 2,
+        "win_rate_as_white": 0.5
+      },
+      "v17.1": {
+        "as_white": "0-1-2",
+        "total_games": 3,
+        "win_rate_as_white": 0.0
+      },
+      "v17.2": {
+        "as_white": "0-2-1",
+        "total_games": 3,
+        "win_rate_as_white": 0.0
+      },
+      "v17.3": {
+        "as_white": "1-0-0",
+        "total_games": 1,
+        "win_rate_as_white": 1.0
+      },
+      "v17.5": {
+        "as_white": "2-1-0",
+        "total_games": 3,
+        "win_rate_as_white": 0.6666666666666666
+      },
+      "v17.6": {
+        "as_white": "1-2-0",
+        "total_games": 3,
+        "win_rate_as_white": 0.3333333333333333
+      },
+      "v17.7": {
+        "as_white": "0-0-2",
+        "total_games": 2,
+        "win_rate_as_white": 0.0
+      }
+    },
+    "v17.5": {
+      "v12.6": {
+        "as_white": "1-1-0",
+        "total_games": 2,
+        "win_rate_as_white": 0.5
+      },
+      "v14.1": {
+        "as_white": "2-0-1",
+        "total_games": 3,
+        "win_rate_as_white": 0.6666666666666666
+      },
+      "v16.1": {
+        "as_white": "3-0-0",
+        "total_games": 3,
+        "win_rate_as_white": 1.0
+      },
+      "v17.0": {
+        "as_white": "0-1-0",
+        "total_games": 1,
+        "win_rate_as_white": 0.0
+      },
+      "v17.1": {
+        "as_white": "0-0-3",
+        "total_games": 3,
+        "win_rate_as_white": 0.0
+      },
+      "v17.2": {
+        "as_white": "0-0-3",
+        "total_games": 3,
+        "win_rate_as_white": 0.0
+      },
+      "v17.3": {
+        "as_white": "0-1-2",
+        "total_games": 3,
+        "win_rate_as_white": 0.0
+      },
+      "v17.4": {
+        "as_white": "0-1-0",
+        "total_games": 1,
+        "win_rate_as_white": 0.0
+      },
+      "v17.6": {
+        "as_white": "0-2-1",
+        "total_games": 3,
+        "win_rate_as_white": 0.0
+      },
+      "v17.7": {
+        "as_white": "1-1-1",
+        "total_games": 3,
+        "win_rate_as_white": 0.3333333333333333
+      }
+    },
+    "v17.6": {
+      "v12.6": {
+        "as_white": "0-1-1",
+        "total_games": 2,
+        "win_rate_as_white": 0.0
+      },
+      "v14.1": {
+        "as_white": "0-1-1",
+        "total_games": 2,
+        "win_rate_as_white": 0.0
+      },
+      "v16.1": {
+        "as_white": "3-0-0",
+        "total_games": 3,
+        "win_rate_as_white": 1.0
+      },
+      "v17.0": {
+        "as_white": "0-2-1",
+        "total_games": 3,
+        "win_rate_as_white": 0.0
+      },
+      "v17.1": {
+        "as_white": "0-0-1",
+        "total_games": 1,
+        "win_rate_as_white": 0.0
+      },
+      "v17.2": {
+        "as_white": "0-1-2",
+        "total_games": 3,
+        "win_rate_as_white": 0.0
+      },
+      "v17.3": {
+        "as_white": "0-0-3",
+        "total_games": 3,
+        "win_rate_as_white": 0.0
+      },
+      "v17.4": {
+        "as_white": "1-0-2",
+        "total_games": 3,
+        "win_rate_as_white": 0.3333333333333333
+      },
+      "v17.5": {
+        "as_white": "1-0-1",
+        "total_games": 2,
+        "win_rate_as_white": 0.5
+      },
+      "v17.7": {
+        "as_white": "1-2-1",
+        "total_games": 4,
+        "win_rate_as_white": 0.25
+      }
+    },
+    "v17.7": {
+      "v12.6": {
+        "as_white": "0-1-3",
+        "total_games": 4,
+        "win_rate_as_white": 0.0
+      },
+      "v14.1": {
+        "as_white": "0-0-1",
+        "total_games": 1,
+        "win_rate_as_white": 0.0
+      },
+      "v16.1": {
+        "as_white": "2-0-0",
+        "total_games": 2,
+        "win_rate_as_white": 1.0
+      },
+      "v17.0": {
+        "as_white": "0-2-1",
+        "total_games": 3,
+        "win_rate_as_white": 0.0
+      },
+      "v17.1": {
+        "as_white": "0-1-2",
+        "total_games": 3,
+        "win_rate_as_white": 0.0
+      },
+      "v17.2": {
+        "as_white": "0-0-2",
+        "total_games": 2,
+        "win_rate_as_white": 0.0
+      },
+      "v17.3": {
+        "as_white": "0-0-3",
+        "total_games": 3,
+        "win_rate_as_white": 0.0
+      },
+      "v17.4": {
+        "as_white": "0-0-3",
+        "total_games": 3,
+        "win_rate_as_white": 0.0
+      },
+      "v17.5": {
+        "as_white": "1-1-1",
+        "total_games": 3,
+        "win_rate_as_white": 0.3333333333333333
+      },
+      "v17.6": {
+        "as_white": "0-1-1",
+        "total_games": 2,
+        "win_rate_as_white": 0.0
+      }
+    }
+  },
+  "insights": [
+    "Top 3 performers: v17.3 (42.5 pts), v17.1 (42.5 pts), v17.2 (39.5 pts)",
+    "v17.7 has significant color imbalance (better as Black)",
+    "v17.6 draws frequently (37.5% of games)",
+    "Game length: v17.4 plays longest (98.3 moves), v16.1 shortest (78.7 moves)"
+  ]
+}

@@ -1,0 +1,338 @@
+{
+  "project": "V7P3R Chess Engine",
+  "repository": "v7p3r-chess-engine",
+  "production_bot": "v7p3r_bot",
+  "deployment_history": [
+    {
+      "version": "17.8.0",
+      "deployed": "2025-12-10",
+      "status": "testing",
+      "environment": "local",
+      "platform": null,
+      "duration_days": null,
+      "elo": null,
+      "changes": [
+        "Lowered repetition threshold from 200cp to 50cp",
+        "More aggressive draw avoidance in rapid games"
+      ],
+      "rollback": false,
+      "notes": "Awaiting regression tournament validation before production deployment",
+      "git_tag": null,
+      "regression_tests_passed": false,
+      "acceptance_criteria": {
+        "win_rate": null,
+        "blunders_per_game": null,
+        "time_forfeit_rate": null,
+        "tested": false
+      }
+    },
+    {
+      "version": "17.7.0",
+      "deployed": "2025-12-06",
+      "status": "stable",
+      "environment": "production",
+      "platform": "GCP v7p3r-production-bot (e2-medium)",
+      "duration_days": 4,
+      "elo": 1496,
+      "changes": [
+        "Threefold repetition avoidance (>200cp)",
+        "Mate verification +2 ply extensions",
+        "King-edge driving bonus",
+        "Basic tablebase patterns",
+        "50-move rule awareness"
+      ],
+      "rollback": false,
+      "notes": "Anti-draw measures, stable deployment",
+      "git_tag": null,
+      "regression_tests_passed": true,
+      "acceptance_criteria": {
+        "win_rate": null,
+        "blunders_per_game": 5.29,
+        "time_forfeit_rate": null,
+        "tested": true
+      }
+    },
+    {
+      "version": "17.6.0",
+      "deployed": "2025-12-06",
+      "status": "retired",
+      "environment": "production",
+      "platform": "GCP v7p3r-production-bot",
+      "duration_days": 0.5,
+      "elo": null,
+      "changes": [
+        "Bishop pair bonus (+30cp)",
+        "Isolated pawn penalty (-15cp)",
+        "Connected pawns bonus (+5cp)",
+        "Knight outpost bonus (+20cp)"
+      ],
+      "rollback": false,
+      "notes": "Pawn structure improvements, replaced by v17.7 same day",
+      "git_tag": null,
+      "regression_tests_passed": true,
+      "acceptance_criteria": {
+        "win_rate": null,
+        "blunders_per_game": null,
+        "time_forfeit_rate": null,
+        "tested": true
+      }
+    },
+    {
+      "version": "17.5.0",
+      "deployed": "2025-12-03",
+      "status": "retired",
+      "environment": "production",
+      "platform": "GCP v7p3r-production-bot",
+      "duration_days": 3,
+      "elo": null,
+      "changes": [
+        "Pure endgame detection (≤6 pieces)",
+        "Skip PST in endgames (38% speedup)",
+        "Mate threat detection"
+      ],
+      "rollback": false,
+      "notes": "Endgame optimization, reduced blunders from 7.0 to 5.29/game",
+      "git_tag": null,
+      "regression_tests_passed": true,
+      "acceptance_criteria": {
+        "win_rate": null,
+        "blunders_per_game": 5.29,
+        "time_forfeit_rate": null,
+        "tested": true
+      }
+    },
+    {
+      "version": "17.4.0",
+      "deployed": "2025-11-26",
+      "status": "failed",
+      "environment": "production",
+      "platform": "GCP v7p3r-production-bot",
+      "duration_days": 4,
+      "elo": null,
+      "changes": [
+        "Endgame evaluation changes",
+        "Rook bonus modifications",
+        "RAISED endgame threshold from 800cp to 1300cp"
+      ],
+      "rollback": true,
+      "rollback_date": "2025-11-29",
+      "rollback_target": "17.1.0",
+      "notes": "CRITICAL FAILURE: Endgame blunders, missed mate-in-3, game 9i883UOF loss",
+      "git_tag": null,
+      "regression_tests_passed": false,
+      "acceptance_criteria": {
+        "win_rate": null,
+        "blunders_per_game": 7.0,
+        "time_forfeit_rate": null,
+        "tested": false
+      },
+      "failure_reason": "Endgame threshold change caused evaluation bugs and tactical oversights"
+    },
+    {
+      "version": "17.3.0",
+      "deployed": null,
+      "status": "experimental",
+      "environment": "local",
+      "platform": null,
+      "duration_days": null,
+      "elo": null,
+      "changes": [
+        "SEE-based quiescence search rewrite",
+        "Max quiescence depth reduced from 10 to 3 plies",
+        "83% move stability"
+      ],
+      "rollback": false,
+      "notes": "NEVER DEPLOYED TO PRODUCTION - experimental branch, local testing only",
+      "git_tag": null,
+      "regression_tests_passed": true,
+      "acceptance_criteria": {
+        "win_rate": null,
+        "blunders_per_game": null,
+        "time_forfeit_rate": null,
+        "tested": true
+      }
+    },
+    {
+      "version": "17.2.0",
+      "deployed": "2025-11-21",
+      "status": "retired",
+      "environment": "production",
+      "platform": "GCP v7p3r-production-bot",
+      "duration_days": 5,
+      "elo": 1496,
+      "changes": [
+        "UCI enhancements (seldepth, hashfull)",
+        "Performance optimizations"
+      ],
+      "rollback": false,
+      "notes": "Stable 5-day deployment, replaced by v17.4 which failed",
+      "git_tag": null,
+      "regression_tests_passed": true,
+      "acceptance_criteria": {
+        "win_rate": null,
+        "blunders_per_game": null,
+        "time_forfeit_rate": null,
+        "tested": true
+      }
+    },
+    {
+      "version": "17.1.1",
+      "deployed": "2025-11-21",
+      "status": "retired",
+      "environment": "production",
+      "platform": "GCP v7p3r-production-bot",
+      "duration_days": 0.25,
+      "elo": null,
+      "changes": [
+        "Time management for Lichess cloud",
+        "Minor UCI patches"
+      ],
+      "rollback": false,
+      "notes": "Short-lived hotfix, replaced by v17.2.0 same day",
+      "git_tag": null,
+      "regression_tests_passed": true,
+      "acceptance_criteria": {
+        "win_rate": null,
+        "blunders_per_game": null,
+        "time_forfeit_rate": null,
+        "tested": false
+      }
+    },
+    {
+      "version": "17.1.0",
+      "deployed": "2025-11-21",
+      "status": "stable_rollback_target",
+      "environment": "production",
+      "platform": "GCP v7p3r-production-bot",
+      "duration_days": 3,
+      "elo": 1496,
+      "changes": [
+        "CRITICAL: Disabled PV instant moves",
+        "Fixed Black-side weakness from v17.0",
+        "Added opening book from v16.2"
+      ],
+      "rollback": false,
+      "notes": "Deployed twice: Nov 21 initial, Nov 30 after v17.4 rollback. Proven stable.",
+      "git_tag": null,
+      "regression_tests_passed": true,
+      "acceptance_criteria": {
+        "win_rate": 0.48,
+        "blunders_per_game": null,
+        "time_forfeit_rate": null,
+        "tested": true
+      },
+      "deployments": [
+        {
+          "date": "2025-11-21",
+          "duration_hours": 6,
+          "reason": "Initial deployment"
+        },
+        {
+          "date": "2025-11-30",
+          "duration_days": 3,
+          "reason": "Rollback from v17.4 failure"
+        }
+      ]
+    },
+    {
+      "version": "17.0.0",
+      "deployed": "2025-11-20",
+      "status": "retired",
+      "environment": "production",
+      "platform": "GCP v7p3r-production-bot",
+      "duration_days": 1,
+      "elo": 1600,
+      "changes": [
+        "Relaxed time management → deeper search",
+        "Average depth 4.8 (vs 4.5)",
+        "History heuristic",
+        "Killer moves",
+        "MVV-LVA ordering",
+        "Enhanced transposition table"
+      ],
+      "rollback": false,
+      "notes": "BREAKTHROUGH: 1st place, 44.0/50 points (88%), but severe Black weakness",
+      "git_tag": null,
+      "regression_tests_passed": true,
+      "acceptance_criteria": {
+        "win_rate": 0.88,
+        "blunders_per_game": null,
+        "time_forfeit_rate": null,
+        "tested": true
+      },
+      "issues": [
+        "100% win rate as White",
+        "64% win rate as Black",
+        "All 3 losses from PV instant move bug"
+      ]
+    },
+    {
+      "version": "16.1.0",
+      "deployed": "2025-11-19",
+      "status": "retired",
+      "environment": "production",
+      "platform": "GCP v7p3r-production-bot",
+      "duration_days": 1,
+      "elo": null,
+      "changes": [
+        "Opening book experiments",
+        "Tablebase integration attempts"
+      ],
+      "rollback": false,
+      "notes": "Short-lived experimental version",
+      "git_tag": null,
+      "regression_tests_passed": true,
+      "acceptance_criteria": {
+        "win_rate": null,
+        "blunders_per_game": null,
+        "time_forfeit_rate": null,
+        "tested": false
+      }
+    },
+    {
+      "version": "14.1.0",
+      "deployed": "2025-10-25",
+      "status": "retired",
+      "environment": "production",
+      "platform": "GCP v7p3r-production-bot",
+      "duration_days": 25,
+      "elo": 1496,
+      "changes": [
+        "Major evaluation overhaul",
+        "Improved positional understanding",
+        "Smart time management"
+      ],
+      "rollback": false,
+      "notes": "STABLE: Longest deployment in v14-v17 series (25 days)",
+      "git_tag": null,
+      "regression_tests_passed": true,
+      "acceptance_criteria": {
+        "win_rate": null,
+        "blunders_per_game": null,
+        "time_forfeit_rate": null,
+        "tested": true
+      }
+    }
+  ],
+  "current_production": {
+    "version": "17.7.0",
+    "deployed": "2025-12-06",
+    "status": "stable",
+    "elo": 1496,
+    "uptime_days": 4
+  },
+  "rollback_targets": {
+    "primary": "17.7.0",
+    "secondary": "17.1.0",
+    "emergency": "14.1.0"
+  },
+  "next_version": {
+    "planned": "17.8.0",
+    "status": "testing",
+    "changes": [
+      "Repetition threshold fix (200cp → 50cp)"
+    ],
+    "regression_tests_required": true,
+    "acceptance_games_required": 50
+  }
+}

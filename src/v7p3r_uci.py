@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-V7P3R v17.7 UCI Interface - Anti-Draw Measures & Mate Depth
+V7P3R v17.8 UCI Interface - Repetition Threshold Fix
 """
 
 import sys
@@ -27,7 +27,7 @@ def main():
                 break
                 
             elif command == "uci":
-                print("id name V7P3R v17.7")
+                print("id name V7P3R v17.8-clean")
                 print("id author Pat Snyder")
                 print("uciok")
                 
@@ -36,7 +36,7 @@ def main():
                     option_name = parts[2]
                     if len(parts) >= 5 and parts[3] == "value":
                         option_value = parts[4]
-                        print(f"info string Option {option_name}={option_value} acknowledged but not used")
+                        print("info string Option {}={} acknowledged but not used".format(option_name, option_value))
                 
             elif command == "isready":
                 print("readyok")
@@ -223,27 +223,27 @@ def main():
                 
                 # V11 ENHANCEMENT: Handle perft command
                 if perft_depth is not None:
-                    print(f"info string Starting perft {perft_depth}")
+                    print("info string Starting perft {}".format(perft_depth))
                     try:
                         start_time = time.time()
                         nodes = engine.perft(board, perft_depth, divide=False)
                         elapsed = time.time() - start_time
                         nps = int(nodes / max(elapsed, 0.001))
-                        print(f"info string Perft {perft_depth}: {nodes} nodes in {elapsed:.3f}s ({nps} nps)")
-                        print(f"perft {perft_depth}: {nodes}")
+                        print("info string Perft {}: {} nodes in {:.3f}s ({} nps)".format(perft_depth, nodes, elapsed, nps))
+                        print("perft {}: {}".format(perft_depth, nodes))
                     except Exception as e:
-                        print(f"info string Perft error: {e}")
+                        print("info string Perft error: {}".format(e))
                     sys.stdout.flush()
                 else:
                     # Normal search
                     best_move = engine.search(board, time_limit)
-                    print(f"bestmove {best_move}")
+                    print("bestmove {}".format(best_move))
                     sys.stdout.flush()  # Ensure output is sent immediately
                 
         except (EOFError, KeyboardInterrupt):
             break
         except Exception as e:
-            print(f"info error {e}", file=sys.stderr)
+            sys.stderr.write("info error {}\\n".format(e))
 
 
 if __name__ == "__main__":

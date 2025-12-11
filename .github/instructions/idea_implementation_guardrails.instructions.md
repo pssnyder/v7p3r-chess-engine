@@ -28,6 +28,21 @@ Coding standards, domain knowledge, and preferences that AI should follow.
         - run an 'engine_freeze', which will instantly save the current state of all engine files, configurations, active games, active test, active metrics, etc. (the same procedure used during new crash handling and user triggered engine freezes)
     - obtain user feedback on the prep documentation, version control procedure, backup procedure, and any clarifying questions before proceeding with implementation.
 
+## Version Management Workflow
+- **ALWAYS** follow version management instructions in `.github/instructions/version_management.instructions.md`
+- **BEFORE** any implementation, check current version in `src/v7p3r.py` and `deployment_log.json`
+- **AFTER** any implementation that changes engine behavior:
+    - Update version number following semantic versioning guidelines
+    - Update CHANGELOG.md with detailed entry including rationale and testing
+    - Update deployment_log.json with testing status
+    - Update version in both `src/v7p3r.py` and `src/v7p3r_uci.py`
+- **NEVER** deploy to production without:
+    - Regression tests passing (100%)
+    - Performance benchmark meeting acceptance criteria (50+ games)
+    - CHANGELOG.md and deployment_log.json updated
+    - Git tag created
+    - User validation completed
+
 ## Housekeeping
 - Any and all "test_*.py" files should be stored in the "testing/" directory.
 - Any tests that need to be run that will similate a game can be done so with existing funtionality.

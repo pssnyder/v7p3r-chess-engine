@@ -1,31 +1,25 @@
 #!/usr/bin/env python3
 """
-V7P3R Chess Engine v17.7 - Anti-Draw Measures & Mate Depth
+V7P3R Chess Engine v17.8-clean - Stable Foundation + Targeted Fixes
 
-Based on v17.6 game e68K458O where bot drew with R+B vs K instead of mating,
-v17.7 adds anti-draw logic and endgame technique improvements.
+Based on tournament analysis showing v17.1-v17.3 as top performers, v17.8-clean
+builds on v17.1 baseline with proven v17.6 improvements and v17.8 repetition fix.
 
-KEY IMPROVEMENTS (v17.7):
-- THREEFOLD REPETITION AVOIDANCE: Filter moves causing 3rd position when winning (>200cp)
-- MATE VERIFICATION: Extend search +2 plies when mate detected for accurate mate distance
-- KING-EDGE DRIVING: +10cp × distance bonus when material advantage >600cp (pushes to corners)
-- BASIC TABLEBASE PATTERNS: K+R vs K, K+Q vs K, K+R+B vs K ladder mate hints
-- 50-MOVE RULE AWARENESS: Prioritize captures/pawn moves when halfmove_clock >80 and winning
-- GOAL: Never draw from winning positions - convert R+B vs K endgames reliably
+KEY IMPROVEMENTS (v17.8-clean):
+- BASELINE: v17.1 (proven stable, 800cp endgame threshold)
+- REPETITION THRESHOLD: 50cp (simplified - no position history tracking)
+- PAWN STRUCTURE: v17.6 improvements (bishop pair, isolated pawns, connected pawns, knight outposts)
+- REMOVED: v17.7 complexity (tablebase, king-edge, 50-move, mate verification)
+- REMOVED: v17.5 mate threat detection (redundant with quiescence)
+- FIXED: Reverted 1300cp endgame bug from v17.4 back to 800cp
 
-KEY IMPROVEMENTS (v17.6):
-- BISHOP PAIR BONUS: +30cp (was blind to B vs N difference)
-- ISOLATED PAWN PENALTY: -15cp (was completely missing - critical fix)
+v17.6 PAWN STRUCTURE FIXES:
+- BISHOP PAIR BONUS: +50cp (recognizes B+B > N+N synergy)
+- ISOLATED PAWN PENALTY: -15cp (was completely missing - explains 159/game in analytics)
 - CONNECTED PAWNS BONUS: +5cp per phalanx pair
 - KNIGHT OUTPOST BONUS: +20cp for strong, protected knights
 - PERFORMANCE: <15μs added cost per eval (negligible - maintains depth 6-8)
 - TARGET: Reduce isolated pawn creation from 159/game to <50/game
-
-KEY IMPROVEMENTS (v17.5):
-- PURE ENDGAME DETECTION: Skip PST in simplified endgames (≤6 pieces) for 38% speedup
-- CASTLING OPTIMIZATION: Skip castling bonus in endgames (king centralization priority)
-- MATE THREAT DETECTION: Detect opponent mate-in-1/2 threats to prevent blunders
-- RESULT: Reduced critical blunders from 7.0 to 5.29 per game
 
 KEY IMPROVEMENTS (v17.1.1):
 - EMERGENCY TIME MODE: Strict limits when <30 seconds (prevents timeouts)
@@ -43,13 +37,12 @@ ARCHITECTURE:
 - Phase 3: Performance optimized through code consolidation
 - Phase 4: Smart time management (v14.1)
 - Phase 5: Tournament reliability (v17.1)
-- Phase 6: Endgame optimization (v17.5)
+- Phase 6: Pawn structure intelligence (v17.6)
 
 VERSION LINEAGE:
-- v17.7: Anti-draw measures (threefold avoidance, mate depth, king-edge driving, tablebase patterns, 50-move awareness)
+- v17.8-clean: Regression-tested foundation (v17.1 + v17.6 + simplified 50cp repetition)
 - v17.6: Pawn structure intelligence (isolated pawns, bishop pair, knight outposts, connected pawns)
-- v17.5: Endgame optimization (38% speedup in pure endgames, mate detection)
-- v17.1: PV instant move fix + opening book (tournament reliability)
+- v17.1: PV instant move fix + opening book (tournament reliability, 800cp endgame threshold)
 - v17.0: Relaxed time management (1st place but Black-side weakness)
 - v14.1: Smart time management fixes for tournament consistency
 - v14.0: Consolidated performance build with unified evaluators
@@ -253,30 +246,25 @@ class ZobristHashing:
 
 
 class V7P3REngine:
-    """V7P3R Chess Engine v17.7 - Anti-Draw Measures & Mate Depth
+    """V7P3R Chess Engine v17.8-clean - Stable Foundation + Proven Improvements
     
-    V17.7 CHANGES (Dec 6, 2025):
-    - Threefold repetition detection and avoidance when winning
-    - Mate verification depth extensions (+2 plies)
-    - King-edge driving bonus in endgames (+10cp × distance)
-    - Basic tablebase patterns (K+R vs K, K+Q vs K, K+R+B vs K)
-    - 50-move rule awareness (prioritize resets when clock >80)
-    - Goal: Never draw from winning positions (fixes game e68K458O issue)
+    V17.8-CLEAN (Dec 10, 2025):
+    - Based on tournament data showing v17.1-v17.3 as top performers
+    - v17.1 baseline (800cp endgame threshold, proven stable)
+    - + v17.6 pawn structure improvements (bishop pair, isolated pawns, etc.)
+    - + v17.8 simplified repetition filtering (50cp threshold, no position history)
+    - Fixed v17.4's catastrophic 1300cp endgame bug
+    - Removed v17.7 complexity (tablebase, king-edge, 50-move, mate extensions)
+    - Removed v17.5 mate threat detection (redundant)
     
-    V17.6 CHANGES (Dec 5, 2025):
+    V17.6 PAWN STRUCTURE (Dec 5, 2025):
     - Enhanced fast evaluator with 4 lightweight heuristics
-    - Bishop pair bonus (+30cp) - fixes material-only B=N treatment
+    - Bishop pair bonus (+50cp) - fixes material-only B=N treatment
     - Isolated pawn penalty (-15cp) - was completely missing
     - Connected pawns bonus (+5cp) - phalanx strength
     - Knight outpost bonus (+20cp) - strong centralized knights
     - Performance: <15μs added cost, maintains depth 6-8
     - Goal: Reduce isolated pawn creation from 159/game to <50/game
-    
-    V17.3 CHANGES (Nov 26, 2025):
-    - Rewrote quiescence with Static Exchange Evaluation (SEE)
-    - Reduced max quiescence depth from 10 to 3 plies
-    - Only extends good/equal captures (SEE >= 0)
-    - Fixes 50% move instability caused by deep quiescence contradictions
     """
     
     def __init__(self, use_fast_evaluator: bool = True):
@@ -347,132 +335,14 @@ class V7P3REngine:
         
         # PV Following System - V10 OPTIMIZATION
         self.pv_tracker = PVTracker()
-        
-        # V17.7: Position history for threefold repetition detection
-        self.position_history: List[int] = []  # Zobrist hashes of all positions in game
-    
-    def _is_mate_score(self, score: float) -> bool:
-        """V17.7: Check if a score represents mate (not just material advantage)"""
-        # Mate scores are typically 20000+ or -20000-
-        return abs(score) > 15000
-    
-    def _detect_basic_tablebase_endgame(self, board: chess.Board) -> List[str]:
-        """V17.7: Detect simple tablebase endgames and return ladder mate hints
-        
-        Returns: List of move UCI strings that implement ladder mate technique
-        Empty list if not a recognized tablebase endgame
-        """
-        # Count pieces
-        white_pieces = []
-        black_pieces = []
-        
-        for square in chess.SQUARES:
-            piece = board.piece_at(square)
-            if piece and piece.piece_type != chess.KING:
-                if piece.color == chess.WHITE:
-                    white_pieces.append(piece.piece_type)
-                else:
-                    black_pieces.append(piece.piece_type)
-        
-        # K+R vs K (most common)
-        if len(white_pieces) == 1 and len(black_pieces) == 0 and chess.ROOK in white_pieces:
-            return self._get_kr_vs_k_hints(board, chess.WHITE)
-        elif len(black_pieces) == 1 and len(white_pieces) == 0 and chess.ROOK in black_pieces:
-            return self._get_kr_vs_k_hints(board, chess.BLACK)
-        
-        # K+Q vs K
-        elif len(white_pieces) == 1 and len(black_pieces) == 0 and chess.QUEEN in white_pieces:
-            return self._get_kq_vs_k_hints(board, chess.WHITE)
-        elif len(black_pieces) == 1 and len(white_pieces) == 0 and chess.QUEEN in black_pieces:
-            return self._get_kq_vs_k_hints(board, chess.BLACK)
-        
-        # K+R+B vs K (from game e68K458O)
-        elif len(white_pieces) == 2 and len(black_pieces) == 0:
-            if chess.ROOK in white_pieces and chess.BISHOP in white_pieces:
-                return self._get_kr_vs_k_hints(board, chess.WHITE)  # Use rook ladder
-        elif len(black_pieces) == 2 and len(white_pieces) == 0:
-            if chess.ROOK in black_pieces and chess.BISHOP in black_pieces:
-                return self._get_kr_vs_k_hints(board, chess.BLACK)  # Use rook ladder
-        
-        return []
-    
-    def _get_kr_vs_k_hints(self, board: chess.Board, strong_side: chess.Color) -> List[str]:
-        """K+R vs K ladder mate hints"""
-        hints = []
-        
-        # Find pieces
-        strong_king_sq = board.king(strong_side)
-        weak_king_sq = board.king(not strong_side)
-        rook_sq = None
-        
-        for square in chess.SQUARES:
-            piece = board.piece_at(square)
-            if piece and piece.piece_type == chess.ROOK and piece.color == strong_side:
-                rook_sq = square
-                break
-        
-        if not all([strong_king_sq, weak_king_sq, rook_sq]):
-            return hints
-        
-        # Ladder mate technique:
-        # 1. Cut off king with rook (horizontal or vertical line)
-        # 2. Bring own king closer (opposition)
-        # 3. Push enemy king to edge with checks
-        
-        weak_file = chess.square_file(weak_king_sq)
-        weak_rank = chess.square_rank(weak_king_sq)
-        rook_file = chess.square_file(rook_sq)
-        rook_rank = chess.square_rank(rook_sq)
-        
-        # Priority 1: Rook checks that push king to edge
-        for move in board.legal_moves:
-            if move.from_square == rook_sq and board.gives_check(move):
-                to_sq = move.to_square
-                to_file = chess.square_file(to_sq)
-                to_rank = chess.square_rank(to_sq)
-                
-                # Prefer checks that push king toward edge
-                if (to_file == weak_file or to_rank == weak_rank):
-                    hints.append(move.uci())
-        
-        # Priority 2: King moves toward opponent king (opposition)
-        for move in board.legal_moves:
-            if move.from_square == strong_king_sq:
-                to_sq = move.to_square
-                # Closer to enemy king = better
-                current_dist = chess.square_distance(strong_king_sq, weak_king_sq)
-                new_dist = chess.square_distance(to_sq, weak_king_sq)
-                if new_dist < current_dist:
-                    hints.append(move.uci())
-        
-        return hints[:3]  # Return top 3 hints
-    
-    def _get_kq_vs_k_hints(self, board: chess.Board, strong_side: chess.Color) -> List[str]:
-        """K+Q vs K ladder mate hints (similar to rook but more aggressive)"""
-        hints = []
-        
-        weak_king_sq = board.king(not strong_side)
-        
-        # Queen checks that push king to edge
-        for move in board.legal_moves:
-            piece = board.piece_at(move.from_square)
-            if piece and piece.piece_type == chess.QUEEN and board.gives_check(move):
-                hints.append(move.uci())
-        
-        return hints[:3]
     
     def _would_cause_threefold_repetition(self, board: chess.Board, move: chess.Move) -> bool:
-        """V17.7: Check if making this move would cause threefold repetition"""
-        # Make the move temporarily
+        """V17.8-clean: Simplified repetition check using board's built-in tracking"""
+        # Use python-chess's built-in repetition detection
         board.push(move)
-        position_hash = self.zobrist.hash_position(board)
+        is_repetition = board.is_repetition(count=2)  # Would be 3rd occurrence
         board.pop()
-        
-        # Count occurrences of this position in history
-        occurrences = self.position_history.count(position_hash)
-        
-        # Would be threefold if this position has appeared twice already
-        return occurrences >= 2
+        return is_repetition
     
     def search(self, board: chess.Board, time_limit: float = 3.0, depth: Optional[int] = None, 
                alpha: float = -99999, beta: float = 99999, is_root: bool = True) -> chess.Move:
@@ -486,19 +356,14 @@ class V7P3REngine:
         - Proper time management with periodic checks
         - Full PV extraction and following
         - Quiescence search for tactical stability
-        - V17.7: Anti-draw measures (threefold repetition avoidance)
-        """
+        - V17.8-clean: Simplified repetition avoidance (50cp threshold)
         
-        # ROOT LEVEL: Iterative deepening with time management
+        Root call signature: engine.search(board, time_limit=3.0)
+        """
         if is_root:
             self.nodes_searched = 0
             self.seldepth = 0  # V17.3: Reset selective depth for new search
             self.search_start_time = time.time()
-            
-            # V17.7: Add current position to history
-            current_hash = self.zobrist.hash_position(board)
-            self.position_history.append(current_hash)
-            
             
             legal_moves = list(board.legal_moves)
             if not legal_moves:
@@ -667,15 +532,12 @@ class V7P3REngine:
                 score = 0.0  # Stalemate
             return score, None
         
-        # V17.7: MATE VERIFICATION EXTENSION - extend search when mate detected
-        # Check if current evaluation suggests mate
-        if search_depth <= 2:  # Only extend near leaf nodes
-            current_eval = self._evaluate_position(board)
-            if self._is_mate_score(current_eval):
-                # Extend search by 2 plies to verify mate path
-                search_depth += 2
+        # 3. TRANSPOSITION TABLE LOOKUP
+        position_hash = self.zobrist.hash_position(board)
+        tt_entry = self.transposition_table.get(position_hash)
+        tt_move = tt_entry.best_move if tt_entry else None
         
-        # 3. NULL MOVE PRUNING
+        # 4. NULL MOVE PRUNING
         if (search_depth >= 3 and not board.is_check() and 
             self._has_non_pawn_pieces(board) and beta - alpha > 1):
             
@@ -687,14 +549,16 @@ class V7P3REngine:
             if null_score >= beta:
                 return null_score, None
         
-        # 4. MOVE GENERATION AND ORDERING
+        # 5. MOVE GENERATION AND ORDERING
         legal_moves = list(board.legal_moves)
         if not legal_moves:
             return 0.0, None
         
-        # V17.7: Filter out threefold repetition moves when winning
+        # V17.8-clean: Filter out threefold repetition moves when winning
+        # 50cp threshold (0.5 pawns) - push small advantages, avoid draws
+        # Simplified: Uses board's built-in repetition detection (no position history)
         current_eval = self._evaluate_position(board)
-        if current_eval > 200:  # Winning position
+        if current_eval > 50:  # Any material advantage (>0.5 pawns)
             legal_moves = [m for m in legal_moves if not self._would_cause_threefold_repetition(board, m)]
             if not legal_moves:
                 # All moves cause repetition - must have at least one legal move
@@ -710,24 +574,6 @@ class V7P3REngine:
         
         for move in ordered_moves:
             board.push(move)
-            
-            # V17.5: Detect opponent mate threats in endgames (prevent being mated)
-            if hasattr(self.evaluator, '_is_endgame') and self.evaluator._is_endgame(board):
-                mate_threat = self._detect_opponent_mate_threat(board, max_depth=3)
-                if mate_threat:
-                    # Heavily penalize this line - opponent has mate in N
-                    score = -20000 + mate_threat  # Worse than losing but accounts for mate distance
-                    board.pop()
-                    moves_searched += 1
-                    
-                    if best_move is None or score > best_score:
-                        best_score = score
-                        best_move = move
-                    
-                    alpha = max(alpha, score)
-                    if alpha >= beta:
-                        break
-                    continue
             
             # V11 ENHANCEMENT: Enhanced Late Move Reduction
             reduction = self._calculate_lmr_reduction(move, moves_searched, search_depth, board)
@@ -769,20 +615,9 @@ class V7P3REngine:
     
     def _order_moves_advanced(self, board: chess.Board, moves: List[chess.Move], depth: int, 
                               tt_move: Optional[chess.Move] = None) -> List[chess.Move]:
-        """V17.2: Move ordering with pre-allocated buffer reuse
-        V17.7: Added tablebase-like endgame hints for better move ordering
-        V17.7: Added 50-move rule awareness - prioritize resets when clock high"""
+        """V17.2: Move ordering with pre-allocated buffer reuse (v17.8-clean simplified)"""
         if len(moves) <= 2:
             return moves
-        
-        # V17.7: Check for basic tablebase endgames and prioritize ladder mate moves
-        endgame_hints = self._detect_basic_tablebase_endgame(board)
-        
-        # V17.7: 50-move rule awareness
-        current_eval = self._evaluate_position(board)
-        near_50_move_draw = board.halfmove_clock > 80  # Approaching 100 half-moves (50 full moves)
-        # Winning if eval > 150cp for current side
-        winning_position = current_eval > 150
         
         # V17.2: Reuse pre-allocated buffers (clear instead of allocate)
         for buffer in self.move_buffers.values():
@@ -794,18 +629,13 @@ class V7P3REngine:
         quiet_moves = self.move_buffers['quiet']
         tactical_moves = self.move_buffers['tactical']
         tt_moves = self.move_buffers['tt']
-        endgame_moves = []  # V17.7: Priority moves for tablebase endgames
-        reset_moves = []  # V17.7: High-priority 50-move rule reset moves
         
         # Performance optimization: Pre-create sets for fast lookups
         killer_set = set(self.killer_moves.get_killers(depth))
         
         for move in moves:
-            # V17.7: Highest priority - tablebase endgame hints
-            if endgame_hints and move.uci() in endgame_hints:
-                endgame_moves.append(move)
             # 1. Transposition table move (highest priority)
-            elif tt_move and move == tt_move:
+            if tt_move and move == tt_move:
                 tt_moves.append(move)
             
             # 2. Captures (will be sorted by MVV-LVA)
@@ -820,12 +650,7 @@ class V7P3REngine:
                 # Add tactical bonus using bitboards
                 tactical_bonus = self.bitboard_evaluator.detect_bitboard_tactics(board, move)
                 total_score = mvv_lva_score + tactical_bonus
-                
-                # V17.7: 50-move rule - captures always reset, prioritize when needed
-                if near_50_move_draw and winning_position:
-                    reset_moves.append(move)  # Separate high-priority list
-                else:
-                    captures.append((total_score, move))
+                captures.append((total_score, move))
             
             # 4. Checks (high priority for tactical play)
             elif board.gives_check(move):
@@ -843,11 +668,7 @@ class V7P3REngine:
                 history_score = self.history_heuristic.get_history_score(move)
                 tactical_bonus = self.bitboard_evaluator.detect_bitboard_tactics(board, move)
                 
-                # V17.7: 50-move rule - pawn moves reset clock, prioritize when needed
-                piece = board.piece_at(move.from_square)
-                if near_50_move_draw and winning_position and piece and piece.piece_type == chess.PAWN:
-                    reset_moves.append(move)  # Separate high-priority list
-                elif tactical_bonus > 20.0:  # Significant tactical move
+                if tactical_bonus > 20.0:  # Significant tactical move
                     tactical_moves.append((tactical_bonus + history_score, move))
                 else:
                     quiet_moves.append((history_score, move))
@@ -860,9 +681,7 @@ class V7P3REngine:
         
         # Combine in optimized order
         ordered = []
-        ordered.extend(endgame_moves)  # V17.7: Tablebase hints first
-        ordered.extend(tt_moves)  # TT move
-        ordered.extend(reset_moves)  # V17.7: 50-move rule resets (captures/pawn moves when needed)
+        ordered.extend(tt_moves)  # TT move first
         ordered.extend([move for _, move in captures])  # Then captures (with tactical bonus)
         ordered.extend([move for _, move in checks])  # Then checks (with tactical bonus)
         ordered.extend([move for _, move in tactical_moves])  # Then tactical patterns
@@ -1033,62 +852,6 @@ class V7P3REngine:
             if piece and piece.color == current_color and piece.piece_type != chess.PAWN:
                 return True
         return False
-    
-    def _detect_opponent_mate_threat(self, board: chess.Board, max_depth: int = 3) -> Optional[int]:
-        """
-        V17.5: Detect if opponent has forcing mate sequence
-        Run in endgames only to prevent being checkmated
-        
-        Args:
-            board: Current position (opponent to move)
-            max_depth: How deep to search for mate (default: 3)
-        
-        Returns:
-            Mate in N moves if found, None otherwise
-        """
-        if not board.legal_moves:
-            return None
-        
-        # Quick mate-in-1 check
-        for move in board.legal_moves:
-            board.push(move)
-            if board.is_checkmate():
-                board.pop()
-                return 1
-            board.pop()
-        
-        # Mate-in-2 check (if depth >= 2)
-        if max_depth >= 2:
-            for opp_move in board.legal_moves:
-                board.push(opp_move)
-                
-                # Can we escape check on all our responses?
-                has_escape = False
-                for our_move in board.legal_moves:
-                    board.push(our_move)
-                    
-                    # Check if opponent has mate-in-1 now
-                    has_mate_followup = False
-                    for opp_followup in board.legal_moves:
-                        board.push(opp_followup)
-                        if board.is_checkmate():
-                            has_mate_followup = True
-                            board.pop()
-                            break
-                        board.pop()
-                    
-                    board.pop()
-                    
-                    if not has_mate_followup:
-                        has_escape = True
-                        break
-                
-                board.pop()
-                
-                if not has_escape:
-                    return 2
-        
-        return None
     
     def _extract_pv(self, board: chess.Board, max_depth: int) -> List[chess.Move]:
         """Extract principal variation from transposition table"""

@@ -236,13 +236,13 @@ class V7P3RFastEvaluator:
         if not board.pieces(chess.QUEEN, chess.WHITE) and not board.pieces(chess.QUEEN, chess.BLACK):
             return True
         
-        # Low material = endgame (v17.4: raised from 800 to 1300 to catch R+2minors)
+        # Low material = endgame (v17.8-clean: reverted to v17.1's 800cp threshold)
         white_material = sum(len(board.pieces(pt, chess.WHITE)) * self.piece_values.get(pt, 0) 
                             for pt in [chess.ROOK, chess.BISHOP, chess.KNIGHT, chess.QUEEN])
         black_material = sum(len(board.pieces(pt, chess.BLACK)) * self.piece_values.get(pt, 0)
                             for pt in [chess.ROOK, chess.BISHOP, chess.KNIGHT, chess.QUEEN])
         
-        return white_material < 1300 and black_material < 1300
+        return white_material < 800 and black_material < 800
     
     def _is_opening(self, board: chess.Board) -> bool:
         """Detect opening phase (< 10 moves, pieces not developed)"""
