@@ -26,7 +26,38 @@ Legacy v17.x series used incremental numbering without semantic meaning.
 
 ---
 
-## [17.8-clean] - 2025-12-10
+## [17.1.1] - 2025-12-10 [PRODUCTION ROLLBACK]
+
+### Changed
+- **ROLLBACK**: Restored v17.1.1 to production after v17.4-v17.8 failures
+
+### Rationale
+- Complete tournament analysis (298 games, 5 tournaments) revealed v17.1/v17.3 as best performers
+- v17.1: 75.8% average win rate (70-81% across all time controls) - MOST CONSISTENT
+- v17.3: 77.0% average (86.8% peak in 5min+2s) - BEST PEAK
+- v17.4+: Progressive regression (32-63% win rates)
+- v17.6-v17.8: Complete failures (0-52% win rates, illegal moves)
+- **Root cause identified**: v17.2 introduced broken two-tier bucket TT system using integer indices instead of zobrist hashes, corrupting move selection
+
+### Deployment
+- Date: 2025-12-10
+- Platform: GCP VM (v7p3r-production-bot)
+- Engine verified: `id name V7P3R v17.1.1`
+- Status: Live on Lichess
+
+### Testing
+- Tournament data: v17.1.1 proven stable across bullet (1min+2s), blitz (5min+4s), rapid (30min+5s)
+- No regression tests run (rolling back to known stable version)
+
+### Notes
+- v17.8-clean abandoned (catastrophic tournament failure, 0/6 score)
+- v17.3 analysis revealed it's functionally identical to v17.1.1 (only UCI version string differs)
+- Skipping remaining v17 line development
+- Next version will be v18.0.0 (major overhaul from v17.1.1 baseline)
+
+---
+
+## [17.8-clean] - 2025-12-10 [ABANDONED]
 
 ### Philosophy
 Based on tournament analysis showing v17.1-v17.3 as top performers (42.5 pts), v17.8-clean
