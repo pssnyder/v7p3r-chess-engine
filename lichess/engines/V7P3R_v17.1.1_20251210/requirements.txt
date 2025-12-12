@@ -1,3 +1,0 @@
-python-chess==1.999
-pygame==2.5.2
-stockfish==3.28.0
