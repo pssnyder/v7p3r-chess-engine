@@ -26,6 +26,50 @@ Legacy v17.x series used incremental numbering without semantic meaning.
 
 ---
 
+## [18.0.0] - 2025-12-20 [ANTI-TACTICAL DEFENSE] [PRODUCTION]
+
+### Added
+- **MoveSafetyChecker**: Lightweight defensive tactical awareness system
+- Anti-tactical penalty system in move ordering (-50 to -800cp for unsafe moves)
+- Hanging piece detection (checks if pieces are undefended after move)
+- Immediate capture threat evaluation (prevents leaving high-value pieces exposed)
+
+### Changed
+- **Move ordering**: Integrated safety scores into all move categories (captures, checks, killers, quiet moves)
+- **Killer move sorting**: Now sorted by safety score (prevents promoting unsafe killers)
+- **Tactical move evaluation**: Combined bitboard tactical bonus with safety penalty for accurate scoring
+
+### Rationale
+- Manual PGN analysis of Dec 17 games revealed middlegame tactical errors as primary weakness
+- Game 4ZzIc3g6: 18...Rf6 (loses knight on d5 to 19.Bxd5) - safety checker penalty: -520cp
+- Game 4ZzIc3g6: 29...Ke7 (allows 30.Ba3+ winning bishop) - safety checker penalty: -264cp
+- Lichess yearend metrics show middlegame has highest error density (12/20 total errors)
+- Bishop weakness hypothesis REJECTED (only 1 error in 4 games) - issue was tactical calculation, not piece handling
+
+### Performance
+- Safety checker: ~9,888 checks/second (101 microseconds per check)
+- Search overhead: ~0.1s at depth 4, ~0.3s at depth 5 (negligible)
+- Only activates at depth >= 2 (shallow searches skip for speed)
+
+### Testing
+- ✅ Test 1: 18...Rf6 correctly flagged as unsafe (-520cp < -100cp threshold)
+- ✅ Test 2: 29...Ke7 correctly flagged as unsafe (-264cp < -50cp threshold)
+- ✅ Performance: 9888 checks/sec >> 500 checks/sec requirement
+
+### Expected Impact
+- Target: +50-80 ELO via blunder prevention
+- Reduces middlegame material losses (current primary weakness)
+- Preserves existing strengths: checkmate rate (66.9%), opening play (83.1%), rating climb (1200→1575 ELO)
+
+### Deployment
+- Status: PRODUCTION (deployed 2025-12-20 to GCP v7p3r-production-bot)
+- Tournament validation: 30 games vs v17.1, 58% win rate (17.5/30 points)
+- Results: 11W-6L-13D, 67% as White, 50% as Black
+- Acceptance criteria: ✅ 58% > 48% threshold, 0% time forfeits
+- Known limitation: High draw rate (43%, all threefold repetitions) - flagged for future tuning
+
+---
+
 ## [17.1.1] - 2025-12-10 [PRODUCTION ROLLBACK]
 
 ### Changed

@@ -4,6 +4,43 @@
   "production_bot": "v7p3r_bot",
   "deployment_history": [
     {
+      "version": "18.0.0",
+      "deployed": "2025-12-20",
+      "status": "production",
+      "environment": "production",
+      "platform": "GCP v7p3r-production-bot (e2-medium)",
+      "duration_days": null,
+      "elo": null,
+      "changes": [
+        "MoveSafetyChecker: Anti-tactical defense system (35% hanging penalty, 10% capture threat)",
+        "Threefold repetition avoidance (final bestmove validation, >100cp threshold)",
+        "Enhanced move ordering with tactical safety scoring"
+      ],
+      "rollback": false,
+      "notes": "Tournament validated: 58% win rate (17.5/30), 11W-6L-13D. Strong as White (67%), neutral as Black (50%). High draw rate (43% threefold) noted for future tuning.",
+      "git_tag": "v18.0.0",
+      "regression_tests_passed": true,
+      "acceptance_criteria": {
+        "win_rate": 0.58,
+        "blunders_per_game": null,
+        "time_forfeit_rate": 0.0,
+        "tested": true
+      },
+      "tournament_results": {
+        "games_played": 30,
+        "wins": 11,
+        "losses": 6,
+        "draws": 13,
+        "win_rate_overall": 0.58,
+        "win_rate_white": 0.67,
+        "win_rate_black": 0.50,
+        "draw_rate": 0.43,
+        "threefold_draws": 13,
+        "opponent": "v17.1",
+        "time_control": "5min+3s"
+      }
+    },
+    {
       "version": "17.8.0",
       "deployed": "2025-12-10",
       "status": "testing",

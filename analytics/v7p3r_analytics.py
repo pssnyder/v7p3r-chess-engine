@@ -349,7 +349,7 @@ class V7P3RAnalytics:
         for node in game.mainline():
             move = node.move
             
-            # Castling
+            # Castling (event-based, count each occurrence)
             if board.is_castling(move):
                 if move.to_square > move.from_square:  # King side
                     themes.castling_king_side += 1
@@ -358,16 +358,16 @@ class V7P3RAnalytics:
             
             # Make move for position analysis
             board.push(move)
-            
-            # Analyze position themes (simplified detection)
-            themes.isolated_pawns += self._count_isolated_pawns(board)
-            themes.passed_pawns += self._count_passed_pawns(board)
-            
-            # Bishop pair
-            if len(board.pieces(chess.BISHOP, chess.WHITE)) == 2:
-                themes.bishop_pair = True
-            if len(board.pieces(chess.BISHOP, chess.BLACK)) == 2:
-                themes.bishop_pair = True
+        
+        # Analyze FINAL position only for structural themes (avoid accumulation bug)
+        themes.isolated_pawns = self._count_isolated_pawns(board)
+        themes.passed_pawns = self._count_passed_pawns(board)
+        
+        # Bishop pair in final position
+        if len(board.pieces(chess.BISHOP, chess.WHITE)) == 2:
+            themes.bishop_pair = True
+        if len(board.pieces(chess.BISHOP, chess.BLACK)) == 2:
+            themes.bishop_pair = True
         
         return themes
     
