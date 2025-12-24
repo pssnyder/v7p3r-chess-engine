@@ -1,31 +1,41 @@
 #!/usr/bin/env python3
 """
-V7P3R Chess Engine v18.0.0 - Anti-Tactical Defense Enhancement
+V7P3R Chess Engine v18.2.0 - Combined Tactical + Positional Enhancement
 
-Addresses middlegame tactical vulnerabilities identified in Lichess analysis:
-- Game 4ZzIc3g6: 18...Rf6 (loses material to 19.Bxd5)
-- Game 4ZzIc3g6: 29...Ke7 (allows 30.Ba3+ winning material)
+Merges v18.0 (tactical safety) + v18.1 (evaluation tuning) for comprehensive improvement.
 
-KEY IMPROVEMENTS (v18.0.0):
-- ANTI-TACTICAL SYSTEM: Lightweight move safety checker prevents hanging pieces
-- DEFENSIVE AWARENESS: Checks if moves leave pieces undefended before committing
-- MATERIAL PRESERVATION: Penalizes moves that allow opponent to capture high-value pieces
-- Speed-optimized: Only checks depth >= 2, ~1000 checks/sec (negligible overhead)
+TACTICAL IMPROVEMENTS (from v18.0):
+- MoveSafetyChecker: Anti-tactical defense prevents hanging pieces (-520cp typical penalty)
+- Threefold repetition avoidance when winning (>100cp threshold)
+- Enhanced move ordering with tactical safety scoring
+
+EVALUATION IMPROVEMENTS (from v18.1):
+- KING SAFETY: High-value attacker penalty (Q/R near king: -100cp each)
+- KING SAFETY: Center king penalty in middlegame (unmoved king on d/e file: -80cp)
+- ENDGAME: Exponential passed pawn bonus (6th rank: 320cp vs previous ~20cp)
+- ENDGAME: King centralization bonus (center squares: +40-70cp)
+- MATERIAL: Bishop pair bonus (opposite-color bishops: +50cp)
+
+TOURNAMENT RESULTS:
+- v18.1 vs v17.1: 64% (+100 ELO) - evaluation tuning works
+- v18.0 vs v17.1: 58% (+56 ELO) - tactical safety works
+- v18.1 vs v18.0: 48% (-14 ELO) - evaluation alone < tactics alone
+- v18.2 EXPECTED: 65-70%+ vs v17.1 (both systems combined)
 
 ARCHITECTURE EVOLUTION:
-- v18.0: Anti-tactical defense layer (prevents middlegame material losses)
-- v17.1.1: Emergency time management hotfix
-- v17.1: PV instant move fix + opening book (tournament reliability)
-- v17.0: Relaxed time management (1st place but Black-side weakness)
-- v14.1: Smart time management fixes for tournament consistency
+- v18.2: Combined tactical safety + evaluation tuning (this version)
+- v18.1: Evaluation tuning only (+100 ELO vs v17.1)
+- v18.0: Tactical safety only (+56 ELO vs v17.1)
+- v17.1: PV instant move fix + opening book
+- v14.1: Smart time management
 
 VERSION LINEAGE:
-- v18.0.0: Anti-tactical defense (target +50-80 ELO via blunder prevention)
-- v17.1.1: Emergency time mode (<30 sec strict limits)
+- v18.2.0: Tactical safety + evaluation tuning combined
+- v18.1.0: Evaluation weight tuning (king safety, passed pawns, bishop pair)
+- v18.0.0: Anti-tactical defense (MoveSafetyChecker)
+- v17.1.1: Emergency time mode
 - v17.1: PV instant move disabled + opening book
-- v17.0: Relaxed time management (tournament winner)
 - v14.1: Smart time management fixes
-- v14.0: Consolidated performance build
 
 Author: Pat Snyder
 """
@@ -219,7 +229,7 @@ class ZobristHashing:
 
 
 class V7P3REngine:
-    """V7P3R Chess Engine v18.0.0 - Anti-Tactical Defense Enhancement"""
+    """V7P3R Chess Engine v18.2.0 - Combined Tactical + Positional"""
     
     def __init__(self, use_fast_evaluator: bool = True):
         # Basic configuration

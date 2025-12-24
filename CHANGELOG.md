@@ -26,6 +26,83 @@ Legacy v17.x series used incremental numbering without semantic meaning.
 
 ---
 
+## [18.2.0] - 2025-12-22 [TACTICAL + POSITIONAL COMBINED] [TESTING]
+
+### Summary
+Merges v18.0's tactical safety system with v18.1's evaluation tuning for comprehensive improvement.
+
+### Added (from v18.0)
+- **MoveSafetyChecker**: Lightweight defensive tactical awareness system
+- Anti-tactical penalty system in move ordering (-50 to -800cp for unsafe moves)
+- Hanging piece detection (checks if pieces are undefended after move)
+- Immediate capture threat evaluation (prevents leaving high-value pieces exposed)
+
+### Changed (from v18.1)
+- **King Safety**: Added -100cp penalty for high-value attackers (Q/R) in king zone
+- **King Safety**: Added -80cp penalty for unmoved king on center files (d/e) in middlegame
+- **Bishop Pair**: Increased bonus from implicit handling to explicit +50cp
+- **Passed Pawns**: Changed to exponential scaling (20 × 2^advancement) instead of linear
+- **King Centralization**: Enhanced endgame bonus to +40-70cp based on central squares
+- **Move ordering**: Integrated safety scores into all move categories (captures, checks, killers, quiet moves)
+- **Threefold repetition**: Final bestmove validation avoids repetition when winning (>100cp)
+
+### Rationale
+- **v18.1 Tournament Results**: 64% vs v17.1 (+100 ELO) - evaluation tuning works
+- **v18.0 Tournament Results**: 58% vs v17.1 (+56 ELO) - tactical safety works
+- **v18.1 vs v18.0**: 48% vs 52% (-14 ELO) - evaluation alone cannot beat tactics
+- **Hypothesis**: Combining both systems should achieve 65-70%+ vs v17.1
+- **Tactical safety prevents blunders** (v18.0's strength), **evaluation wins positions** (v18.1's strength)
+
+### Testing
+- ✅ Unit tests (from v18.1): 5/5 passed
+  - King safety center penalty: 115cp difference
+  - Passed pawn exponential: 280cp difference
+  - Bishop pair bonus: 622cp applied
+  - King centralization: 100cp difference
+  - High-value attacker penalty: 1800cp difference
+- ⏳ Performance benchmark: NOT YET RUN (requires 50+ games vs v18.0 and v17.1)
+
+### Performance
+- **Expected**: 65-70% vs v17.1 (combining +100 ELO from evaluation + +56 ELO from tactics)
+- **Expected**: 55-60% vs v18.0 (adding evaluation tuning to tactical base)
+- Bitboard evaluator path only (fast evaluator unchanged)
+
+---
+
+## [18.1.0] - 2025-12-21 [EVALUATION TUNING] [TESTED]
+
+### Changed
+- **King Safety**: Added -100cp penalty for high-value attackers (Q/R) in king zone
+- **King Safety**: Added -80cp penalty for unmoved king on center files (d/e) in middlegame
+- **Bishop Pair**: Increased bonus from implicit handling to explicit +50cp
+- **Passed Pawns**: Changed to exponential scaling (20 × 2^advancement) instead of linear
+- **King Centralization**: Enhanced endgame bonus to +40-70cp based on central squares
+
+### Rationale
+- **Game Analysis Foundation**: Analyzed 10 recent Lichess games (2W-2D-6L, Dec 14-21) using Stockfish 17.1 at depth 20
+- **41 Total Mistakes**: 21 inaccuracies, 13 mistakes, 7 blunders across 10 games
+- **Theme Breakdown**: 18 unknown (44%), 14 material imbalance (34%), 11 king safety (27%), 9 endgame (22%), 8 pawn play (20%)
+- **Pattern Identification**: King safety errors in 6/10 games, passed pawn mishandling in 4/10 games, bishop pair undervaluation in 3/10 games
+- **Specific Examples**:
+  - Game z2x7qO6f: Failed to prioritize passed pawn advancement (linear bonus insufficient)
+  - Game U9E2iNmr: Allowed rook penetration near king (no high-value attacker penalty)
+  - Game CHF4FHSy: Gave up bishop pair advantage (no explicit bonus)
+  - Game vl2mCQ5b: Kept king in center too long (no center file penalty)
+
+### Testing
+- ✅ Unit tests: 5/5 passed
+  - King safety center penalty: 115cp difference (e1 unmoved vs g1 castled)
+  - Passed pawn exponential: 280cp difference (a3 vs a6)
+  - Bishop pair bonus: 622cp applied
+  - King centralization: 100cp difference (e4 center vs h1 corner)
+  - High-value attacker penalty: 1800cp difference (queen near king vs not)
+
+### Performance
+- **NOT YET BENCHMARKED**: Requires 50-game tournament vs v18.0.0
+- Bitboard evaluator path only (fast evaluator unchanged)
+
+---
+
 ## [18.0.0] - 2025-12-20 [ANTI-TACTICAL DEFENSE] [PRODUCTION]
 
 ### Added

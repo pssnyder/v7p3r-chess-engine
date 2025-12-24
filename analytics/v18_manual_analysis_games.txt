@@ -1,0 +1,29 @@
+=== V18 MANUAL STOCKFISH ANALYSIS ===
+Selected Games for Analysis (10 White Losses + 10 Black Losses)
+
+WHITE LOSSES (v7p3r_bot as White):
+1. EKQVz3G5 - vs vanibot (1985) - Rapid - Checkmate - Dutch Defense
+2. ZpfFcXRH - vs Lancelbot (1627) - Blitz - Time forfeit
+3. SeyrYn1t - vs ai-con (1885) - Rapid - Time forfeit - Queen's Gambit Accepted
+4. bBWpw6Ur - vs plisco-bot (1875) - Classical - Resignation - Queen's Gambit Declined
+5. gk8gOhvS - vs JemBok (1927) - Rapid - Checkmate - King's Indian Defense
+6. blycPS1w - vs JemBok (1921) - Rapid - Checkmate - English Opening
+
+BLACK LOSSES (v7p3r_bot as Black):
+1. c61zeXG2 - vs go-fish-bot (1648) - Blitz - Time forfeit
+2. zHY4xj3C - vs sseh-c (1970) - Bullet - Checkmate - English Opening
+3. fhoeJ4of - vs clementyne1 (1719) - Blitz - Time forfeit
+4. B9vBQUQg - vs nickl1bot (2058) - Rapid - Checkmate - Anderssen's Opening
+5. lObJEZGY - vs Demolito_L4 (1680) - Blitz - Time forfeit
+
+We will analyze these games manually using Stockfish to:
+1. Identify tactical blunders
+2. Calculate centipawn loss per move
+3. Find critical turning points
+4. Determine if v18 has specific weaknesses (time management, tactical vision, endgame, etc.)
+
+Process:
+- Extract FEN positions from key moments in each game
+- Feed positions to Stockfish directly via command line
+- Document findings as we go
+- Build report from manual analysis notes

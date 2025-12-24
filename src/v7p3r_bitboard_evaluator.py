@@ -549,29 +549,43 @@ class V7P3RBitboardEvaluator:
         return total_score
     
     def _evaluate_passed_pawns_bitboard(self, board: chess.Board, pawns: chess.SquareSet, color: bool) -> float:
-        """Evaluate passed pawns using bitboard operations"""
+        """V18.1 ENHANCED: Passed pawns with exponential scaling by rank"""
         score = 0.0
-        passed_pawn_bonus = [0, 20, 30, 50, 80, 120, 180, 250]  # By rank
         advanced_passed_bonus = 30
+        
+        # V18.1: Check if we're in endgame for king-pawn coordination bonus
+        material_count = self._count_material_bitboard(board)
+        is_endgame = material_count < 2000
         
         for pawn_square in pawns:
             if self._is_passed_pawn_bitboard(board, pawn_square, color):
-                rank = chess.square_rank(pawn_square)
-                if not color:  # Black pawns
-                    rank = 7 - rank
+                pawn_rank = chess.square_rank(pawn_square)
                 
-                # Base passed pawn bonus
-                bonus = passed_pawn_bonus[rank]
+                # V18.1: EXPONENTIAL PASSED PAWN BONUS
+                # Calculate advancement (how far pawn has advanced from starting rank)
+                if color == chess.WHITE:
+                    # White pawns start on rank 1, advance toward rank 7
+                    advancement = pawn_rank - 1  # 0 (not moved) to 6 (7th rank)
+                else:
+                    # Black pawns start on rank 6, advance toward rank 0
+                    advancement = 6 - pawn_rank  # 0 (not moved) to 6 (2nd rank)
                 
-                # Advanced passed pawn (6th rank or higher)
-                if rank >= 5:
-                    bonus += advanced_passed_bonus
+                # Exponential bonus: 20 * 2^advancement
+                # 2nd rank: 20cp, 3rd: 40cp, 4th: 80cp, 5th: 160cp, 6th: 320cp, 7th: 640cp
+                passed_pawn_bonus = 20 * (2 ** advancement)
+                score += passed_pawn_bonus
+                
+                # V18.1: Extra bonus if king supports the pawn (endgame only)
+                if is_endgame:
+                    king_square = board.king(color)
+                    if king_square is not None:
+                        king_dist = chess.square_distance(king_square, pawn_square)
+                        if king_dist <= 2:
+                            score += 30  # King-pawn coordination
                 
                 # Connected passed pawns get extra bonus
                 if self._has_connected_passed_pawn_bitboard(board, pawn_square, color):
-                    bonus += 20
-                
-                score += bonus
+                    score += 20
         
         return score
     
@@ -867,7 +881,7 @@ class V7P3RBitboardEvaluator:
 
     def evaluate_king_safety(self, board: chess.Board, color: bool) -> float:
         """
-        V12.6 CONSOLIDATED: Comprehensive king safety evaluation using bitboards
+        V18.1 ENHANCED: Comprehensive king safety evaluation with tuned penalties
         Returns score from the perspective of the given color
         """
         total_score = 0.0
@@ -891,6 +905,41 @@ class V7P3RBitboardEvaluator:
             total_score += self._evaluate_escape_squares_bitboard(board, king_square, color)
             total_score += self._evaluate_attack_zone_bitboard(board, king_square, color)
             total_score += self._evaluate_enemy_pawn_storms_bitboard(board, king_square, color)
+            
+            # V18.1: HIGH-VALUE ATTACKER PENALTY
+            king_zone = self._get_king_zone_squares(king_square)
+            high_value_attackers = 0
+            total_attackers = 0
+            
+            for square in king_zone:
+                attackers = board.attackers(not color, square)
+                total_attackers += len(attackers)
+                
+                for attacker_sq in attackers:
+                    piece = board.piece_at(attacker_sq)
+                    if piece and piece.piece_type in [chess.QUEEN, chess.ROOK]:
+                        high_value_attackers += 1
+            
+            # Escalating danger penalties
+            if total_attackers > 3:
+                total_score -= 50 * (total_attackers - 3)
+            
+            if high_value_attackers > 0:
+                total_score -= 100 * high_value_attackers
+            
+            # V18.1: CENTER KING PENALTY (MIDDLEGAME)
+            king_file = chess.square_file(king_square)
+            
+            # Penalty for being in center files (d, e = files 3, 4)
+            if king_file in [3, 4]:
+                total_score -= 30
+            
+            # Severe penalty if unmoved (no castling) and in center
+            if not self._has_castled(board, color) and king_file in [3, 4]:
+                total_score -= 80
+        
+        # V18.1: BISHOP PAIR BONUS (applies in all phases)
+        total_score += self._evaluate_bishop_pair(board, color)
         
         return total_score
     
@@ -1059,7 +1108,7 @@ class V7P3RBitboardEvaluator:
         return score
     
     def _evaluate_king_activity_bitboard(self, board: chess.Board, king_square: int, color: bool) -> float:
-        """Evaluate king activity in endgame using bitboards"""
+        """V18.1 ENHANCED: King activity in endgame with enhanced centralization bonus"""
         score = 0.0
         king_activity_bonus = 5
         
@@ -1072,6 +1121,16 @@ class V7P3RBitboardEvaluator:
         centralization_bonus = [12, 8, 4, 2][min(int(center_distance), 3)]
         
         score += centralization_bonus
+        
+        # V18.1: ENHANCED CENTRALIZATION BONUS
+        # Additional bonus for being close to ideal center squares (d4, e4, d5, e5)
+        center_file_dist = min(abs(king_file - 3), abs(king_file - 4))
+        center_rank_dist = min(abs(king_rank - 3), abs(king_rank - 4))
+        total_center_dist = center_file_dist + center_rank_dist
+        
+        # Bonus for centralization (max 70cp for perfect center, e.g., Ke4)
+        enhanced_centralization = (4 - total_center_dist) * 10
+        score += enhanced_centralization
         
         # King mobility in endgame
         mobility = 0
@@ -1167,6 +1226,60 @@ class V7P3RBitboardEvaluator:
                 return True
         
         return False
+
+
+    def _get_king_zone_squares(self, king_square: int) -> list:
+        """V18.1: Get 3x3 zone around king for attack detection"""
+        king_zone = []
+        king_file = chess.square_file(king_square)
+        king_rank = chess.square_rank(king_square)
+        
+        for rank_offset in [-1, 0, 1]:
+            for file_offset in [-1, 0, 1]:
+                target_file = king_file + file_offset
+                target_rank = king_rank + rank_offset
+                
+                if 0 <= target_file <= 7 and 0 <= target_rank <= 7:
+                    target_square = target_rank * 8 + target_file
+                    king_zone.append(target_square)
+        
+        return king_zone
+    
+    def _has_castled(self, board: chess.Board, color: bool) -> bool:
+        """V18.1: Check if king has moved from starting square"""
+        king_square = board.king(color)
+        if king_square is None:
+            return False
+        starting_square = chess.E1 if color == chess.WHITE else chess.E8
+        return king_square != starting_square
+    
+    def _evaluate_bishop_pair(self, board: chess.Board, color: bool) -> float:
+        """V18.1: Evaluate bishop pair bonus"""
+        bishops = board.pieces(chess.BISHOP, color)
+        
+        if len(bishops) >= 2:
+            # Check if bishops are on different colored squares
+            light_square_bishop = False
+            dark_square_bishop = False
+            
+            for bishop_square in bishops:
+                square_color = (chess.square_file(bishop_square) + 
+                              chess.square_rank(bishop_square)) % 2
+                if square_color == 0:
+                    dark_square_bishop = True
+                else:
+                    light_square_bishop = True
+            
+            # Only bonus if on different colored squares
+            if light_square_bishop and dark_square_bishop:
+                # Bonus stronger in open/endgame positions
+                piece_count = len(board.piece_map())
+                if piece_count < 20:  # Open/endgame
+                    return 50.0
+                else:  # Closed position
+                    return 30.0
+        
+        return 0.0
 
 
 class V7P3RScoringCalculationBitboard:

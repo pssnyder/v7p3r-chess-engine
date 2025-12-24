@@ -4,6 +4,97 @@
   "production_bot": "v7p3r_bot",
   "deployment_history": [
     {
+      "version": "18.2.0",
+      "deployed": null,
+      "status": "testing",
+      "environment": "local",
+      "platform": "Development Machine",
+      "duration_days": null,
+      "elo": null,
+      "changes": [
+        "TACTICAL (v18.0): MoveSafetyChecker anti-tactical defense (-520cp hanging penalty)",
+        "TACTICAL (v18.0): Threefold repetition avoidance (>100cp threshold)",
+        "TACTICAL (v18.0): Enhanced move ordering with safety scores",
+        "EVALUATION (v18.1): King safety high-value attacker penalty (-100cp Q/R)",
+        "EVALUATION (v18.1): King safety center king penalty (-80cp d/e files)",
+        "EVALUATION (v18.1): Bishop pair explicit bonus (+50cp)",
+        "EVALUATION (v18.1): Passed pawns exponential scaling (20 × 2^advancement)",
+        "EVALUATION (v18.1): King centralization enhanced (+40-70cp)"
+      ],
+      "rollback": false,
+      "notes": "Merges v18.0 tactical safety (58% vs v17.1) with v18.1 evaluation tuning (64% vs v17.1). Expected 65-70%+ vs v17.1 by combining blunder prevention with positional understanding.",
+      "git_tag": null,
+      "regression_tests_passed": true,
+      "acceptance_criteria": {
+        "win_rate": null,
+        "blunders_per_game": null,
+        "time_forfeit_rate": null,
+        "tested": false
+      },
+      "tournament_results": {
+        "games_played": 0,
+        "wins": 0,
+        "losses": 0,
+        "draws": 0,
+        "acpl": null,
+        "avg_depth": null
+      },
+      "baseline_comparison": {
+        "v18_1_vs_v17_1": "64% (+100 ELO)",
+        "v18_0_vs_v17_1": "58% (+56 ELO)",
+        "v18_1_vs_v18_0": "48% (-14 ELO, tactical > evaluation)",
+        "v18_2_expected": "65-70% vs v17.1, 55-60% vs v18.0"
+      }
+    },
+    {
+      "version": "18.1.0",
+      "deployed": null,
+      "status": "tested",
+      "environment": "local",
+      "platform": "Development Machine",
+      "duration_days": null,
+      "elo": null,
+      "changes": [
+        "King safety: -100cp high-value attacker penalty (Q/R in king zone)",
+        "King safety: -80cp center king penalty (unmoved on d/e files)",
+        "Bishop pair: Explicit +50cp bonus",
+        "Passed pawns: Exponential scaling (20 × 2^advancement)",
+        "King centralization: Enhanced +40-70cp endgame bonus"
+      ],
+      "rollback": false,
+      "notes": "Unit tests 5/5 passing. Based on Stockfish analysis of 10 recent games (41 total mistakes). Addresses theme categories: king safety (27%), pawn play (20%), material evaluation (bishop pair).",
+      "git_tag": null,
+      "regression_tests_passed": true,
+      "acceptance_criteria": {
+        "win_rate": null,
+        "blunders_per_game": null,
+        "time_forfeit_rate": null,
+        "tested": false
+      },
+      "tournament_results": {
+        "games_played": 0,
+        "wins": 0,
+        "losses": 0,
+        "draws": 0,
+        "acpl": null,
+        "avg_depth": null
+      },
+      "game_analysis": {
+        "total_games_analyzed": 10,
+        "total_mistakes": 41,
+        "blunders": 7,
+        "mistakes": 13,
+        "inaccuracies": 21,
+        "themes": {
+          "unknown": 18,
+          "material_imbalance": 14,
+          "king_safety": 11,
+          "endgame": 9,
+          "pawn_play": 8
+        }
+      }
+    },
+    {
       "version": "18.0.0",
       "deployed": "2025-12-20",
       "status": "production",

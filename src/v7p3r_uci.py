@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-V7P3R v18.0.0 UCI Interface - Anti-Tactical Defense Enhancement
+V7P3R v18.2.0 UCI Interface - Combined Tactical + Positional
 """
 
 import sys
@@ -27,7 +27,7 @@ def main():
                 break
                 
             elif command == "uci":
-                print("id name V7P3R v18.0")
+                print("id name V7P3R v18.2")
                 print("id author Pat Snyder")
                 print("uciok")
                 
