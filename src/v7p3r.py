@@ -52,6 +52,8 @@ from v7p3r_bitboard_evaluator import V7P3RScoringCalculationBitboard
 from v7p3r_fast_evaluator import V7P3RFastEvaluator
 from v7p3r_openings_v161 import get_enhanced_opening_book
 from v7p3r_move_safety import MoveSafetyChecker
+from v7p3r_position_context import PositionContextCalculator
+from v7p3r_eval_selector import EvaluationProfileSelector, select_evaluation_profile, get_threefold_threshold
 
 
 class PVTracker:
@@ -249,6 +251,12 @@ class V7P3REngine:
         # V18.0: Move safety checker for defensive tactics
         self.move_safety = MoveSafetyChecker(self.piece_values)
         
+        # V18.2: Modular evaluation system
+        self.context_calculator = PositionContextCalculator()
+        self.profile_selector = EvaluationProfileSelector()
+        self.use_modular_evaluation = False  # PARALLEL TESTING MODE: False = old system, True = new system
+        print(f"info string Modular evaluation: {'ENABLED' if self.use_modular_evaluation else 'DISABLED (parallel testing)'}", flush=True)
+        
         # V14.2: Evaluator selection (fast vs bitboard)
         self.use_fast_evaluator = use_fast_evaluator
         if use_fast_evaluator:
@@ -311,6 +319,17 @@ class V7P3REngine:
             self.nodes_searched = 0
             self.search_start_time = time.time()
             
+            # V18.2 MODULAR: Calculate position context ONCE before search
+            self.current_context = self.context_calculator.calculate(
+                board, 
+                time_remaining=time_limit,
+                time_per_move=max(time_limit * 0.4, 1.0)  # Use 40% of available time
+            )
+            self.current_profile = self.profile_selector.select_profile(self.current_context)
+            
+            if self.use_modular_evaluation:
+                print(f"info string Profile: {self.current_profile.name} ({self.current_profile.module_count} modules, {self.current_profile.estimated_cost_ms:.1f}ms/node)", flush=True)
+                print(f"info string Reason: {self.current_profile.reason}", flush=True)
             
             legal_moves = list(board.legal_moves)
             if not legal_moves:
@@ -426,13 +445,17 @@ class V7P3REngine:
                     print(f"info string Search interrupted at depth {current_depth}: {e}")
                     break
             
-            # V18.0: Final threefold check on bestmove before returning
-            # If bestmove causes threefold when winning, penalize it and re-search for alternative
+            # V18.2: Dynamic threefold check based on material balance
+            # Only avoid if move causes threefold AND we're in advantage
             if best_move and current_depth >= 3:
                 if self._would_cause_threefold(board, best_move):
                     current_eval = self._evaluate_position(board)
-                    # Only avoid threefold if we're winning (>100cp advantage)
-                    if current_eval > 100:
+                    
+                    # V18.2: Get dynamic threshold based on material balance
+                    threefold_threshold = get_threefold_threshold(self.current_context)
+                    
+                    # Only avoid threefold if eval > threshold (0-50cp based on advantage)
+                    if current_eval > threefold_threshold:
                         # Penalize the threefold move in transposition table
                         self._store_transposition_table(board, current_depth, -500, best_move, -99999, 99999)
                         # Re-run search at last completed depth to find alternative
@@ -440,6 +463,7 @@ class V7P3REngine:
                         if alt_move and alt_move != best_move:
                             # Found a different move - use it
                             best_move = alt_move
+                            print(f"info string Avoided threefold repetition (eval {current_eval}cp > threshold {threefold_threshold}cp)", flush=True)
                         # If no alternative found (all moves cause threefold), keep original
                     
             return best_move
