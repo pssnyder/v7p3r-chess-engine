@@ -54,6 +54,7 @@ from v7p3r_openings_v161 import get_enhanced_opening_book
 from v7p3r_move_safety import MoveSafetyChecker
 from v7p3r_position_context import PositionContextCalculator
 from v7p3r_eval_selector import EvaluationProfileSelector, select_evaluation_profile, get_threefold_threshold
+from v7p3r_modular_eval import ModularEvaluator
 
 
 class PVTracker:
@@ -251,12 +252,6 @@ class V7P3REngine:
         # V18.0: Move safety checker for defensive tactics
         self.move_safety = MoveSafetyChecker(self.piece_values)
         
-        # V18.2: Modular evaluation system
-        self.context_calculator = PositionContextCalculator()
-        self.profile_selector = EvaluationProfileSelector()
-        self.use_modular_evaluation = False  # PARALLEL TESTING MODE: False = old system, True = new system
-        print(f"info string Modular evaluation: {'ENABLED' if self.use_modular_evaluation else 'DISABLED (parallel testing)'}", flush=True)
-        
         # V14.2: Evaluator selection (fast vs bitboard)
         self.use_fast_evaluator = use_fast_evaluator
         if use_fast_evaluator:
@@ -267,6 +262,13 @@ class V7P3REngine:
             # V14.1's bitboard evaluator - more comprehensive but slower
             self.evaluator = V7P3RScoringCalculationBitboard(self.piece_values, enable_nudges=False)
             print("info string Using Bitboard Evaluator (v14.1 comprehensive)", flush=True)
+        
+        # V18.2: Modular evaluation system (initialized AFTER evaluator)
+        self.context_calculator = PositionContextCalculator()
+        self.profile_selector = EvaluationProfileSelector()
+        self.modular_evaluator = ModularEvaluator(self.evaluator)  # Pass fast evaluator for module implementations
+        self.use_modular_evaluation = False  # PARALLEL TESTING MODE: False = old system, True = new system
+        print(f"info string Modular evaluation: {'ENABLED' if self.use_modular_evaluation else 'DISABLED (parallel testing)'}", flush=True)
         
         # Keep reference to bitboard evaluator for compatibility
         self.bitboard_evaluator = self.evaluator if not use_fast_evaluator else V7P3RScoringCalculationBitboard(self.piece_values, enable_nudges=False)
@@ -671,7 +673,7 @@ class V7P3REngine:
         return ordered
     
     def _evaluate_position(self, board: chess.Board) -> float:
-        """V14.2: Position evaluation with selectable evaluator (fast vs bitboard)"""
+        """V18.2: Position evaluation with modular system or legacy evaluators"""
         # Use chess library's fast _transposition_key() for caching
         cache_key = board._transposition_key()
         
@@ -681,8 +683,18 @@ class V7P3REngine:
         
         self.search_stats['cache_misses'] += 1
         
-        # V14.2: Use selected evaluator (fast or bitboard)
-        if self.use_fast_evaluator:
+        # V18.2: Modular evaluation path (new system)
+        if self.use_modular_evaluation:
+            # Use modular evaluator with selected profile
+            if hasattr(self, 'current_profile') and self.current_profile:
+                final_score = self.modular_evaluator.evaluate_with_profile(
+                    board, self.current_profile, self.current_context
+                )
+            else:
+                # Fallback if profile not set (shouldn't happen)
+                final_score = float(self.evaluator.evaluate(board))
+        # V14.2: Legacy evaluation path (old system)
+        elif self.use_fast_evaluator:
             # Fast evaluator - returns complete score directly
             final_score = float(self.evaluator.evaluate(board))
         else:

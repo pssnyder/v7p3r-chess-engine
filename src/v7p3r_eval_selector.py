@@ -48,6 +48,11 @@ class SelectedProfile:
     module_count: int                  # Number of active modules
     reason: str                        # Why this profile was chosen
     estimated_cost_ms: float           # Estimated evaluation time per node
+    
+    @property
+    def active_modules(self) -> List[str]:
+        """Return list of active module names (for compatibility with ModularEvaluator)"""
+        return [m.name for m in self.modules]
 
 
 class EvaluationProfileSelector:
@@ -79,12 +84,12 @@ class EvaluationProfileSelector:
         if context.material_diff_cp < -300:  # Down 3+ pawns
             return self._build_desperate_profile(context)
         
-        # PRIORITY 2: EMERGENCY (time pressure)
-        if context.time_pressure:  # < 30 seconds
+        # PRIORITY 2: EMERGENCY (critical time pressure)
+        if context.time_pressure:  # < 3s for this move - must move NOW
             return self._build_emergency_profile(context)
         
-        # PRIORITY 3: FAST (fast time control)
-        if context.use_fast_profile:  # < 5s per move
+        # PRIORITY 3: FAST (fast time control or low time)
+        if context.use_fast_profile:  # < 2s per move average - skip expensive modules
             return self._build_fast_profile(context)
         
         # PRIORITY 4: TACTICAL (high tactical activity)
@@ -126,14 +131,14 @@ class EvaluationProfileSelector:
     
     def _build_emergency_profile(self, context: PositionContext) -> SelectedProfile:
         """
-        EMERGENCY profile: Time pressure, minimize computation.
+        EMERGENCY profile: Critical time pressure (<3s for this move).
         
         Strategy:
         - Absolute essentials only
         - No move generation, no expensive checks
         - Fast enough to avoid time forfeit
         
-        Modules: 5 (material, PST, basic king safety, hanging, safety)
+        Modules: 5 (material, PST, basic safety, hanging, move safety)
         """
         modules = get_emergency_modules()
         
@@ -147,7 +152,7 @@ class EvaluationProfileSelector:
     
     def _build_fast_profile(self, context: PositionContext) -> SelectedProfile:
         """
-        FAST profile: Fast time control, skip expensive modules.
+        FAST profile: Fast time control (<2s per move average).
         
         Strategy:
         - Include important evaluations

@@ -145,8 +145,11 @@ class PositionContextCalculator:
         tactical_flags = self._detect_tactical_flags(board, piece_info)
         
         # Time pressure detection (O(1))
-        time_pressure = time_remaining < 30.0
-        use_fast_profile = time_pressure or time_per_move < 5.0
+        # CRITICAL: time_remaining is what we're allocating for THIS move (not total clock)
+        # time_pressure = truly desperate (must move instantly)
+        # use_fast_profile = less time available (skip expensive modules)
+        time_pressure = time_remaining < 3.0  # Less than 3s for this move = emergency
+        use_fast_profile = time_per_move < 2.0  # Less than 2s/move average = use fast profile
         
         # Depth target based on time (O(1))
         depth_target = self._calculate_depth_target(
