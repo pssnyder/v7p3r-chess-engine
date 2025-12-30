@@ -4,9 +4,49 @@
   "production_bot": "v7p3r_bot",
   "deployment_history": [
     {
+      "version": "18.3.0",
+      "deployed": "2025-12-29",
+      "status": "production",
+      "environment": "GCP Cloud",
+      "platform": "v7p3r-production-bot (e2-medium)",
+      "duration_days": null,
+      "elo": 1656,
+      "changes": [
+        "PST OPTIMIZATION: Direct square indexing (28% PST speedup)",
+        "PST OPTIMIZATION: Pre-computed flipped tables for Black",
+        "PST OPTIMIZATION: Eliminated rank flipping overhead (56% of eval time)",
+        "ARCHITECTURE: Decomposed fast evaluator (material, PST, strategic components)",
+        "PERFORMANCE: 23% faster full evaluation (0.046ms → 0.037ms)"
+      ],
+      "rollback": false,
+      "notes": "PST optimization achieved +56 ELO vs v17.1 (58% win rate, 14.5-10.5). Clean code improvement with no regressions. Foundation for future lazy evaluation. High draw rate (52%) indicates sound chess with 2:1 win ratio when positions diverge.",
+      "git_tag": "v18.3.0",
+      "regression_tests_passed": true,
+      "acceptance_criteria": {
+        "win_rate": 0.58,
+        "blunders_per_game": null,
+        "time_forfeit_rate": 0.0,
+        "tested": true
+      },
+      "tournament_results": {
+        "games_played": 25,
+        "wins": 8,
+        "losses": 4,
+        "draws": 13,
+        "acpl": null,
+        "avg_depth": 4.25
+      },
+      "baseline_comparison": {
+        "v18_3_vs_v17_1": "58% (+56 ELO, 14.5-10.5)",
+        "pst_speedup": "28% faster",
+        "eval_speedup": "23% faster",
+        "search_impact": "+2.5% total"
+      }
+    },
+    {
       "version": "18.2.0",
       "deployed": null,
-      "status": "testing",
+      "status": "skipped",
       "environment": "local",
       "platform": "Development Machine",
       "duration_days": null,

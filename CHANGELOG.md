@@ -26,6 +26,42 @@ Legacy v17.x series used incremental numbering without semantic meaning.
 
 ---
 
+## [18.3.0] - 2025-12-29 [PST OPTIMIZATION] [DEPLOYED]
+
+### Summary
+Optimized piece-square table evaluation with direct square indexing for 28% PST speedup.
+
+### Changed
+- **PST Evaluation**: Pre-computed flipped tables for Black (eliminates rank flipping overhead)
+- **PST Evaluation**: Direct square indexing via PST_DIRECT[piece_type][color][square]
+- **Fast Evaluator**: Decomposed into evaluate_material(), evaluate_pst(), evaluate_strategic()
+- **Code Quality**: Cleaner, more maintainable modular structure
+
+### Performance
+- **PST speedup**: 28% faster (0.0256ms → 0.0200ms)
+- **Full evaluation**: 23% faster (0.0460ms → 0.0374ms)
+- **Search impact**: +2.5% total speedup (+0.03 plies depth gain)
+
+### Rationale
+- Profiling revealed PST is 56% of evaluation time (primary bottleneck)
+- Rank flipping overhead eliminated with pre-computed Black tables
+- Single array lookup per piece instead of multiple operations
+- Foundation for future lazy evaluation optimization
+
+### Testing
+- ✅ Performance benchmark: 28% PST improvement validated
+- ✅ 25-game tournament vs v17.1: **58% win rate (+56 ELO)**
+- ✅ Result: 14.5-10.5 (8W-4L-13D)
+- ✅ No regressions: Identical depth (4.2-4.3), stable play
+- ✅ High draw rate (52%) indicates sound chess, 2:1 win ratio when divergent
+
+### Deployment
+- **Deployed**: 2025-12-29 to Lichess production (v7p3r_bot)
+- **Platform**: GCP e2-medium, Docker container
+- **Git tag**: v18.3.0
+
+---
+
 ## [18.2.0] - 2025-12-22 [TACTICAL + POSITIONAL COMBINED] [TESTING]
 
 ### Summary
