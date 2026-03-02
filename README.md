@@ -1,33 +1,33 @@
 # V7P3R Chess Engine
 
-**Latest Release: V17.2.0** - November 22, 2025  
+**Latest Release: V18.3.0** - December 29, 2025  
 A UCI-compatible chess engine achieving **50% score vs Stockfish 1%** through advanced search optimization and tactical excellence.
 
 ---
 
-## 🎯 Current Version: V17.2.0 (Performance Optimization)
+## 🎯 Current Version: V18.3.0 (PST Optimization - Production on GCP)
 
-**V17.2.0** focuses on pure performance improvements through non-invasive optimizations while maintaining v17.1's breakthrough tactical strength.
+**V18.3.0** delivers 28% faster piece-square table evaluation through direct square indexing and pre-computed flipped tables, achieving +56 ELO improvement.
 
-### V17.2.0 Key Features
+### V18.3.0 Key Features
 
-1. **⚡ Performance Optimizations**
-   - O(1) TT two-tier bucket replacement (eliminates sort overhead)
-   - Unified TT + evaluation cache (single lookup)
-   - In-place quiescence sorting (no list allocations)
-   - Pre-allocated move ordering buffers
-   - UCI debugging enhancements (seldepth, hashfull tracking)
+1. **⚡ PST Performance Optimizations**
+   - Direct square indexing (eliminates modulo/division overhead)
+   - Pre-computed flipped tables for Black pieces
+   - 28% faster PST evaluation, 23% faster full evaluation
+   - Clean architectural decomposition (material, PST, strategic components)
 
-2. **🎯 Maintained Tactical Excellence**
-   - History heuristic (from v17.0)
-   - Killer moves (2 slots per ply)
-   - MVV-LVA capture ordering
-   - Enhanced transposition table (128 generations)
+2. **🎯 Tactical Excellence (from v18.0)**
+   - MoveSafetyChecker anti-tactical defense system
+   - Threefold repetition avoidance (>100cp threshold)
+   - Enhanced move ordering with safety scoring
+   - History heuristic + killer moves + MVV-LVA
 
 3. **☁️ Cloud Deployment**
-   - Running 24/7 on Google Cloud Platform (e2-medium VM)
-   - 4GB RAM, 2 vCPUs for future multi-threading
-   - Professional infrastructure with 99.9% uptime
+   - Running 24/7 on Google Cloud Platform (e2-micro VM)
+   - 1GB RAM, 2 vCPUs, us-central1-a region
+   - Emergency configuration: concurrency=1, rapid+classical time controls
+   - Professional infrastructure with monitoring and backups
    - ~$24/month operational cost
 
 ### V17.2.0 Performance Metrics

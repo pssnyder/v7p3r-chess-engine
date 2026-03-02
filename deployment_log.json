@@ -8,8 +8,8 @@
       "deployed": "2025-12-29",
       "status": "production",
       "environment": "GCP Cloud",
-      "platform": "v7p3r-production-bot (e2-medium)",
-      "duration_days": null,
+      "platform": "v7p3r-production-bot (e2-micro)",
+      "duration_days": 63,
       "elo": 1656,
       "changes": [
         "PST OPTIMIZATION: Direct square indexing (28% PST speedup)",
@@ -137,7 +137,7 @@
     {
       "version": "18.0.0",
       "deployed": "2025-12-20",
-      "status": "production",
+      "status": "superseded",
       "environment": "production",
       "platform": "GCP v7p3r-production-bot (e2-medium)",
       "duration_days": null,

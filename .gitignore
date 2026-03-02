@@ -124,3 +124,4 @@ dmypy.json
 Dockerfile
 docker-compose.yml
 */example_
+lichess/config_e2micro_emergency.yml
