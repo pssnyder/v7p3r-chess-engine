@@ -6,10 +6,23 @@ This document tracks all engine deployments, rollbacks, and configuration change
 
 ## 2025 Deployment History
 
+### 2025-12-29
+- **Version**: v18.3
+- **Status**: DEPLOYED
+- **Environment**: production
+- **Deployment Method**: Automated deployment script
+
+### 2025-12-20
+- **Version**: v18.0
+- **Status**: RETIRED
+
+### 2025-12-06
+- **Version**: v17.7
+- **Status**: RETIRED (replaced buggy v17.6)
+
 ### 2025-12-02
 - **Version**: v17.5
 - **Status**: DEPLOYED
-- **Environment**: production
 - **Deployment Method**: Automated deployment script
 - **Notes**: Deployed via universal deployment script
 
@@ -18,7 +31,7 @@ This document tracks all engine deployments, rollbacks, and configuration change
 
 #### **2025-11-30 (Current)**
 - **Version**: v17.1 (ROLLED BACK)
-- **Status**: ACTIVE on production
+- **Status**: RETIRED
 - **Reason**: v17.4 had endgame blunders, rolled back to stable v17.1
 - **Games Period**: 2025-11-26 onwards (after v17.4 rollback)
 - **Notes**: 
@@ -128,7 +141,7 @@ This document tracks all engine deployments, rollbacks, and configuration change
 ## Current Production Environment
 
 ### Active Configuration
-- **Version**: v17.1 (rolled back from v17.4)
+- **Version**: SEE CURRENT DEPLOYED VERSION ABOVE
 - **GCP Project**: v7p3r-lichess-bot
 - **Instance**: v7p3r-production-bot (e2-micro, us-central1-a)
 - **Container**: v7p3r-production
@@ -136,13 +149,14 @@ This document tracks all engine deployments, rollbacks, and configuration change
 - **Active Since**: 2025-11-26 (rollback date)
 
 ### Smart Matchmaking
-- **Deployed**: 2025-11-30
-- **Status**: ACTIVE
+- **Created**: 2025-11-30
+- **Status**: INACTIVE
 - **Features**:
   - Intelligent opponent selection
   - 30% improvement targets, 50% variety, 20% priority
   - Slot reservation for incoming challenges
   - Followed accounts integration
+- **Notes**: Bugged and causing issues, currently disabled until fixed
 
 ---
 

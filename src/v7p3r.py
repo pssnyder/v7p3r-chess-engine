@@ -1,35 +1,36 @@
 #!/usr/bin/env python3
 """
-V7P3R Chess Engine v18.2.0 - Combined Tactical + Positional Enhancement
+V7P3R Chess Engine v18.3.0 - PST Optimization
 
-Merges v18.0 (tactical safety) + v18.1 (evaluation tuning) for comprehensive improvement.
+Optimized piece-square table evaluation for 28% PST speedup.
 
-TACTICAL IMPROVEMENTS (from v18.0):
-- MoveSafetyChecker: Anti-tactical defense prevents hanging pieces (-520cp typical penalty)
-- Threefold repetition avoidance when winning (>100cp threshold)
-- Enhanced move ordering with tactical safety scoring
+PST OPTIMIZATION:
+- Pre-computed flipped tables for Black (eliminates rank flipping overhead)
+- Direct square indexing via PST_DIRECT[piece_type][color][square]
+- Decomposed fast evaluator into modular components (material, PST, strategic)
+- 23% faster full evaluation (0.046ms → 0.037ms)
 
-EVALUATION IMPROVEMENTS (from v18.1):
-- KING SAFETY: High-value attacker penalty (Q/R near king: -100cp each)
-- KING SAFETY: Center king penalty in middlegame (unmoved king on d/e file: -80cp)
-- ENDGAME: Exponential passed pawn bonus (6th rank: 320cp vs previous ~20cp)
-- ENDGAME: King centralization bonus (center squares: +40-70cp)
-- MATERIAL: Bishop pair bonus (opposite-color bishops: +50cp)
+PERFORMANCE:
+- PST speedup: 28% (0.0256ms → 0.0200ms)
+- Full evaluation: 23% faster
+- Search impact: +2.5% total (+0.03 plies)
+- Tournament: 58% vs v17.1 (+56 ELO, 14.5-10.5 in 25 games)
 
-TOURNAMENT RESULTS:
-- v18.1 vs v17.1: 64% (+100 ELO) - evaluation tuning works
-- v18.0 vs v17.1: 58% (+56 ELO) - tactical safety works
-- v18.1 vs v18.0: 48% (-14 ELO) - evaluation alone < tactics alone
-- v18.2 EXPECTED: 65-70%+ vs v17.1 (both systems combined)
+RATIONALE:
+- Profiling revealed PST is 56% of evaluation time (primary bottleneck)
+- Rank flipping overhead eliminated with pre-computed tables
+- Foundation prepared for lazy evaluation and cache improvements
 
 ARCHITECTURE EVOLUTION:
-- v18.2: Combined tactical safety + evaluation tuning (this version)
+- v18.3: PST optimization (this version) - +56 ELO vs v17.1
+- v18.2: Combined tactical + positional (skipped for optimization path)
 - v18.1: Evaluation tuning only (+100 ELO vs v17.1)
 - v18.0: Tactical safety only (+56 ELO vs v17.1)
 - v17.1: PV instant move fix + opening book
 - v14.1: Smart time management
 
 VERSION LINEAGE:
+- v18.3.0: PST optimization (direct indexing, pre-computed tables)
 - v18.2.0: Tactical safety + evaluation tuning combined
 - v18.1.0: Evaluation weight tuning (king safety, passed pawns, bishop pair)
 - v18.0.0: Anti-tactical defense (MoveSafetyChecker)
