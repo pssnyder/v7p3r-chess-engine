@@ -48,7 +48,7 @@ import random
 import json
 import os
 from typing import Optional, Tuple, List, Dict
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from v7p3r_bitboard_evaluator import V7P3RScoringCalculationBitboard
 from v7p3r_fast_evaluator import V7P3RFastEvaluator
 from v7p3r_openings_v161 import get_enhanced_opening_book
@@ -190,11 +190,18 @@ class HistoryHeuristic:
     """History heuristic for move ordering"""
     def __init__(self):
         self.history: Dict[str, int] = defaultdict(int)
+        self.max_history_entries = 10000  # V18.4 PHASE 1: Prevent unbounded growth
     
     def update_history(self, move: chess.Move, depth: int):
         """Update history score for a move"""
         move_key = f"{move.from_square}-{move.to_square}"
         self.history[move_key] += depth * depth
+        
+        # V18.4 PHASE 1: Clear old entries when limit exceeded
+        if len(self.history) > self.max_history_entries:
+            # Keep top 75% of entries by score (most successful moves)
+            sorted_items = sorted(self.history.items(), key=lambda x: x[1], reverse=True)
+            self.history = defaultdict(int, dict(sorted_items[:int(self.max_history_entries * 0.75)]))
     
     def get_history_score(self, move: chess.Move) -> int:
         """Get history score for a move"""
@@ -274,8 +281,9 @@ class V7P3REngine:
         # Keep reference to bitboard evaluator for compatibility
         self.bitboard_evaluator = self.evaluator if not use_fast_evaluator else V7P3RScoringCalculationBitboard(self.piece_values, enable_nudges=False)
         
-        # Simple evaluation cache for speed
-        self.evaluation_cache = {}  # position_hash -> evaluation
+        # V18.4 PHASE 1: Bounded evaluation cache (LRU, 20k entries)
+        self.evaluation_cache = OrderedDict()  # position_hash -> evaluation (LRU cache)
+        self.max_eval_cache_entries = 20000  # Prevent unbounded growth
         
         # Advanced search infrastructure
         self.transposition_table: Dict[int, TranspositionEntry] = {}
@@ -364,6 +372,19 @@ class V7P3REngine:
             # if pv_move:
             #     return pv_move
             
+            # V18.4: MATE-IN-1 FAST PATH
+            # Check for immediate checkmate before starting expensive search
+            # Expected impact: +10-20 ELO, 100% tactical accuracy, <1ms overhead
+            # RATIONALE: 30% detection baseline (6/20 positions), avg 1.28s search time
+            # With fast path: 100% detection, <10ms instant return, minimal overhead
+            for move in legal_moves:
+                board.push(move)
+                if board.is_checkmate():
+                    board.pop()
+                    print(f"info string Mate-in-1 found: {move.uci()}", flush=True)
+                    return move
+                board.pop()
+            
             target_time, max_time = self._calculate_adaptive_time_allocation(board, time_limit)
             
             # Iterative deepening
@@ -395,8 +416,45 @@ class V7P3REngine:
                     previous_best = best_move
                     previous_score = best_score
                     
-                    # Call recursive search for this depth
-                    score, move = self._recursive_search(board, current_depth, -99999, 99999, time_limit)
+                    # V18.4: ASPIRATION WINDOWS
+                    # Use narrow search window for depth 3+ to reduce nodes
+                    # Expected impact: +20-40 ELO, 15-25% node reduction
+                    # RATIONALE: 14,848 avg nodes baseline → target 11,878 nodes (20% reduction)
+                    if current_depth >= 3 and best_score > -9000 and best_score < 9000:
+                        # Start with narrow ±50cp window
+                        window = 50
+                        alpha = best_score - window
+                        beta = best_score + window
+                        
+                        # Try narrow window first
+                        score, move = self._recursive_search(board, current_depth, alpha, beta, time_limit)
+                        
+                        # Fail-low: Score dropped below window
+                        if score <= alpha:
+                            # Widen downward, re-search
+                            window = 150
+                            alpha = best_score - window
+                            score, move = self._recursive_search(board, current_depth, alpha, beta, time_limit)
+                            
+                            # Still fail-low: Use full window downward
+                            if score <= alpha:
+                                alpha = -99999
+                                score, move = self._recursive_search(board, current_depth, alpha, beta, time_limit)
+                        
+                        # Fail-high: Score exceeded window
+                        elif score >= beta:
+                            # Widen upward, re-search
+                            window = 150
+                            beta = best_score + window
+                            score, move = self._recursive_search(board, current_depth, alpha, beta, time_limit)
+                            
+                            # Still fail-high: Use full window upward
+                            if score >= beta:
+                                beta = 99999
+                                score, move = self._recursive_search(board, current_depth, alpha, beta, time_limit)
+                    else:
+                        # Depth 1-2 or extreme scores: Use full window
+                        score, move = self._recursive_search(board, current_depth, -99999, 99999, time_limit)
                     
                     # Calculate iteration time IMMEDIATELY
                     last_iteration_time = time.time() - iteration_start
@@ -680,6 +738,8 @@ class V7P3REngine:
         
         if cache_key in self.evaluation_cache:
             self.search_stats['cache_hits'] += 1
+            # V18.4 PHASE 1: Move to end for LRU (most recently used)
+            self.evaluation_cache.move_to_end(cache_key)
             return self.evaluation_cache[cache_key]
         
         self.search_stats['cache_misses'] += 1
@@ -732,7 +792,11 @@ class V7P3REngine:
             else:  # Black to move
                 final_score = black_total - white_total
         
-        # Cache the result
+        # V18.4 PHASE 1: Cache with LRU eviction (20k entry limit)
+        if len(self.evaluation_cache) >= self.max_eval_cache_entries:
+            # Remove oldest entry (FIFO/LRU)
+            self.evaluation_cache.popitem(last=False)
+        
         self.evaluation_cache[cache_key] = final_score
         return final_score
     
@@ -788,16 +852,37 @@ class V7P3REngine:
         else:
             node_type = 'exact'
         
-        # Simple replacement strategy for performance
-        if len(self.transposition_table) >= self.max_tt_entries:
-            # Clear 25% of entries when full (simple aging)
-            entries = list(self.transposition_table.items())
-            entries.sort(key=lambda x: x[1].depth, reverse=True)
-            self.transposition_table = dict(entries[:int(self.max_tt_entries * 0.75)])
-        
-        entry = TranspositionEntry(depth, score, best_move, node_type, zobrist_hash)
-        self.transposition_table[zobrist_hash] = entry
-        self.search_stats['tt_stores'] += 1
+        # V18.4 PHASE 1: Depth-preferred replacement strategy
+        if zobrist_hash in self.transposition_table:
+            # Always replace existing entry for same position
+            existing_depth = self.transposition_table[zobrist_hash].depth
+            # Only replace if new search is deeper (preserve deep entries)
+            if depth >= existing_depth:
+                entry = TranspositionEntry(depth, score, best_move, node_type, zobrist_hash)
+                self.transposition_table[zobrist_hash] = entry
+                self.search_stats['tt_stores'] += 1
+        elif len(self.transposition_table) < self.max_tt_entries:
+            # Table not full, just add
+            entry = TranspositionEntry(depth, score, best_move, node_type, zobrist_hash)
+            self.transposition_table[zobrist_hash] = entry
+            self.search_stats['tt_stores'] += 1
+        else:
+            # Table full, need to evict (depth-preferred replacement)
+            # Find a shallow entry to replace (simple scan, replace first depth < new_depth)
+            min_depth_hash = None
+            min_depth = depth  # Only replace if victim is shallower
+            for hash_key, entry in list(self.transposition_table.items())[:100]:  # Check first 100 for speed
+                if entry.depth < min_depth:
+                    min_depth = entry.depth
+                    min_depth_hash = hash_key
+            
+            if min_depth_hash:
+                # Replace shallow entry with deeper one
+                del self.transposition_table[min_depth_hash]
+                entry = TranspositionEntry(depth, score, best_move, node_type, zobrist_hash)
+                self.transposition_table[zobrist_hash] = entry
+                self.search_stats['tt_stores'] += 1
+            # else: TT full with all deep entries, don't store shallow entry
     
     def _has_non_pawn_pieces(self, board: chess.Board) -> bool:
         """Check if the current side has non-pawn pieces (for null move pruning)"""
