@@ -1,5 +1,6 @@
 @echo off
 REM V7P3R v16.1 Launcher
 REM Fresh start - Material safety + Positional play + Opening mastery + Perfect endgames
+REM Uses py launcher for cross-machine compatibility
 
-"C:\Users\patss\AppData\Local\Programs\Python\Python313\python.exe" "%~dp0src\v7p3r_uci.py"
+py -3 "%~dp0src\v7p3r_uci.py"

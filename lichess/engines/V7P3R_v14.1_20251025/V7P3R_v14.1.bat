@@ -2,11 +2,12 @@
 
 REM V7P3R v14.1
 REM Updated: October 2025
+REM Uses py launcher for cross-machine compatibility
 
 cd /d "%~dp0"
 
-REM Launch engine with Python 3.13
-"C:\Users\patss\AppData\Local\Programs\Python\Python313\python.exe" src/v7p3r_uci.py
+REM Launch engine with Python
+py -3 src/v7p3r_uci.py
 
 REM Error handling for Arena
 if errorlevel 1 (

@@ -4,12 +4,21 @@ This document tracks all engine deployments, rollbacks, and configuration change
 
 ---
 
+## 2026 Deployment History
+
+### 2025-04-17
+- **Version**: v18.4
+- **Status**: DEPLOYED
+- **Environment**: production
+- **Deployment Method**: Automated deployment script
+
+---
+
 ## 2025 Deployment History
 
 ### 2025-12-29
 - **Version**: v18.3
-- **Status**: DEPLOYED
-- **Environment**: production
+- **Status**: RETIRED
 - **Deployment Method**: Automated deployment script
 
 ### 2025-12-20
