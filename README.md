@@ -1,40 +1,47 @@
 # V7P3R Chess Engine
 
-**Latest Release: V18.3.0** - December 29, 2025  
+**Latest Release: V18.4.0** - April 17, 2026  
 A UCI-compatible chess engine achieving **50% score vs Stockfish 1%** through advanced search optimization and tactical excellence.
 
 ---
 
-## 🎯 Current Version: V18.3.0 (PST Optimization - Production on GCP)
+## 🎯 Current Version: V18.4.0 (Memory & Search Optimization - Production on GCP)
 
-**V18.3.0** delivers 28% faster piece-square table evaluation through direct square indexing and pre-computed flipped tables, achieving +56 ELO improvement.
+**V18.4.0** delivers comprehensive memory stability and search optimizations through three focused phases, achieving **+3.9% tactical accuracy improvement** (90.9% puzzle accuracy vs v18.3's 87.0%).
 
-### V18.3.0 Key Features
+### V18.4.0 Key Features
 
-1. **⚡ PST Performance Optimizations**
-   - Direct square indexing (eliminates modulo/division overhead)
-   - Pre-computed flipped tables for Black pieces
-   - 28% faster PST evaluation, 23% faster full evaluation
-   - Clean architectural decomposition (material, PST, strategic components)
+1. **🧠 Phase 1: Memory Stability**
+   - Evaluation cache with 20,000-entry LRU eviction
+   - Depth-preferred transposition table replacement
+   - History table bounded at 10,000 entries
+   - Prevents memory growth, ensures predictable performance
 
-2. **🎯 Tactical Excellence (from v18.0)**
-   - MoveSafetyChecker anti-tactical defense system
-   - Threefold repetition avoidance (>100cp threshold)
-   - Enhanced move ordering with safety scoring
-   - History heuristic + killer moves + MVV-LVA
+2. **🎯 Phase 2: Aspiration Windows**
+   - ±50cp initial window for focused search
+   - 8-18% node reduction on tactical positions
+   - +1 ply depth improvement on complex middlegames
+   - Adaptive widening on research
 
-3. **☁️ Cloud Deployment**
+3. **⚡ Phase 4: Mate-in-1 Fast Path**
+   - Instant mate detection (0ms vs 342-600ms)
+   - Pre-search mate verification before full search
+   - Zero tactical mate misses in validation testing
+
+4. **☁️ Cloud Deployment**
    - Running 24/7 on Google Cloud Platform (e2-micro VM)
    - 1GB RAM, 2 vCPUs, us-central1-a region
-   - Emergency configuration: concurrency=1, rapid+classical time controls
    - Professional infrastructure with monitoring and backups
+   - Automated deployment with rollback capability
    - ~$24/month operational cost
 
-### V17.2.0 Performance Metrics
-- **NPS:** ~5,540 nodes/second (baseline testing)
-- **Search Depth:** Typically 10-12 in rapid time controls
-- **TT Usage:** 39% at depth 4 (efficient memory utilization)
-- **Cache Hit Rate:** 18.1% (improved from 13.3%)
+### V18.4.0 Validation Results
+- **Puzzle Accuracy:** 90.9% weighted (vs v18.3: 87.0%) — **+3.9% improvement**
+- **Perfect Sequences:** 25/30 puzzles (83.3%) vs v18.3's 22/30 (73.3%)
+- **Estimated Rating:** 1499 puzzle rating (+14 over v18.3)
+- **Mate Detection:** Instant (<1ms) on 15/15 test positions
+- **Node Reduction:** 15-47% on tactical positions with aspiration windows
+- **Depth Improvement:** +1 ply on Sicilian Dragon (depth 4→5)
 
 ---
 
@@ -84,6 +91,32 @@ A UCI-compatible chess engine achieving **50% score vs Stockfish 1%** through ad
 ---
 
 ## 📊 Version History
+
+### V18.4.0 (April 17, 2026) - Memory Stability & Search Optimization ⭐ DEPLOYED
+- **Phase 1: Memory Stability** - Bounded caches prevent memory growth
+  - Evaluation cache: 20,000-entry LRU
+  - TT replacement: Depth-preferred strategy
+  - History table: 10,000-entry cap
+- **Phase 2: Aspiration Windows** - Focused search reduces nodes
+  - ±50cp initial window
+  - 8-18% node reduction on tactical positions
+  - +1 ply depth improvement (Sicilian Dragon: 4→5)
+- **Phase 4: Mate-in-1 Fast Path** - Instant mate detection
+  - Pre-search mate verification
+  - 0ms detection vs v18.3's 342-600ms
+  - 100% accuracy on 15 test positions
+- **Validation Testing**
+  - Puzzle accuracy: 90.9% vs v18.3's 87.0% (+3.9%)
+  - Perfect sequences: 25/30 vs 22/30 (+13.6%)
+  - Estimated rating: 1499 (+14 over v18.3)
+- **Deployed to GCP Production:** April 17, 2026 (v7p3r_bot on Lichess)
+
+### V18.3.0 (December 29, 2025) - PST Optimization
+- Direct square indexing (eliminates modulo/division overhead)
+- Pre-computed flipped tables for Black pieces
+- 28% faster PST evaluation, 23% faster full evaluation
+- Clean architectural decomposition (material, PST, strategic)
+- +56 ELO improvement over v18.2
 
 ### V17.2.0 (November 22, 2025) - Performance Optimization
 - O(1) TT bucket replacement system
@@ -210,11 +243,13 @@ v7p3r-chess-engine/
 ```
 
 ### Current Cloud Status
-- **Instance:** v7p3r-production-bot (GCP e2-medium)
-- **Engine Version:** V17.2.0
+- **Instance:** v7p3r-production-bot (GCP e2-micro)
+- **Engine Version:** V18.4.0 ⭐ LATEST
+- **Deployed:** April 17, 2026
 - **Location:** us-central1-a
 - **Uptime:** 99.9%
 - **Cost:** ~$24/month
+- **Profile:** https://lichess.org/@/v7p3r_bot
 
 ### Quick Deployment
 ```bash
