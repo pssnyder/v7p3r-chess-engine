@@ -1,0 +1,31 @@
+{
+  "name": "v7p3r-labs",
+  "version": "0.1.0",
+  "private": true,
+  "description": "V7P3R Chess Engine - Interactive web interface for playing against and watching historical engine versions",
+  "author": "Patrick Snyder <patrick@rapidtechconsultants.com>",
+  "license": "UNLICENSED",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "deploy": "npm run build && firebase deploy --only hosting:v7p3r-labs",
+    "deploy:coming-soon": "firebase deploy --only hosting:v7p3r-labs"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.4",
+    "autoprefixer": "^10.4.24",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.19",
+    "typescript": "~5.9.3",
+    "vite": "^7.3.1"
+  },
+  "dependencies": {
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-router-dom": "^7.13.0"
+  }
+}

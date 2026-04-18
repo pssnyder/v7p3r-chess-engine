@@ -1,0 +1,17 @@
+# v7p3r-labs Backend Dependencies
+
+# FastAPI and server
+fastapi==0.115.12
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20
+websockets==14.1
+
+# Chess logic
+python-chess==1.11.1
+
+# Data validation
+pydantic==2.10.6
+pydantic-settings==2.7.1
+
+# Async support
+asyncio==3.4.3

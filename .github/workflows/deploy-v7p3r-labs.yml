@@ -1,0 +1,61 @@
+name: Deploy V7P3R Labs to Production
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'v7p3r-labs/**'
+  workflow_dispatch:
+
+permissions:
+  checks: write
+  contents: read
+
+jobs:
+  deploy_v7p3r_labs:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: v7p3r-labs/package-lock.json
+
+      - name: Guard compromised packages
+        working-directory: v7p3r-labs
+        run: |
+          if grep -RInE 'axios@1\.14\.1|axios@0\.30\.4|plain-crypto-js|"axios"\s*:\s*"(1\.14\.1|0\.30\.4)"' --include=package.json --include=package-lock.json .; then
+            echo "❌ Blocked: compromised dependency indicator detected"
+            exit 1
+          fi
+      
+      - name: Install dependencies
+        working-directory: v7p3r-labs
+        run: npm ci
+      
+      - name: Build frontend
+        working-directory: v7p3r-labs
+        run: npm run build
+      
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_RTS_LABS }}
+          projectId: rts-labs-f3981
+          target: v7p3r-labs
+          channelId: live
+          entryPoint: v7p3r-labs
+      
+      - name: Deployment complete
+        run: |
+          echo "✅ V7P3R Chess Engine deployed to production"
+          echo ""
+          echo "🔗 Live at: https://v7p3r.labs.rtsts.tech"
+          echo "🔗 Firebase URL: https://v7p3r-chess-engine-f3981.web.app"
