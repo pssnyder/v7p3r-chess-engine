@@ -125,3 +125,7 @@ Dockerfile
 docker-compose.yml
 */example_
 lichess/config_e2micro_emergency.yml
+
+# RTS resources
+v7p3r-labs/
+
