@@ -7,6 +7,7 @@ import sys
 import time
 import chess
 from v7p3r import V7P3REngine
+from v7p3r_time_manager import TimeManager
 
 
 def main():
@@ -76,150 +77,53 @@ def main():
                                 break
                                 
             elif command == "go":
-                # Search parameter parsing
-                time_limit = 3.0  # Default
+                # V19.0: Simplified time management using TimeManager
+                time_limit = 5.0  # Default fallback
                 depth_limit = None
                 perft_depth = None
                 
+                # Parse time control parameters
+                movetime = None
+                wtime = None
+                btime = None
+                winc = 0
+                binc = 0
+                
                 for i, part in enumerate(parts):
-                    if part == "perft" and i + 1 < len(parts):
-                        # V11 ENHANCEMENT: Perft command support
-                        try:
+                    try:
+                        if part == "perft" and i + 1 < len(parts):
                             perft_depth = int(parts[i + 1])
-                        except:
-                            print("info string Invalid perft depth")
-                            continue
-                    elif part == "movetime" and i + 1 < len(parts):
-                        try:
-                            time_limit = int(parts[i + 1]) / 1000.0
-                        except:
-                            pass
-                    elif part == "depth" and i + 1 < len(parts):
-                        try:
+                        elif part == "movetime" and i + 1 < len(parts):
+                            movetime = int(parts[i + 1]) / 1000.0
+                        elif part == "depth" and i + 1 < len(parts):
                             depth_limit = int(parts[i + 1])
                             engine.default_depth = depth_limit
-                        except:
-                            pass
-                    elif part == "wtime" and i + 1 < len(parts):
-                        try:
-                            if board.turn == chess.WHITE:
-                                # V14.1: IMPROVED time management with increment awareness
-                                remaining_time = int(parts[i + 1]) / 1000.0
-                                increment = 0.0
-                                
-                                # Check for increment (winc)
-                                for j, p in enumerate(parts):
-                                    if p == "winc" and j + 1 < len(parts):
-                                        try:
-                                            increment = int(parts[j + 1]) / 1000.0
-                                        except:
-                                            pass
-                                
-                                moves_played = len(board.move_stack)
-                                
-                                # V14.1: Smarter time allocation
-                                if moves_played < 8:
-                                    # Very early opening - play FAST
-                                    time_factor = 40.0  # Use 1/40th of time
-                                elif moves_played < 15:
-                                    # Opening - still quick
-                                    time_factor = 30.0  # Use 1/30th
-                                elif moves_played < 25:
-                                    # Early middlegame - starting to matter
-                                    time_factor = 25.0  # Use 1/25th
-                                elif moves_played < 40:
-                                    # Critical middlegame - use more time
-                                    time_factor = 18.0  # Use 1/18th
-                                else:
-                                    # Endgame - moderate time
-                                    time_factor = 20.0  # Use 1/20th
-                                
-                                # V14.1: Increment-aware calculation
-                                # If we have increment, we can afford to use more time early
-                                if increment > 0.5:  # Meaningful increment
-                                    # Add some increment to our thinking budget
-                                    effective_time = remaining_time + (increment * 10)  # Future increments
-                                    calculated_time = effective_time / time_factor
-                                else:
-                                    # No increment - be more conservative
-                                    calculated_time = remaining_time / time_factor
-                                
-                                # V14.1: HARD CAPS based on remaining time
-                                if remaining_time > 180:  # More than 3 minutes
-                                    time_limit = min(calculated_time, 30.0)  # Max 30s
-                                elif remaining_time > 120:  # 2-3 minutes
-                                    time_limit = min(calculated_time, 20.0)  # Max 20s
-                                elif remaining_time > 60:  # 1-2 minutes
-                                    time_limit = min(calculated_time, 12.0)  # Max 12s
-                                elif remaining_time > 30:  # 30s-1min
-                                    time_limit = min(calculated_time, 6.0)   # Max 6s
-                                else:  # Critical time
-                                    time_limit = min(calculated_time, 3.0)   # Max 3s
-                                
-                                # V14.1: ABSOLUTE SAFETY - never exceed 60s
-                                time_limit = min(time_limit, 60.0)
-                        except:
-                            pass
-                    elif part == "btime" and i + 1 < len(parts):
-                        try:
-                            if board.turn == chess.BLACK:
-                                # V14.1: IMPROVED time management with increment awareness
-                                remaining_time = int(parts[i + 1]) / 1000.0
-                                increment = 0.0
-                                
-                                # Check for increment (binc)
-                                for j, p in enumerate(parts):
-                                    if p == "binc" and j + 1 < len(parts):
-                                        try:
-                                            increment = int(parts[j + 1]) / 1000.0
-                                        except:
-                                            pass
-                                
-                                moves_played = len(board.move_stack)
-                                
-                                # V14.1: Smarter time allocation
-                                if moves_played < 8:
-                                    # Very early opening - play FAST
-                                    time_factor = 40.0  # Use 1/40th of time
-                                elif moves_played < 15:
-                                    # Opening - still quick
-                                    time_factor = 30.0  # Use 1/30th
-                                elif moves_played < 25:
-                                    # Early middlegame - starting to matter
-                                    time_factor = 25.0  # Use 1/25th
-                                elif moves_played < 40:
-                                    # Critical middlegame - use more time
-                                    time_factor = 18.0  # Use 1/18th
-                                else:
-                                    # Endgame - moderate time
-                                    time_factor = 20.0  # Use 1/20th
-                                
-                                # V14.1: Increment-aware calculation
-                                # If we have increment, we can afford to use more time early
-                                if increment > 0.5:  # Meaningful increment
-                                    # Add some increment to our thinking budget
-                                    effective_time = remaining_time + (increment * 10)  # Future increments
-                                    calculated_time = effective_time / time_factor
-                                else:
-                                    # No increment - be more conservative
-                                    calculated_time = remaining_time / time_factor
-                                
-                                # V14.1: HARD CAPS based on remaining time
-                                if remaining_time > 180:  # More than 3 minutes
-                                    time_limit = min(calculated_time, 30.0)  # Max 30s
-                                elif remaining_time > 120:  # 2-3 minutes
-                                    time_limit = min(calculated_time, 20.0)  # Max 20s
-                                elif remaining_time > 60:  # 1-2 minutes
-                                    time_limit = min(calculated_time, 12.0)  # Max 12s
-                                elif remaining_time > 30:  # 30s-1min
-                                    time_limit = min(calculated_time, 6.0)   # Max 6s
-                                else:  # Critical time
-                                    time_limit = min(calculated_time, 3.0)   # Max 3s
-                                
-                                # V14.1: ABSOLUTE SAFETY - never exceed 60s
-                                time_limit = min(time_limit, 60.0)
-                        except:
-                            pass
+                        elif part == "wtime" and i + 1 < len(parts):
+                            wtime = int(parts[i + 1]) / 1000.0
+                        elif part == "btime" and i + 1 < len(parts):
+                            btime = int(parts[i + 1]) / 1000.0
+                        elif part == "winc" and i + 1 < len(parts):
+                            winc = int(parts[i + 1]) / 1000.0
+                        elif part == "binc" and i + 1 < len(parts):
+                            binc = int(parts[i + 1]) / 1000.0
+                    except (ValueError, IndexError):
+                        pass
+                
+                # V19.0: Use TimeManager for clean time allocation
+                if movetime is not None:
+                    # Fixed time per move
+                    time_limit = movetime
+                else:
+                    # Use time control with TimeManager
+                    remaining_time = wtime if board.turn == chess.WHITE else btime
+                    increment = winc if board.turn == chess.WHITE else binc
+                    
+                    if remaining_time is not None:
+                        moves_played = len(board.move_stack)
+                        target_time, max_time = TimeManager.calculate_time_allocation(
+                            remaining_time, increment, moves_played, board
+                        )
+                        time_limit = target_time
                 
                 # V11 ENHANCEMENT: Handle perft command
                 if perft_depth is not None:
