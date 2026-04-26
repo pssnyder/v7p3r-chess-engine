@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-V7P3R v19.0.0 UCI Interface - Spring Cleaning
+V7P3R v19.4.1 UCI Interface - Character-Defining Evaluation (Phase 1)
 """
 
 import sys
@@ -28,7 +28,7 @@ def main():
                 break
                 
             elif command == "uci":
-                print("id name V7P3R v19.0")
+                print("id name V7P3R v19.5.1")
                 print("id author Pat Snyder")
                 print("uciok")
                 

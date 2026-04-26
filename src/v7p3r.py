@@ -1,8 +1,38 @@
 #!/usr/bin/env python3
 """
-V7P3R Chess Engine v19.0.0 - Spring Cleaning (Phase 1: Modular Eval Removal)
+V7P3R Chess Engine v19.5.1 - Timeout Fix (Endgame Responsiveness)
 
-PHILOSOPHY: Back to basics - match C0BR4's efficiency while preserving v18's 1600+ ELO strength
+CRITICAL FIX (v19.5.1):
+Fixed timeout responsiveness for endgames - Tournament showed 782 NPS in endgames
+causing 26.3s moves when only 16s available. Timeout checks every 1000 nodes = 1.3s
+between checks. Now checks every 100 nodes = 0.13s responsiveness + quiescence entry check.
+
+PREVIOUS FIX (v19.5):
+Fixed time management bottleneck - v19.4.1 was stopping at 4.3s when given 10s!
+Legacy game-time-remaining heuristics were cutting search short. Now uses full
+allocated time, targeting 90% with hard limit at 100%.
+
+PHASE 1: ULTRA-FAST CHARACTER TRAITS
+Building on Phase 0 (26K NPS baseline), adding v7p3r's playing style:
+
+MaterialOpponent Core (Phase 0):
+- Material counting (P=100, N=300, B=325, R=500, Q=900)
+- Bishop pair bonus (+50cp)
+
+Phase 1 Additions (Ultra-Fast Character Traits):
+1. Castling bonus (+30cp) - King safety is CORE v7p3r defensive trait
+2. Pawn advancement (+10cp/rank) - Aggressive pawn play is SIGNATURE v7p3r
+3. Passed pawn detection (+20cp/rank) - Endgame conversion is v7p3r STRENGTH
+
+PERFORMANCE (v19.5 with time fix):
+- NPS: 24,000-32,000 (comparable to Phase 0)
+- Depth in 10s: 7-9 expected (was 5 due to time management bug)
+- Character: KING SAFETY + AGGRESSIVE PAWNS + ENDGAME CONVERSION
+
+GOAL: Depth 10 in blitz time controls (5-10 seconds)
+
+PHILOSOPHY: MaterialOpponent proved depth beats complexity.
+Phase 1 adds minimal v7p3r character while maintaining that depth advantage.
 
 PHASE 1 CHANGES - SPEED & CLEANUP:
 - Removed modular evaluation system (4 files deleted)
@@ -10,38 +40,28 @@ PHASE 1 CHANGES - SPEED & CLEANUP:
 - Removed profile selector (6 profiles × decision tree overhead eliminated)
 - Removed module registry (32+ modules × cost/criticality metadata eliminated)
 - Simplified threefold threshold (constant 50cp vs dynamic 0-50cp calculation)
+- NEW v19.1: Simplified move ordering (removed safety/tactical checks from hot path)
+- NEW v19.5: Fixed time management (use full allocated time vs 25-30% cutoff)
 
 EXPECTED IMPACT:
-- Speed: 30-50% per-node time reduction (context calculation overhead removed)
-- Code: 4 files deleted, ~1500 lines removed, cleaner architecture
-- ELO: No change expected (modular system was disabled, use_modular_evaluation = False)
-- Cost: Improved games/day throughput should reduce compute costs
-
-RATIONALE:
-- Modular evaluation was experimental and never enabled in production
-- C0BR4 (sister engine) achieves 100+ games/day without modular complexity
-- V7P3R playing 5-10 games/day at $20/month vs C0BR4's <$5/month
-- Profiling shows context calculation is pure overhead when system disabled
-- Simpler code = easier to optimize further in Phase 2 & 3
+- Speed: 50-60% per-node time reduction vs v19.0 (move ordering was the bottleneck)
+- NPS: 100,000+ (up from 6,800) - 15x improvement
+- Depth: 8-10 in 5s (up from 3-6) - tactical awareness restored
+- Timeout rate: 0% (down from 30%) - time stability achieved
+- Code: Cleaner, faster, easier to profile further
 
 ARCHITECTURE EVOLUTION:
-- v19.0: Spring cleaning - modular eval removal (THIS VERSION)
+- v19.1: Emergency performance fix - simplified move ordering (THIS VERSION)
+- v19.0: Spring cleaning Phase 1 - modular eval removal (bottleneck discovered)
 - v18.4: Mate-in-1 fast path + aspiration windows
 - v18.3: PST optimization (+56 ELO vs v17.1)
-- v18.0: Tactical safety system
-- v17.1: PV instant move disabled + opening book
-- v14.1: Smart time management
+- v18.0: Tactical safety system (safety checks now removed from move ordering)
 
 VERSION LINEAGE:
+- v19.1.0: Emergency performance fix (simplified move ordering, 15x speedup target)
 - v19.0.0: Spring cleaning Phase 1 (modular eval removal, speed focus)
 - v18.4.0: Mate-in-1 fast path + aspiration windows + memory stability
 - v18.3.0: PST optimization (direct indexing, pre-computed tables)
-- v18.2.0: Tactical safety + evaluation tuning combined
-- v18.1.0: Evaluation weight tuning (king safety, passed pawns, bishop pair)
-- v18.0.0: Anti-tactical defense (MoveSafetyChecker)
-- v17.1.1: Emergency time mode
-- v17.1: PV instant move disabled + opening book
-- v14.1: Smart time management fixes
 
 Author: Pat Snyder
 """
@@ -328,6 +348,7 @@ class V7P3REngine:
         if is_root:
             self.nodes_searched = 0
             self.search_start_time = time.time()
+            self.timeout_exceeded = False  # V19.5: Flag to propagate timeout through recursion
             
             # V19.0: Removed modular evaluation context calculation overhead
             # Previous: context_calculator + profile_selector calls before every search
@@ -376,31 +397,28 @@ class V7P3REngine:
                     return move
                 board.pop()
             
-            target_time, max_time = self._calculate_adaptive_time_allocation(board, time_limit)
+            # V19.5: SIMPLIFIED TIME MANAGEMENT
+            # Use the full allocated time - no premature cutoffs
+            # This fixes the issue where v19.4.1 stopped at 4s when given 10s
+            target_time = time_limit * 0.90  # Target 90% of allocated time
+            max_time = time_limit  # Hard limit at allocated time
             
             # Iterative deepening
             best_move = legal_moves[0]
             best_score = -99999
-            last_iteration_time = 0.0
             stable_best_count = 0  # V14.1: Track how many iterations returned same best move
             
             for current_depth in range(1, self.default_depth + 1):
-                iteration_start = time.time()
-                
-                # V14.1: CRITICAL - Check elapsed time BEFORE starting iteration
+                # V19.5: Check elapsed time BEFORE starting iteration
                 elapsed = time.time() - self.search_start_time
                 
-                # V14.1: Early exit if we've used target time
+                # V19.5: Early exit if we've used target time
                 if elapsed >= target_time:
                     break
                 
-                # V17.0: Predict if next iteration will complete before max_time
-                # Use 2.5x factor (less conservative than v14.1's 3.0x)
-                if current_depth > 1 and last_iteration_time > 0:
-                    predicted_completion = elapsed + (last_iteration_time * 2.5)
-                    if predicted_completion >= max_time:
-                        # V17.0: Don't start iteration we can't complete
-                        break
+                # V19.5: REMOVED predictive completion check
+                # Partial search data is still valuable - let engine search as deep as possible
+                # Even if depth N doesn't complete, depths 1 to N-1 provide valid move ordering
                 
                 try:
                     # Store previous best in case iteration fails
@@ -447,8 +465,7 @@ class V7P3REngine:
                         # Depth 1-2 or extreme scores: Use full window
                         score, move = self._recursive_search(board, current_depth, -99999, 99999, time_limit)
                     
-                    # Calculate iteration time IMMEDIATELY
-                    last_iteration_time = time.time() - iteration_start
+                    # V19.5: No longer tracking iteration time - removed predictive completion logic
                     
                     # Update best move if we got a valid result
                     if move and move != chess.Move.null():
@@ -543,11 +560,17 @@ class V7P3REngine:
         self.nodes_searched += 1
         
         # CRITICAL: Time checking during recursive search to prevent timeouts
-        if hasattr(self, 'search_start_time') and self.nodes_searched % 1000 == 0:
+        # V19.5.1: Reduced from 1000 → 100 nodes for endgame responsiveness (782 NPS = 0.13s checks)
+        if hasattr(self, 'search_start_time') and self.nodes_searched % 100 == 0:
             elapsed = time.time() - self.search_start_time
             if elapsed > time_limit:
-                # Emergency return with current best evaluation
+                # Set timeout flag to propagate through all recursion levels
+                self.timeout_exceeded = True
                 return self._evaluate_position(board), None
+        
+        # V19.5: Check timeout flag to abort search immediately
+        if hasattr(self, 'timeout_exceeded') and self.timeout_exceeded:
+            return self._evaluate_position(board), None
     
     # Continue _recursive_search method (this got mis-indented in previous edit)
     # Note: The following code belongs to _recursive_search, NOT _would_cause_threefold
@@ -560,14 +583,22 @@ class V7P3REngine:
         # 2. TERMINAL CONDITIONS
         if search_depth == 0:
             # Enter quiescence search for tactical stability
-            score = self._quiescence_search(board, alpha, beta, 4)
+            # v19.3: Reduced from depth 4 → 1 (78% of search time was here!)
+            score = self._quiescence_search(board, alpha, beta, 1)
             return score, None
-            
-        if board.is_game_over():
-            if board.is_checkmate():
-                score = -29000.0 + (self.default_depth - search_depth)  # Prefer quicker mates
+        
+        # 4. MOVE GENERATION (do this BEFORE expensive game-over check)
+        legal_moves = list(board.legal_moves)
+        
+        # Game over detection: Only if no legal moves (much faster than is_game_over())
+        if not legal_moves:
+            # No legal moves - either checkmate or stalemate
+            if board.is_check():
+                # Checkmate - prefer quicker mates
+                score = -29000.0 + (self.default_depth - search_depth)
             else:
-                score = 0.0  # Stalemate
+                # Stalemate
+                score = 0.0
             return score, None
         
         # 3. NULL MOVE PRUNING
@@ -582,14 +613,10 @@ class V7P3REngine:
             if null_score >= beta:
                 return null_score, None
         
-        # 4. MOVE GENERATION AND ORDERING
-        legal_moves = list(board.legal_moves)
-        if not legal_moves:
-            return 0.0, None
-        
+        # 4. MOVE ORDERING (legal_moves already generated above)
         ordered_moves = self._order_moves_advanced(board, legal_moves, search_depth, tt_move)
         
-        # 5. MAIN SEARCH LOOP (NEGAMAX WITH ALPHA-BETA)
+        # 5. MAIN SEARCH LOOP (NEGAMAX WITH ALPHA-BETA + PVS)
         best_score = -99999.0
         best_move = None
         original_alpha = alpha
@@ -598,21 +625,37 @@ class V7P3REngine:
         for move in ordered_moves:
             board.push(move)
             
-            # V11 ENHANCEMENT: Enhanced Late Move Reduction
-            reduction = self._calculate_lmr_reduction(move, moves_searched, search_depth, board)
+            # V19.5: PRINCIPAL VARIATION SEARCH (PVS)
+            # This dramatically reduces nodes searched by using null windows
             
-            # Search with possible reduction
-            if reduction > 0:
-                score, _ = self._recursive_search(board, search_depth - 1 - reduction, -beta, -alpha, time_limit)
-                score = -score
-                
-                # Re-search at full depth if reduced search failed high
-                if score > alpha:
+            if moves_searched == 0:
+                # First move: Full window search
+                reduction = self._calculate_lmr_reduction(move, moves_searched, search_depth, board)
+                if reduction > 0:
+                    score, _ = self._recursive_search(board, search_depth - 1 - reduction, -beta, -alpha, time_limit)
+                    score = -score
+                    if score > alpha:  # Re-search at full depth
+                        score, _ = self._recursive_search(board, search_depth - 1, -beta, -alpha, time_limit)
+                        score = -score
+                else:
                     score, _ = self._recursive_search(board, search_depth - 1, -beta, -alpha, time_limit)
                     score = -score
             else:
-                score, _ = self._recursive_search(board, search_depth - 1, -beta, -alpha, time_limit)
-                score = -score
+                # Subsequent moves: Try null window search first (PVS)
+                reduction = self._calculate_lmr_reduction(move, moves_searched, search_depth, board)
+                if reduction > 0:
+                    # LMR: reduced depth + null window
+                    score, _ = self._recursive_search(board, search_depth - 1 - reduction, -alpha - 1, -alpha, time_limit)
+                    score = -score
+                else:
+                    # No LMR: null window at full depth
+                    score, _ = self._recursive_search(board, search_depth - 1, -alpha - 1, -alpha, time_limit)
+                    score = -score
+                
+                # If null window failed high, re-search with full window
+                if alpha < score < beta:
+                    score, _ = self._recursive_search(board, search_depth - 1, -beta, -alpha, time_limit)
+                    score = -score
             
             board.pop()
             moves_searched += 1
@@ -638,94 +681,81 @@ class V7P3REngine:
     
     def _order_moves_advanced(self, board: chess.Board, moves: List[chess.Move], depth: int, 
                               tt_move: Optional[chess.Move] = None) -> List[chess.Move]:
-        """V18.0: Enhanced move ordering with anti-tactical safety checks"""
+        """V19.1: Simplified high-performance move ordering
+        
+        REMOVED in v19.1 for 15x performance gain:
+        - Move safety checks (0.083ms/move = 2.9ms/position overhead)
+        - Bitboard tactical detection in ordering (expensive for all moves)
+        - Complex multi-category sorting
+        
+        KEPT for proven effectiveness:
+        - TT move priority (hash table lookup)
+        - MVV-LVA for captures (simple arithmetic)
+        - Check detection (built-in to chess library)
+        - Killer moves (hash table lookup)
+        - History heuristic (array lookup)
+        
+        Performance: Target 100,000+ NPS (was 6,800 NPS in v19.0)
+        """
         if len(moves) <= 2:
             return moves
         
-        # Pre-calculate move categories for efficiency
-        captures = []
-        checks = []
-        killers = []
-        quiet_moves = []
-        tactical_moves = []  # Bitboard tactical moves
-        tt_moves = []
+        # Fast path: TT move first if available
+        if tt_move and tt_move in moves:
+            remaining = [m for m in moves if m != tt_move]
+            return [tt_move] + self._score_and_sort_moves(board, remaining, depth)
         
-        # Performance optimization: Pre-create sets for fast lookups
+        return self._score_and_sort_moves(board, moves, depth)
+    
+    def _score_and_sort_moves(self, board: chess.Board, moves: List[chess.Move], depth: int) -> List[chess.Move]:
+        """V19.1: Fast single-pass move scoring"""
+        scored_moves = []
         killer_set = set(self.killer_moves.get_killers(depth))
         
         for move in moves:
-            # V18.0: Apply safety check to all non-TT moves (lightweight overhead)
-            safety_score = 0.0
+            score = 0.0
             
-            if not (tt_move and move == tt_move):
-                # Only check safety for depth >= 3 (shallow searches skip for speed)
-                if depth >= 3:
-                    safety_score = self.move_safety.evaluate_move_safety(board, move)
-            
-            # 1. Transposition table move (highest priority)
-            if tt_move and move == tt_move:
-                tt_moves.append(move)
-            
-            # 2. Captures (will be sorted by MVV-LVA + safety)
-            elif board.is_capture(move):
+            # 1. Captures: MVV-LVA only (no expensive tactical detection)
+            if board.is_capture(move):
                 victim = board.piece_at(move.to_square)
                 victim_value = self.piece_values.get(victim.piece_type, 0) if victim else 0
                 attacker = board.piece_at(move.from_square)
                 attacker_value = self.piece_values.get(attacker.piece_type, 0) if attacker else 0
                 # MVV-LVA: Most Valuable Victim - Least Valuable Attacker
-                mvv_lva_score = victim_value * 100 - attacker_value
-                
-                # Add tactical bonus using bitboards
-                tactical_bonus = self.bitboard_evaluator.detect_bitboard_tactics(board, move)
-                total_score = mvv_lva_score + tactical_bonus + safety_score
-                
-                captures.append((total_score, move))
+                score = (victim_value * 100 - attacker_value) + 10000  # Captures first
             
-            # 4. Checks (high priority for tactical play)
+            # 2. Checks: Simple bonus (no tactical detection)
             elif board.gives_check(move):
-                # Add tactical bonus for checking moves too
-                tactical_bonus = self.bitboard_evaluator.detect_bitboard_tactics(board, move)
-                checks.append((tactical_bonus + safety_score, move))
+                score = 5000
             
-            # 5. Killer moves
+            # 3. Killer moves: Hash table lookup only
             elif move in killer_set:
-                # V18.0: Killers now sorted by safety
-                killers.append((safety_score, move))
+                score = 3000
                 self.search_stats['killer_hits'] += 1
             
-            # 6. Check for tactical patterns in quiet moves
+            # 4. Quiet moves: History heuristic only (no tactical detection)
             else:
-                history_score = self.history_heuristic.get_history_score(move)
-                tactical_bonus = self.bitboard_evaluator.detect_bitboard_tactics(board, move)
-                
-                # V18.0: Safety score critical for quiet moves
-                total_quiet_score = history_score + tactical_bonus + safety_score
-                
-                if tactical_bonus > 20.0:  # Significant tactical move
-                    tactical_moves.append((total_quiet_score, move))
-                else:
-                    quiet_moves.append((total_quiet_score, move))
+                score = self.history_heuristic.get_history_score(move)
+            
+            scored_moves.append((score, move))
         
-        # Sort all move categories by their scores
-        captures.sort(key=lambda x: x[0], reverse=True)
-        checks.sort(key=lambda x: x[0], reverse=True)
-        tactical_moves.sort(key=lambda x: x[0], reverse=True)
-        quiet_moves.sort(key=lambda x: x[0], reverse=True)
-        killers.sort(key=lambda x: x[0], reverse=True)  # V18.0: Sort killers too
-        
-        # Combine in optimized order
-        ordered = []
-        ordered.extend(tt_moves)  # TT move first
-        ordered.extend([move for _, move in captures])  # Then captures (with tactical bonus + safety)
-        ordered.extend([move for _, move in checks])  # Then checks (with tactical bonus + safety)
-        ordered.extend([move for _, move in tactical_moves])  # Then tactical patterns
-        ordered.extend([move for _, move in killers])  # Then killers (now sorted by safety)
-        ordered.extend([move for _, move in quiet_moves])  # Then quiet moves (with safety)
-        
-        return ordered
+        # Single sort by score descending
+        scored_moves.sort(key=lambda x: x[0], reverse=True)
+        return [move for _, move in scored_moves]
     
     def _evaluate_position(self, board: chess.Board) -> float:
-        """V18.2: Position evaluation with modular system or legacy evaluators"""
+        """
+        V19.4.0 PHASE 1: Character-Defining Evaluation
+        
+        MaterialOpponent core + ultra-fast v7p3r character traits:
+        1. Material counting + bishop pair (from MaterialOpponent)
+        2. Castling bonus (king safety - core v7p3r defensive trait)
+        3. Pawn advancement (aggressive pawn play - signature v7p3r)
+        4. Passed pawn detection (endgame conversion - v7p3r strength)
+        
+        Expected: 23-25K NPS (slight slowdown for major character gain)
+        Target: Depth 8-10 in 5 seconds
+        """
         # Use chess library's fast _transposition_key() for caching
         cache_key = board._transposition_key()
         
@@ -737,47 +767,107 @@ class V7P3REngine:
         
         self.search_stats['cache_misses'] += 1
         
-        # V19.0: Removed modular evaluation dead code (was never enabled)
-        # Previous: use_modular_evaluation = False, so this code never executed
-        # Removed: 6 lines of dead code, modular_evaluator calls, profile lookups
+        # === MATERIAL COUNTING (MaterialOpponent Core) ===
+        score = 0.0
         
-        # V14.2: Standard evaluation path
-        if self.use_fast_evaluator:
-            # Fast evaluator - returns complete score directly
-            final_score = float(self.evaluator.evaluate(board))
-        else:
-            # Bitboard evaluator - comprehensive multi-component evaluation
-            white_base = self.bitboard_evaluator.calculate_score_optimized(board, True)
-            black_base = self.bitboard_evaluator.calculate_score_optimized(board, False)
+        piece_values = {
+            chess.PAWN: 100,
+            chess.KNIGHT: 300,
+            chess.BISHOP: 325,
+            chess.ROOK: 500,
+            chess.QUEEN: 900,
+            chess.KING: 0
+        }
+        
+        # Count material for both sides
+        for piece_type in [chess.PAWN, chess.KNIGHT, chess.BISHOP, 
+                           chess.ROOK, chess.QUEEN]:
+            white_count = len(board.pieces(piece_type, chess.WHITE))
+            black_count = len(board.pieces(piece_type, chess.BLACK))
+            piece_value = piece_values[piece_type]
+            score += (white_count - black_count) * piece_value
+        
+        # Bishop pair bonus
+        if len(board.pieces(chess.BISHOP, chess.WHITE)) >= 2:
+            score += 50
+        if len(board.pieces(chess.BISHOP, chess.BLACK)) >= 2:
+            score -= 50
+        
+        # === PHASE 1: CHARACTER-DEFINING EVALUATIONS ===
+        
+        # 1. CASTLING BONUS (King Safety - Core v7p3r Trait)
+        # Cost: ~0.001ms (simple square checks)
+        # Detect castling by checking if king is on castled square
+        white_king_square = board.king(chess.WHITE)
+        black_king_square = board.king(chess.BLACK)
+        
+        # White castled if king on g1 (kingside) or c1 (queenside)
+        if white_king_square in [chess.G1, chess.C1]:
+            score += 30
+        # Black castled if king on g8 (kingside) or c8 (queenside)
+        if black_king_square in [chess.G8, chess.C8]:
+            score -= 30
+        
+        # 2. PAWN ADVANCEMENT (Aggressive Character - Signature v7p3r)
+        # Cost: ~0.002ms (iterate ~8 pawns, simple rank check)
+        for square in board.pieces(chess.PAWN, chess.WHITE):
+            rank = chess.square_rank(square)
+            if rank >= 4:  # 5th rank or higher (0-indexed: rank 4 = 5th rank)
+                score += (rank - 3) * 10  # +10/20/30/40/50 for ranks 5/6/7/8
+        
+        for square in board.pieces(chess.PAWN, chess.BLACK):
+            rank = chess.square_rank(square)
+            if rank <= 3:  # 4th rank or lower from Black's perspective
+                score -= (4 - rank) * 10
+        
+        # 3. PASSED PAWN DETECTION (Endgame Strength - v7p3r Conversion Ability)
+        # Cost: ~0.005-0.010ms (worst case: check 8 pawns × 3 files × up to 7 ranks)
+        # Only check advanced pawns (rank 5+) to reduce overhead
+        for square in board.pieces(chess.PAWN, chess.WHITE):
+            file = chess.square_file(square)
+            rank = chess.square_rank(square)
             
-            # Consolidated evaluation components
-            try:
-                # Advanced pawn structure evaluation 
-                white_pawn_score = self.bitboard_evaluator.evaluate_pawn_structure(board, True)
-                black_pawn_score = self.bitboard_evaluator.evaluate_pawn_structure(board, False)
+            if rank >= 4:  # Only check pawns on 5th rank or higher
+                is_passed = True
+                # Check if any black pawns block this pawn's path
+                for ahead_rank in range(rank + 1, 8):
+                    # Check same file and adjacent files
+                    for check_file in range(max(0, file - 1), min(8, file + 2)):
+                        check_square = chess.square(check_file, ahead_rank)
+                        piece = board.piece_at(check_square)
+                        if piece and piece.piece_type == chess.PAWN and piece.color == chess.BLACK:
+                            is_passed = False
+                            break
+                    if not is_passed:
+                        break
                 
-                # Advanced king safety evaluation
-                white_king_score = self.bitboard_evaluator.evaluate_king_safety(board, True)
-                black_king_score = self.bitboard_evaluator.evaluate_king_safety(board, False)
-                
-                # Tactical pattern evaluation disabled for performance
-                white_tactical_score = 0
-                black_tactical_score = 0
-                
-                # Combine all evaluation components
-                white_total = white_base + white_pawn_score + white_king_score + white_tactical_score
-                black_total = black_base + black_pawn_score + black_king_score + black_tactical_score
-                
-            except Exception as e:
-                # Fallback to base evaluation if advanced evaluation fails
-                white_total = white_base
-                black_total = black_base
+                if is_passed:
+                    # Exponential bonus: rank 5=20cp, rank 6=40cp, rank 7=60cp, rank 8=80cp
+                    score += (rank - 3) * 20
+        
+        # Black passed pawns (reverse logic)
+        for square in board.pieces(chess.PAWN, chess.BLACK):
+            file = chess.square_file(square)
+            rank = chess.square_rank(square)
             
-            # Calculate final score from current player's perspective
-            if board.turn:  # White to move
-                final_score = white_total - black_total
-            else:  # Black to move
-                final_score = black_total - white_total
+            if rank <= 3:  # Only check pawns on 4th rank or lower (from black's view)
+                is_passed = True
+                # Check if any white pawns block this pawn's path
+                for ahead_rank in range(rank - 1, -1, -1):  # Go down from black's perspective
+                    for check_file in range(max(0, file - 1), min(8, file + 2)):
+                        check_square = chess.square(check_file, ahead_rank)
+                        piece = board.piece_at(check_square)
+                        if piece and piece.piece_type == chess.PAWN and piece.color == chess.WHITE:
+                            is_passed = False
+                            break
+                    if not is_passed:
+                        break
+                
+                if is_passed:
+                    score -= (4 - rank) * 20
+        
+        # Return from current player's perspective
+        final_score = score if board.turn == chess.WHITE else -score
         
         # V18.4 PHASE 1: Cache with LRU eviction (20k entry limit)
         if len(self.evaluation_cache) >= self.max_eval_cache_entries:
@@ -902,10 +992,20 @@ class V7P3REngine:
     
     def _quiescence_search(self, board: chess.Board, alpha: float, beta: float, depth: int) -> float:
         """
-        Quiescence search for tactical stability - V10 PHASE 2
-        Only search captures and checks to avoid horizon effects
+        V19.3: Optimized quiescence search (reduced from depth 4 to 1)
+        V19.5.1: Added timeout check at entry point
+        
+        Changes from v19.2:
+        - Depth reduced 4 → 1 (was 78% of search time!)
+        - Removed check generation (captures only)
+        - Added delta pruning (skip hopeless captures)
+        - Simplified move ordering (no sorting for shallow search)
         """
         self.nodes_searched += 1
+        
+        # V19.5.1: Check timeout flag to abort quiescence search immediately
+        if hasattr(self, 'timeout_exceeded') and self.timeout_exceeded:
+            return self._evaluate_position(board)
         
         # Stand pat evaluation
         stand_pat = self._evaluate_position(board)
@@ -913,6 +1013,12 @@ class V7P3REngine:
         # Beta cutoff on stand pat
         if stand_pat >= beta:
             return beta
+        
+        # Delta pruning: If we're down by more than a queen, skip quiescence
+        # (no single capture can save us)
+        BIG_DELTA = 900  # Queen value
+        if stand_pat < alpha - BIG_DELTA:
+            return alpha
         
         # Update alpha if stand pat is better
         if stand_pat > alpha:
@@ -922,40 +1028,36 @@ class V7P3REngine:
         if depth <= 0:
             return stand_pat
         
-        # Generate and search tactical moves only
-        legal_moves = list(board.legal_moves)
-        tactical_moves = []
+        # Generate captures only (NOT checks - they add instability)
+        # v19.3: Optimized - filter during generation instead of separate loop
+        captures = []
+        for move in board.legal_moves:
+            if board.is_capture(move):
+                # Delta pruning: Skip captures that can't improve position
+                victim = board.piece_at(move.to_square)
+                if victim:
+                    victim_value = self.piece_values.get(victim.piece_type, 0)
+                    # Only consider capture if it might improve alpha
+                    if stand_pat + victim_value + 200 >= alpha:  # 200cp margin
+                        captures.append(move)
         
-        for move in legal_moves:
-            # Only consider captures and checks for quiescence
-            if board.is_capture(move) or board.gives_check(move):
-                tactical_moves.append(move)
-        
-        # If no tactical moves, return stand pat
-        if not tactical_moves:
+        # If no good captures, return stand pat
+        if not captures:
             return stand_pat
         
-        # Sort tactical moves by MVV-LVA for better ordering
-        capture_scores = []
-        for move in tactical_moves:
-            if board.is_capture(move):
-                victim = board.piece_at(move.to_square)
-                victim_value = self.piece_values.get(victim.piece_type, 0) if victim else 0
-                attacker = board.piece_at(move.from_square)
-                attacker_value = self.piece_values.get(attacker.piece_type, 0) if attacker else 0
-                mvv_lva = victim_value * 100 - attacker_value
-                capture_scores.append((mvv_lva, move))
-            else:
-                # Check moves get lower priority
-                capture_scores.append((0, move))
+        # Simple MVV-LVA ordering (no full sort for depth 1)
+        # Just put queen captures first, then rooks, etc.
+        def capture_priority(move):
+            victim = board.piece_at(move.to_square)
+            if victim:
+                return self.piece_values.get(victim.piece_type, 0)
+            return 0
         
-        # Sort by MVV-LVA score
-        capture_scores.sort(key=lambda x: x[0], reverse=True)
-        ordered_tactical = [move for _, move in capture_scores]
+        captures.sort(key=capture_priority, reverse=True)
         
-        # Search tactical moves
+        # Search captures
         best_score = stand_pat
-        for move in ordered_tactical:
+        for move in captures:
             board.push(move)
             score = -self._quiescence_search(board, -beta, -alpha, depth - 1)
             board.pop()
