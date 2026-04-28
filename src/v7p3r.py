@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
 """
-V7P3R Chess Engine v19.5.1 - Timeout Fix (Endgame Responsiveness)
+V7P3R Chess Engine v19.5.6 - Restored v18.4 Time Management
 
-CRITICAL FIX (v19.5.1):
-Fixed timeout responsiveness for endgames - Tournament showed 782 NPS in endgames
-causing 26.3s moves when only 16s available. Timeout checks every 1000 nodes = 1.3s
-between checks. Now checks every 100 nodes = 0.13s responsiveness + quiescence entry check.
+CRITICAL FIX (v19.5.6):
+REMOVED the extra 67% absolute threshold that was killing search depth.
+Restored v18.4's proven time management approach:
+- target_time check (90%) for early exit
+- Predictive check with 2.5x factor against max_time (100%)
+- NO intermediate thresholds that block competitive search depth
 
-PREVIOUS FIX (v19.5):
-Fixed time management bottleneck - v19.4.1 was stopping at 4.3s when given 10s!
-Legacy game-time-remaining heuristics were cutting search short. Now uses full
-allocated time, targeting 90% with hard limit at 100%.
+PREVIOUS (v19.5.4/v19.5.5):
+0-14 tournament loss vs v18.4 due to playing 1-2 plies shallower.
+Dual checks (67% absolute + 2.0x/2.5x predictive) were too conservative.
+
+PREVIOUS (v19.5.3):
+67% iteration threshold only (failed due to exponential depth growth).
 
 PHASE 1: ULTRA-FAST CHARACTER TRAITS
 Building on Phase 0 (26K NPS baseline), adding v7p3r's playing style:
@@ -407,18 +411,25 @@ class V7P3REngine:
             best_move = legal_moves[0]
             best_score = -99999
             stable_best_count = 0  # V14.1: Track how many iterations returned same best move
+            last_iteration_time = 0.0  # V17.0: Track iteration time for predictive check
             
             for current_depth in range(1, self.default_depth + 1):
-                # V19.5: Check elapsed time BEFORE starting iteration
+                iteration_start = time.time()
+                
+                # V14.1: Check elapsed time BEFORE starting iteration
                 elapsed = time.time() - self.search_start_time
                 
-                # V19.5: Early exit if we've used target time
+                # V14.1: Early exit if we've used target time (90%)
                 if elapsed >= target_time:
                     break
                 
-                # V19.5: REMOVED predictive completion check
-                # Partial search data is still valuable - let engine search as deep as possible
-                # Even if depth N doesn't complete, depths 1 to N-1 provide valid move ordering
+                # V17.0: Predict if next iteration will complete before max_time
+                # Use 2.5x factor (proven in v18.4, matches typical branching factor)
+                # This prevents starting depth N that will timeout
+                if current_depth > 1 and last_iteration_time > 0:
+                    predicted_completion = elapsed + (last_iteration_time * 2.5)
+                    if predicted_completion >= max_time:
+                        break
                 
                 try:
                     # Store previous best in case iteration fails
@@ -438,6 +449,10 @@ class V7P3REngine:
                         # Try narrow window first
                         score, move = self._recursive_search(board, current_depth, alpha, beta, time_limit)
                         
+                        # V19.5.1: Check timeout after each search
+                        if self.timeout_exceeded:
+                            break
+                        
                         # Fail-low: Score dropped below window
                         if score <= alpha:
                             # Widen downward, re-search
@@ -445,10 +460,18 @@ class V7P3REngine:
                             alpha = best_score - window
                             score, move = self._recursive_search(board, current_depth, alpha, beta, time_limit)
                             
+                            # V19.5.1: Check timeout after re-search
+                            if self.timeout_exceeded:
+                                break
+                            
                             # Still fail-low: Use full window downward
                             if score <= alpha:
                                 alpha = -99999
                                 score, move = self._recursive_search(board, current_depth, alpha, beta, time_limit)
+                                
+                                # V19.5.1: Check timeout after full window search
+                                if self.timeout_exceeded:
+                                    break
                         
                         # Fail-high: Score exceeded window
                         elif score >= beta:
@@ -457,15 +480,31 @@ class V7P3REngine:
                             beta = best_score + window
                             score, move = self._recursive_search(board, current_depth, alpha, beta, time_limit)
                             
+                            # V19.5.1: Check timeout after re-search
+                            if self.timeout_exceeded:
+                                break
+                            
                             # Still fail-high: Use full window upward
                             if score >= beta:
                                 beta = 99999
                                 score, move = self._recursive_search(board, current_depth, alpha, beta, time_limit)
+                                
+                                # V19.5.1: Check timeout after full window search
+                                if self.timeout_exceeded:
+                                    break
                     else:
                         # Depth 1-2 or extreme scores: Use full window
                         score, move = self._recursive_search(board, current_depth, -99999, 99999, time_limit)
                     
-                    # V19.5: No longer tracking iteration time - removed predictive completion logic
+                    # V19.5.1: CRITICAL - Check timeout flag after search completes
+                    # Without this, iterative deepening continues starting new iterations
+                    # that immediately abort, wasting time in the loop overhead
+                    if self.timeout_exceeded:
+                        break
+                    
+                    # V19.5.4: Track iteration time for predictive start check
+                    iteration_end = time.time()
+                    last_iteration_time = iteration_end - iteration_start
                     
                     # Update best move if we got a valid result
                     if move and move != chess.Move.null():

@@ -1,544 +1,364 @@
-# V7P3R Chess Engine - Version History
+# V7P3R Lichess Bot - Deployment Changelog
 
-All notable changes to the V7P3R chess engine are documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-## Version Numbering Convention
-
-Starting with v18.0.0, we use semantic versioning:
-- **MAJOR.MINOR.PATCH** (e.g., 18.2.1)
-  - **MAJOR**: Breaking changes or significant evaluation rewrites
-  - **MINOR**: New features, evaluation improvements, algorithm changes
-  - **PATCH**: Bug fixes, performance tweaks, parameter tuning
-
-Legacy v17.x series used incremental numbering without semantic meaning.
+**Purpose**: Track all engine deployments, rollbacks, and configuration changes for v7p3r_bot on Lichess  
+**Maintainer**: pssnyder  
+**Last Updated**: 2026-04-26
 
 ---
 
-## [Unreleased]
+## Quick Reference
 
-### Planned
-- TimeManager integration for dynamic time allocation
-- Mate-in-1 fast path detection
-- Enhanced king safety with back-rank mate detection
-
----
-
-## [18.3.0] - 2025-12-29 [PST OPTIMIZATION] [DEPLOYED]
-
-### Summary
-Optimized piece-square table evaluation with direct square indexing for 28% PST speedup.
-
-### Changed
-- **PST Evaluation**: Pre-computed flipped tables for Black (eliminates rank flipping overhead)
-- **PST Evaluation**: Direct square indexing via PST_DIRECT[piece_type][color][square]
-- **Fast Evaluator**: Decomposed into evaluate_material(), evaluate_pst(), evaluate_strategic()
-- **Code Quality**: Cleaner, more maintainable modular structure
-
-### Performance
-- **PST speedup**: 28% faster (0.0256ms → 0.0200ms)
-- **Full evaluation**: 23% faster (0.0460ms → 0.0374ms)
-- **Search impact**: +2.5% total speedup (+0.03 plies depth gain)
-
-### Rationale
-- Profiling revealed PST is 56% of evaluation time (primary bottleneck)
-- Rank flipping overhead eliminated with pre-computed Black tables
-- Single array lookup per piece instead of multiple operations
-- Foundation for future lazy evaluation optimization
-
-### Testing
-- ✅ Performance benchmark: 28% PST improvement validated
-- ✅ 25-game tournament vs v17.1: **58% win rate (+56 ELO)**
-- ✅ Result: 14.5-10.5 (8W-4L-13D)
-- ✅ No regressions: Identical depth (4.2-4.3), stable play
-- ✅ High draw rate (52%) indicates sound chess, 2:1 win ratio when divergent
-
-### Deployment
-- **Deployed**: 2025-12-29 to Lichess production (v7p3r_bot)
-- **Platform**: GCP e2-medium, Docker container
-- **Git tag**: v18.3.0
+**Current Active Version**: v18.4 (deployed 2026-04-17)  
+**GCP Project**: v7p3r-lichess-bot  
+**Instance**: v7p3r-production-bot (e2-micro, us-central1-a)  
+**ELO Rating**: ~1633 (Rapid)
 
 ---
 
-## [18.2.0] - 2025-12-22 [TACTICAL + POSITIONAL COMBINED] [TESTING]
+## Version History
 
-### Summary
-Merges v18.0's tactical safety system with v18.1's evaluation tuning for comprehensive improvement.
+<!-- 
+TEMPLATE FOR NEW VERSIONS:
+Copy this block, fill in the fields, and paste at the top of this section.
 
-### Added (from v18.0)
-- **MoveSafetyChecker**: Lightweight defensive tactical awareness system
-- Anti-tactical penalty system in move ordering (-50 to -800cp for unsafe moves)
-- Hanging piece detection (checks if pieces are undefended after move)
-- Immediate capture threat evaluation (prevents leaving high-value pieces exposed)
+### vX.X
+- **Deployed**: YYYY-MM-DD
+- **Retired**: YYYY-MM-DD | [ACTIVE] | [UNKNOWN]
+- **Status**: active | retired | rolled_back
+- **Rollback**: true | false
+- **Duration Days**: N | [TBD]
+- **Deployment Method**: automated | manual | emergency
+- **Environment**: production | staging
+- **ELO Rating**: NNNN | [TBD]
+- **Games Played**: NNNN | [TBD]
+- **Features**:
+  - Feature 1
+  - Feature 2
+- **Known Issues**:
+  - Issue 1
+  - Issue 2
+- **Rollback Reason**: [if rollback=true] Reason text
+- **Notes**: Additional context
 
-### Changed (from v18.1)
-- **King Safety**: Added -100cp penalty for high-value attackers (Q/R) in king zone
-- **King Safety**: Added -80cp penalty for unmoved king on center files (d/e) in middlegame
-- **Bishop Pair**: Increased bonus from implicit handling to explicit +50cp
-- **Passed Pawns**: Changed to exponential scaling (20 × 2^advancement) instead of linear
-- **King Centralization**: Enhanced endgame bonus to +40-70cp based on central squares
-- **Move ordering**: Integrated safety scores into all move categories (captures, checks, killers, quiet moves)
-- **Threefold repetition**: Final bestmove validation avoids repetition when winning (>100cp)
+-->
 
-### Rationale
-- **v18.1 Tournament Results**: 64% vs v17.1 (+100 ELO) - evaluation tuning works
-- **v18.0 Tournament Results**: 58% vs v17.1 (+56 ELO) - tactical safety works
-- **v18.1 vs v18.0**: 48% vs 52% (-14 ELO) - evaluation alone cannot beat tactics
-- **Hypothesis**: Combining both systems should achieve 65-70%+ vs v17.1
-- **Tactical safety prevents blunders** (v18.0's strength), **evaluation wins positions** (v18.1's strength)
+### v18.4
+- **Deployed**: 2026-04-17
+- **Retired**: [ACTIVE]
+- **Status**: active
+- **Rollback**: false
+- **Duration Days**: [TBD]
+- **Deployment Method**: automated
+- **Environment**: production
+- **ELO Rating**: 1633
+- **Games Played**: [TBD]
+- **Features**:
+  - Latest stable release
+- **Known Issues**: []
+- **Rollback Reason**: N/A
+- **Notes**: Currently active in production
 
-### Testing
-- ✅ Unit tests (from v18.1): 5/5 passed
-  - King safety center penalty: 115cp difference
-  - Passed pawn exponential: 280cp difference
-  - Bishop pair bonus: 622cp applied
-  - King centralization: 100cp difference
-  - High-value attacker penalty: 1800cp difference
-- ⏳ Performance benchmark: NOT YET RUN (requires 50+ games vs v18.0 and v17.1)
+### v18.3
+- **Deployed**: 2025-12-29
+- **Retired**: 2026-04-17
+- **Status**: retired
+- **Rollback**: false
+- **Duration Days**: 110
+- **Deployment Method**: automated
+- **Environment**: production
+- **ELO Rating**: 1661
+- **Games Played**: [TBD]
+- **Features**: []
+- **Known Issues**: Smart matchmaking system believed to cause rating slide from 1722 Jan 21st-Feb 15th. Mitigated by reverting to random matchmaking for 2 weeks. Rating recovered to 1660s.
+- **Rollback Reason**: N/A
+- **Notes**: Stable deployment, replaced by v18.4
 
-### Performance
-- **Expected**: 65-70% vs v17.1 (combining +100 ELO from evaluation + +56 ELO from tactics)
-- **Expected**: 55-60% vs v18.0 (adding evaluation tuning to tactical base)
-- Bitboard evaluator path only (fast evaluator unchanged)
+### v18.0
+- **Deployed**: 2025-12-20
+- **Retired**: 2025-12-29
+- **Status**: retired
+- **Rollback**: false
+- **Duration Days**: 9
+- **Deployment Method**: automated
+- **Environment**: production
+- **ELO Rating**: 1654
+- **Games Played**: [TBD]
+- **Features**: []
+- **Known Issues**: []
+- **Rollback Reason**: N/A
+- **Notes**: First v18 series deployment
+
+### v17.7
+- **Deployed**: 2025-12-06
+- **Retired**: 2025-12-20
+- **Status**: retired
+- **Rollback**: false
+- **Duration Days**: 14
+- **Deployment Method**: automated
+- **Environment**: production
+- **ELO Rating**: 1623
+- **Games Played**: [TBD]
+- **Features**: []
+- **Known Issues**: []
+- **Rollback Reason**: N/A
+- **Notes**: Replaced buggy v17.6
+
+### v17.5
+- **Deployed**: 2025-12-02
+- **Retired**: 2025-12-06
+- **Status**: retired
+- **Rollback**: false
+- **Duration Days**: 4
+- **Deployment Method**: automated
+- **Environment**: production
+- **ELO Rating**: 1604
+- **Games Played**: [TBD]
+- **Features**: []
+- **Known Issues**: []
+- **Rollback Reason**: N/A
+- **Notes**: Deployed via universal deployment script
+
+### v17.4
+- **Deployed**: 2025-11-26
+- **Retired**: 2025-11-30
+- **Status**: rolled_back
+- **Rollback**: true
+- **Duration Days**: 4
+- **Deployment Method**: automated
+- **Environment**: production
+- **ELO Rating**: 1606
+- **Games Played**: [TBD]
+- **Features**:
+  - Endgame improvements (rook bonus)
+  - Improved endgame detection
+  - Enhanced endgame evaluation
+- **Known Issues**:
+  - Critical endgame blunders
+  - Mate-in-3 misses
+  - High centipawn loss (~2000+)
+- **Rollback Reason**: Critical blunder detected - move 23. Be2?? in game 9i883UOF (missed mate in 3). Lost to human player. High centipawn loss in endgames. Endgame evaluation regression.
+- **Notes**: Rolled back to v17.1 for stability
+
+### v17.2.0
+- **Deployed**: 2025-11-21
+- **Retired**: 2025-11-26
+- **Status**: retired
+- **Rollback**: false
+- **Duration Days**: 5
+- **Deployment Method**: automated
+- **Environment**: production
+- **ELO Rating**: 1614
+- **Games Played**: [TBD]
+- **Features**:
+  - Positional evaluation improvements
+  - Opening book enhancements
+- **Known Issues**: []
+- **Rollback Reason**: N/A
+- **Notes**: Stable version, replaced by v17.4
+
+### v17.1.1
+- **Deployed**: 2025-11-21
+- **Retired**: 2025-11-21
+- **Status**: retired
+- **Rollback**: false
+- **Duration Days**: 0
+- **Deployment Method**: automated
+- **Environment**: production
+- **ELO Rating**: 1487
+- **Games Played**: [TBD]
+- **Features**: []
+- **Known Issues**: []
+- **Rollback Reason**: N/A
+- **Notes**: Minor patch, quickly superseded by v17.2.0 (same-day deployment)
+
+### v17.1
+- **Deployed**: 2025-11-21
+- **Retired**: 2025-11-21
+- **Status**: retired
+- **Rollback**: false
+- **Duration Days**: 0
+- **Deployment Method**: automated
+- **Environment**: production
+- **ELO Rating**: n/a (unrated)
+- **Games Played**: [TBD]
+- **Features**:
+  - Stable endgame play
+  - Reliable evaluation
+- **Known Issues**: []
+- **Rollback Reason**: N/A
+- **Notes**: Initial deployment superseded same day. Re-deployed 2025-11-30 as rollback target from v17.4. Proven stable version. CPL: Moderate (~1500-1800 average).
+
+### v17.0
+- **Deployed**: 2025-11-20
+- **Retired**: 2025-11-21
+- **Status**: retired
+- **Rollback**: false
+- **Duration Days**: 1
+- **Deployment Method**: automated
+- **Environment**: production
+- **ELO Rating**: 1496
+- **Games Played**: [TBD]
+- **Features**: []
+- **Known Issues**: []
+- **Rollback Reason**: N/A
+- **Notes**: Initial v17 series deployment
+
+### v16.1
+- **Deployed**: 2025-11-19
+- **Retired**: 2025-11-20
+- **Status**: retired
+- **Rollback**: false
+- **Duration Days**: 1
+- **Deployment Method**: automated
+- **Environment**: production
+- **ELO Rating**: 1503
+- **Games Played**: [TBD]
+- **Features**: []
+- **Known Issues**: []
+- **Rollback Reason**: N/A
+- **Notes**: Last of v16 series
+
+### v14.1
+- **Deployed**: 2025-10-25
+- **Retired**: 2025-11-19
+- **Status**: retired
+- **Rollback**: false
+- **Duration Days**: 25
+- **Deployment Method**: automated
+- **Environment**: production
+- **ELO Rating**: 1488
+- **Games Played**: [TBD]
+- **Features**:
+  - Major evaluation overhaul
+  - Improved positional understanding
+- **Known Issues**: []
+- **Rollback Reason**: N/A
+- **Notes**: Long-running stable version (~25 days)
+
+### v14.0
+- **Deployed**: 2025-10-25
+- **Retired**: 2025-10-25
+- **Status**: retired
+- **Rollback**: false
+- **Duration Days**: 0
+- **Deployment Method**: automated
+- **Environment**: production
+- **ELO Rating**: n/a (unrated)
+- **Games Played**: [TBD]
+- **Features**: []
+- **Known Issues**: []
+- **Rollback Reason**: N/A
+- **Notes**: Quickly patched to v14.1 (same-day deployment)
+
+### v12.6
+- **Deployed**: 2025-10-04
+- **Retired**: 2025-10-25
+- **Status**: retired
+- **Rollback**: false
+- **Duration Days**: 21
+- **Deployment Method**: automated
+- **Environment**: production
+- **ELO Rating**: 1544
+- **Games Played**: [TBD]
+- **Features**: []
+- **Known Issues**: []
+- **Rollback Reason**: N/A
+- **Notes**: Last of v12 series, stable for ~21 days
+
+### v12.4
+- **Deployed**: 2025-10-03
+- **Retired**: 2025-10-04
+- **Status**: retired
+- **Rollback**: false
+- **Duration Days**: 1
+- **Deployment Method**: automated
+- **Environment**: production
+- **ELO Rating**: 1509
+- **Games Played**: [TBD]
+- **Features**: []
+- **Known Issues**: []
+- **Rollback Reason**: N/A
+- **Notes**: Quick iteration in v12 series
+
+### v12.2
+- **Deployed**: 2025-10-03
+- **Retired**: 2025-10-03
+- **Status**: retired
+- **Rollback**: false
+- **Duration Days**: 0
+- **Deployment Method**: automated
+- **Environment**: production
+- **ELO Rating**: 1497
+- **Games Played**: [TBD]
+- **Features**: []
+- **Known Issues**: []
+- **Rollback Reason**: N/A
+- **Notes**: Initial v12 series deployment (same-day replacement)
 
 ---
 
-## [18.1.0] - 2025-12-21 [EVALUATION TUNING] [TESTED]
+## Deployment Procedures
 
-### Changed
-- **King Safety**: Added -100cp penalty for high-value attackers (Q/R) in king zone
-- **King Safety**: Added -80cp penalty for unmoved king on center files (d/e) in middlegame
-- **Bishop Pair**: Increased bonus from implicit handling to explicit +50cp
-- **Passed Pawns**: Changed to exponential scaling (20 × 2^advancement) instead of linear
-- **King Centralization**: Enhanced endgame bonus to +40-70cp based on central squares
+### Standard Deployment Checklist
+- [ ] Build engine executable
+- [ ] Create dated directory: `V7P3R_vX.X_YYYYMMDD/`
+- [ ] Test locally with lichess-bot
+- [ ] Deploy to GCP container
+- [ ] Monitor first 10 games for issues
+- [ ] Update this CHANGELOG.md (add new version at top)
+- [ ] Update **Last Updated** date in header
+- [ ] Update **Current Active Version** in Quick Reference
+- [ ] If issues found, execute rollback procedure
+- [ ] Run analytics after 24 hours to validate performance
 
-### Rationale
-- **Game Analysis Foundation**: Analyzed 10 recent Lichess games (2W-2D-6L, Dec 14-21) using Stockfish 17.1 at depth 20
-- **41 Total Mistakes**: 21 inaccuracies, 13 mistakes, 7 blunders across 10 games
-- **Theme Breakdown**: 18 unknown (44%), 14 material imbalance (34%), 11 king safety (27%), 9 endgame (22%), 8 pawn play (20%)
-- **Pattern Identification**: King safety errors in 6/10 games, passed pawn mishandling in 4/10 games, bishop pair undervaluation in 3/10 games
-- **Specific Examples**:
-  - Game z2x7qO6f: Failed to prioritize passed pawn advancement (linear bonus insufficient)
-  - Game U9E2iNmr: Allowed rook penetration near king (no high-value attacker penalty)
-  - Game CHF4FHSy: Gave up bishop pair advantage (no explicit bonus)
-  - Game vl2mCQ5b: Kept king in center too long (no center file penalty)
-
-### Testing
-- ✅ Unit tests: 5/5 passed
-  - King safety center penalty: 115cp difference (e1 unmoved vs g1 castled)
-  - Passed pawn exponential: 280cp difference (a3 vs a6)
-  - Bishop pair bonus: 622cp applied
-  - King centralization: 100cp difference (e4 center vs h1 corner)
-  - High-value attacker penalty: 1800cp difference (queen near king vs not)
-
-### Performance
-- **NOT YET BENCHMARKED**: Requires 50-game tournament vs v18.0.0
-- Bitboard evaluator path only (fast evaluator unchanged)
+### Rollback Procedure
+1. Stop lichess-bot container: `sudo docker stop v7p3r-production`
+2. Update `config.yml` engine path to previous stable version
+3. Restart container: `sudo docker restart v7p3r-production`
+4. Verify version in logs: `sudo docker logs v7p3r-production --tail 50`
+5. Update CHANGELOG.md:
+   - Set rolled-back version **Retired** date to today
+   - Set **Status** to `rolled_back`
+   - Set **Rollback** to `true`
+   - Fill in **Rollback Reason** with detailed explanation
+   - Update **Current Active Version** to rollback target
+6. Run analytics to confirm issue and regression
 
 ---
 
-## [18.0.0] - 2025-12-20 [ANTI-TACTICAL DEFENSE] [PRODUCTION]
+## Analytics Quick Reference
 
-### Added
-- **MoveSafetyChecker**: Lightweight defensive tactical awareness system
-- Anti-tactical penalty system in move ordering (-50 to -800cp for unsafe moves)
-- Hanging piece detection (checks if pieces are undefended after move)
-- Immediate capture threat evaluation (prevents leaving high-value pieces exposed)
+### Filter Games by Version
 
-### Changed
-- **Move ordering**: Integrated safety scores into all move categories (captures, checks, killers, quiet moves)
-- **Killer move sorting**: Now sorted by safety score (prevents promoting unsafe killers)
-- **Tactical move evaluation**: Combined bitboard tactical bonus with safety penalty for accurate scoring
+Use deployed/retired dates to filter game analysis:
 
-### Rationale
-- Manual PGN analysis of Dec 17 games revealed middlegame tactical errors as primary weakness
-- Game 4ZzIc3g6: 18...Rf6 (loses knight on d5 to 19.Bxd5) - safety checker penalty: -520cp
-- Game 4ZzIc3g6: 29...Ke7 (allows 30.Ba3+ winning bishop) - safety checker penalty: -264cp
-- Lichess yearend metrics show middlegame has highest error density (12/20 total errors)
-- Bishop weakness hypothesis REJECTED (only 1 error in 4 games) - issue was tactical calculation, not piece handling
+```sql
+-- Games for specific version
+SELECT * FROM games
+WHERE game_date BETWEEN '2025-11-26' AND '2025-11-30'  -- v17.4 period
+```
 
-### Performance
-- Safety checker: ~9,888 checks/second (101 microseconds per check)
-- Search overhead: ~0.1s at depth 4, ~0.3s at depth 5 (negligible)
-- Only activates at depth >= 2 (shallow searches skip for speed)
+### Common Analysis Queries
 
-### Testing
-- ✅ Test 1: 18...Rf6 correctly flagged as unsafe (-520cp < -100cp threshold)
-- ✅ Test 2: 29...Ke7 correctly flagged as unsafe (-264cp < -50cp threshold)
-- ✅ Performance: 9888 checks/sec >> 500 checks/sec requirement
+```bash
+# Current version performance (v18.4)
+python full_analysis.py --since 2026-04-17
 
-### Expected Impact
-- Target: +50-80 ELO via blunder prevention
-- Reduces middlegame material losses (current primary weakness)
-- Preserves existing strengths: checkmate rate (66.9%), opening play (83.1%), rating climb (1200→1575 ELO)
+# Rolled back version analysis (v17.4)
+python full_analysis.py --since 2025-11-26 --until 2025-11-30
 
-### Deployment
-- Status: PRODUCTION (deployed 2025-12-20 to GCP v7p3r-production-bot)
-- Tournament validation: 30 games vs v17.1, 58% win rate (17.5/30 points)
-- Results: 11W-6L-13D, 67% as White, 50% as Black
-- Acceptance criteria: ✅ 58% > 48% threshold, 0% time forfeits
-- Known limitation: High draw rate (43%, all threefold repetitions) - flagged for future tuning
+# Long-term stable version (v14.1)
+python full_analysis.py --since 2025-10-25 --until 2025-11-19
+```
 
 ---
 
-## [17.1.1] - 2025-12-10 [PRODUCTION ROLLBACK]
-
-### Changed
-- **ROLLBACK**: Restored v17.1.1 to production after v17.4-v17.8 failures
-
-### Rationale
-- Complete tournament analysis (298 games, 5 tournaments) revealed v17.1/v17.3 as best performers
-- v17.1: 75.8% average win rate (70-81% across all time controls) - MOST CONSISTENT
-- v17.3: 77.0% average (86.8% peak in 5min+2s) - BEST PEAK
-- v17.4+: Progressive regression (32-63% win rates)
-- v17.6-v17.8: Complete failures (0-52% win rates, illegal moves)
-- **Root cause identified**: v17.2 introduced broken two-tier bucket TT system using integer indices instead of zobrist hashes, corrupting move selection
-
-### Deployment
-- Date: 2025-12-10
-- Platform: GCP VM (v7p3r-production-bot)
-- Engine verified: `id name V7P3R v17.1.1`
-- Status: Live on Lichess
-
-### Testing
-- Tournament data: v17.1.1 proven stable across bullet (1min+2s), blitz (5min+4s), rapid (30min+5s)
-- No regression tests run (rolling back to known stable version)
-
-### Notes
-- v17.8-clean abandoned (catastrophic tournament failure, 0/6 score)
-- v17.3 analysis revealed it's functionally identical to v17.1.1 (only UCI version string differs)
-- Skipping remaining v17 line development
-- Next version will be v18.0.0 (major overhaul from v17.1.1 baseline)
-
----
-
-## [17.8-clean] - 2025-12-10 [ABANDONED]
-
-### Philosophy
-Based on tournament analysis showing v17.1-v17.3 as top performers (42.5 pts), v17.8-clean
-removes failed v17.4-v17.7 experimental features and builds on proven stable foundation.
-
-### Changed
-- **BASELINE**: v17.1 codebase (proven stable, 800cp endgame threshold)
-- **REPETITION THRESHOLD**: 50cp (simplified - uses board.is_repetition(), no position history)
-- **PAWN STRUCTURE**: Kept v17.6 improvements (bishop pair +50cp, isolated pawns -15cp, connected pawns +5cp, knight outposts +20cp)
-
-### Fixed
-- **CRITICAL**: Reverted 1300cp endgame threshold → 800cp (v17.4 bug that caused mate-in-3 miss)
-
-### Removed
-- v17.7 complexity: Tablebase patterns (dead code), king-edge driving, 50-move awareness, mate verification extensions
-- v17.7 position history tracking (simplified to use python-chess built-in)
-- v17.5 mate threat detection (redundant with quiescence search)
-- 437 lines of code bloat (-30% from v17.8)
-
-### Rationale
-- Tournament data: v17.1 (42.5 pts, 56.9% win), v17.2 (39.5 pts, 50%), v17.3 (42.5 pts, 58.9%)
-- v17.4-v17.7 scored 21.5-35 pts (regression from v17.1-v17.3)
-- v17.4's 1300cp threshold caused endgame blunders (game 9i883UOF mate-in-3 miss)
-- v17.6 pawn structure fixes address real issue (159 isolated pawns/game)
-- v17.8's 50cp repetition threshold keeps aggressive draw avoidance without complexity
-
-### Testing
-- Regression tournament pending (v17.8-clean vs v17.1 baseline)
-- Expected: Match or exceed v17.1 performance with better draw handling
-- Acceptance: Win rate ≥48%, blunders ≤6.0/game, no time forfeits
-
----
-
-## [17.8.0] - 2025-12-10 [SUPERSEDED BY 17.8-clean]
-
-### Changed
-- **CRITICAL FIX**: Lowered repetition avoidance threshold from 200cp to 50cp
-- Engine now pushes advantages more aggressively in rapid games
-- Updated version identifier in UCI to "V7P3R v17.8"
-
-### Rationale
-- v17.7 was accepting draws in positions with +100cp (1 pawn advantage)
-- 200cp threshold too conservative for competitive play
-- New 50cp threshold (0.5 pawns) aligns with "avoid draws unless losing" philosophy
-
-### Testing
-- Regression tournament vs v17.1-v17.7 pending
-- Local validation required before production deployment
-
-### Known Issues
-- Rapid game performance regression needs monitoring
-- May need adaptive threshold by time control (50cp rapid, 100cp blitz/bullet)
-
----
-
-## [17.7.0] - 2025-12-06
-
-### Added
-- Threefold repetition avoidance when winning (>200cp)
-- Mate verification with +2 ply depth extensions
-- King-edge driving bonus (+10cp × distance when material >600cp)
-- Basic tablebase patterns (K+R/Q/R+B vs K)
-- 50-move rule awareness (prioritize resets when halfmove_clock >80)
-
-### Deployment
-- **Status**: Stable production deployment
-- **Duration**: 4+ days (Dec 6-10)
-- **Platform**: GCP v7p3r-production-bot
-
-### Goal
-- Never draw from winning positions
-- Convert R+B vs K endgames reliably
-
----
-
-## [17.6.0] - 2025-12-06
-
-### Added
-- Bishop pair bonus (+30cp)
-- **CRITICAL**: Isolated pawn penalty (-15cp) - previously missing entirely
-- Connected pawns bonus (+5cp)
-- Knight outpost bonus (+20cp)
-
-### Deployment
-- **Status**: Short-lived (replaced by v17.7 same day)
-- **Platform**: GCP v7p3r-production-bot
-
-### Impact
-- Reduced isolated pawns from 159/game target to <50/game
-- Improved pawn structure understanding
-
----
-
-## [17.5.0] - 2025-12-03
-
-### Added
-- Pure endgame detection (≤6 pieces total)
-- Skip PST in simplified endgames (38% speedup)
-- Mate threat detection for opponent mate-in-1/2
-
-### Fixed
-- Endgame blunders reduced from 7.0 to 5.29/game
-- Improved tactical awareness in simplified positions
-
-### Deployment
-- **Status**: Stable deployment (Dec 3-6)
-- **Platform**: GCP v7p3r-production-bot
-- **Replaced**: v17.1 (rollback recovery version)
-
----
-
-## [17.4.0] - 2025-11-26 [ROLLED BACK]
-
-### Added
-- Endgame evaluation changes
-- Rook bonus modifications
-- **RAISED** endgame detection threshold from 800cp to 1300cp
-
-### Deployment
-- **Status**: **FAILED - ROLLED BACK after 3-4 days**
-- **Duration**: Nov 26-29
-- **Platform**: GCP v7p3r-production-bot
-- **Rollback Date**: ~Nov 29-30
-- **Rollback Target**: v17.1
-
-### Critical Issues
-- Endgame blunders detected
-- Game 9i883UOF: Move 23. Be2?? (missed mate in 3)
-- Lost to human player (v7p3r) in test game
-- Very high CPL (~2000+)
-
-### Root Cause
-- Endgame threshold change (800cp → 1300cp) caused evaluation bugs
-- Enhanced endgame features introduced tactical oversights
-
-### Lesson Learned
-- Never raise endgame detection threshold without extensive testing
-- Regression suite needed for mate detection
-- Require 50+ game validation before production deployment
-
----
-
-## [17.3.0] - 2025-11-26 [EXPERIMENTAL - NOT DEPLOYED]
-
-### Added
-- **MAJOR REWRITE**: SEE-based quiescence search
-- Static Exchange Evaluation instead of deep recursive search
-- Maximum quiescence depth: 3 plies (reduced from 10)
-- 83% move stability (vs 50% in v17.1.1)
-
-### Status
-- **Tested locally, NEVER deployed to production Lichess bot**
-- Experimental branch separate from production lineage
-- Good results in local testing
-
-### Notes
-- This version exists outside the main production timeline
-- v17.4 was NOT based on v17.3
-- Consider integrating SEE improvements in future version
-
----
-
-## [17.2.0] - 2025-11-21
-
-### Added
-- UCI enhancements (seldepth, hashfull reporting)
-- Performance optimizations
-
-### Deployment
-- **Status**: Stable 5-day deployment
-- **Duration**: Nov 21-26
-- **Platform**: GCP v7p3r-production-bot
-- **Replaced by**: v17.4 (which failed and was rolled back)
-
----
-
-## [17.1.1] - 2025-11-21
-
-### Fixed
-- Time management for Lichess cloud deployment
-- Minor UCI patches
-
-### Deployment
-- **Status**: Short-lived (hours)
-- **Replaced by**: v17.2.0 same day
-
----
-
-## [17.1.0] - 2025-11-21
-
-### Fixed
-- **CRITICAL**: Disabled PV instant moves (caused all 3 tournament losses)
-- Fixed severe Black-side weakness from v17.0
-
-### Added
-- Opening book from v16.2
-- Tournament reliability improvements
-
-### Deployment
-- **Initial**: Nov 21 (few hours, replaced by v17.1.1 → v17.2.0)
-- **Rollback Deployment**: Nov 30 - Dec 2 (after v17.4 failure)
-- **Status**: Proven stable, used twice in production
-
-### Impact
-- Fixed Black-side weakness (v17.0 had 100% win as White, only 64% as Black)
-- Tournament reliable
-
----
-
-## [17.0.0] - 2025-11-20
-
-### Added
-- **BREAKTHROUGH**: Relaxed time management → deeper search
-- Average depth: 4.8 (vs 4.5 in previous versions)
-- History heuristic
-- Killer moves
-- MVV-LVA move ordering
-- Enhanced transposition table
-
-### Deployment
-- **Status**: Retired after 1 day
-- **Duration**: Nov 20-21
-- **Replaced by**: v17.1.0
-
-### Performance
-- **Tournament Result**: 1st place, 44.0/50 points (88% win rate)
-- **ELO**: ~1600
-- **Critical Issue**: Severe Black-side weakness
-  - White: 100% win rate
-  - Black: 64% win rate
-- All 3 tournament losses from PV instant move bug
-
----
-
-## [16.1.0] - 2025-11-19
-
-### Added
-- Opening book experiments
-- Tablebase integration attempts
-
-### Deployment
-- **Duration**: Nov 19-20 (1 day)
-- **Replaced by**: v17.0
-
----
-
-## [14.1.0] - 2025-10-25
-
-### Added
-- Major evaluation overhaul
-- Improved positional understanding
-- Smart time management
-
-### Deployment
-- **Status**: Stable long-running deployment
-- **Duration**: 25 days (Oct 25 - Nov 19)
-- **Platform**: GCP v7p3r-production-bot
-- **ELO**: 1496
-
-### Performance
-- Longest stable deployment in v14-v17 series
-- Consistent results across time controls
-
----
-
-## [12.6.0] - 2025-10-04
-
-### Changed
-- Removed nudge system
-- Clean performance build
-- Consolidated evaluation
-
-### Notes
-- Foundation for v14.x and v17.x series
-- Many v13.x-v16.x versions were experimental
-- This represents the "true v7" lineage continuation
-
----
-
-## Version Lineage Truth
-
-The version numbers don't reflect true linear evolution:
-
-**Actual Evolution Path**:
-- v10.8 (recovery baseline) 
-- → v12.0-v12.6 (clean builds)
-- → v14.0-v14.1 (smart time management)
-- → v17.0 (breakthrough performance)
-- → v17.1 (PV fix)
-- → v17.2.0 (stable)
-- → [v17.3 experimental branch - not deployed]
-- → v17.4 (failed, rolled back)
-- → v17.5-v17.7 (progressive recovery)
-- → v17.8 (current)
-
-**Skipped/Experimental**: v11.x, v13.x, v15.x, v16.x were experiments or copies.
-
-**True Count**: v17.8 is approximately the 8th or 9th major iteration of working code.
-
----
-
-## Deployment Log
-
-See `deployment_log.json` for machine-readable deployment history with:
-- Exact deployment timestamps
-- Production vs testing deployments
-- ELO ratings per version
-- Rollback history
-- Performance metrics
-
-## Testing Requirements
-
-Before production deployment, all versions must pass:
-1. **Regression Suite**: 20+ tactical positions including mate-in-3 detection
-2. **Performance Benchmark**: 50-game tournament vs last stable version
-3. **Acceptance Criteria**: Win% ≥48%, Blunders ≤6.0/game, Time Forfeit <10%
-4. **Time Control Validation**: Test in bullet, blitz, and rapid
-5. **Git Tag**: Create annotated tag before deployment
-
----
-
-## Links
-
-- **Production Deployment**: `lichess/CHANGELOG.md`
-- **Deployment Guide**: `lichess/docs/CLOUD_DEPLOYMENT_GUIDE.md`
-- **Testing Guide**: `docs/TESTING_GUIDE.md`
-- **Version Management**: `.github/instructions/version_management.instructions.md`
+## Notes
+
+- All dates are in YYYY-MM-DD format for easy parsing
+- Duration Days calculated as: (Retired - Deployed).days
+- [ACTIVE] means version is currently deployed
+- [TBD] means data not yet available (fill in after analytics run)
+- [UNKNOWN] means data lost or not recorded
+- Same-day deployments have Duration Days = 0
+- Rollback Reason field only populated when Rollback = true

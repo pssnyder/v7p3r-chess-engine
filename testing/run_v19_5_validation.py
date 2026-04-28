@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-V19.5.1 vs V18.4 Validation Tournament
+V19.5.2 vs V18.4 Validation Tournament
 
-Quick 4-game validation at 5min+4s blitz to validate TIMEOUT FIX:
-- Timeout check frequency reduced 1000 → 100 nodes (endgame responsiveness)
-- Added timeout check to quiescence search entry point
-- Fixes tournament-observed 782 NPS endgame timeouts
+Quick 4-game validation at 5min+4s blitz to validate ITERATIVE DEEPENING TIMEOUT FIX:
+- Added timeout checks after each _recursive_search call in iterative deepening
+- Prevents loop from continuing after timeout (was wasting time in loop overhead)
+- Fixes 135-180s moves when given 30s time limit
 
 SUCCESS CRITERIA:
 ✓ 0 timeouts (PRIMARY - timeout fix validation)
@@ -183,10 +183,10 @@ class SimpleGame:
 
 def main():
     print("=" * 80)
-    print("V19.5.1 VS V18.4 TIMEOUT FIX VALIDATION (4 GAMES)")
+    print("V19.5.2 VS V18.4 TIMEOUT FIX VALIDATION (4 GAMES)")
     print("=" * 80)
     print("Format: 4 games, 5min+4s blitz")
-    print("Primary Goal: 0 timeouts (endgame responsiveness fix)")
+    print("Primary Goal: 0 timeouts (iterative deepening timeout check)")
     print("Secondary: ≥45% win rate, 0 crashes")
     print("=" * 80)
     
@@ -232,7 +232,7 @@ def main():
         if result['termination'] == 'crash':
             crashes += 1
         
-        print(f"  Result: {result['result']} ({result['termination']}) - {outcome} for v19.5.1")
+        print(f"  Result: {result['result']} ({result['termination']}) - {outcome} for v19.5.2")
         print(f"  Current score: {wins}W - {losses}L - {draws}D ({(wins + draws*0.5)/game_num*100:.1f}%)")
     
     # Final summary
@@ -244,7 +244,7 @@ def main():
     print("TOURNAMENT RESULTS")
     print(f"{'=' * 80}")
     print(f"Total games:  {total_games}")
-    print(f"v19.5.1 score:  {score}/{total_games} ({win_rate:.1f}%)")
+    print(f"v19.5.2 score:  {score}/{total_games} ({win_rate:.1f}%)")
     print(f"  Wins:       {wins}")
     print(f"  Losses:     {losses}")
     print(f"  Draws:      {draws}")
@@ -266,7 +266,7 @@ def main():
         print(f"✗ {timeouts} timeout(s) detected - CRITICAL FAILURE")
         passed = False
     else:
-        print(f"✓ 0 timeouts (endgame responsiveness FIXED)")
+        print(f"✓ 0 timeouts (iterative deepening FIXED)")
     
     # PRIORITY 2: Win rate
     if win_rate < 45.0:
@@ -283,9 +283,9 @@ def main():
         print(f"✓ 0 crashes (engine stable)")
     
     if passed:
-        print(f"\n🎉 PASS: v19.5.1 is ready for deployment!")
+        print(f"\n🎉 PASS: v19.5.2 is ready for deployment!")
     else:
-        print(f"\n⚠️  FAIL: v19.5.1 needs additional fixes before deployment")
+        print(f"\n⚠️  FAIL: v19.5.2 needs additional fixes before deployment")
     
     print(f"{'=' * 80}")
 
