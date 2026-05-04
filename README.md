@@ -1,15 +1,59 @@
 # V7P3R Chess Engine
 
-**Latest Release: V18.4.0** - April 17, 2026  
+**Production Version: V18.3.0** - Redeployed May 3, 2026 (rollback from v18.4)  
 A UCI-compatible chess engine achieving **50% score vs Stockfish 1%** through advanced search optimization and tactical excellence.
 
 ---
 
-## 🎯 Current Version: V18.4.0 (Memory & Search Optimization - Production on GCP)
+## 🎯 Current Production: V18.3.0 (PST Optimization - Live on Lichess)
 
-**V18.4.0** delivers comprehensive memory stability and search optimizations through three focused phases, achieving **+3.9% tactical accuracy improvement** (90.9% puzzle accuracy vs v18.3's 87.0%).
+**V18.3.0** is the current production engine on Lichess, achieving the **best performance record** in V7P3R history:
+- **Peak ELO**: 1722 (January 21, 2026)
+- **Stable ELO**: 1661 (110-day deployment)
+- **Production Uptime**: 110+ days (Dec 29, 2025 - Apr 17, 2026, redeployed May 3, 2026)
 
-### V18.4.0 Key Features
+### V18.3.0 Key Features
+
+1. **⏱️ Adaptive Time Management**
+   - Game phase awareness (opening/middlegame/endgame)
+   - Dynamic time allocation: 0.75-1.1x base time
+   - Emergency time mode (<10s total = MAX 2s/move)
+   - Position complexity adjustments
+
+2. **🎯 Smart Search Optimization**
+   - Aspiration windows: ±50cp at depth 3+ (15-25% node reduction)
+   - Smart early exit: Stop when move stable 4+ iterations
+   - Iterative deepening with stability detection
+   - Depth-aware time budgeting
+
+3. **⚡ PST Optimization**
+   - 28% piece-square table evaluation speedup
+   - Cached evaluation with smart invalidation
+   - Fast evaluator (v16.1 speed baseline)
+
+4. **☁️ Production Deployment**
+   - Running 24/7 on Google Cloud Platform (e2-micro VM)
+   - Lichess bot: [@v7p3r_bot](https://lichess.org/@/v7p3r_bot)
+   - Professional infrastructure with monitoring
+   - ~$24/month operational cost
+
+### Why V18.3 Was Redeployed (v18.4 Rollback)
+**v18.4** (April 17-May 3, 2026) experienced ELO decline:
+- Deployed at 1633 ELO, dropped to 1614 ELO (-19 points)
+- 28-47 points below v18.3's stable 1661 ELO
+- Performance regression in blitz/bullet formats
+- **Rollback decision**: Return to proven v18.3 all-star engine
+
+See [V18_3_SUCCESS_ANALYSIS.md](docs/V18_3_SUCCESS_ANALYSIS.md) for detailed performance analysis.
+
+---
+
+## 📋 Version Status
+
+### V18.4.0 (April 17, 2026 - May 3, 2026) - Rolled Back ⚠️
+**Status**: Retired after 16 days due to performance regression
+
+**V18.4.0** attempted memory stability and search optimizations but underperformed vs v18.3:
 
 1. **🧠 Phase 1: Memory Stability**
    - Evaluation cache with 20,000-entry LRU eviction

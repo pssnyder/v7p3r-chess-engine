@@ -2,6 +2,70 @@
 
   ![lichess-bot](https://github.com/lichess-bot-devs/lichess-bot-images/blob/main/lichess-bot-icon-400.png)
 
+  <h1>V7P3R Lichess Bot</h1>
+
+  **Production Bot**: [@v7p3r_bot](https://lichess.org/@/v7p3r_bot)  
+  **Current Version**: V18.3.0 (PST Optimization)  
+  **Status**: ✅ Live on GCP (v7p3r-lichess-bot project)
+  
+  <br>
+  
+  **Quick Links:**
+  - 📋 [Deployment Quick Reference](DEPLOYMENT_QUICKREF.md) - Fast commands for deployment
+  - 📖 [Full Deployment Guide](DEPLOYMENT_GUIDE.md) - Step-by-step with troubleshooting
+  - 📝 [CHANGELOG](CHANGELOG.md) - All deployments and version history
+  
+  <br>
+  [![Python Build](https://github.com/lichess-bot-devs/lichess-bot/actions/workflows/python-build.yml/badge.svg)](https://github.com/lichess-bot-devs/lichess-bot/actions/workflows/python-build.yml)
+  [![Python Test](https://github.com/lichess-bot-devs/lichess-bot/actions/workflows/python-test.yml/badge.svg)](https://github.com/lichess-bot-devs/lichess-bot/actions/workflows/python-test.yml)
+
+</div>
+
+---
+
+## V7P3R Bot Overview
+
+V7P3R is a UCI-compatible chess engine deployed on [Lichess](https://lichess.org/@/v7p3r_bot) using the [lichess-bot](https://github.com/lichess-bot-devs/lichess-bot) framework. The bot runs 24/7 on Google Cloud Platform and competes in rapid, blitz, and bullet games.
+
+### Current Performance
+- **ELO Rating**: ~1661 (Rapid, stable)
+- **Peak ELO**: 1722 (January 21, 2026)
+- **Games Played**: 2,000+ on Lichess
+- **Uptime**: 110+ days (v18.3 deployment)
+
+### Key Features
+- Adaptive time management with game phase awareness
+- Smart search with aspiration windows and early exit
+- PST-optimized evaluation (28% speedup)
+- Cloud-native deployment on GCP e2-micro instance
+- Automated matchmaking and tournament participation
+
+---
+
+## Deployment Documentation
+
+### For Quick Deployment
+See **[DEPLOYMENT_QUICKREF.md](DEPLOYMENT_QUICKREF.md)** for copy-paste commands.
+
+### For First-Time Deployment
+See **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** for complete step-by-step guide with:
+- Prerequisites and environment setup
+- Detailed deployment procedure (9 steps)
+- Rollback procedures
+- Troubleshooting common issues
+- Known pitfalls and solutions
+
+### For Version History
+See **[CHANGELOG.md](CHANGELOG.md)** for all deployments, rollbacks, and version notes.
+
+---
+
+## Original lichess-bot Documentation
+
+<div align="center">
+
+  ![lichess-bot](https://github.com/lichess-bot-devs/lichess-bot-images/blob/main/lichess-bot-icon-400.png)
+
   <h1>lichess-bot</h1>
 
   A bridge between [lichess.org](https://lichess.org) and bots.

@@ -175,94 +175,109 @@ See **Production Deployment Workflow** section below.
 
 ### Deployment Steps
 
-#### Step 1: Create Deployment Package
-```bash
-cd "s:/Programming/Chess Engines/V7P3R Chess Engine/v7p3r-chess-engine"
+**IMPORTANT**: See `lichess/DEPLOYMENT_GUIDE.md` for detailed step-by-step procedure with troubleshooting.
 
-# Create timestamped deployment folder
-mkdir -p "lichess/engines/V7P3R_v17.8.0_$(date +%Y%m%d)"
+#### Quick Deployment Summary
 
-# Copy engine files
-cp -r src/ "lichess/engines/V7P3R_v17.8.0_$(date +%Y%m%d)/"
-cp requirements.txt "lichess/engines/V7P3R_v17.8.0_$(date +%Y%m%d)/"
-cp README.md "lichess/engines/V7P3R_v17.8.0_$(date +%Y%m%d)/"
+**Step 1: Create Deployment Package (Windows PowerShell)**
+```powershell
+cd "E:\Programming Stuff\Chess Engines\V7P3R Chess Engine\v7p3r-chess-engine"
 
-# Create tarball for upload
-cd "lichess/engines/V7P3R_v17.8.0_$(date +%Y%m%d)"
-tar -czf ../v17.8.0-src.tar.gz src/
+# Create deployment directory with timestamp
+$version = "18.3"
+$date = Get-Date -Format "yyyyMMdd"
+$deployDir = "lichess\engines\V7P3R_v${version}_${date}"
+New-Item -ItemType Directory -Path $deployDir -Force
+
+# Copy source files
+Copy-Item -Path "src\v7p3r*.py" -Destination "$deployDir\src\" -Force
+
+# Create ZIP package (preferred over TAR.GZ on Windows)
+Compress-Archive -Path "$deployDir\src\*" -DestinationPath "$deployDir\v${version}-src.zip" -Force
 ```
 
-#### Step 2: Upload to GCP VM
+**Step 2: Upload to GCP VM**
 ```bash
-# Upload tarball to VM
-gcloud compute scp ../v17.8.0-src.tar.gz v7p3r-production-bot:/home/patss/ \
-  --zone=us-central1-a
-
-# Verify upload
-gcloud compute ssh v7p3r-production-bot --zone=us-central1-a \
-  --command="ls -lh /home/patss/v17.8.0-src.tar.gz"
+gcloud compute scp "lichess/engines/V7P3R_v18.3_20251229/v18.3-src.zip" \
+  v7p3r-production-bot:/tmp/v18.3-src.zip \
+  --zone=us-central1-a \
+  --project=v7p3r-lichess-bot
 ```
 
-#### Step 3: Backup Current Production Version
+**Step 3: Extract to VM Staging Directory**
 ```bash
-gcloud compute ssh v7p3r-production-bot --zone=us-central1-a --command="
-  # Backup current version with timestamp
-  BACKUP_DATE=\$(date +%Y%m%d_%H%M%S)
-  sudo docker exec v7p3r-production bash -c \
-    'tar -czf /tmp/v7p3r_backup_\$BACKUP_DATE.tar.gz /lichess-bot/engines/v7p3r'
-  
-  # Copy backup out of container
-  sudo docker cp v7p3r-production:/tmp/v7p3r_backup_\$BACKUP_DATE.tar.gz /home/patss/backups/
-  
-  # Verify backup
-  ls -lh /home/patss/backups/v7p3r_backup_\$BACKUP_DATE.tar.gz
-"
+gcloud compute ssh v7p3r-production-bot --zone=us-central1-a --project=v7p3r-lichess-bot \
+  --command="cd /tmp ; \
+    sudo python3 -m zipfile -e v18.3-src.zip v18.3_extracted ; \
+    sudo rm -rf /home/v7p3r/engines/v7p3r/* ; \
+    sudo cp -r v18.3_extracted/* /home/v7p3r/engines/v7p3r/ ; \
+    sudo chown -R v7p3r:v7p3r /home/v7p3r/engines/v7p3r/ ; \
+    sudo chmod +x /home/v7p3r/engines/v7p3r/v7p3r_uci.py"
 ```
 
-#### Step 4: Deploy New Version
+**Step 4: Create Wrapper Script**
 ```bash
-gcloud compute ssh v7p3r-production-bot --zone=us-central1-a --command="
-  # Copy new version into container
-  sudo docker cp v17.8.0-src.tar.gz v7p3r-production:/tmp/
-  
-  # Move current version to backup location inside container
-  sudo docker exec v7p3r-production bash -c \
-    'mv /lichess-bot/engines/v7p3r /lichess-bot/engines/v7p3r.backup'
-  
-  # Create new engine directory
-  sudo docker exec v7p3r-production mkdir -p /lichess-bot/engines/v7p3r
-  
-  # Extract new version
-  sudo docker exec v7p3r-production bash -c \
-    'cd /lichess-bot/engines/v7p3r && tar -xzf /tmp/v17.8.0-src.tar.gz --strip-components=1'
-  
-  # Verify extraction
-  sudo docker exec v7p3r-production ls -la /lichess-bot/engines/v7p3r/
-"
+# CRITICAL: Docker mounted volumes have execute restrictions
+# Must use wrapper script to execute Python engine
+
+# Create wrapper locally
+cat > run_v7p3r.sh << 'EOF'
+#!/bin/bash
+cd /lichess-bot/engines/v7p3r
+exec python3 v7p3r_uci.py
+EOF
+
+# Upload and deploy wrapper
+gcloud compute scp run_v7p3r.sh v7p3r-production-bot:/tmp/run_v7p3r.sh \
+  --zone=us-central1-a --project=v7p3r-lichess-bot
+
+gcloud compute ssh v7p3r-production-bot --zone=us-central1-a --project=v7p3r-lichess-bot \
+  --command="sudo cp /tmp/run_v7p3r.sh /home/v7p3r/engines/v7p3r/run_v7p3r.sh ; \
+    sudo chmod +x /home/v7p3r/engines/v7p3r/run_v7p3r.sh ; \
+    sudo chown v7p3r:v7p3r /home/v7p3r/engines/v7p3r/run_v7p3r.sh"
 ```
 
-#### Step 5: Restart Bot & Monitor
+**Step 5: Copy Files to Container Internal Filesystem**
 ```bash
-# Restart container to load new engine
-gcloud compute ssh v7p3r-production-bot --zone=us-central1-a \
-  --command="sudo docker restart v7p3r-production"
+# CRITICAL: Files must be in container's internal filesystem (NOT mounted volume)
+# Mounted volumes have noexec flag - scripts cannot be executed from them
 
-# Wait for container to start
-sleep 10
+# Stop container
+gcloud compute ssh v7p3r-production-bot --zone=us-central1-a --project=v7p3r-lichess-bot \
+  --command="sudo docker stop v7p3r-production"
 
-# Check logs for successful startup
-gcloud compute ssh v7p3r-production-bot --zone=us-central1-a \
-  --command="sudo docker logs v7p3r-production --tail 50"
-
-# Verify engine version in UCI
-gcloud compute ssh v7p3r-production-bot --zone=us-central1-a --command="
-  sudo docker exec v7p3r-production bash -c \
-    'echo uci | python /lichess-bot/engines/v7p3r/v7p3r_uci.py | grep \"id name\"'
-"
-# Expected output: id name V7P3R v17.8
+# Copy files from VM staging to container
+gcloud compute ssh v7p3r-production-bot --zone=us-central1-a --project=v7p3r-lichess-bot \
+  --command="sudo docker cp /home/v7p3r/engines/v7p3r/. v7p3r-production:/lichess-bot/engines/v7p3r/ ; \
+    sudo docker exec v7p3r-production chmod +x /lichess-bot/engines/v7p3r/run_v7p3r.sh /lichess-bot/engines/v7p3r/v7p3r_uci.py"
 ```
 
-#### Step 6: Post-Deployment Validation
+**Step 6: Verify Deployment**
+```bash
+# Check files copied correctly
+gcloud compute ssh v7p3r-production-bot --zone=us-central1-a --project=v7p3r-lichess-bot \
+  --command="sudo docker exec v7p3r-production ls -lh /lichess-bot/engines/v7p3r/ ; \
+    sudo docker exec v7p3r-production head -5 /lichess-bot/engines/v7p3r/v7p3r.py"
+```
+
+**Step 7: Start Container and Monitor**
+```bash
+# Start container
+gcloud compute ssh v7p3r-production-bot --zone=us-central1-a --project=v7p3r-lichess-bot \
+  --command="sudo docker start v7p3r-production ; sleep 10 ; sudo docker logs v7p3r-production --tail 80"
+
+# Expected output: "Engine configuration OK" and "Welcome v7p3r_bot!"
+```
+
+**Step 8: Test Engine via UCI**
+```bash
+gcloud compute ssh v7p3r-production-bot --zone=us-central1-a --project=v7p3r-lichess-bot \
+  --command="sudo docker exec v7p3r-production bash -c 'cd /lichess-bot && echo uci | ./engines/v7p3r/run_v7p3r.sh | head -20'"
+
+# Expected: "id name V7P3R v18.3" and "uciok"
+```
+
+**Step 9: Post-Deployment Validation**
 - **Monitor first 5 games closely** via Lichess web interface
 - Check for errors in Docker logs: `sudo docker logs v7p3r-production -f`
 - Verify move times are reasonable (not timing out)
@@ -271,23 +286,36 @@ gcloud compute ssh v7p3r-production-bot --zone=us-central1-a --command="
 
 ### Rollback Procedure (If Issues Detected)
 
+**Quick Rollback** (if previous version still in VM staging):
 ```bash
-gcloud compute ssh v7p3r-production-bot --zone=us-central1-a --command="
-  # Remove failed version
-  sudo docker exec v7p3r-production bash -c \
-    'rm -rf /lichess-bot/engines/v7p3r'
-  
-  # Restore backup
-  sudo docker exec v7p3r-production bash -c \
-    'mv /lichess-bot/engines/v7p3r.backup /lichess-bot/engines/v7p3r'
-  
-  # Restart container
-  sudo docker restart v7p3r-production
-"
+# Stop container
+gcloud compute ssh v7p3r-production-bot --zone=us-central1-a --project=v7p3r-lichess-bot \
+  --command="sudo docker stop v7p3r-production"
 
-# Update deployment_log.json
-# Mark version as "rollback": true, document reason
+# Copy previous version from VM staging to container
+# (Assuming previous version files backed up at /home/v7p3r/engines/v7p3r.backup/)
+gcloud compute ssh v7p3r-production-bot --zone=us-central1-a --project=v7p3r-lichess-bot \
+  --command="sudo docker exec v7p3r-production bash -c 'rm -rf /lichess-bot/engines/v7p3r' ; \
+    sudo docker cp /home/v7p3r/engines/v7p3r.backup/. v7p3r-production:/lichess-bot/engines/v7p3r/ ; \
+    sudo docker exec v7p3r-production chmod +x /lichess-bot/engines/v7p3r/run_v7p3r.sh"
+
+# Start container
+gcloud compute ssh v7p3r-production-bot --zone=us-central1-a --project=v7p3r-lichess-bot \
+  --command="sudo docker start v7p3r-production ; sleep 10 ; sudo docker logs v7p3r-production --tail 50"
 ```
+
+**Full Rollback** (redeploy previous version):
+```bash
+# Follow deployment Steps 1-9 with previous version's ZIP file
+# Example: Rollback to v18.3 from v18.4
+gcloud compute scp "lichess/engines/V7P3R_v18.3_20251229/v18.3-src.zip" \
+  v7p3r-production-bot:/tmp/v18.3-src.zip \
+  --zone=us-central1-a --project=v7p3r-lichess-bot
+
+# Then follow deployment procedure (extract, copy to container, start)
+```
+
+**Post-Rollback Tasks:**
 
 ### Post-Deployment Tasks
 1. Update `lichess/CHANGELOG.md` with deployment timestamp
@@ -492,12 +520,14 @@ When implementing new features:
 If critical issue discovered in production:
 
 ```bash
-# IMMEDIATE ROLLBACK (use backup inside container)
-gcloud compute ssh v7p3r-production-bot --zone=us-central1-a --command="
-  sudo docker exec v7p3r-production bash -c \
-    'rm -rf /lichess-bot/engines/v7p3r && mv /lichess-bot/engines/v7p3r.backup /lichess-bot/engines/v7p3r'
-  sudo docker restart v7p3r-production
-"
+# IMMEDIATE ROLLBACK (use backup from VM staging)
+gcloud compute ssh v7p3r-production-bot --zone=us-central1-a --project=v7p3r-lichess-bot \
+  --command="sudo docker stop v7p3r-production ; \
+    sudo docker cp /home/v7p3r/engines/v7p3r.backup/. v7p3r-production:/lichess-bot/engines/v7p3r/ ; \
+    sudo docker exec v7p3r-production chmod +x /lichess-bot/engines/v7p3r/run_v7p3r.sh ; \
+    sudo docker start v7p3r-production ; \
+    sleep 10 ; \
+    sudo docker logs v7p3r-production --tail 50"
 
 # POST-ROLLBACK TASKS
 # 1. Update deployment_log.json: Mark failed version with rollback=true
@@ -505,6 +535,89 @@ gcloud compute ssh v7p3r-production-bot --zone=us-central1-a --command="
 # 3. Create regression test for failure case
 # 4. Investigate root cause before attempting re-deployment
 ```
+
+## Deployment Troubleshooting
+
+### Common Deployment Issues (v18.3 rollback lessons)
+
+**Issue 1: Mounted Volumes Have Execute Restrictions**
+- **Symptom**: "Permission denied" when executing scripts from `/lichess-bot/engines` even with `chmod +x`
+- **Cause**: Docker mounted volumes have `noexec` flag (security restriction)
+- **Solution**: Files MUST be copied into container's internal filesystem with `docker cp`, NOT mounted
+- **Correct**: `sudo docker cp /home/v7p3r/engines/v7p3r/. v7p3r-production:/lichess-bot/engines/v7p3r/`
+- **Incorrect**: Mounting `/home/v7p3r/engines:/lichess-bot/engines` (scripts can't execute)
+
+**Issue 2: Wrapper Scripts Required**
+- **Symptom**: lichess-bot can't execute Python UCI script directly
+- **Cause**: Container environment needs proper working directory and Python invocation
+- **Solution**: Create `run_v7p3r.sh` wrapper script:
+  ```bash
+  #!/bin/bash
+  cd /lichess-bot/engines/v7p3r
+  exec python3 v7p3r_uci.py
+  ```
+- **Config**: Set `engine.name: "run_v7p3r.sh"` not `"v7p3r_uci.py"`
+
+**Issue 3: Tarball Corruption on Windows**
+- **Symptom**: Uploaded tarball is 29 bytes instead of ~185KB
+- **Cause**: PowerShell path quoting issues with `tar` command
+- **Solution**: Use ZIP format instead:
+  ```powershell
+  Compress-Archive -Path src\* -DestinationPath v18.3-src.zip
+  ```
+- **Extract on VM**: `sudo python3 -m zipfile -e v18.3-src.zip v18.3_extracted`
+
+**Issue 4: Container Restart Loops**
+- **Symptom**: Container restarts continuously with config validation errors
+- **Cause**: Missing engine files in container, config validation failing
+- **Solution**: Stop container to break loop:
+  ```bash
+  sudo docker stop v7p3r-production
+  # Fix missing files, then start manually
+  sudo docker start v7p3r-production
+  ```
+
+**Issue 5: Version Header Mismatch**
+- **Symptom**: `v7p3r.py` header comment shows different version than expected
+- **Cause**: Version comment in code not updated
+- **Diagnosis**: File dates and functionality are authoritative, not header comments
+- **Solution**: Check file dates (`ls -lh`) and test UCI version string (`echo uci | ./run_v7p3r.sh`)
+
+### Deployment Checklist (Avoid Common Pitfalls)
+
+Before starting deployment:
+- [ ] Create ZIP package (Windows) or TAR.GZ (Linux)
+- [ ] Upload to `/tmp/` on VM (temporary staging)
+- [ ] Extract to `/home/v7p3r/engines/v7p3r/` (VM staging directory)
+- [ ] Create wrapper script `run_v7p3r.sh` in VM staging
+- [ ] Update `config.yml` to reference wrapper script
+- [ ] Stop container before copying files
+- [ ] Use `docker cp` to copy from VM staging to container internal filesystem
+- [ ] Set execute permissions inside container with `docker exec chmod +x`
+- [ ] Start container and monitor logs for "Engine configuration OK"
+- [ ] Test UCI protocol with `echo uci | ./engines/v7p3r/run_v7p3r.sh`
+
+### Deployment Workflow Architecture
+
+```
+Local Windows Machine
+  ↓ (create ZIP)
+lichess/engines/V7P3R_v18.3_20251229/v18.3-src.zip
+  ↓ (gcloud compute scp to /tmp/)
+GCP VM: /tmp/v18.3-src.zip
+  ↓ (extract with python -m zipfile)
+GCP VM: /home/v7p3r/engines/v7p3r/*.py (staging area)
+  ↓ (add run_v7p3r.sh wrapper)
+GCP VM: /home/v7p3r/engines/v7p3r/run_v7p3r.sh
+  ↓ (docker cp to container - CRITICAL STEP)
+Container: /lichess-bot/engines/v7p3r/*.py (internal filesystem - executable)
+  ↓ (lichess-bot config references)
+Config: engine.dir = "./engines/v7p3r/", engine.name = "run_v7p3r.sh"
+  ↓ (bot starts)
+Lichess Bot Online ✓
+```
+
+**Key Insight**: VM staging (`/home/v7p3r/engines/`) is necessary but NOT the final destination. Files must be copied into container's internal filesystem for execution.
 
 ## Summary
 

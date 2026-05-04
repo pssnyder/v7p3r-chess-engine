@@ -78,6 +78,9 @@ Copy this block, fill in the fields, and paste at the top of this section.
   - Emergency time mode
   - PST optimization (28% speedup)
   - Position complexity adjustments
+- **Deployment Notes**:
+  - **2026-05-03**: Successfully redeployed as rollback from v18.4. Engine files copied directly into Docker container filesystem (not mounted) to resolve execute permission issues. Bot online and awaiting challenges.
+  - **2025-12-29**: Initial deployment with successful 110-day run reaching 1722 peak ELO.
 - **Known Issues**: Smart matchmaking system caused rating slide Jan 21-Feb 15 (1722→1661). Mitigated by reverting to random matchmaking.
 - **Rollback Reason**: N/A (this is the rollback TARGET)
 - **Notes**: **ALL-STAR ENGINE** - Longest stable deployment (110 days), highest peak ELO (1722). Redeployed 2026-05-03 to recover from v18.4's performance regression. Now expanded to blitz/bullet formats in addition to rapid/classical.
