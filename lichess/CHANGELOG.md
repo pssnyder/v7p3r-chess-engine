@@ -8,10 +8,10 @@
 
 ## Quick Reference
 
-**Current Active Version**: v18.3 (redeployed 2026-05-03, rollback from v18.4)  
+**Current Active Version**: v18.5 (deployed 2026-05-11 17:10 UTC)  
 **GCP Project**: v7p3r-lichess-bot  
 **Instance**: v7p3r-production-bot (e2-micro, us-central1-a)  
-**ELO Rating**: ~1661 (Rapid) - Target: Recover to 1722 peak
+**ELO Rating**: [TBD - monitoring] - Target: Recover to 1500+ stable
 
 ---
 
@@ -42,6 +42,27 @@ Copy this block, fill in the fields, and paste at the top of this section.
 
 -->
 
+### v18.5
+- **Deployed**: 2026-05-11 17:10 UTC
+- **Retired**: [ACTIVE]
+- **Status**: active
+- **Rollback**: false
+- **Duration Days**: [TBD]
+- **Deployment Method**: manual
+- **Environment**: production
+- **ELO Rating**: [TBD - monitoring first 5 games] - Target: 1500+ stable
+- **Games Played**: [TBD]
+- **Features**:
+  - Stripped v18.3 codebase (removed unused modular evaluation system)
+  - Fixed threefold threshold (50cp, was dynamic but unused)
+  - Removed dead code overhead (4 unused module files deleted)
+  - Identical time management to v18.0/v18.3 (proven stable)
+  - Kept core: Fast evaluator, move safety, opening book
+- **Known Issues**:
+  - None identified yet (active monitoring)
+- **Rollback Reason**: N/A
+- **Notes**: **TIME FORFEIT FIX** - Created to address 37.5% time forfeit rate observed in v18.3 redeployment (May 3-10, 2026). Root cause analysis identified modular evaluation system was never enabled but still computing context calculations on every search. v18.5 strips all dead code while preserving v18.3's core evaluation "brain". Files reduced from 10 to 6 (same as v18.0). Successfully deployed May 11, 2026. Monitoring for time management improvements and ELO recovery.
+
 ### v18.4
 - **Deployed**: 2026-04-17
 - **Retired**: 2026-05-03
@@ -64,13 +85,13 @@ Copy this block, fill in the fields, and paste at the top of this section.
 
 ### v18.3
 - **Deployed**: 2025-12-29 (initial), 2026-05-03 (redeployed as rollback)
-- **Retired**: 2026-04-17 (initial retirement)
-- **Status**: active
+- **Retired**: 2026-04-17 (initial retirement), 2026-05-10 (second retirement - replaced by v18.5)
+- **Status**: retired
 - **Rollback**: false
-- **Duration Days**: 110 (first deployment), [TBD] (second deployment)
+- **Duration Days**: 110 (first deployment), 7 (second deployment - replaced due to time forfeits)
 - **Deployment Method**: automated
 - **Environment**: production
-- **ELO Rating**: 1661 (stable), 1722 (peak on 2026-01-21)
+- **ELO Rating**: 1661 (stable first run), 1318-1539 (second run with time forfeits)
 - **Games Played**: [TBD]
 - **Features**:
   - Adaptive time allocation (game phase awareness)
@@ -81,9 +102,11 @@ Copy this block, fill in the fields, and paste at the top of this section.
 - **Deployment Notes**:
   - **2026-05-03**: Successfully redeployed as rollback from v18.4. Engine files copied directly into Docker container filesystem (not mounted) to resolve execute permission issues. Bot online and awaiting challenges.
   - **2025-12-29**: Initial deployment with successful 110-day run reaching 1722 peak ELO.
-- **Known Issues**: Smart matchmaking system caused rating slide Jan 21-Feb 15 (1722→1661). Mitigated by reverting to random matchmaking.
-- **Rollback Reason**: N/A (this is the rollback TARGET)
-- **Notes**: **ALL-STAR ENGINE** - Longest stable deployment (110 days), highest peak ELO (1722). Redeployed 2026-05-03 to recover from v18.4's performance regression. Now expanded to blitz/bullet formats in addition to rapid/classical.
+- **Known Issues**: 
+  - **CRITICAL (May 3-10 deployment)**: 37.5% time forfeit rate (3/8 games). Unused modular evaluation system computing context calculations on every root search despite being disabled. ELO dropped to 1318-1539 range.
+  - Smart matchmaking system caused rating slide Jan 21-Feb 15 (1722→1661) in first deployment. Mitigated by reverting to random matchmaking.
+- **Rollback Reason**: N/A (was rollback TARGET from v18.4, now superseded by v18.5)
+- **Notes**: **MIXED RESULTS** - First deployment (Dec 29 - Apr 17): Longest stable run (110 days), highest peak ELO (1722). Second deployment (May 3-10): Critical time management failure due to dead code overhead. Analysis revealed modular evaluation system was never enabled but still executing expensive context calculations. v18.5 created to strip dead code while preserving core evaluation.
 
 ### v18.0
 - **Deployed**: 2025-12-20
