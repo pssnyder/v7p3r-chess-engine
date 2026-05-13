@@ -1,37 +1,37 @@
 #!/usr/bin/env python3
 """
-V7P3R Chess Engine v18.6.3 - Ultra-Speed Test (Safety Checker Disabled)
+V7P3R Chess Engine v18.5.0 - Stripped Optimization (Time Management Fix)
 
-v18.6.3 FIX:
-- DISABLED move_safety checker entirely (93ms overhead per move ordering!)
-- At depth 4 with 30k nodes, safety checking took 45+ SECONDS
-- Testing raw search performance without anti-blunder overhead
-- Fixed repetition re-search timeout bug (could freeze with 10 min on clock)
-- Added emergency move fallback in UCI to prevent complete freezes
+STRIPPED DEAD CODE:
+- Removed unused modular evaluation system (never enabled)
+- Removed context calculation overhead
+- Removed profile selector overhead
+- Fixed threefold threshold to 50cp (was dynamic but unused)
 
-PERFORMANCE ROOT CAUSE:
-- move_safety.evaluate_move_safety() called on EVERY move at depth >= 3
-- Each call: board.push/pop + iterate 64 squares + generate legal moves
-- Cost: 0.095ms per move × 30 moves × 30k nodes = 85+ seconds wasted
-- This is why depth was stuck at 4 despite removing bitboard evaluator
+TARGET: Fix 37.5% time forfeit rate in v18.3 deployment
 
-v18.6.2 FIXES (KEPT):
-- Exception-based timeout (SearchTimeoutException)
-- UCI movetime respected as HARD limit
-- Time check frequency: 500 nodes (balanced)
-
-KEPT (ULTRA-MINIMAL):
-- Fast evaluator ONLY
+KEPT FROM v18.3:
+- Fast evaluator (core evaluation "brain")
+- Move safety checker (anti-tactical defense)
 - Opening book
-- Simple move ordering (MVV-LVA + history + killers)
-- Transposition table
-- NO SAFETY CHECKING (testing performance)
+- Adaptive time management (identical to v18.0)
+
+ARCHITECTURE EVOLUTION:
+- v18.5: Stripped v18.3 (remove modular eval overhead) - THIS VERSION
+- v18.4: Rolled back after 16 days (-19 ELO)
+- v18.3: PST optimization but time forfeits (37.5% timeout rate)
+- v18.0: Tactical safety only (+56 ELO vs v17.1, proven stable)
+- v17.1: PV instant move fix + opening book
+- v14.1: Smart time management
 
 VERSION LINEAGE:
-- v18.6.3: Disable safety checker (THIS VERSION - TEST)
-- v18.6.2: Exception-based timeout
-- v18.6.1: Fix movetime hard limit bug
-- v18.6.0: Ultra-fast (remove bitboard tactical detection)
+- v18.5.0: Stripped v18.3 (remove dead modular eval code)
+- v18.4.0: Failed deployment (rolled back)
+- v18.3.0: PST optimization (time forfeits)
+- v18.0.0: Anti-tactical defense (MoveSafetyChecker)
+- v17.1.1: Emergency time mode
+- v17.1: PV instant move disabled + opening book
+- v14.1: Smart time management fixes
 
 Author: Pat Snyder
 """
@@ -44,15 +44,10 @@ import json
 import os
 from typing import Optional, Tuple, List, Dict
 from collections import defaultdict
+from v7p3r_bitboard_evaluator import V7P3RScoringCalculationBitboard
 from v7p3r_fast_evaluator import V7P3RFastEvaluator
 from v7p3r_openings_v161 import get_enhanced_opening_book
 from v7p3r_move_safety import MoveSafetyChecker
-
-
-# V18.6.2: Custom exception for hard time limit enforcement
-class SearchTimeoutException(Exception):
-    """Raised when search exceeds hard time limit (movetime mode)"""
-    pass
 
 
 class PVTracker:
@@ -232,7 +227,7 @@ class ZobristHashing:
 class V7P3REngine:
     """V7P3R Chess Engine v18.2.0 - Combined Tactical + Positional"""
     
-    def __init__(self):
+    def __init__(self, use_fast_evaluator: bool = True):
         # Basic configuration
         self.piece_values = {
             chess.PAWN: 100,
@@ -250,9 +245,21 @@ class V7P3REngine:
         # V18.0: Move safety checker for defensive tactics
         self.move_safety = MoveSafetyChecker(self.piece_values)
         
-        # V18.6: Fast evaluator ONLY (bitboard removed entirely)
-        self.evaluator = V7P3RFastEvaluator()
-        print("info string V18.6 Ultra-Fast Evaluator (bitboard overhead removed)", flush=True)
+        # V14.2: Evaluator selection (fast vs bitboard)
+        self.use_fast_evaluator = use_fast_evaluator
+        if use_fast_evaluator:
+            # V16.1's fast evaluator - 40x faster, enables depth 6-8
+            self.evaluator = V7P3RFastEvaluator()
+            print("info string Using Fast Evaluator (v16.1 speed)", flush=True)
+        else:
+            # V14.1's bitboard evaluator - more comprehensive but slower
+            self.evaluator = V7P3RScoringCalculationBitboard(self.piece_values, enable_nudges=False)
+            print("info string Using Bitboard Evaluator (v14.1 comprehensive)", flush=True)
+        
+        # V18.5: Modular evaluation system REMOVED (was dead code, never enabled)
+        
+        # Keep reference to bitboard evaluator for compatibility
+        self.bitboard_evaluator = self.evaluator if not use_fast_evaluator else V7P3RScoringCalculationBitboard(self.piece_values, enable_nudges=False)
         
         # Simple evaluation cache for speed
         self.evaluation_cache = {}  # position_hash -> evaluation
@@ -284,8 +291,7 @@ class V7P3REngine:
         self.pv_tracker = PVTracker()
     
     def search(self, board: chess.Board, time_limit: float = 3.0, depth: Optional[int] = None, 
-               alpha: float = -99999, beta: float = 99999, is_root: bool = True,
-               use_hard_time_limit: bool = False) -> chess.Move:
+               alpha: float = -99999, beta: float = 99999, is_root: bool = True) -> chess.Move:
         """
         UNIFIED SEARCH - Single function with ALL advanced features:
         - Iterative deepening with stable best move handling (root level)
@@ -296,10 +302,6 @@ class V7P3REngine:
         - Proper time management with periodic checks
         - Full PV extraction and following
         - Quiescence search for tactical stability
-        
-        Args:
-            use_hard_time_limit: If True, time_limit is HARD (UCI movetime)
-                                If False, apply adaptive allocation (wtime/btime)
         """
         
         # ROOT LEVEL: Iterative deepening with time management
@@ -339,19 +341,7 @@ class V7P3REngine:
             # if pv_move:
             #     return pv_move
             
-            # V18.6.1: CRITICAL - Respect UCI movetime as HARD limit
-            if use_hard_time_limit:
-                # movetime mode: Use time_limit CONSERVATIVELY as HARD cap
-                # Set max_time to 75% of requested (buffer for iteration completion)
-                # Set target to 60% of requested (stop iterations early)
-                max_time = time_limit * 0.75  # Only use 75% (iteration buffer)
-                target_time = time_limit * 0.60  # Target 60%
-                self.hard_max_time = max_time  # Store for recursive search time checks
-                print(f"info string Hard time limit: {time_limit:.2f}s (max: {max_time:.2f}s, target: {target_time:.2f}s)", flush=True)
-            else:
-                # wtime/btime mode: Apply adaptive allocation
-                target_time, max_time = self._calculate_adaptive_time_allocation(board, time_limit)
-                self.hard_max_time = None  # No hard limit in adaptive mode
+            target_time, max_time = self._calculate_adaptive_time_allocation(board, time_limit)
             
             # Iterative deepening
             best_move = legal_moves[0]
@@ -369,21 +359,14 @@ class V7P3REngine:
                 if elapsed >= target_time:
                     break
                 
-                # V18.6.1: MUCH STRICTER prediction for hard time limits (movetime)
+                # V17.0: Predict if next iteration will complete before max_time
+                # Use 2.5x factor (less conservative than v14.1's 3.0x)
                 if current_depth > 1 and last_iteration_time > 0:
-                    if use_hard_time_limit:
-                        # Hard time limit: Don't start if we've used >30% of max time
-                        # (exponential branching means next depth could be 5-10x longer)
-                        # Was 50%, but still overshooting - tightening to 30%
-                        if elapsed >= max_time * 0.30:
-                            break
-                    else:
-                        # Soft time limit: Use 2.5x multiplier (original adaptive logic)
-                        predicted_completion = elapsed + (last_iteration_time * 2.5)
-                        if predicted_completion >= max_time:
-                            break
+                    predicted_completion = elapsed + (last_iteration_time * 2.5)
+                    if predicted_completion >= max_time:
+                        # V17.0: Don't start iteration we can't complete
+                        break
                 
-                # V18.6.2: Wrap search in try/except to catch timeout exceptions
                 try:
                     # Store previous best in case iteration fails
                     previous_best = best_move
@@ -437,36 +420,31 @@ class V7P3REngine:
                     elapsed = time.time() - self.search_start_time
                     if elapsed >= target_time:
                         break
-                    
-                    # V18.6.1: HARD STOP for movetime - abort if exceeded max_time
-                    if use_hard_time_limit and elapsed >= max_time:
-                        print(f"info string Hard time limit exceeded ({elapsed:.2f}s >= {max_time:.2f}s), stopping", flush=True)
-                        break
-                
-                # V18.6.2: Catch timeout exceptions and exit gracefully
-                except SearchTimeoutException as e:
-                    print(f"info string Search timeout: {e}", flush=True)
-                    # Return best move found so far
-                    break
-                    
+                        
                 except Exception as e:
                     print(f"info string Search interrupted at depth {current_depth}: {e}")
                     break
             
-# V18.6.3: SIMPLIFIED repetition handling (removed re-search freeze bug)
-            # Previous version could freeze: re-ran search with 10 min on clock, no timeout
-            # New approach: Just check if threefold, warn, but return move (don't hang)
+            # V18.5: Fixed threefold check (50cp threshold)
+            # Only avoid if move causes threefold AND we're in advantage
             if best_move and current_depth >= 3:
                 if self._would_cause_threefold(board, best_move):
                     current_eval = self._evaluate_position(board)
-                    # Warn but don't re-search (prevents 10-minute freezes)
-                    if current_eval > 50:
-                        print(f"info string Warning: Best move causes threefold (eval {current_eval}cp)", flush=True)
-            
-            # V18.6.3: EMERGENCY - Always return a valid move (prevent UCI hangs)
-            if not best_move or best_move == chess.Move.null():
-                print(f"info string EMERGENCY: best_move invalid, using legal_moves[0]", flush=True)
-                best_move = legal_moves[0]
+                    
+                    # V18.5: Fixed threshold at 50cp (was dynamic but unused)
+                    threefold_threshold = 50
+                    
+                    # Only avoid threefold if eval > 50cp (we have advantage)
+                    if current_eval > threefold_threshold:
+                        # Penalize the threefold move in transposition table
+                        self._store_transposition_table(board, current_depth, -500, best_move, -99999, 99999)
+                        # Re-run search at last completed depth to find alternative
+                        score, alt_move = self._recursive_search(board, current_depth, -99999, 99999, time_limit)
+                        if alt_move and alt_move != best_move:
+                            # Found a different move - use it
+                            best_move = alt_move
+                            print(f"info string Avoided threefold repetition (eval {current_eval}cp > threshold {threefold_threshold}cp)", flush=True)
+                        # If no alternative found (all moves cause threefold), keep original
                     
             return best_move
         
@@ -490,19 +468,12 @@ class V7P3REngine:
         """
         self.nodes_searched += 1
         
-        # V18.6.2: More frequent time checks for hard limits (movetime)
-        # Hard limit: check every 500 nodes (balanced: responsive but not excessive overhead)
-        # Soft limit: check every 1000 nodes (original)
-        check_interval = 500 if (hasattr(self, 'hard_max_time') and self.hard_max_time) else 1000
-        
         # CRITICAL: Time checking during recursive search to prevent timeouts
-        if hasattr(self, 'search_start_time') and self.nodes_searched % check_interval == 0:
+        if hasattr(self, 'search_start_time') and self.nodes_searched % 1000 == 0:
             elapsed = time.time() - self.search_start_time
-            # V18.6.2: Use hard_max_time if set (movetime mode), otherwise use time_limit
-            effective_limit = self.hard_max_time if (hasattr(self, 'hard_max_time') and self.hard_max_time) else time_limit
-            if elapsed > effective_limit:
-                # V18.6.2: RAISE EXCEPTION to abort entire search tree
-                raise SearchTimeoutException(f"Time limit exceeded: {elapsed:.2f}s > {effective_limit:.2f}s")
+            if elapsed > time_limit:
+                # Emergency return with current best evaluation
+                return self._evaluate_position(board), None
     
     # Continue _recursive_search method (this got mis-indented in previous edit)
     # Note: The following code belongs to _recursive_search, NOT _would_cause_threefold
@@ -514,9 +485,8 @@ class V7P3REngine:
         
         # 2. TERMINAL CONDITIONS
         if search_depth == 0:
-            # V18.6.3: Reduced quiescence depth from 4 to 2 (was causing 8-ply total depth!)
-            # This was a MAJOR bottleneck - at depth 4 main + depth 4 q-search = depth 8 total
-            score = self._quiescence_search(board, alpha, beta, 2)
+            # Enter quiescence search for tactical stability
+            score = self._quiescence_search(board, alpha, beta, 4)
             return score, None
             
         if board.is_game_over():
@@ -594,7 +564,7 @@ class V7P3REngine:
     
     def _order_moves_advanced(self, board: chess.Board, moves: List[chess.Move], depth: int, 
                               tt_move: Optional[chess.Move] = None) -> List[chess.Move]:
-        """V18.6.3: Ultra-fast move ordering (safety checks DISABLED for performance test)"""
+        """V18.0: Enhanced move ordering with anti-tactical safety checks"""
         if len(moves) <= 2:
             return moves
         
@@ -610,16 +580,19 @@ class V7P3REngine:
         killer_set = set(self.killer_moves.get_killers(depth))
         
         for move in moves:
-            # V18.6.3: SAFETY CHECKS DISABLED FOR PERFORMANCE TEST
-            # Previous overhead: 93ms per move ordering (45+ seconds at depth 4)
-            # TODO: Re-enable selectively if blunder rate increases
+            # V18.0: Apply safety check to all non-TT moves (lightweight overhead)
             safety_score = 0.0
+            
+            if not (tt_move and move == tt_move):
+                # Only check safety for depth >= 3 (shallow searches skip for speed)
+                if depth >= 3:
+                    safety_score = self.move_safety.evaluate_move_safety(board, move)
             
             # 1. Transposition table move (highest priority)
             if tt_move and move == tt_move:
                 tt_moves.append(move)
             
-            # 2. Captures (sorted by MVV-LVA + safety)
+            # 2. Captures (will be sorted by MVV-LVA + safety)
             elif board.is_capture(move):
                 victim = board.piece_at(move.to_square)
                 victim_value = self.piece_values.get(victim.piece_type, 0) if victim else 0
@@ -628,15 +601,17 @@ class V7P3REngine:
                 # MVV-LVA: Most Valuable Victim - Least Valuable Attacker
                 mvv_lva_score = victim_value * 100 - attacker_value
                 
-                # V18.6: Removed tactical detection (was 30k-40k operations/sec overhead)
-                total_score = mvv_lva_score + safety_score
+                # Add tactical bonus using bitboards
+                tactical_bonus = self.bitboard_evaluator.detect_bitboard_tactics(board, move)
+                total_score = mvv_lva_score + tactical_bonus + safety_score
                 
                 captures.append((total_score, move))
             
             # 4. Checks (high priority for tactical play)
             elif board.gives_check(move):
-                # V18.6: Simple check scoring (removed tactical detection)
-                checks.append((100.0 + safety_score, move))
+                # Add tactical bonus for checking moves too
+                tactical_bonus = self.bitboard_evaluator.detect_bitboard_tactics(board, move)
+                checks.append((tactical_bonus + safety_score, move))
             
             # 5. Killer moves
             elif move in killer_set:
@@ -644,14 +619,18 @@ class V7P3REngine:
                 killers.append((safety_score, move))
                 self.search_stats['killer_hits'] += 1
             
-            # 6. Quiet moves (history + safety only)
+            # 6. Check for tactical patterns in quiet moves
             else:
                 history_score = self.history_heuristic.get_history_score(move)
+                tactical_bonus = self.bitboard_evaluator.detect_bitboard_tactics(board, move)
                 
-                # V18.6: Simplified quiet move scoring (removed tactical detection)
-                total_quiet_score = history_score + safety_score
+                # V18.0: Safety score critical for quiet moves
+                total_quiet_score = history_score + tactical_bonus + safety_score
                 
-                quiet_moves.append((total_quiet_score, move))
+                if tactical_bonus > 20.0:  # Significant tactical move
+                    tactical_moves.append((total_quiet_score, move))
+                else:
+                    quiet_moves.append((total_quiet_score, move))
         
         # Sort all move categories by their scores
         captures.sort(key=lambda x: x[0], reverse=True)
@@ -682,8 +661,44 @@ class V7P3REngine:
         
         self.search_stats['cache_misses'] += 1
         
-        # V18.6: Fast evaluator ONLY (bitboard path removed)
-        final_score = float(self.evaluator.evaluate(board))
+        # V18.5: Modular evaluation path REMOVED (dead code)
+        # V14.2: Fast evaluator path (core evaluation)
+        if self.use_fast_evaluator:
+            # Fast evaluator - returns complete score directly
+            final_score = float(self.evaluator.evaluate(board))
+        else:
+            # Bitboard evaluator - comprehensive multi-component evaluation
+            white_base = self.bitboard_evaluator.calculate_score_optimized(board, True)
+            black_base = self.bitboard_evaluator.calculate_score_optimized(board, False)
+            
+            # Consolidated evaluation components
+            try:
+                # Advanced pawn structure evaluation 
+                white_pawn_score = self.bitboard_evaluator.evaluate_pawn_structure(board, True)
+                black_pawn_score = self.bitboard_evaluator.evaluate_pawn_structure(board, False)
+                
+                # Advanced king safety evaluation
+                white_king_score = self.bitboard_evaluator.evaluate_king_safety(board, True)
+                black_king_score = self.bitboard_evaluator.evaluate_king_safety(board, False)
+                
+                # Tactical pattern evaluation disabled for performance
+                white_tactical_score = 0
+                black_tactical_score = 0
+                
+                # Combine all evaluation components
+                white_total = white_base + white_pawn_score + white_king_score + white_tactical_score
+                black_total = black_base + black_pawn_score + black_king_score + black_tactical_score
+                
+            except Exception as e:
+                # Fallback to base evaluation if advanced evaluation fails
+                white_total = white_base
+                black_total = black_base
+            
+            # Calculate final score from current player's perspective
+            if board.turn:  # White to move
+                final_score = white_total - black_total
+            else:  # Black to move
+                final_score = black_total - white_total
         
         # Cache the result
         self.evaluation_cache[cache_key] = final_score

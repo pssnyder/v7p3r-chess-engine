@@ -27,7 +27,7 @@ def main():
                 break
                 
             elif command == "uci":
-                print("id name V7P3R v18.6.3")
+                print("id name V7P3R v18.5")
                 print("id author Pat Snyder")
                 print("uciok")
                 
@@ -80,7 +80,6 @@ def main():
                 time_limit = 3.0  # Default
                 depth_limit = None
                 perft_depth = None
-                use_movetime = False  # V18.6.1: Track if movetime was used (hard limit)
                 
                 for i, part in enumerate(parts):
                     if part == "perft" and i + 1 < len(parts):
@@ -93,7 +92,6 @@ def main():
                     elif part == "movetime" and i + 1 < len(parts):
                         try:
                             time_limit = int(parts[i + 1]) / 1000.0
-                            use_movetime = True  # V18.6.1: Flag movetime as HARD limit
                         except:
                             pass
                     elif part == "depth" and i + 1 < len(parts):
@@ -237,31 +235,9 @@ def main():
                         print(f"info string Perft error: {e}")
                     sys.stdout.flush()
                 else:
-                    # V18.6.3: EMERGENCY FALLBACK - Always return a move (prevent UCI hangs)
-                    try:
-                        # V18.6.1: Pass movetime flag to respect hard time limits
-                        best_move = engine.search(board, time_limit, use_hard_time_limit=use_movetime)
-                        
-                        # V18.6.3: Validate move before returning
-                        if best_move and best_move in board.legal_moves:
-                            print(f"bestmove {best_move}")
-                        else:
-                            # EMERGENCY: Return first legal move
-                            legal_moves = list(board.legal_moves)
-                            if legal_moves:
-                                print(f"info string EMERGENCY: Invalid best_move, using first legal")
-                                print(f"bestmove {legal_moves[0]}")
-                            else:
-                                print(f"bestmove 0000")  # Null move (game over)
-                    except Exception as e:
-                        # CRITICAL FAILURE: Return emergency move to prevent hang
-                        print(f"info string CRITICAL ERROR: {e}", flush=True)
-                        legal_moves = list(board.legal_moves)
-                        if legal_moves:
-                            print(f"bestmove {legal_moves[0]}")
-                        else:
-                            print(f"bestmove 0000")
-                    
+                    # Normal search
+                    best_move = engine.search(board, time_limit)
+                    print(f"bestmove {best_move}")
                     sys.stdout.flush()  # Ensure output is sent immediately
                 
         except (EOFError, KeyboardInterrupt):

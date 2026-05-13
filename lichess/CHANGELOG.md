@@ -8,10 +8,10 @@
 
 ## Quick Reference
 
-**Current Active Version**: v18.5 (deployed 2026-05-11 17:10 UTC)  
+**Current Active Version**: v18.6.3 (deployed 2026-05-13 [DEPLOYING])  
 **GCP Project**: v7p3r-lichess-bot  
 **Instance**: v7p3r-production-bot (e2-micro, us-central1-a)  
-**ELO Rating**: [TBD - monitoring] - Target: Recover to 1500+ stable
+**ELO Rating**: [TBD - monitoring] - Target: 1500+ stable, depth 5-6, zero timeouts
 
 ---
 
@@ -42,7 +42,52 @@ Copy this block, fill in the fields, and paste at the top of this section.
 
 -->
 
+### v18.6.3
+- **Deployed**: 2026-05-13 [DEPLOYING]
+- **Retired**: [ACTIVE]
+- **Status**: active
+- **Rollback**: false
+- **Duration Days**: [TBD]
+- **Deployment Method**: manual
+- **Environment**: production
+- **ELO Rating**: [TBD] - Target: 1500+ stable, strong tactical play
+- **Games Played**: [TBD]
+- **Features**:
+  - **ULTRA-PERFORMANCE MODE**: Disabled move_safety checker (93ms overhead per move ordering)
+  - **REDUCED QUIESCENCE DEPTH**: 4 → 2 (was searching to depth 8 total!)
+  - **FREEZE PREVENTION**: Removed repetition re-search bug, added UCI emergency fallback
+  - Now reaches **depth 5-6** consistently (was stuck at depth 3-4)
+  - NPS improved to **10800+** (was 6000-8000)
+  - All v18.6.2 timeout fixes kept (exception-based, movetime respected)
+- **Known Issues**:
+  - Move safety disabled - blunder rate unknown (monitoring required)
+- **Rollback Reason**: N/A
+- **Notes**: **CRITICAL PERFORMANCE BREAKTHROUGH** - Identified move_safety.evaluate_move_safety() as major bottleneck (93ms per move ordering × 30k nodes = 45+ seconds wasted). Disabled safety checker for raw speed test. Also reduced quiescence depth 4→2 (depth 4 main + depth 4 q-search = depth 8 total was excessive). Fixed FREEZE BUG: repetition avoidance re-ran search with 10 minutes on clock and no timeout protection. Added UCI emergency fallback to always return valid move. Performance: Depth 5 in 8.6s (was depth 4 in 4s), depth 6 in endgames. NPS: 10802 (was 6164). Testing speed vs safety tradeoff - may need selective safety re-enabling if blunders spike. ROOT CAUSE: Safety checker called board.push/pop + scanned 64 squares + generated legal moves on EVERY non-TT move at depth >= 3.
+
+### v18.6.2
+- **Deployed**: 2026-05-12 [PENDING TEST]
+- **Retired**: [ACTIVE]
+- **Status**: active
+- **Rollback**: false
+- **Duration Days**: [TBD]
+- **Deployment Method**: manual
+- **Environment**: production
+- **ELO Rating**: [TBD - monitoring] - Target: 1500+ stable, zero time forfeits
+- **Games Played**: [TBD]
+- **Features**:
+  - **FINAL TIME FIX**: Exception-based timeout enforcement
+  - Implemented SearchTimeoutException that aborts entire search tree
+  - v18.6.1 fix (movetime hard limit) kept
+  - v18.6.0 fix (bitboard overhead removal) kept
+  - v18.5 cleanup (dead code removal) kept
+- **Known Issues**:
+  - None identified in testing (validated with 200ms, 500ms, 1s, 3s limits)
+- **Rollback Reason**: N/A
+- **Notes**: **COMPREHENSIVE TIME FIX** - Solves 3-layer time management bug cascade: (1) v18.6.0 removed bitboard tactical detection overhead (30k-40k ops/sec), (2) v18.6.1 fixed movetime parameter being overridden by adaptive allocation, (3) v18.6.2 fixes TIME ABORT returning from individual branches instead of aborting entire search. Previous versions showed 23 "TIME ABORT" messages but search continued, completing depth 4 in 4059ms instead of stopping at 2250ms. Exception-based timeout properly exits search tree when time exceeded. Tested: 200ms limit fired exception at 180ms (depth 1), 500ms stopped at 142ms (depth 2), 1s stopped at 262ms (depth 2), 3s stopped at 966ms (depth 3). No TIME ABORT spam, clean output. Deploy pending user validation. Root cause analysis: v18.6.1 TIME ABORT used `return` which only exited current function call, parent iterative deepening loop continued evaluating other moves.
+
 ### v18.5
+
+
 - **Deployed**: 2026-05-11 17:10 UTC
 - **Retired**: [ACTIVE]
 - **Status**: active
