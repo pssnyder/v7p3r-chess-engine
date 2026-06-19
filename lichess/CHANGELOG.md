@@ -42,72 +42,6 @@ Copy this block, fill in the fields, and paste at the top of this section.
 
 -->
 
-### v18.6.3
-- **Deployed**: 2026-05-13 [DEPLOYING]
-- **Retired**: [ACTIVE]
-- **Status**: active
-- **Rollback**: false
-- **Duration Days**: [TBD]
-- **Deployment Method**: manual
-- **Environment**: production
-- **ELO Rating**: [TBD] - Target: 1500+ stable, strong tactical play
-- **Games Played**: [TBD]
-- **Features**:
-  - **ULTRA-PERFORMANCE MODE**: Disabled move_safety checker (93ms overhead per move ordering)
-  - **REDUCED QUIESCENCE DEPTH**: 4 → 2 (was searching to depth 8 total!)
-  - **FREEZE PREVENTION**: Removed repetition re-search bug, added UCI emergency fallback
-  - Now reaches **depth 5-6** consistently (was stuck at depth 3-4)
-  - NPS improved to **10800+** (was 6000-8000)
-  - All v18.6.2 timeout fixes kept (exception-based, movetime respected)
-- **Known Issues**:
-  - Move safety disabled - blunder rate unknown (monitoring required)
-- **Rollback Reason**: N/A
-- **Notes**: **CRITICAL PERFORMANCE BREAKTHROUGH** - Identified move_safety.evaluate_move_safety() as major bottleneck (93ms per move ordering × 30k nodes = 45+ seconds wasted). Disabled safety checker for raw speed test. Also reduced quiescence depth 4→2 (depth 4 main + depth 4 q-search = depth 8 total was excessive). Fixed FREEZE BUG: repetition avoidance re-ran search with 10 minutes on clock and no timeout protection. Added UCI emergency fallback to always return valid move. Performance: Depth 5 in 8.6s (was depth 4 in 4s), depth 6 in endgames. NPS: 10802 (was 6164). Testing speed vs safety tradeoff - may need selective safety re-enabling if blunders spike. ROOT CAUSE: Safety checker called board.push/pop + scanned 64 squares + generated legal moves on EVERY non-TT move at depth >= 3.
-
-### v18.6.2
-- **Deployed**: 2026-05-12 [PENDING TEST]
-- **Retired**: [ACTIVE]
-- **Status**: active
-- **Rollback**: false
-- **Duration Days**: [TBD]
-- **Deployment Method**: manual
-- **Environment**: production
-- **ELO Rating**: [TBD - monitoring] - Target: 1500+ stable, zero time forfeits
-- **Games Played**: [TBD]
-- **Features**:
-  - **FINAL TIME FIX**: Exception-based timeout enforcement
-  - Implemented SearchTimeoutException that aborts entire search tree
-  - v18.6.1 fix (movetime hard limit) kept
-  - v18.6.0 fix (bitboard overhead removal) kept
-  - v18.5 cleanup (dead code removal) kept
-- **Known Issues**:
-  - None identified in testing (validated with 200ms, 500ms, 1s, 3s limits)
-- **Rollback Reason**: N/A
-- **Notes**: **COMPREHENSIVE TIME FIX** - Solves 3-layer time management bug cascade: (1) v18.6.0 removed bitboard tactical detection overhead (30k-40k ops/sec), (2) v18.6.1 fixed movetime parameter being overridden by adaptive allocation, (3) v18.6.2 fixes TIME ABORT returning from individual branches instead of aborting entire search. Previous versions showed 23 "TIME ABORT" messages but search continued, completing depth 4 in 4059ms instead of stopping at 2250ms. Exception-based timeout properly exits search tree when time exceeded. Tested: 200ms limit fired exception at 180ms (depth 1), 500ms stopped at 142ms (depth 2), 1s stopped at 262ms (depth 2), 3s stopped at 966ms (depth 3). No TIME ABORT spam, clean output. Deploy pending user validation. Root cause analysis: v18.6.1 TIME ABORT used `return` which only exited current function call, parent iterative deepening loop continued evaluating other moves.
-
-### v18.5
-
-
-- **Deployed**: 2026-05-11 17:10 UTC
-- **Retired**: [ACTIVE]
-- **Status**: active
-- **Rollback**: false
-- **Duration Days**: [TBD]
-- **Deployment Method**: manual
-- **Environment**: production
-- **ELO Rating**: [TBD - monitoring first 5 games] - Target: 1500+ stable
-- **Games Played**: [TBD]
-- **Features**:
-  - Stripped v18.3 codebase (removed unused modular evaluation system)
-  - Fixed threefold threshold (50cp, was dynamic but unused)
-  - Removed dead code overhead (4 unused module files deleted)
-  - Identical time management to v18.0/v18.3 (proven stable)
-  - Kept core: Fast evaluator, move safety, opening book
-- **Known Issues**:
-  - None identified yet (active monitoring)
-- **Rollback Reason**: N/A
-- **Notes**: **TIME FORFEIT FIX** - Created to address 37.5% time forfeit rate observed in v18.3 redeployment (May 3-10, 2026). Root cause analysis identified modular evaluation system was never enabled but still computing context calculations on every search. v18.5 strips all dead code while preserving v18.3's core evaluation "brain". Files reduced from 10 to 6 (same as v18.0). Successfully deployed May 11, 2026. Monitoring for time management improvements and ELO recovery.
-
 ### v18.4
 - **Deployed**: 2026-04-17
 - **Retired**: 2026-05-03
@@ -154,9 +88,9 @@ Copy this block, fill in the fields, and paste at the top of this section.
 - **Notes**: **MIXED RESULTS** - First deployment (Dec 29 - Apr 17): Longest stable run (110 days), highest peak ELO (1722). Second deployment (May 3-10): Critical time management failure due to dead code overhead. Analysis revealed modular evaluation system was never enabled but still executing expensive context calculations. v18.5 created to strip dead code while preserving core evaluation.
 
 ### v18.0
-- **Deployed**: 2025-12-20
-- **Retired**: 2025-12-29
-- **Status**: retired
+- **Deployed**: 2025-12-20, 2026-05-03 (redeployed as rollback)
+- **Retired**: 2025-12-29 (initial), [TBD]
+- **Status**: active
 - **Rollback**: false
 - **Duration Days**: 9
 - **Deployment Method**: automated
