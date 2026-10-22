@@ -1,7 +1,18 @@
 # gitignore file for v7p3r_chess_engine project
 
-# lichess config (contains api token)
-config.yml*
+# Local/private deployment secrets and runtime state
+# Keep the public repo free of live tokens and generated runtime config.
+*.env
+!*.env.example
+!**/*.env.example
+v7p3r_bot_token.env
+lichess/config.yml
+lichess/config.local.yml
+lichess/config.generated.yml
+lichess/config.*.local.yml
+lichess/config.*.generated.yml
+lichess/config.yml.download
+lichess/config.*.download
 
 # General catch-all for do-not-commit files
 *.do-not-commit
@@ -24,8 +35,31 @@ v7p3r_ga_models/*
 v7p3r_rl_models/*
 venv/*
 .history/*
-scripts/*
 analysis_results/*
+
+# Private deployment artifacts and local engine history
+lichess/engines/*
+!lichess/engines/.gitkeep
+!lichess/engines/README.md
+!lichess/engines/README.txt
+!lichess/engines/*.default
+!lichess/engines/*.example
+!lichess/engines/*.template
+
+# Keep the repo clean while preserving local versioned engine archives elsewhere
+**/*.zip
+**/*.tar
+**/*.tar.gz
+**/*.tgz
+**/*.7z
+
+# Do not track local repository backups or deployment snapshots
+backup/
+backups/
+releases/
+release/
+private/
+private_*/
 
 # Data files
 *.pgn
